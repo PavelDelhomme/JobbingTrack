@@ -68,7 +68,11 @@ class AdbClient {
   async typeInField(hint, value) {
     const r = await this._post('/tap-field-and-type', { hint, text: value });
     if (!r.success) throw new Error(r.error || `Champ "${hint}" introuvable`);
-    this._log(`type "${hint}" = "${value}"`);
+    const masked =
+      /mot de passe|password/i.test(hint) || /mot de passe|password/i.test(String(value))
+        ? '***'
+        : value;
+    this._log(`type "${hint}" = "${masked}"`);
     return r.message;
   }
 
@@ -249,6 +253,48 @@ class AdbClient {
   // ─── Utilities ─────────────────────────────────────────────────
 
   wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  _boundsCenter(bounds) {
+    const m = bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+    if (!m) return null;
+    return {
+      cx: Math.round((+m[1] + +m[3]) / 2),
+      cy: Math.round((+m[2] + +m[4]) / 2),
+    };
+  }
+
+  async listEditTexts() {
+    const nodes = await this.uiNodes();
+    return nodes
+      .filter((n) => n.className.includes('EditText') && n.bounds)
+      .sort((a, b) => this._boundsCenter(a.bounds).cy - this._boundsCenter(b.bounds).cy);
+  }
+
+  /** Saisie par index de champ EditText (formulaires Flutter sans hint accessible). */
+  async typeInEditTextByIndex(index, value, opts = {}) {
+    const edits = await this.listEditTexts();
+    if (index < 0 || index >= edits.length) {
+      throw new Error(`EditText #${index} introuvable (${edits.length} champ(s))`);
+    }
+    const center = this._boundsCenter(edits[index].bounds);
+    await this.tapXY(center.cx, center.cy);
+    await this.wait(opts.isEmail ? 600 : 400);
+    await this.clearField();
+    await this.wait(200);
+    if (opts.isEmail) {
+      for (const hint of ['redacted', 'example', 'Email', '@']) {
+        try {
+          await this.typeInField(hint, value);
+          this._log(`type EditText#${index} (email) via hint "${hint}"`);
+          return;
+        } catch {
+          /* essai suivant */
+        }
+      }
+    }
+    await this.typeText(value);
+    this._log(`type EditText#${index} = "${String(value).slice(0, 24)}${String(value).length > 24 ? '…' : ''}"`);
+  }
 
   async clearField() {
     await this._post('/clear-field', {});

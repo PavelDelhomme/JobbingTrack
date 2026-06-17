@@ -9,7 +9,7 @@
 EMULATOR_CONTROLLER_DIR := $(ROOT_DIR)/tools/emulator-controller
 MOBILE_DIR := $(ROOT_DIR)/mobile
 
-.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop restart-emulator verify-mobile-emulator verify-mobile-scenarios help-emulator test-emulator-controller
+.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop restart-emulator verify-mobile-emulator verify-mobile-scenarios help-emulator test-emulator-controller mobile-device-ready run-mobile mobile-login-admin mobile-login-user mobile-test-accounts mobile-register-smoke mobile-verify-email-smoke mobile-sync-test-env mobile-verify-email
 
 # Démarrer le lanceur (port 5056) qui démarre le contrôleur (5055). Depuis le backoffice on peut Démarrer/Arrêter le contrôleur sans terminal.
 emulator-controller: ## Démarrer le lanceur + contrôleur (5056 + 5055). Backoffice → Démarrer/Arrêter le contrôleur sans terminal
@@ -76,6 +76,52 @@ test-emulator-controller: ## Vérifier que le contrôleur répond (GET /health, 
 		echo "❌ Fichier introuvable : $(EMULATOR_CONTROLLER_DIR)/test-server.js"; exit 1; \
 	fi
 	@cd "$(ROOT_DIR)" && node "$(EMULATOR_CONTROLLER_DIR)/test-server.js"
+
+# Appareil physique : adb reverse + build/install APK
+mobile-device-ready: ## Préparer appareil USB (adb reverse 5002/5003, build APK, install)
+	@bash "$(ROOT_DIR)/scripts/mobile/setup-physical-device.sh"
+
+# Alias porteur : build + install + lancement sur téléphone USB
+run-mobile: ## Build, installe et lance l'app Flutter sur appareil USB (adb reverse inclus)
+	@bash "$(ROOT_DIR)/scripts/mobile/setup-physical-device.sh"
+
+# Connexion automatique admin (TEST_ADMIN_* puis repli ADMIN_* si login gateway OK)
+mobile-login-admin: ## Login auto sur appareil ADB avec credentials admin (.env)
+	@echo "📱 Connexion admin mobile (TEST_ADMIN_* puis ADMIN_*)..."
+	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true
+	@adb reverse tcp:5003 tcp:5003 2>/dev/null || true
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke-login-admin-adb.js"
+
+mobile-login-user: ## Login auto ADB avec TEST_USER_EMAIL/PASSWORD (.env)
+	@echo "📱 Connexion utilisateur test mobile (TEST_USER_*)..."
+	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true
+	@adb reverse tcp:5003 tcp:5003 2>/dev/null || true
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke-login-user-adb.js"
+
+mobile-test-accounts: ## Smoke ADB admin + user (menu ADMIN visible / masqué)
+	@echo "📱 Smoke dual comptes mobile (admin puis utilisateur test)..."
+	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true
+	@adb reverse tcp:5003 tcp:5003 2>/dev/null || true
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke-mobile-accounts-adb.js"
+
+mobile-register-smoke: ## Smoke inscription UI (télémétrie + écran vérif email)
+	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke-register-adb.js"
+
+mobile-verify-email-smoke: ## E2E : inscription TEST_REAL_EMAIL → email (MailHog/Log) → deep link → login ADB
+	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke-verify-email-adb.js"
+
+mobile-sync-test-env: ## Comparer / aligner TEST_ADMIN_* et TEST_VERIFICATION_PASSWORD (.env)
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/sync-test-env.js" $(if $(WRITE),--write,)
+
+# Ouvrir un lien de vérification email dans l'app (TOKEN=xxx requis)
+mobile-verify-email: ## Ouvrir deep link verify-email sur appareil (TOKEN=xxx)
+	@test -n "$(TOKEN)" || (echo "❌ Usage: make mobile-verify-email TOKEN=<token_du_mail>"; exit 1)
+	@echo "📧 Ouverture jobbingtrack://verify-email?token=$(TOKEN)"
+	@adb shell am start -a android.intent.action.VIEW \
+		-d "jobbingtrack://verify-email?token=$(TOKEN)" \
+		-n com.example.jobbingtrack_mobile/.MainActivity
 
 # Aide émulateur mobile
 help-emulator: ## Aide : tester l'app mobile en direct depuis le backoffice (émulateur ou téléphone connecté)

@@ -10,6 +10,7 @@ Ce fichier archive ce que le porteur a réellement validé. Les validations tech
 
 | Date | Élément validé | Environnement | Preuve / remarque |
 |------|----------------|---------------|-------------------|
+| 17/06/2026 | Statistics — graphes disponibilité / erreur (vue d'ensemble) | local | Validation porteur explicite : « OK Statistics vue d'ensemble même si partiel ». Graphes infra avec marqueurs sparse, ChartPeriodCaption, retrait panneau P1B doublon Performances. Candidatures/utilisateurs → App data. |
 | 17/06/2026 | Statistics — onglet Données applicatives (`app-data`) | local | Validation porteur explicite : « ouais ca me vas ». Pills période 7/14/30 j, toggle séries métier, `ChartPeriodCaption`, snapshot explicite si un seul point API. |
 | 17/06/2026 | Statistics — onglet Logs (`log-stats`) | local | Validation porteur explicite : « okay valide ». Filtres pills période, chips niveau sémantiques, autocomplete services, graphe **Volume de logs dans le temps** avec `ChartPeriodCaption`. Libs `logStatsTimeSeries`, `logLevelChipTone`. |
 | 17/06/2026 | Performances Disque — volume utilisé/total + brush | local | Validation porteur explicite : « c'est parfait on valide ». Graphes volume sur 24 h (~680 / 900 Go), cartes utilisé/total + espace libre, Block I/O inchangé, plus d’overlay Next.js NaN. Correctif `diskMetricsModel.ts`, série complète dans les charts, brush pleine plage par défaut. |

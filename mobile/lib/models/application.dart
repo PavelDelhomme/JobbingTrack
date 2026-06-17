@@ -17,6 +17,8 @@ class Application {
   final User createdBy;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? agencyId;
+  final String agencyName;
 
   const Application({
     required this.id,
@@ -34,28 +36,64 @@ class Application {
     required this.createdBy,
     required this.createdAt,
     required this.updatedAt,
+    this.agencyId,
+    this.agencyName = '',
   });
+
+  bool get isInterim => agencyId != null && agencyId!.isNotEmpty;
 
   factory Application.fromJson(Map<String, dynamic> json) {
     final status = json['status'];
-    final statusCode = status is Map ? (status['code'] ?? status['name'] ?? '') : (status?.toString() ?? '');
+    String statusCode = '';
+    if (status is Map) {
+      statusCode = (status['code'] ?? status['name'] ?? '').toString();
+    } else if (status != null) {
+      statusCode = status.toString();
+    }
+    if (statusCode.isEmpty && json['statusId'] != null) {
+      statusCode = json['statusId'].toString();
+    }
     final appliedDate = json['applicationDate'] ?? json['appliedDate'];
+    final rawTags = json['tags'];
+    final tags = rawTags is List
+        ? rawTags.map((t) => t?.toString() ?? '').where((t) => t.isNotEmpty).toList()
+        : <String>[];
+    final companyJson = json['company'];
+    final companyId = json['companyId']?.toString() ?? '';
+    Map<String, dynamic> companyMap;
+    if (companyJson is Map) {
+      companyMap = Map<String, dynamic>.from(companyJson);
+      if ((companyMap['id'] == null || companyMap['id'].toString().isEmpty) && companyId.isNotEmpty) {
+        companyMap['id'] = companyId;
+      }
+    } else {
+      companyMap = {'id': companyId, 'name': ''};
+    }
+    final agencyJson = json['agency'];
+    final agencyId = json['agencyId']?.toString();
+    final agencyName = agencyJson is Map
+        ? (agencyJson['name']?.toString() ?? '')
+        : '';
     return Application(
-      id: json['id'] ?? '',
-      position: json['position'] ?? '',
-      description: json['description'] ?? '',
-      company: Company.fromJson(json['company'] ?? {}),
-      status: statusCode.isNotEmpty ? statusCode : (json['status']?.toString() ?? ''),
-      priority: json['priority'] ?? 'MEDIUM',
+      id: json['id']?.toString() ?? '',
+      position: json['position']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      company: Company.fromJson(companyMap),
+      status: statusCode,
+      priority: json['priority']?.toString() ?? 'MEDIUM',
       appliedDate: appliedDate != null ? DateTime.tryParse(appliedDate.toString()) ?? DateTime.now() : DateTime.now(),
       interviewDate: json['interviewDate'] != null ? DateTime.tryParse(json['interviewDate'].toString()) : null,
-      location: json['location'] ?? '',
+      location: json['location']?.toString() ?? '',
       salary: json['salary']?.toString() ?? '',
-      notes: json['notes'] ?? '',
-      tags: List<String>.from(json['tags'] ?? []),
-      createdBy: json['createdBy'] != null ? User.fromJson(json['createdBy'] as Map<String, dynamic>) : User.fromJson({}),
+      notes: json['notes']?.toString() ?? '',
+      tags: tags,
+      createdBy: json['createdBy'] is Map<String, dynamic>
+          ? User.fromJson(json['createdBy'] as Map<String, dynamic>)
+          : User.fromJson({}),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
+      agencyId: agencyId,
+      agencyName: agencyName,
     );
   }
 
@@ -76,6 +114,7 @@ class Application {
       'createdBy': createdBy.toJson(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      if (agencyId != null) 'agencyId': agencyId,
     };
   }
 }

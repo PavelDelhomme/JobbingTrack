@@ -5,7 +5,7 @@ import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
 import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
-import 'package:intl/intl.dart';
+import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 
 class InterviewsScreen extends StatefulWidget {
   const InterviewsScreen({super.key});
@@ -29,7 +29,6 @@ class _InterviewsScreenState extends State<InterviewsScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<InterviewProvider>(context);
-    final dateFormat = DateFormat('dd/MM/yyyy');
 
     return Scaffold(
       key: _scaffoldKey,
@@ -61,7 +60,7 @@ class _InterviewsScreenState extends State<InterviewsScreen> {
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
-                          title: Text(dateFormat.format(i.interviewDate)),
+                          title: Text(formatSmartEventDate(i.interviewDate)),
                           subtitle: Text(i.location ?? i.notes ?? 'Entretien'),
                           leading: const Icon(Icons.calendar_today, color: Colors.blue),
                         ),

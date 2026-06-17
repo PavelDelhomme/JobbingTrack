@@ -66,6 +66,7 @@ router.get('/errors', authenticate, analyticsController.getErrors);
 
 // Performance
 router.post('/performance', optionalAuth, analyticsController.trackPerformance);
+router.get('/performance', authenticate, analyticsController.getPerformance);
 
 // Appareils
 router.post('/device', optionalAuth, analyticsController.registerDevice);

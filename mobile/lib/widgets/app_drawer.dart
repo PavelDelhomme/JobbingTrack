@@ -1,14 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/services/api_config_store.dart';
+import 'package:jobbingtrack_mobile/utils/admin_access.dart';
 
-class AppDrawer extends StatelessWidget {
+class AppDrawer extends StatefulWidget {
   const AppDrawer({super.key});
+
+  @override
+  State<AppDrawer> createState() => _AppDrawerState();
+}
+
+class _AppDrawerState extends State<AppDrawer> {
+  bool _interimMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInterimMode();
+  }
+
+  Future<void> _loadInterimMode() async {
+    final enabled = await ApiConfigStore.loadInterimModeEnabled();
+    if (mounted) setState(() => _interimMode = enabled);
+  }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;
+    final isAdmin = AdminAccess.canAccessAdmin(user);
 
     return Drawer(
       child: ListView(
@@ -66,6 +87,17 @@ class AppDrawer extends StatelessWidget {
                 title: 'Candidatures',
                 route: '/applications',
               ),
+              if (_interimMode)
+                _DrawerItem(
+                  icon: Icons.business_center,
+                  title: 'Intérim',
+                  route: '/interim',
+                ),
+              _DrawerItem(
+                icon: Icons.search,
+                title: 'Recherche globale',
+                route: '/search',
+              ),
               _DrawerItem(
                 icon: Icons.business,
                 title: 'Entreprises',
@@ -101,12 +133,17 @@ class AppDrawer extends StatelessWidget {
 
           const Divider(),
 
-          // Analytics et statistiques
-          if (user?.role == 'SUPER_ADMIN' || user?.role == 'ADMIN')
+          // Administration — visible uniquement pour comptes admin autorisés
+          if (isAdmin)
             _buildDrawerSection(
               context,
               title: 'ADMINISTRATION',
               items: [
+                _DrawerItem(
+                  icon: Icons.admin_panel_settings,
+                  title: 'Hub administration',
+                  route: '/admin',
+                ),
                 _DrawerItem(
                   icon: Icons.analytics,
                   title: 'Analytics',
@@ -126,11 +163,6 @@ class AppDrawer extends StatelessWidget {
                   icon: Icons.article,
                   title: 'Logs',
                   route: '/logs',
-                ),
-                _DrawerItem(
-                  icon: Icons.archive_outlined,
-                  title: 'Archives',
-                  route: '/trash',
                 ),
                 _DrawerItem(
                   icon: Icons.delete_outline,

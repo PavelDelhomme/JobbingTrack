@@ -5,6 +5,7 @@ import 'package:jobbingtrack_mobile/providers/application_provider.dart';
 import 'package:jobbingtrack_mobile/providers/company_provider.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/models/company.dart';
+import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
@@ -26,6 +27,9 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   List<Company> _companies = [];
   /// Id de l'entreprise sélectionnée dans la liste (null si "nouvelle entreprise").
   String? _companyId;
+  String? _agencyId;
+  List<Company> _agencies = [];
+  bool _interimMode = false;
   /// Nom saisi pour une nouvelle entreprise (utilisé si _companyId == null).
   final _companyNameController = TextEditingController();
   bool _useNewCompany = false;
@@ -57,9 +61,33 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       _notes.text = a.notes;
       _companyId = a.company.id;
       _companyNameController.text = a.company.name;
+      _agencyId = a.agencyId;
       _applicationDate = a.appliedDate;
     }
     _loadCompanies();
+    _loadInterimPrefs();
+  }
+
+  Future<void> _loadInterimPrefs() async {
+    final interim = await ApiConfigStore.loadInterimModeEnabled();
+    if (!mounted) return;
+    setState(() => _interimMode = interim);
+    if (interim) await _loadAgencies();
+  }
+
+  Future<void> _loadAgencies() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    try {
+      final list = await ApiService.getCompanies(token: auth.token, companyType: 'TEMP_AGENCY');
+      if (mounted) {
+        setState(() {
+          _agencies = list;
+          if (widget.application?.agencyId != null) {
+            _agencyId = widget.application!.agencyId;
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadCompanies() async {
@@ -111,6 +139,9 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     final sx = int.tryParse(_salaryMax.text.trim());
     if (sm != null) payload['salaryMin'] = sm;
     if (sx != null) payload['salaryMax'] = sx;
+    if (_agencyId != null && _agencyId!.isNotEmpty) {
+      payload['agencyId'] = _agencyId;
+    }
     return payload;
   }
 
@@ -130,14 +161,16 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       if (widget.application == null) {
         await ApiService.createApplicationFromPayload(payload, token: token);
         if (mounted) {
-          Provider.of<ApplicationProvider>(context, listen: false).loadApplications();
+          Provider.of<ApplicationProvider>(context, listen: false)
+              .loadApplications(token: token);
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Candidature créée')));
           Navigator.of(context).pop(true);
         }
       } else {
         await ApiService.updateApplicationFromPayload(widget.application!.id, payload, token: token);
         if (mounted) {
-          Provider.of<ApplicationProvider>(context, listen: false).loadApplications();
+          Provider.of<ApplicationProvider>(context, listen: false)
+              .loadApplications(token: token);
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Candidature mise à jour')));
           Navigator.of(context).pop(true);
         }
@@ -225,6 +258,22 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
                 },
               ),
             const SizedBox(height: 12),
+            if (_interimMode) ...[
+              DropdownButtonFormField<String?>(
+                value: _agencyId,
+                decoration: const InputDecoration(
+                  labelText: 'Boîte d\'intérim (optionnel)',
+                  border: OutlineInputBorder(),
+                  helperText: 'Agence à l\'origine de la proposition',
+                ),
+                items: [
+                  const DropdownMenuItem<String?>(value: null, child: Text('— Aucune / classique')),
+                  ..._agencies.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name))),
+                ],
+                onChanged: (v) => setState(() => _agencyId = v),
+              ),
+              const SizedBox(height: 12),
+            ],
             TextFormField(
               controller: _position,
               decoration: const InputDecoration(labelText: 'Poste *', border: OutlineInputBorder()),

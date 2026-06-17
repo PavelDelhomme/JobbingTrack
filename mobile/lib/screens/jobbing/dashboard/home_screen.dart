@@ -7,6 +7,7 @@ import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
+import 'package:jobbingtrack_mobile/widgets/global_search_entry_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -35,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final followUpProvider = Provider.of<FollowUpProvider>(context, listen: false);
     
     await Future.wait([
-      appProvider.loadApplications(),
+      appProvider.loadApplications(token: token),
       interviewProvider.loadInterviews(token: token),
       followUpProvider.loadFollowUps(token: token),
     ]);
@@ -83,6 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text('Bonjour ${user?.firstName ?? ''} 👋'),
         centerTitle: true,
         actions: [
+          globalSearchIconButton(context),
           MobileNotificationCenter(),
           IconButton(
             onPressed: () async {
@@ -117,7 +119,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+
+                const GlobalSearchEntryBar(),
+
+                const SizedBox(height: 20),
 
                 // Statistiques principales
                 _buildMainStats(applications, interviews, followUps),

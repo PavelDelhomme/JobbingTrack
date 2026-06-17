@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
+import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/providers/application_provider.dart';
 import 'package:jobbingtrack_mobile/providers/company_provider.dart';
@@ -35,10 +36,53 @@ import 'package:jobbingtrack_mobile/screens/jobbing/calendar/events_screen.dart'
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/forgot_password_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/reset_password_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/verify_email_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/auth/biometric_unlock_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/interim/interim_screen.dart';
 import 'package:jobbingtrack_mobile/screens/admin/admin_screen.dart';
+import 'package:jobbingtrack_mobile/widgets/admin_guard.dart';
+import 'package:jobbingtrack_mobile/utils/locale_init.dart';
+import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
+import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 
-void main() {
+Route<dynamic>? resolveAppRoute(RouteSettings settings) {
+  if (settings.name != null && settings.name!.startsWith('/reset-password/')) {
+    final token = settings.name!.replaceFirst('/reset-password/', '');
+    return MaterialPageRoute(
+      builder: (context) => ResetPasswordScreen(token: token),
+      settings: settings,
+    );
+  }
+  if (settings.name != null &&
+      (settings.name!.startsWith('/verify-email') || settings.name!.contains('verify-email'))) {
+    String? token;
+    final path = settings.name!;
+    if (path.startsWith('/verify-email/') &&
+        path.length > '/verify-email/'.length &&
+        !path.contains('?')) {
+      token = path.substring('/verify-email/'.length).split('?').first;
+    } else {
+      try {
+        final uri = path.contains('://')
+            ? Uri.tryParse(path)
+            : Uri.tryParse(path.contains('?') ? 'jobbingtrack://verify-email$path' : 'jobbingtrack://verify-email/$path');
+        token = uri?.queryParameters['token'];
+        if ((token == null || token.isEmpty) && path.contains('/verify-email/')) {
+          final parts = path.split('/verify-email/');
+          if (parts.length > 1) token = parts.last.split('?').first;
+        }
+      } catch (_) {}
+    }
+    return MaterialPageRoute(
+      builder: (context) => VerifyEmailScreen(token: token),
+      settings: settings,
+    );
+  }
+  return null;
+}
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initAppLocale();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -72,40 +116,25 @@ class JobbingTrackMobileApp extends StatelessWidget {
       child: MaterialApp(
         title: 'JobbingTrack Mobile',
         debugShowCheckedModeBanner: false,
+        navigatorObservers: [MobileAnalyticsRouteObserver()],
         theme: ThemeData(
           primarySwatch: Colors.blue,
           useMaterial3: true,
           // Pas de fontFamily : Inter n'est pas dans pubspec → crash au lancement sur Android si on le met
         ),
-        home: const _SplashScreen(),
-        onGenerateRoute: (settings) {
-          // /reset-password/:token
-          if (settings.name != null && settings.name!.startsWith('/reset-password/')) {
-            final token = settings.name!.replaceFirst('/reset-password/', '');
-            return MaterialPageRoute(
-              builder: (context) => ResetPasswordScreen(token: token),
-              settings: settings,
-            );
-          }
-          // /verify-email, /verify-email/:token ou URL complète avec ?token= (lien email)
-          if (settings.name != null && (settings.name!.startsWith('/verify-email') || settings.name!.contains('verify-email'))) {
-            String? token;
-            final path = settings.name!;
-            if (path.startsWith('/verify-email/') && path.length > '/verify-email/'.length && !path.contains('?')) {
-              token = path.substring('/verify-email/'.length).split('?').first;
-            } else if (path.contains('token=')) {
-              try {
-                final uri = path.startsWith('http') ? Uri.tryParse(path) : Uri.tryParse('http://dummy$path');
-                token = uri?.queryParameters['token'];
-              } catch (_) {}
+        initialRoute: '/',
+        onGenerateInitialRoutes: (String initialRouteName) {
+          if (initialRouteName != '/' && initialRouteName.isNotEmpty) {
+            final generated = resolveAppRoute(RouteSettings(name: initialRouteName));
+            if (generated != null) {
+              return [generated];
             }
-            return MaterialPageRoute(
-              builder: (context) => VerifyEmailScreen(token: token),
-              settings: settings,
-            );
           }
-          return null;
+          return [
+            MaterialPageRoute(builder: (context) => const _SplashScreen()),
+          ];
         },
+        onGenerateRoute: resolveAppRoute,
         routes: {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
@@ -118,17 +147,19 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/interviews': (context) => const InterviewsScreen(),
           '/profile': (context) => const ProfileScreen(),
           '/settings': (context) => const SettingsScreen(),
-          '/analytics': (context) => const AnalyticsScreen(),
-          '/logs': (context) => const LogsScreen(),
+          '/analytics': (context) => const AdminGuard(child: AnalyticsScreen()),
+          '/logs': (context) => const AdminGuard(child: LogsScreen()),
           '/search': (context) => const SearchScreen(),
-          '/statistics': (context) => const StatisticsScreen(),
-          '/test-data': (context) => const TestDataScreen(),
-          '/trash': (context) => const TrashScreen(),
-          '/users': (context) => const UsersScreen(),
+          '/statistics': (context) => const AdminGuard(child: StatisticsScreen()),
+          '/test-data': (context) => const AdminGuard(child: TestDataScreen()),
+          '/trash': (context) => const AdminGuard(child: TrashScreen()),
+          '/users': (context) => const AdminGuard(child: UsersScreen()),
           '/followups': (context) => const FollowUpsScreen(),
           '/calls': (context) => const CallsScreen(),
           '/events': (context) => const EventsScreen(),
-          '/admin': (context) => const AdminScreen(),
+          '/interim': (context) => const InterimScreen(),
+          '/biometric-unlock': (context) => const BiometricUnlockScreen(),
+          '/admin': (context) => const AdminGuard(child: AdminScreen()),
         },
       ),
     );
@@ -159,7 +190,21 @@ class _SplashScreenState extends State<_SplashScreen> {
       debugPrint('[SPLASH] autoDetectApi error (continuing): $e\n$st');
     }
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed('/login');
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final restored = await auth.restoreSession();
+    await MobileAnalyticsService.instance.initialize(authToken: auth.token);
+    if (!mounted) return;
+    if (restored) {
+      final bio = await ApiConfigStore.loadBiometricUnlockEnabled();
+      final keep = await ApiConfigStore.loadKeepLoggedIn();
+      if (bio && keep && await BiometricAuthService.isAvailable()) {
+        Navigator.of(context).pushReplacementNamed('/biometric-unlock');
+        return;
+      }
+      Navigator.of(context).pushReplacementNamed('/home');
+    } else {
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
   }
 
   @override

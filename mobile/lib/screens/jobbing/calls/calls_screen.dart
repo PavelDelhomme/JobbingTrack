@@ -5,7 +5,7 @@ import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
-import 'package:intl/intl.dart';
+import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 
 class CallsScreen extends StatefulWidget {
   const CallsScreen({super.key});
@@ -38,8 +38,6 @@ class _CallsScreenState extends State<CallsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('dd/MM/yyyy');
-
     return Scaffold(
       key: _scaffoldKey,
       drawer: AppDrawer(),
@@ -71,7 +69,7 @@ class _CallsScreenState extends State<CallsScreen> {
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
                           title: Text(c.subject),
-                          subtitle: Text(dateFormat.format(c.callDate)),
+                          subtitle: Text(formatSmartEventDate(c.callDate)),
                           leading: const Icon(Icons.phone, color: Colors.green),
                         ),
                       );

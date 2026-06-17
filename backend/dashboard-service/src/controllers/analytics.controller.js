@@ -825,20 +825,29 @@ class AnalyticsController {
   async getEvents(req, res) {
     try {
       const userId = req.user?.id;
+      const role = req.user?.role;
+      const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
       const { 
         limit = 100, 
         offset = 0,
         eventType,
         eventName,
         startDate,
-        endDate
+        endDate,
+        scope,
+        platform
       } = req.query;
 
       // ✅ CORRECTION : Gérer le cas où les tables n'existent pas
       try {
-        const where = {
-          userId: userId || undefined
-        };
+        const where = {};
+
+        if (scope === 'application' && isAdmin) {
+          if (platform) where.platform = platform;
+          if (req.query.userId) where.userId = req.query.userId;
+        } else {
+          where.userId = userId || undefined;
+        }
 
         if (eventType) where.eventType = eventType;
         if (eventName) where.eventName = eventName;
@@ -900,6 +909,94 @@ class AnalyticsController {
       res.status(500).json({
         success: false,
         error: 'Erreur lors de la récupération des événements',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  /**
+   * Récupérer les métriques de performance (admin application ou utilisateur courant)
+   * GET /api/v1/analytics/performance
+   */
+  async getPerformance(req, res) {
+    try {
+      const userId = req.user?.id;
+      const role = req.user?.role;
+      const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
+      const {
+        limit = 100,
+        offset = 0,
+        metricType,
+        startDate,
+        endDate,
+        scope,
+        platform
+      } = req.query;
+
+      try {
+        if (!prisma.userPerformance || typeof prisma.userPerformance.findMany !== 'function') {
+          return res.json({
+            success: true,
+            data: [],
+            pagination: { total: 0, limit: parseInt(limit), offset: parseInt(offset), pages: 0 }
+          });
+        }
+
+        const where = {};
+        if (scope === 'application' && isAdmin) {
+          if (platform) where.platform = platform;
+          if (req.query.userId) where.userId = req.query.userId;
+        } else {
+          where.userId = userId || undefined;
+        }
+        if (metricType) where.metricType = metricType;
+        if (startDate || endDate) {
+          where.timestamp = {};
+          if (startDate) where.timestamp.gte = new Date(startDate);
+          if (endDate) where.timestamp.lte = new Date(endDate);
+        }
+
+        const [rows, total] = await Promise.all([
+          prisma.userPerformance.findMany({
+            where,
+            take: parseInt(limit),
+            skip: parseInt(offset),
+            orderBy: { timestamp: 'desc' }
+          }).catch(() => []),
+          prisma.userPerformance.count({ where }).catch(() => 0)
+        ]);
+
+        res.json({
+          success: true,
+          data: Array.isArray(rows) ? rows : [],
+          pagination: {
+            total: total || 0,
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+            pages: Math.ceil((total || 0) / parseInt(limit))
+          }
+        });
+      } catch (dbError) {
+        if (dbError.code === 'P2021' || (dbError.message && dbError.message.includes('does not exist'))) {
+          res.json({
+            success: true,
+            data: [],
+            pagination: {
+              total: 0,
+              limit: parseInt(limit),
+              offset: parseInt(offset),
+              pages: 0
+            }
+          });
+        } else {
+          throw dbError;
+        }
+      }
+    } catch (error) {
+      console.error('[ANALYTICS] Erreur récupération performances:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erreur lors de la récupération des métriques de performance',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }

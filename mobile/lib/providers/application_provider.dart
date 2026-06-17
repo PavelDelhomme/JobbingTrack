@@ -1,32 +1,86 @@
 import 'package:flutter/foundation.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
+import 'package:jobbingtrack_mobile/models/company.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 
 class ApplicationProvider with ChangeNotifier {
   List<Application> _applications = [];
   bool _isLoading = false;
+  String? _lastError;
 
   List<Application> get applications => _applications;
   bool get isLoading => _isLoading;
+  String? get lastError => _lastError;
 
-  Future<void> loadApplications() async {
+  Future<void> loadApplications({String? token}) async {
     _isLoading = true;
+    _lastError = null;
     notifyListeners();
 
     try {
-      _applications = await ApiService.getApplications();
+      _applications = await ApiService.getApplications(token: token);
       _isLoading = false;
       notifyListeners();
     } catch (e) {
+      _lastError = e.toString().replaceAll('Exception: ', '');
       _isLoading = false;
       notifyListeners();
-      rethrow;
     }
   }
 
-  Future<void> createApplication(Application application) async {
+  /// Complète le nom d'entreprise quand la liste API ne renvoie que companyId.
+  void enrichCompanies(Map<String, String> companyNamesById) {
+    if (companyNamesById.isEmpty) return;
+    var changed = false;
+    _applications = _applications.map((app) {
+      if (app.company.name.isNotEmpty) return app;
+      final id = app.company.id;
+      if (id.isEmpty) return app;
+      final name = companyNamesById[id];
+      if (name == null || name.isEmpty) return app;
+      changed = true;
+      return Application(
+        id: app.id,
+        position: app.position,
+        description: app.description,
+        company: Company(
+          id: app.company.id,
+          name: name,
+          website: app.company.website,
+          industry: app.company.industry,
+          size: app.company.size,
+          location: app.company.location,
+          description: app.company.description,
+          logo: app.company.logo,
+          companyType: app.company.companyType,
+          isActive: app.company.isActive,
+          isDeleted: app.company.isDeleted,
+          createdBy: app.company.createdBy,
+          createdAt: app.company.createdAt,
+          updatedAt: app.company.updatedAt,
+        ),
+        status: app.status,
+        priority: app.priority,
+        appliedDate: app.appliedDate,
+        interviewDate: app.interviewDate,
+        location: app.location,
+        salary: app.salary,
+        notes: app.notes,
+        tags: app.tags,
+        createdBy: app.createdBy,
+        createdAt: app.createdAt,
+        updatedAt: app.updatedAt,
+        agencyId: app.agencyId,
+        agencyName: app.agencyName,
+      );
+    }).toList();
+    if (changed) notifyListeners();
+  }
+
+  Future<void> createApplication(Application application, {String? token}) async {
     try {
-      final newApplication = await ApiService.createApplication(application);
+      final newApplication =
+          await ApiService.createApplication(application, token: token);
       _applications.add(newApplication);
       notifyListeners();
     } catch (e) {
@@ -34,9 +88,14 @@ class ApplicationProvider with ChangeNotifier {
     }
   }
 
-  Future<void> updateApplication(String id, Application application) async {
+  Future<void> updateApplication(
+    String id,
+    Application application, {
+    String? token,
+  }) async {
     try {
-      final updatedApplication = await ApiService.updateApplication(id, application);
+      final updatedApplication =
+          await ApiService.updateApplication(id, application, token: token);
       final index = _applications.indexWhere((app) => app.id == id);
       if (index != -1) {
         _applications[index] = updatedApplication;
@@ -47,9 +106,19 @@ class ApplicationProvider with ChangeNotifier {
     }
   }
 
-  Future<void> deleteApplication(String id) async {
+  Future<void> deleteApplication(String id, {String? token}) async {
     try {
-      await ApiService.deleteApplication(id);
+      await ApiService.deleteApplication(id, token: token);
+      _applications.removeWhere((app) => app.id == id);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> archiveApplication(String id, {String? token, String? reason}) async {
+    try {
+      await ApiService.archiveApplication(id, token: token, reason: reason);
       _applications.removeWhere((app) => app.id == id);
       notifyListeners();
     } catch (e) {

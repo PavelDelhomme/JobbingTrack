@@ -6,7 +6,7 @@ import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
-import 'package:intl/intl.dart';
+import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 
 class FollowUpsScreen extends StatefulWidget {
   const FollowUpsScreen({super.key});
@@ -37,8 +37,8 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
   }
 
   Future<void> _loadFollowUps() async {
-    final provider = Provider.of<FollowUpProvider>(context, listen: false);
-    await provider.loadFollowUps();
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    await Provider.of<FollowUpProvider>(context, listen: false).loadFollowUps(token: auth.token);
   }
 
   @override
@@ -72,18 +72,16 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
         scaffoldKey: _scaffoldKey,
         child: provider.isLoading
             ? const Center(child: CircularProgressIndicator())
-            : TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildFollowUpsList(provider.pendingFollowUps, isPending: true),
-                  _buildFollowUpsList(provider.completedFollowUps, isPending: false),
-                ],
+            : RefreshIndicator(
+                onRefresh: _loadFollowUps,
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildFollowUpsList(provider.pendingFollowUps, isPending: true),
+                    _buildFollowUpsList(provider.completedFollowUps, isPending: false),
+                  ],
+                ),
               ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddFollowUpDialog,
-        backgroundColor: Colors.blue[600],
-        child: const Icon(Icons.add),
       ),
     );
   }
@@ -114,6 +112,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
     }
 
     return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       itemCount: followUps.length,
       itemBuilder: (context, index) {
@@ -124,7 +123,6 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
   }
 
   Widget _buildFollowUpCard(FollowUp followUp, bool isPending) {
-    final dateFormat = DateFormat('dd MMM yyyy', 'fr_FR');
     final isOverdue = isPending && followUp.scheduledDate.isBefore(DateTime.now());
 
     Color typeColor = _getTypeColor(followUp.type);
@@ -186,7 +184,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            dateFormat.format(followUp.scheduledDate),
+                            formatSmartEventDate(followUp.scheduledDate),
                             style: TextStyle(
                               fontSize: 12,
                               color: isOverdue ? Colors.red[600] : Colors.grey[600],
@@ -366,6 +364,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
       case 'IN_PERSON':
         return 'Relance en personne';
       default:
+        if (type.length > 20 || type.contains('-')) return 'Relance';
         return type;
     }
   }
@@ -458,15 +457,6 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
         );
       }
     }
-  }
-
-  Future<void> _showAddFollowUpDialog() async {
-    // TODO: Implement add follow-up dialog
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fonctionnalité en cours de développement'),
-      ),
-    );
   }
 }
 

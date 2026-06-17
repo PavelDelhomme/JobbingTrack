@@ -3,6 +3,7 @@ class User {
   final String email;
   final String firstName;
   final String lastName;
+  final String phone;
   final String role;
   final bool isActive;
   final bool isDeleted;
@@ -15,6 +16,7 @@ class User {
     required this.email,
     required this.firstName,
     required this.lastName,
+    this.phone = '',
     required this.role,
     required this.isActive,
     required this.isDeleted,
@@ -29,12 +31,13 @@ class User {
       email: json['email'] ?? '',
       firstName: json['firstName'] ?? '',
       lastName: json['lastName'] ?? '',
+      phone: json['phone']?.toString() ?? '',
       role: json['role'] ?? '',
       isActive: json['isActive'] ?? true,
       isDeleted: json['isDeleted'] ?? false,
       isArchived: json['isArchived'] ?? false,
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
@@ -44,6 +47,7 @@ class User {
       'email': email,
       'firstName': firstName,
       'lastName': lastName,
+      'phone': phone,
       'role': role,
       'isActive': isActive,
       'isDeleted': isDeleted,

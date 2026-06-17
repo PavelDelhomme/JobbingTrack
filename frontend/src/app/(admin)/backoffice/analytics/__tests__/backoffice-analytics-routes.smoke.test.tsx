@@ -59,6 +59,44 @@ jest.mock("@/lib/services/statisticsService", () => ({
   },
 }));
 
+jest.mock("@/lib/services/applicationAnalyticsService", () => ({
+  fetchApplicationEvents: jest.fn().mockResolvedValue([]),
+  fetchApplicationPerformance: jest.fn().mockResolvedValue([]),
+  fetchCrashReports: jest.fn().mockResolvedValue([]),
+}));
+
+const mockConsumeSilentFetch = jest.fn(() => false);
+const mockRangeStart = new Date("2026-06-16T00:00:00.000Z");
+const mockRangeEnd = new Date("2026-06-17T23:59:59.999Z");
+const mockRangeQuery = `startDate=${encodeURIComponent(mockRangeStart.toISOString())}&endDate=${encodeURIComponent(mockRangeEnd.toISOString())}`;
+jest.mock("../application/useApplicationTimeRange", () => ({
+  useApplicationTimeRange: () => ({
+    timeRange: "24h",
+    setTimeRange: jest.fn(),
+    useCustomRange: false,
+    setUseCustomRange: jest.fn(),
+    customStart: "2026-06-01",
+    setCustomStart: jest.fn(),
+    customEnd: "2026-06-17",
+    setCustomEnd: jest.fn(),
+    rangeLabel: "24 h",
+    rangeQuery: mockRangeQuery,
+    rangeStart: mockRangeStart,
+    rangeEnd: mockRangeEnd,
+    goPrev: jest.fn(),
+    goNext: jest.fn(),
+    canGoNext: false,
+    handlePeriodNow: jest.fn(),
+    softTick: 0,
+    consumeSilentFetch: mockConsumeSilentFetch,
+    bumpSoftRefresh: jest.fn(),
+  }),
+}));
+
+jest.mock("next/navigation", () => ({
+  usePathname: () => "/backoffice/analytics/application/activity",
+}));
+
 import AnalyticsHubPage from "../page";
 import PerformancesPage from "../../performances/page";
 import NetworkPage from "../../performances/network/page";
@@ -69,6 +107,14 @@ import ApplicationFeedbackPage from "../application/feedback/page";
 
 describe("Smoke routes /backoffice/analytics", () => {
   beforeEach(() => {
+    Object.defineProperty(window, "localStorage", {
+      value: {
+        getItem: jest.fn(() => "test-token"),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+      },
+      writable: true,
+    });
     global.fetch = jest.fn(() =>
       Promise.resolve({
         ok: true,

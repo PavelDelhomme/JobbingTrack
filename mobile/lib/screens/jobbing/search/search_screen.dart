@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:jobbingtrack_mobile/models/application.dart';
+import 'package:jobbingtrack_mobile/models/call.dart';
+import 'package:jobbingtrack_mobile/models/company.dart';
+import 'package:jobbingtrack_mobile/models/followup.dart';
+import 'package:jobbingtrack_mobile/models/interview.dart';
+import 'package:jobbingtrack_mobile/providers/application_provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/providers/company_provider.dart';
 import 'package:jobbingtrack_mobile/providers/contact_provider.dart';
-import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
+import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/companies/company_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contact_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
+import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
+import 'package:jobbingtrack_mobile/services/global_search.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -14,275 +28,308 @@ class SearchScreen extends StatefulWidget {
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _SearchScreenState extends State<SearchScreen> {
   final _searchCtrl = TextEditingController();
-  String _query = '';
+  final _focusNode = FocusNode();
+  GlobalSearchCategory _filter = GlobalSearchCategory.all;
+  List<Call> _calls = [];
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _searchCtrl.addListener(() {
-      setState(() => _query = _searchCtrl.text.toLowerCase());
+    _searchCtrl.addListener(() => setState(() {}));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAll();
+      final args = ModalRoute.of(context)?.settings.arguments;
+      final autofocus = args is Map && args['autofocus'] == true;
+      if (autofocus) _focusNode.requestFocus();
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadAll());
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _searchCtrl.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   Future<void> _loadAll() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final token = auth.token;
-    final companyProv = Provider.of<CompanyProvider>(context, listen: false);
-    final contactProv = Provider.of<ContactProvider>(context, listen: false);
-    final interviewProv = Provider.of<InterviewProvider>(context, listen: false);
-    final followUpProv = Provider.of<FollowUpProvider>(context, listen: false);
-    await Future.wait([
-      companyProv.loadCompanies(),
-      contactProv.loadContacts(),
-      interviewProv.loadInterviews(token: token),
-      followUpProv.loadFollowUps(token: token),
-    ]);
+    setState(() => _loading = true);
+    try {
+      await Future.wait([
+        Provider.of<ApplicationProvider>(context, listen: false).loadApplications(token: token),
+        Provider.of<CompanyProvider>(context, listen: false).loadCompanies(token: token),
+        Provider.of<ContactProvider>(context, listen: false).loadContacts(token: token),
+        Provider.of<InterviewProvider>(context, listen: false).loadInterviews(token: token),
+        Provider.of<FollowUpProvider>(context, listen: false).loadFollowUps(token: token),
+      ]);
+      final calls = await ApiService.getCalls(token: token);
+      if (mounted) setState(() {
+        _calls = calls;
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  List<GlobalSearchHit> _currentHits(BuildContext context) {
+    final appProv = Provider.of<ApplicationProvider>(context);
+    final companyProv = Provider.of<CompanyProvider>(context);
+    final contactProv = Provider.of<ContactProvider>(context);
+    final interviewProv = Provider.of<InterviewProvider>(context);
+    final followProv = Provider.of<FollowUpProvider>(context);
+
+    final contacts = contactProv.contacts
+        .map((c) => c is Map<String, dynamic> ? c : Map<String, dynamic>.from(c as Map))
+        .toList();
+
+    return searchGlobal(
+      query: _searchCtrl.text,
+      category: _filter,
+      applications: appProv.applications,
+      companies: companyProv.companies,
+      contacts: contacts,
+      interviews: interviewProv.interviews,
+      followUps: followProv.followUps,
+      calls: _calls,
+    );
+  }
+
+  void _trackResults(int count) {
+    final q = _searchCtrl.text.trim();
+    if (q.length < 2) return;
+    CrashReporter.trackSearchQuery(q, resultCount: count, screen: 'global_search');
   }
 
   @override
   Widget build(BuildContext context) {
+    final hits = _currentHits(context);
+    final query = _searchCtrl.text.trim();
+    final grouped = groupSearchHits(hits);
+    final orderedCategories = GlobalSearchCategory.values
+        .where((c) => c != GlobalSearchCategory.all && grouped.containsKey(c))
+        .toList();
+
+    if (query.length >= 2) _trackResults(hits.length);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Recherche'),
+        title: const Text('Recherche globale'),
         centerTitle: true,
         actions: [MobileNotificationCenter()],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: false,
-          labelColor: Colors.blue[700],
-          unselectedLabelColor: Colors.grey[600],
-          indicatorColor: Colors.blue[700],
-          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          tabs: const [
-            Tab(icon: Icon(Icons.business, size: 20), text: 'Entreprises'),
-            Tab(icon: Icon(Icons.people, size: 20), text: 'Contacts'),
-            Tab(icon: Icon(Icons.event, size: 20), text: 'Entretiens'),
-            Tab(icon: Icon(Icons.schedule_send, size: 20), text: 'Relances'),
-          ],
-        ),
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
             child: TextField(
               controller: _searchCtrl,
+              focusNode: _focusNode,
+              textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: 'Rechercher...',
+                hintText: 'Candidature, entreprise, contact, relance…',
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon: _query.isNotEmpty
+                suffixIcon: query.isNotEmpty
                     ? IconButton(icon: const Icon(Icons.clear), onPressed: () => _searchCtrl.clear())
                     : null,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                 filled: true,
-                fillColor: Colors.grey[100],
-                isDense: true,
+                fillColor: Colors.grey.shade100,
               ),
             ),
           ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _CompaniesTab(query: _query),
-                _ContactsTab(query: _query),
-                _InterviewsTab(query: _query),
-                _FollowUpsTab(query: _query),
-              ],
+          SizedBox(
+            height: 44,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              children: GlobalSearchCategory.values.map((cat) {
+                final selected = _filter == cat;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    selected: selected,
+                    avatar: Icon(cat.icon, size: 18, color: selected ? Colors.white : categoryColor(cat)),
+                    label: Text(cat.label),
+                    onSelected: (_) => setState(() => _filter = cat),
+                  ),
+                );
+              }).toList(),
             ),
+          ),
+          const SizedBox(height: 4),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : query.isEmpty
+                    ? _buildIdleState(context)
+                    : hits.isEmpty
+                        ? _buildNoResults(query)
+                        : RefreshIndicator(
+                            onRefresh: _loadAll,
+                            child: ListView(
+                              padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                              children: [
+                                Text(
+                                  '${hits.length} résultat${hits.length > 1 ? 's' : ''}',
+                                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 8),
+                                if (_filter == GlobalSearchCategory.all)
+                                  ...orderedCategories.expand((cat) => [
+                                        _sectionTitle(cat.label, grouped[cat]!.length),
+                                        ...grouped[cat]!.map(_buildHitTile),
+                                      ])
+                                else
+                                  ...hits.map(_buildHitTile),
+                              ],
+                            ),
+                          ),
           ),
         ],
       ),
     );
   }
-}
 
-class _CompaniesTab extends StatelessWidget {
-  final String query;
-  const _CompaniesTab({required this.query});
+  Widget _buildIdleState(BuildContext context) {
+    final appCount = Provider.of<ApplicationProvider>(context).applications.length;
+    final companyCount = Provider.of<CompanyProvider>(context).companies.length;
+    final contactCount = Provider.of<ContactProvider>(context).contacts.length;
 
-  @override
-  Widget build(BuildContext context) {
-    final prov = Provider.of<CompanyProvider>(context);
-    final items = prov.companies.where((c) {
-      if (query.isEmpty) return true;
-      return c.name.toLowerCase().contains(query) ||
-             c.industry.toLowerCase().contains(query);
-    }).toList();
-
-    if (prov.isLoading) return const Center(child: CircularProgressIndicator());
-    if (items.isEmpty) return _emptyState('Aucune entreprise trouvee');
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      itemCount: items.length,
-      itemBuilder: (ctx, i) {
-        final c = items[i];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.purple[100],
-              child: Icon(Icons.business, color: Colors.purple[700], size: 20),
-            ),
-            title: Text(c.name.isNotEmpty ? c.name : 'Sans nom', style: const TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: Text(c.industry, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).pushNamed('/companies'),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _ContactsTab extends StatelessWidget {
-  final String query;
-  const _ContactsTab({required this.query});
-
-  @override
-  Widget build(BuildContext context) {
-    final prov = Provider.of<ContactProvider>(context);
-    final items = prov.contacts.where((c) {
-      if (query.isEmpty) return true;
-      final name = '${c['firstName'] ?? ''} ${c['lastName'] ?? ''}'.toLowerCase();
-      return name.contains(query) || ((c['email'] ?? '').toString().toLowerCase().contains(query));
-    }).toList();
-
-    if (prov.isLoading) return const Center(child: CircularProgressIndicator());
-    if (items.isEmpty) return _emptyState('Aucun contact trouve');
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      itemCount: items.length,
-      itemBuilder: (ctx, i) {
-        final c = items[i];
-        final fn = (c['firstName'] ?? '').toString();
-        final ln = (c['lastName'] ?? '').toString();
-        final email = (c['email'] ?? '').toString();
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.green[100],
-              child: Text(
-                (fn.isNotEmpty ? fn[0] : '?').toUpperCase(),
-                style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold),
-              ),
-            ),
-            title: Text('$fn $ln', style: const TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: Text(email, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).pushNamed('/contacts'),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _InterviewsTab extends StatelessWidget {
-  final String query;
-  const _InterviewsTab({required this.query});
-
-  @override
-  Widget build(BuildContext context) {
-    final prov = Provider.of<InterviewProvider>(context);
-    final items = prov.interviews.where((iv) {
-      if (query.isEmpty) return true;
-      final notes = (iv.notes ?? '').toLowerCase();
-      final location = (iv.location ?? '').toLowerCase();
-      return notes.contains(query) || location.contains(query);
-    }).toList();
-
-    if (prov.isLoading) return const Center(child: CircularProgressIndicator());
-    if (items.isEmpty) return _emptyState('Aucun entretien trouve');
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      itemCount: items.length,
-      itemBuilder: (ctx, i) {
-        final iv = items[i];
-        final type = iv.location ?? 'Entretien';
-        final notes = (iv.notes ?? '').toString();
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.orange[100],
-              child: Icon(Icons.event, color: Colors.orange[700], size: 20),
-            ),
-            title: Text(type, style: const TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: Text(notes, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).pushNamed('/interviews'),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _FollowUpsTab extends StatelessWidget {
-  final String query;
-  const _FollowUpsTab({required this.query});
-
-  @override
-  Widget build(BuildContext context) {
-    final prov = Provider.of<FollowUpProvider>(context);
-    final items = prov.followUps.where((f) {
-      if (query.isEmpty) return true;
-      return (f.type?.toLowerCase().contains(query) ?? false) ||
-             (f.notes?.toLowerCase().contains(query) ?? false);
-    }).toList();
-
-    if (prov.isLoading) return const Center(child: CircularProgressIndicator());
-    if (items.isEmpty) return _emptyState('Aucune relance trouvee');
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      itemCount: items.length,
-      itemBuilder: (ctx, i) {
-        final f = items[i];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.blue[100],
-              child: Icon(Icons.schedule_send, color: Colors.blue[700], size: 20),
-            ),
-            title: Text(f.type ?? 'Relance', style: const TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: Text(f.notes ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).pushNamed('/followups'),
-          ),
-        );
-      },
-    );
-  }
-}
-
-Widget _emptyState(String message) {
-  return Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
+    return ListView(
+      padding: const EdgeInsets.all(24),
       children: [
-        Icon(Icons.search_off, size: 48, color: Colors.grey[400]),
-        const SizedBox(height: 12),
-        Text(message, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+        Icon(Icons.travel_explore, size: 56, color: Colors.grey.shade400),
+        const SizedBox(height: 16),
+        Text(
+          'Recherche dans toute l\'application',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.grey.shade800),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Une seule barre pour retrouver candidatures, entreprises, contacts, entretiens, relances et appels.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.4),
+        ),
+        const SizedBox(height: 24),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _statChip('Candidatures', appCount, GlobalSearchCategory.application),
+            _statChip('Entreprises', companyCount, GlobalSearchCategory.company),
+            _statChip('Contacts', contactCount, GlobalSearchCategory.contact),
+          ],
+        ),
       ],
-    ),
-  );
+    );
+  }
+
+  Widget _statChip(String label, int count, GlobalSearchCategory cat) {
+    return ActionChip(
+      avatar: Icon(cat.icon, size: 18, color: categoryColor(cat)),
+      label: Text('$label · $count'),
+      onPressed: () => setState(() => _filter = cat),
+    );
+  }
+
+  Widget _buildNoResults(String query) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.search_off, size: 48, color: Colors.grey.shade400),
+          const SizedBox(height: 12),
+          Text('Aucun résultat pour « $query »', style: TextStyle(color: Colors.grey.shade700)),
+          const SizedBox(height: 6),
+          Text('Essayez un autre mot-clé ou élargissez le filtre « Tout »',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title, int count) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 6),
+      child: Text(
+        '$title ($count)',
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+
+  Widget _buildHitTile(GlobalSearchHit hit) {
+    final color = categoryColor(hit.category);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: color.withValues(alpha: 0.12),
+          child: Icon(hit.category.icon, color: color, size: 20),
+        ),
+        title: Text(hit.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (hit.subtitle.isNotEmpty)
+              Text(hit.subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            if (hit.meta != null)
+              Text(hit.meta!, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+          ],
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => _openHit(hit),
+      ),
+    );
+  }
+
+  void _openHit(GlobalSearchHit hit) {
+    switch (hit.category) {
+      case GlobalSearchCategory.application:
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => ApplicationDetailScreen(application: hit.payload as Application)),
+        );
+        break;
+      case GlobalSearchCategory.company:
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => CompanyDetailScreen(company: hit.payload as Company)),
+        );
+        break;
+      case GlobalSearchCategory.contact:
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ContactDetailScreen(
+              contact: Map<String, dynamic>.from(hit.payload as Map),
+            ),
+          ),
+        );
+        break;
+      case GlobalSearchCategory.interview:
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => InterviewDetailScreen(interview: hit.payload as Interview)),
+        );
+        break;
+      case GlobalSearchCategory.followUp:
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: hit.payload as FollowUp)),
+        );
+        break;
+      case GlobalSearchCategory.call:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Détail appel — ouvrez la candidature liée depuis Appels')),
+        );
+        Navigator.of(context).pushNamed('/calls');
+        break;
+      case GlobalSearchCategory.all:
+        break;
+    }
+  }
 }
