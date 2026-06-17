@@ -1,78 +1,112 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
+import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
-import 'package:jobbingtrack_mobile/widgets/back_to_home_scope.dart';
-
-/// Écran Événements & Rappels (mobile).
-/// À connecter à l'API event-service (GET /api/v1/events) avec token.
-/// Fonctionnalités prévues : calendrier, liste des événements, rappels locaux ou push.
-class EventsScreen extends StatelessWidget {
+/// Calendrier et événements (API event-service).
+class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
 
-  static void _goToHome(BuildContext context) {
-    Navigator.of(context).popUntil((Route<dynamic> route) =>
-        route.settings.name == '/home' || route.isFirst);
+  @override
+  State<EventsScreen> createState() => _EventsScreenState();
+}
+
+class _EventsScreenState extends State<EventsScreen> {
+  List<Map<String, dynamic>> _events = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      final events = await ApiService.getCalendarEvents(token: token);
+      if (mounted) setState(() => _events = events);
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BackToHomeScope(
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => _goToHome(context),
-          ),
-          title: const Text('Événements & Rappels'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.calendar_today),
-              onPressed: () {
-                // TODO: Ouvrir vue calendrier
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: () {
-                // TODO: Créer un événement (API POST /api/v1/events)
-              },
-            ),
-          ],
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-              Icon(Icons.event_note, size: 64, color: Colors.blue[300]),
-              const SizedBox(height: 16),
-              Text(
-                'Événements & Rappels',
-                style: Theme.of(context).textTheme.titleLarge,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Calendrier, entretiens, relances et rappels.\n'
-                'À connecter à l\'API /api/v1/events (event-service).',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () {
-                  // TODO: Charger les événements (GET /api/v1/events)
-                },
-                icon: const Icon(Icons.refresh),
-                label: const Text('Charger les événements'),
-              ),
-            ],
-          ),
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Événements & Rappels'),
+        actions: const [MobileNotificationCenter()],
       ),
-    ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(_error!, textAlign: TextAlign.center),
+                      ),
+                      FilledButton(onPressed: _load, child: const Text('Réessayer')),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: _events.isEmpty
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            const SizedBox(height: 80),
+                            Icon(Icons.event_note, size: 64, color: Colors.blue.shade300),
+                            const SizedBox(height: 16),
+                            const Center(child: Text('Aucun événement à venir')),
+                            const SizedBox(height: 8),
+                            Center(
+                              child: Text(
+                                'Les entretiens et relances planifiés apparaîtront ici.',
+                                style: TextStyle(color: Colors.grey.shade600),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        )
+                      : ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(12),
+                          itemCount: _events.length,
+                          itemBuilder: (_, i) {
+                            final e = _events[i];
+                            final title = e['title']?.toString() ?? 'Événement';
+                            final start = e['startDate']?.toString();
+                            final colorHex = e['color']?.toString();
+                            final isInterim = colorHex != null &&
+                                (colorHex.toUpperCase().contains('F59E0B') ||
+                                    colorHex.toUpperCase().contains('F59'));
+                            final iconColor = isInterim ? Colors.amber.shade700 : Colors.blue.shade700;
+                            return Card(
+                              child: ListTile(
+                                leading: Icon(Icons.event, color: iconColor),
+                                title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
+                                subtitle: start != null
+                                    ? Text(formatUserLocalDateTime(start))
+                                    : null,
+                              ),
+                            );
+                          },
+                        ),
+                ),
     );
   }
 }

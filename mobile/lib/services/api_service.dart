@@ -336,6 +336,25 @@ class ApiService {
     }
   }
 
+  /// Profil utilisateur courant (rafraîchit rôle / email après restauration session).
+  static Future<User?> getProfile({String? token}) async {
+    try {
+      final response = await _get('/api/v1/auth/profile', headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final raw = data['user'] ?? data;
+        if (raw is Map) return User.fromJson(Map<String, dynamic>.from(raw));
+      }
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        throw Exception('Session expirée');
+      }
+      return null;
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> register({
     required String email,
     required String password,
@@ -427,9 +446,12 @@ class ApiService {
     }
   }
 
-  static Future<List<Application>> getApplications({String? token}) async {
+  static Future<List<Application>> getApplications({String? token, int limit = 100}) async {
     try {
-      final response = await _get('/api/v1/applications', headers: _jsonHeaders(token));
+      final response = await _get(
+        '/api/v1/applications?limit=$limit',
+        headers: _jsonHeaders(token),
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true && data['applications'] != null) {
@@ -582,9 +604,13 @@ class ApiService {
     }
   }
 
-  static Future<List<Company>> getCompanies({String? token}) async {
+  static Future<List<Company>> getCompanies({String? token, String? companyType}) async {
     try {
-      final response = await _get('/api/v1/companies', headers: _jsonHeaders(token));
+      var path = '/api/v1/companies?limit=100';
+      if (companyType != null && companyType.isNotEmpty) {
+        path += '&companyType=$companyType';
+      }
+      final response = await _get(path, headers: _jsonHeaders(token));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true && data['companies'] != null) {
@@ -940,6 +966,7 @@ class ApiService {
     required DateTime callDate,
     required String subject,
     String? notes,
+    String? contactId,
     String? token,
   }) async {
     try {
@@ -948,6 +975,7 @@ class ApiService {
         'callDate': callDate.toUtc().toIso8601String(),
         'subject': subject,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
+        if (contactId != null && contactId.isNotEmpty) 'contactId': contactId,
       };
       final response = await _post('/api/v1/calls', headers: _jsonHeaders(token), body: jsonEncode(body));
       if (response.statusCode == 201) {
@@ -960,6 +988,45 @@ class ApiService {
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getTrashEvents({String? token}) async {
+    try {
+      final response = await _get('/api/v1/events/trash', headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['items'] is List) {
+          return List<Map<String, dynamic>>.from(
+            (data['items'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+          );
+        }
+      }
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        throw Exception('Accès admin requis');
+      }
+      return [];
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getCalendarEvents({String? token, int limit = 50}) async {
+    try {
+      final response = await _get('/api/v1/events?limit=$limit', headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final raw = data['events'] ?? data['data'];
+        if (raw is List) {
+          return List<Map<String, dynamic>>.from(
+            raw.map((e) => Map<String, dynamic>.from(e as Map)),
+          );
+        }
+      }
+      return [];
+    } catch (e) {
+      return [];
     }
   }
 }

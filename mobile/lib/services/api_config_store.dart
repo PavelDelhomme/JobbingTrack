@@ -19,6 +19,9 @@ class ApiConfigStore {
   static const _keyDeviceId = 'security_device_id';
   static const _keyAuthToken = 'auth_token';
   static const _keyAuthUserJson = 'auth_user_json';
+  static const _keyKeepLoggedIn = 'auth_keep_logged_in';
+  static const _keyBiometricUnlock = 'auth_biometric_unlock';
+  static const _keyInterimMode = 'interim_mode_enabled';
 
   /// Session auth locale (token JWT + profil utilisateur sérialisé).
   static Future<void> saveAuthSession({
@@ -47,6 +50,36 @@ class ApiConfigStore {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyAuthToken);
     await prefs.remove(_keyAuthUserJson);
+  }
+
+  static Future<bool> loadKeepLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyKeepLoggedIn) ?? true;
+  }
+
+  static Future<void> saveKeepLoggedIn(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyKeepLoggedIn, enabled);
+  }
+
+  static Future<bool> loadBiometricUnlockEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyBiometricUnlock) ?? false;
+  }
+
+  static Future<void> saveBiometricUnlockEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyBiometricUnlock, enabled);
+  }
+
+  static Future<bool> loadInterimModeEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyInterimMode) ?? false;
+  }
+
+  static Future<void> saveInterimModeEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyInterimMode, enabled);
   }
 
   // ——— Télémétrie mobile (consentement RGPD) ———

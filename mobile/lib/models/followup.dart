@@ -26,18 +26,18 @@ class FollowUp {
   factory FollowUp.fromJson(Map<String, dynamic> json) {
     final dateStr = json['followUpDate'] ?? json['scheduledDate'];
     return FollowUp(
-      id: json['id'] ?? '',
-      applicationId: json['applicationId'] ?? '',
-      scheduledDate: dateStr != null ? DateTime.parse(dateStr.toString()) : DateTime.now(),
-      type: json['type'] ?? 'EMAIL',
-      status: _readStatus(json['status']) ?? 'PENDING',
-      notes: json['notes'],
-      completedAt: json['completedAt'] != null 
-          ? DateTime.parse(json['completedAt']) 
+      id: json['id']?.toString() ?? '',
+      applicationId: json['applicationId']?.toString() ?? '',
+      scheduledDate: dateStr != null ? DateTime.tryParse(dateStr.toString()) ?? DateTime.now() : DateTime.now(),
+      type: json['type']?.toString() ?? json['followUpTypeId']?.toString() ?? 'EMAIL',
+      status: _readStatus(json['status']) ?? _readStatus(json['statusId']) ?? 'PENDING',
+      notes: json['notes']?.toString(),
+      completedAt: json['completedAt'] != null
+          ? DateTime.tryParse(json['completedAt'].toString())
           : null,
-      response: json['response'],
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
+      response: json['response']?.toString(),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 

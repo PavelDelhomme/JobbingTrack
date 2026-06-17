@@ -5,6 +5,7 @@ import 'package:jobbingtrack_mobile/screens/jobbing/users/help_feedback_screen.d
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
+import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/widgets/back_to_home_scope.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -19,6 +20,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _consent = false;
   bool _performance = true;
   bool _activityTrace = true;
+  bool _interimMode = false;
+  bool _biometricUnlock = false;
+  bool _biometricAvailable = false;
+  bool _keepLoggedIn = true;
 
   @override
   void initState() {
@@ -34,11 +39,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final consent = await ApiConfigStore.loadAnalyticsConsent();
     final perf = await ApiConfigStore.loadPerformanceTelemetryEnabled();
     final trace = await ApiConfigStore.loadActivityTraceEnabled();
+    final interim = await ApiConfigStore.loadInterimModeEnabled();
+    final bio = await ApiConfigStore.loadBiometricUnlockEnabled();
+    final keep = await ApiConfigStore.loadKeepLoggedIn();
+    final bioAvail = await BiometricAuthService.isAvailable();
     if (!mounted) return;
     setState(() {
       _consent = consent;
       _performance = perf;
       _activityTrace = trace;
+      _interimMode = interim;
+      _biometricUnlock = bio;
+      _keepLoggedIn = keep;
+      _biometricAvailable = bioAvail;
       _loading = false;
     });
   }
@@ -150,6 +163,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => _showDiagnostics(context),
                         ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _sectionTitle('Parcours & sécurité'),
+                  Card(
+                    child: Column(
+                      children: [
+                        SwitchListTile(
+                          title: const Text('Mode intérim'),
+                          subtitle: const Text(
+                            'Affiche l\'onglet Intérim, le champ agence sur les candidatures et les couleurs ambre au calendrier.',
+                          ),
+                          value: _interimMode,
+                          onChanged: (v) async {
+                            setState(() => _interimMode = v);
+                            await ApiConfigStore.saveInterimModeEnabled(v);
+                          },
+                        ),
+                        if (_biometricAvailable) ...[
+                          const Divider(height: 1),
+                          SwitchListTile(
+                            title: const Text('Déverrouillage biométrique'),
+                            subtitle: Text(
+                              _keepLoggedIn
+                                  ? 'Au lancement, confirmer avec empreinte ou visage'
+                                  : 'Activez « Garder la connexion » à la prochaine connexion',
+                            ),
+                            value: _keepLoggedIn && _biometricUnlock,
+                            onChanged: _keepLoggedIn
+                                ? (v) async {
+                                    setState(() => _biometricUnlock = v);
+                                    await ApiConfigStore.saveBiometricUnlockEnabled(v);
+                                  }
+                                : null,
+                          ),
+                        ],
                       ],
                     ),
                   ),

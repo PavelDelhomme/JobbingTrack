@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
- * Smoke login mobile admin sur appareil ADB (TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD depuis .env).
+ * Smoke login mobile utilisateur test sur appareil ADB (TEST_USER_* depuis .env).
  *
- *   node scripts/mobile/smoke-login-admin-adb.js
+ *   node scripts/mobile/smoke-login-user-adb.js
  */
 
-const { resolveWorkingAdminCredentials } = require('./resolve-admin-credentials');
+const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const adbLib = require('../../tools/adb-lib');
 
 (async () => {
-  const { email, password, source } = await resolveWorkingAdminCredentials();
+  const { email, password, source } = await resolveWorkingUserCredentials();
 
   const phone = await adbLib.connect();
   const devices = await phone.listDevices();
@@ -18,8 +18,8 @@ const adbLib = require('../../tools/adb-lib');
 
   await adbLib.flows.loginFresh(phone, email, password);
   await phone.assertVisible('Bonjour');
-  console.log(`Smoke login admin mobile OK (${email})`);
+  console.log(`Smoke login utilisateur mobile OK (${email})`);
 })().catch((err) => {
-  console.error('Smoke login admin mobile KO:', err.message);
+  console.error('Smoke login utilisateur mobile KO:', err.message);
   process.exit(1);
 });

@@ -36,7 +36,13 @@ import 'package:jobbingtrack_mobile/screens/jobbing/calendar/events_screen.dart'
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/forgot_password_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/reset_password_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/verify_email_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/auth/biometric_unlock_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/interim/interim_screen.dart';
 import 'package:jobbingtrack_mobile/screens/admin/admin_screen.dart';
+import 'package:jobbingtrack_mobile/widgets/admin_guard.dart';
+import 'package:jobbingtrack_mobile/utils/locale_init.dart';
+import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
+import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 
 Route<dynamic>? resolveAppRoute(RouteSettings settings) {
   if (settings.name != null && settings.name!.startsWith('/reset-password/')) {
@@ -74,8 +80,9 @@ Route<dynamic>? resolveAppRoute(RouteSettings settings) {
   return null;
 }
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initAppLocale();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -140,17 +147,19 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/interviews': (context) => const InterviewsScreen(),
           '/profile': (context) => const ProfileScreen(),
           '/settings': (context) => const SettingsScreen(),
-          '/analytics': (context) => const AnalyticsScreen(),
-          '/logs': (context) => const LogsScreen(),
+          '/analytics': (context) => const AdminGuard(child: AnalyticsScreen()),
+          '/logs': (context) => const AdminGuard(child: LogsScreen()),
           '/search': (context) => const SearchScreen(),
-          '/statistics': (context) => const StatisticsScreen(),
-          '/test-data': (context) => const TestDataScreen(),
-          '/trash': (context) => const TrashScreen(),
-          '/users': (context) => const UsersScreen(),
+          '/statistics': (context) => const AdminGuard(child: StatisticsScreen()),
+          '/test-data': (context) => const AdminGuard(child: TestDataScreen()),
+          '/trash': (context) => const AdminGuard(child: TrashScreen()),
+          '/users': (context) => const AdminGuard(child: UsersScreen()),
           '/followups': (context) => const FollowUpsScreen(),
           '/calls': (context) => const CallsScreen(),
           '/events': (context) => const EventsScreen(),
-          '/admin': (context) => const AdminScreen(),
+          '/interim': (context) => const InterimScreen(),
+          '/biometric-unlock': (context) => const BiometricUnlockScreen(),
+          '/admin': (context) => const AdminGuard(child: AdminScreen()),
         },
       ),
     );
@@ -185,7 +194,17 @@ class _SplashScreenState extends State<_SplashScreen> {
     final restored = await auth.restoreSession();
     await MobileAnalyticsService.instance.initialize(authToken: auth.token);
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed(restored ? '/home' : '/login');
+    if (restored) {
+      final bio = await ApiConfigStore.loadBiometricUnlockEnabled();
+      final keep = await ApiConfigStore.loadKeepLoggedIn();
+      if (bio && keep && await BiometricAuthService.isAvailable()) {
+        Navigator.of(context).pushReplacementNamed('/biometric-unlock');
+        return;
+      }
+      Navigator.of(context).pushReplacementNamed('/home');
+    } else {
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
   }
 
   @override

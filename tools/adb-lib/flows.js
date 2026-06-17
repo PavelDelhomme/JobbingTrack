@@ -15,25 +15,110 @@
 
 // ─── Auth ────────────────────────────────────────────────────────
 
-async function ensureLoggedOut(adb) {
-  const onDash = await adb.uiContains('Bonjour');
-  if (onDash) {
-    await adb.tap('connexion');
-    await adb.wait(4000);
-    return 'Deconnexion effectuee';
+async function dismissBiometricUnlock(adb) {
+  if (
+    (await adb.uiContains('Déverrouiller')) ||
+    (await adb.uiContains('Confirmez votre identité'))
+  ) {
+    if (await adb.uiContains('Se connecter avec le mot de passe')) {
+      await adb.tap('Se connecter avec le mot de passe');
+      await adb.wait(2500);
+      return true;
+    }
   }
+  return false;
+}
+
+async function tapLogout(adb) {
+  if (await adb.uiContains('Déconnexion')) {
+    await adb.tap('Déconnexion');
+    await adb.wait(1000);
+    if (await adb.uiContains('Déconnexion')) {
+      try {
+        await adb.tap('Déconnexion', 1);
+      } catch {
+        await adb.tap('Déconnexion');
+      }
+    }
+    await adb.wait(3500);
+    return true;
+  }
+  return false;
+}
+
+async function ensureLoggedOut(adb) {
+  await dismissBiometricUnlock(adb);
+
+  if (
+    (await adb.uiContains('Connexion')) &&
+    ((await adb.uiContains('JobbingTrack')) || (await adb.uiContains('Email')))
+  ) {
+    return 'Deja sur ecran de connexion';
+  }
+
+  if (await adb.uiContains('Aller à la connexion')) {
+    try {
+      await adb.tap('Aller à la connexion');
+    } catch {
+      await adb.tap('connexion');
+    }
+    await adb.wait(3000);
+  }
+
+  if (await adb.uiContains('Se connecter') && (await adb.uiContains('Connexion'))) {
+    return 'Deja sur ecran de connexion';
+  }
+
+  if (await adb.uiContains('Bonjour')) {
+    if (await tapLogout(adb)) return 'Deconnexion effectuee (app bar)';
+    try {
+      await adb.tapTab(5);
+      await adb.wait(2000);
+    } catch {}
+    if (await tapLogout(adb)) return 'Deconnexion effectuee (profil)';
+    await adb.openDrawer();
+    await adb.wait(1200);
+    await adb.drawerScrollDown();
+    await adb.wait(600);
+    if (await tapLogout(adb)) {
+      await adb.wait(1000);
+      return 'Deconnexion effectuee (drawer)';
+    }
+    await adb.back();
+    await adb.wait(1000);
+  }
+
   if (await adb.uiContains('Se connecter')) return 'Deja sur ecran de connexion';
-  for (let i = 0; i < 3; i++) {
+
+  for (let i = 0; i < 4; i++) {
     await adb.back();
     await adb.wait(2000);
+    if (await dismissBiometricUnlock(adb)) continue;
     if (await adb.uiContains('Se connecter')) return 'Retour ecran connexion';
-    if (await adb.uiContains('Bonjour')) {
-      await adb.tap('connexion');
-      await adb.wait(4000);
+    if (await adb.uiContains('Bonjour') && (await tapLogout(adb))) {
       return 'Deconnexion effectuee';
     }
   }
   return 'Tentative navigation vers login';
+}
+
+async function logout(adb) {
+  if (await adb.uiContains('Bonjour') || (await adb.uiContains('Déconnexion'))) {
+    if (await tapLogout(adb)) return 'Deconnecte';
+  }
+  if (await adb.uiContains('connexion')) {
+    await adb.tap('connexion');
+    await adb.wait(4000);
+    return 'Deconnecte';
+  }
+  try {
+    await adb.tapTab(1);
+    await adb.wait(2000);
+  } catch {}
+  if (await tapLogout(adb)) return 'Deconnecte';
+  await adb.tap('connexion');
+  await adb.wait(4000);
+  return 'Deconnecte';
 }
 
 function resolveTestCredentials(overrides = {}) {
@@ -71,26 +156,29 @@ async function login(adb, email, password) {
   return `Connecte avec ${email}`;
 }
 
-async function logout(adb) {
-  if (await adb.uiContains('connexion')) {
-    await adb.tap('connexion');
-    await adb.wait(4000);
-    return 'Deconnecte';
-  }
-  try { await adb.tapTab(1); await adb.wait(2000); } catch {}
-  await adb.tap('connexion');
-  await adb.wait(4000);
-  return 'Deconnecte';
-}
-
 async function loginFresh(adb, email, password) {
   await ensureLoggedOut(adb);
+  for (let i = 0; i < 12; i++) {
+    await dismissBiometricUnlock(adb);
+    if ((await adb.uiContains('Email')) || (await adb.uiContains('Mot de passe'))) break;
+    if (await adb.uiContains('Bonjour')) {
+      await tapLogout(adb);
+    }
+    await adb.wait(2000);
+  }
+  if (!(await adb.uiContains('Email')) && !(await adb.uiContains('Mot de passe'))) {
+    throw new Error('Ecran de connexion introuvable après déconnexion');
+  }
   return login(adb, email, password);
 }
 
 // ─── Registration ────────────────────────────────────────────────
 
 async function goToRegister(adb) {
+  if (await adb.uiContains('Créer un compte') || (await adb.uiContains('Inscription'))) {
+    await adb.wait(1000);
+    return 'Ecran inscription';
+  }
   try {
     await adb.tap('inscrire');
   } catch {
@@ -106,19 +194,23 @@ async function register(adb, opts = {}) {
   const { firstName = 'Test', lastName = 'Mobile', email, password = 'Test123!' } = opts;
   const finalEmail = email || `test-${Date.now()}@example.com`;
 
-  await adb.typeInField('pr', firstName);
-  await adb.wait(600);
-  await adb.typeInField('Nom', lastName);
-  await adb.wait(600);
-  await adb.typeInField('Email', finalEmail);
-  await adb.wait(600);
-  await adb.typeInField('Minimum', password);
-  await adb.wait(600);
-  await adb.typeInField('Retapez', password);
+  await adb.typeInEditTextByIndex(0, firstName);
+  await adb.wait(500);
+  await adb.typeInEditTextByIndex(1, lastName);
+  await adb.wait(500);
+  await adb.typeInEditTextByIndex(2, finalEmail, { isEmail: true });
+  await adb.wait(500);
+  await adb.typeInEditTextByIndex(3, password);
+  await adb.wait(500);
+  await adb.typeInEditTextByIndex(4, password);
   await adb.wait(500);
   await adb.closeKeyboard();
-  await adb.wait(800);
-  try { await adb.tap('conditions'); } catch {}
+  await adb.wait(600);
+  await adb.scrollDown(500);
+  await adb.wait(500);
+  try { await adb.tap('conditions'); } catch {
+    try { await adb.tap("J'accepte les conditions"); } catch {}
+  }
   await adb.wait(400);
   try { await adb.tap('données anonymes'); } catch {
     try { await adb.tap('donnees anonymes'); } catch {
@@ -126,10 +218,10 @@ async function register(adb, opts = {}) {
     }
   }
   await adb.wait(500);
-  await adb.scrollDown(1200);
+  await adb.scrollDown(800);
   await adb.wait(800);
   try { await adb.tap('inscrire'); } catch { await adb.tap("S'inscrire"); }
-  await adb.wait(4000);
+  await adb.wait(5000);
   return { message: `Inscrit: ${finalEmail}`, email: finalEmail, password };
 }
 

@@ -456,8 +456,32 @@ const getApplications = async (req, res, next) => {
         const id = row.id ?? row.Id;
         const userIdR = row.userId ?? row.userid;
         const companyIdR = row.companyId ?? row.companyid;
-        return { ...rest, id, userId: userIdR, companyId: companyIdR, isArchived: archived ?? false };
+        const statusIdR = row.statusId ?? row.statusid;
+        return { ...rest, id, userId: userIdR, companyId: companyIdR, statusId: statusIdR, isArchived: archived ?? false };
       });
+      try {
+        const companyIds = [...new Set(applications.map((a) => a.companyId).filter(Boolean))];
+        const statusIds = [...new Set(applications.map((a) => a.statusId).filter(Boolean))];
+        const [companies, statuses] = await Promise.all([
+          companyIds.length
+            ? prisma.company.findMany({ where: { id: { in: companyIds } } }).catch(() => [])
+            : [],
+          statusIds.length
+            ? prisma.applicationStatus.findMany({ where: { id: { in: statusIds } } }).catch(() => [])
+            : [],
+        ]);
+        const companyById = Object.fromEntries((companies || []).map((c) => [c.id, c]));
+        const statusById = Object.fromEntries((statuses || []).map((s) => [s.id, s]));
+        applications = applications.map((a) => ({
+          ...a,
+          company: companyById[a.companyId] ?? null,
+          status: statusById[a.statusId] ?? null,
+        }));
+      } catch (enrichErr) {
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn('List applications enrich company/status:', enrichErr?.message);
+        }
+      }
       return res.json({
         success: true,
         applications,

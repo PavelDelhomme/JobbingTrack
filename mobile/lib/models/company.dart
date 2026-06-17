@@ -9,6 +9,7 @@ class Company {
   final String location;
   final String description;
   final String logo;
+  final String companyType;
   final bool isActive;
   final bool isDeleted;
   final User createdBy;
@@ -24,6 +25,7 @@ class Company {
     required this.location,
     required this.description,
     required this.logo,
+    this.companyType = 'EMPLOYER',
     required this.isActive,
     required this.isDeleted,
     required this.createdBy,
@@ -41,6 +43,7 @@ class Company {
       location: json['location'] ?? '',
       description: json['description'] ?? '',
       logo: json['logo'] ?? '',
+      companyType: json['companyType']?.toString() ?? 'EMPLOYER',
       isActive: json['isActive'] ?? true,
       isDeleted: json['isDeleted'] ?? false,
       createdBy: json['createdBy'] != null ? User.fromJson(json['createdBy'] as Map<String, dynamic>) : User.fromJson({}),
@@ -59,6 +62,7 @@ class Company {
       'location': location,
       'description': description,
       'logo': logo,
+      'companyType': companyType,
       'isActive': isActive,
       'isDeleted': isDeleted,
       'createdBy': createdBy.toJson(),

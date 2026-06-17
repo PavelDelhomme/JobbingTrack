@@ -7,8 +7,6 @@ import 'package:jobbingtrack_mobile/providers/contact_provider.dart';
 import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
-import 'package:jobbingtrack_mobile/models/company.dart';
-import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
@@ -59,32 +57,51 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
     final contactProvider = Provider.of<ContactProvider>(context, listen: false);
     final interviewProvider = Provider.of<InterviewProvider>(context, listen: false);
     final followUpProvider = Provider.of<FollowUpProvider>(context, listen: false);
+
     await Future.wait([
       appProvider.loadApplications(token: token),
-      companyProvider.loadCompanies(token: token),
-      contactProvider.loadContacts(token: token),
-      interviewProvider.loadInterviews(token: token),
-      followUpProvider.loadFollowUps(token: token),
+      companyProvider.loadCompanies(token: token).catchError((_) {}),
+      contactProvider.loadContacts(token: token).catchError((_) {}),
+      interviewProvider.loadInterviews(token: token).catchError((_) {}),
+      followUpProvider.loadFollowUps(token: token).catchError((_) {}),
     ]);
+
+    final names = {for (final c in companyProvider.companies) c.id: c.name};
+    appProvider.enrichCompanies(names);
+
+    if (!mounted) return;
+    final err = appProvider.lastError;
+    if (err != null && err.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Candidatures : $err')),
+      );
+    }
   }
 
   Future<void> _loadApplications() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    await Provider.of<ApplicationProvider>(context, listen: false)
-        .loadApplications(token: auth.token);
+    final appProvider = Provider.of<ApplicationProvider>(context, listen: false);
+    final companyProvider = Provider.of<CompanyProvider>(context, listen: false);
+    await appProvider.loadApplications(token: auth.token);
+    appProvider.enrichCompanies({for (final c in companyProvider.companies) c.id: c.name});
+    if (!mounted) return;
+    final err = appProvider.lastError;
+    if (err != null && err.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Candidatures : $err')));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      drawer: AppDrawer(),
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Candidatures'),
         centerTitle: true,
         actions: [
           globalSearchIconButton(context),
-          MobileNotificationCenter(),
+          const MobileNotificationCenter(),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -134,12 +151,15 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
   Widget _buildCandidaturesTab() {
     final appProvider = Provider.of<ApplicationProvider>(context);
     final applications = appProvider.applications;
+    final error = appProvider.lastError;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: appProvider.isLoading
             ? const Center(child: CircularProgressIndicator(color: Colors.blue))
-            : applications.isEmpty
+            : error != null && error.isNotEmpty && applications.isEmpty
+                ? _buildErrorState(error)
+                : applications.isEmpty
                 ? _buildEmptyState()
                 : RefreshIndicator(
                     onRefresh: _loadApplications,
@@ -169,7 +189,6 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
 
   Future<bool> _confirmDismiss(Application application, DismissDirection direction) async {
     final isArchive = direction == DismissDirection.startToEnd;
-    final action = isArchive ? 'archiver' : 'mettre à la corbeille';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -242,7 +261,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
           child: ListTile(
             leading: const Icon(Icons.business, color: Colors.purple),
             title: Text(c.name),
-            subtitle: c.website != null && c.website!.isNotEmpty ? Text(c.website!) : null,
+            subtitle: c.website.isNotEmpty ? Text(c.website) : null,
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => CompanyDetailScreen(company: c)),
@@ -388,6 +407,30 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),
         ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.cloud_off, size: 72, color: Colors.red.shade300),
+          const SizedBox(height: 16),
+          Text('Impossible de charger les candidatures', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(message, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: _loadApplications,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Réessayer'),
+          ),
+        ],
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
+import 'package:jobbingtrack_mobile/models/company.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 
 class ApplicationProvider with ChangeNotifier {
@@ -21,11 +22,59 @@ class ApplicationProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _lastError = e.toString();
+      _lastError = e.toString().replaceAll('Exception: ', '');
       _isLoading = false;
       notifyListeners();
-      rethrow;
     }
+  }
+
+  /// Complète le nom d'entreprise quand la liste API ne renvoie que companyId.
+  void enrichCompanies(Map<String, String> companyNamesById) {
+    if (companyNamesById.isEmpty) return;
+    var changed = false;
+    _applications = _applications.map((app) {
+      if (app.company.name.isNotEmpty) return app;
+      final id = app.company.id;
+      if (id.isEmpty) return app;
+      final name = companyNamesById[id];
+      if (name == null || name.isEmpty) return app;
+      changed = true;
+      return Application(
+        id: app.id,
+        position: app.position,
+        description: app.description,
+        company: Company(
+          id: app.company.id,
+          name: name,
+          website: app.company.website,
+          industry: app.company.industry,
+          size: app.company.size,
+          location: app.company.location,
+          description: app.company.description,
+          logo: app.company.logo,
+          companyType: app.company.companyType,
+          isActive: app.company.isActive,
+          isDeleted: app.company.isDeleted,
+          createdBy: app.company.createdBy,
+          createdAt: app.company.createdAt,
+          updatedAt: app.company.updatedAt,
+        ),
+        status: app.status,
+        priority: app.priority,
+        appliedDate: app.appliedDate,
+        interviewDate: app.interviewDate,
+        location: app.location,
+        salary: app.salary,
+        notes: app.notes,
+        tags: app.tags,
+        createdBy: app.createdBy,
+        createdAt: app.createdAt,
+        updatedAt: app.updatedAt,
+        agencyId: app.agencyId,
+        agencyName: app.agencyName,
+      );
+    }).toList();
+    if (changed) notifyListeners();
   }
 
   Future<void> createApplication(Application application, {String? token}) async {

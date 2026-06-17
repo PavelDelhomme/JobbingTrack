@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:jobbingtrack_mobile/models/user.dart';
+import 'package:jobbingtrack_mobile/utils/admin_access.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
@@ -26,6 +27,8 @@ class AuthProvider with ChangeNotifier {
   Future<bool> restoreSession() async {
     if (_sessionRestored) return isAuthenticated;
     _sessionRestored = true;
+    final keepLoggedIn = await ApiConfigStore.loadKeepLoggedIn();
+    if (!keepLoggedIn) return false;
     final stored = await ApiConfigStore.loadAuthSession();
     if (stored == null) return false;
     try {
@@ -33,8 +36,9 @@ class AuthProvider with ChangeNotifier {
       _token = stored.token;
       _user = User.fromJson(userMap);
       CrashReporter.setToken(_token);
+      await _refreshProfileFromServer();
       notifyListeners();
-      return true;
+      return isAuthenticated;
     } catch (e) {
       debugPrint('[AUTH] restoreSession invalid: $e');
       await ApiConfigStore.clearAuthSession();
@@ -42,6 +46,28 @@ class AuthProvider with ChangeNotifier {
       _user = null;
       return false;
     }
+  }
+
+  /// Rafraîchit le profil (rôle, email) depuis l'API pour éviter un JWT obsolète côté UI admin.
+  Future<void> _refreshProfileFromServer() async {
+    if (_token == null) return;
+    try {
+      final profile = await ApiService.getProfile(token: _token);
+      if (profile != null) {
+        _user = profile;
+        await _persistSession();
+      }
+    } catch (e) {
+      debugPrint('[AUTH] refreshProfile: $e');
+    }
+  }
+
+  /// Vide la session en mémoire sans effacer les préférences utilisateur (ex. après échec biométrie).
+  Future<void> clearLocalSession() async {
+    _user = null;
+    _token = null;
+    CrashReporter.setToken(null);
+    notifyListeners();
   }
 
   Future<void> _persistSession() async {
@@ -52,7 +78,12 @@ class AuthProvider with ChangeNotifier {
     );
   }
 
-  Future<void> login(String email, String password) async {
+  Future<void> login(
+    String email,
+    String password, {
+    bool keepLoggedIn = true,
+    bool enableBiometric = false,
+  }) async {
     _isLoading = true;
     notifyListeners();
 
@@ -63,7 +94,14 @@ class AuthProvider with ChangeNotifier {
         _token = response['token'];
         _user = User.fromJson(response['user']);
         CrashReporter.setToken(_token);
-        await _persistSession();
+        await ApiConfigStore.saveKeepLoggedIn(keepLoggedIn);
+        if (keepLoggedIn) {
+          await _persistSession();
+          await ApiConfigStore.saveBiometricUnlockEnabled(enableBiometric);
+        } else {
+          await ApiConfigStore.clearAuthSession();
+          await ApiConfigStore.saveBiometricUnlockEnabled(false);
+        }
         CrashReporter.trackAction('login:${_user?.email ?? "unknown"}');
         CrashReporter.flushPendingReports();
         _isLoading = false;
@@ -129,6 +167,7 @@ class AuthProvider with ChangeNotifier {
     CrashReporter.trackAction('logout');
     CrashReporter.setToken(null);
     await ApiConfigStore.clearAuthSession();
+    await ApiConfigStore.saveBiometricUnlockEnabled(false);
     _user = null;
     _token = null;
     notifyListeners();
@@ -210,4 +249,6 @@ class AuthProvider with ChangeNotifier {
   }
 
   bool get isAuthenticated => _token != null && _user != null;
+
+  bool get isAdmin => AdminAccess.canAccessAdmin(_user);
 }

@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 
 String applicationStatusLabel(String status) {
   switch (status) {
+    case 'NO_RESPONSE':
+      return 'Aucune réponse';
     case 'INTERVIEW_SCHEDULED':
+    case 'INTERVIEW':
       return 'Entretien programmé';
     case 'SENT':
+    case 'APPLIED':
       return 'Envoyée';
     case 'REJECTED':
       return 'Refusée';
@@ -12,7 +16,12 @@ String applicationStatusLabel(String status) {
       return 'Acceptée';
     case 'OFFER_RECEIVED':
       return 'Offre reçue';
+    case 'IN_PROGRESS':
+      return 'En cours';
+    case 'WITHDRAWN':
+      return 'Retirée';
     default:
+      if (status.isEmpty) return '—';
       return status.replaceAll('_', ' ').toLowerCase();
   }
 }
@@ -39,7 +48,11 @@ String followUpStatusLabel(String status) {
 }
 
 String contactDisplayName(Map<String, dynamic> contact) {
-  final name = '${contact['firstName'] ?? ''} ${contact['lastName'] ?? ''}'.trim();
+  final fn = (contact['firstName'] ?? '').toString().trim();
+  final ln = (contact['lastName'] ?? '').toString().trim();
+  if (ln == '.' || ln == '—') return fn;
+  if (fn == '.' || fn == '—') return ln;
+  final name = '$fn $ln'.trim();
   if (name.isNotEmpty) return name;
   final email = contact['email']?.toString();
   if (email != null && email.isNotEmpty) return email;

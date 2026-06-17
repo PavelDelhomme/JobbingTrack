@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
+import 'package:jobbingtrack_mobile/services/api_config_store.dart';
+import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,6 +20,28 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _keepLoggedIn = true;
+  bool _enableBiometric = false;
+  bool _biometricAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initOptions();
+  }
+
+  Future<void> _initOptions() async {
+    final keep = await ApiConfigStore.loadKeepLoggedIn();
+    final bio = await ApiConfigStore.loadBiometricUnlockEnabled();
+    final available = await BiometricAuthService.isAvailable();
+    if (mounted) {
+      setState(() {
+        _keepLoggedIn = keep;
+        _enableBiometric = bio && available;
+        _biometricAvailable = available;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -37,7 +61,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.login(_emailController.text, _passwordController.text);
+      await authProvider.login(
+        _emailController.text,
+        _passwordController.text,
+        keepLoggedIn: _keepLoggedIn,
+        enableBiometric: _keepLoggedIn && _enableBiometric,
+      );
       await MobileAnalyticsService.instance.initialize(authToken: authProvider.token);
       debugPrint('[LOGIN] Succès, navigation vers /home');
 
@@ -232,7 +261,32 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
+
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Garder la connexion'),
+                        subtitle: const Text('Rester connecté sur cet appareil'),
+                        value: _keepLoggedIn,
+                        onChanged: (v) => setState(() {
+                          _keepLoggedIn = v ?? true;
+                          if (!_keepLoggedIn) _enableBiometric = false;
+                        }),
+                        controlAffinity: ListTileControlAffinity.leading,
+                      ),
+                      if (_biometricAvailable)
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Déverrouiller avec la biométrie'),
+                          subtitle: const Text('Empreinte ou reconnaissance faciale au prochain lancement'),
+                          value: _enableBiometric,
+                          onChanged: _keepLoggedIn
+                              ? (v) => setState(() => _enableBiometric = v ?? false)
+                              : null,
+                          controlAffinity: ListTileControlAffinity.leading,
+                        ),
+
+                      const SizedBox(height: 8),
 
                       // Bouton de connexion
                       SizedBox(

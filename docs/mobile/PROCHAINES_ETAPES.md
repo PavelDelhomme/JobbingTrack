@@ -98,6 +98,7 @@ Quand le parcours **inscription → vérification email → connexion → accuei
 4. **Profil et Paramètres**  
    - Profil : complétion / édition, appel `PUT /profiles/me` (ou équivalent).
    - Paramètres : préférences, thème, notifications, **déconnexion** (suppression token + redirection vers login).
+   - **Biométrie (backlog D6)** : MVP actuel = barrière UI sur session JWT mémorisée. **Cible** : après login email/mot de passe, opt-in → stockage chiffré OS (`flutter_secure_storage`) pour déverrouillage biométrique fiable. Voir `docs/mobile/BIOMETRIC_SECURE_CREDENTIALS.md` — pas de tests auto pour l’instant ; activation utilisateur à tout moment quand implémenté.
 
 5. **Notifications**  
    - Liste des notifications (API), marquer comme lu.

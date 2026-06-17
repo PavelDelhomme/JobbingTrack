@@ -13,6 +13,7 @@ import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_sc
 import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
+import 'package:jobbingtrack_mobile/widgets/contact_picker_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_detail_field.dart';
 
 /// Détail complet d'une candidature : entreprise, contacts, relances, entretiens, appels.
@@ -62,8 +63,13 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
           _loading = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur chargement : ${e.toString().replaceAll('Exception: ', '')}')),
+        );
+      }
     }
   }
 
@@ -394,36 +400,56 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   Future<void> _showAddRelance(BuildContext context) async {
     DateTime date = DateTime.now().add(const Duration(days: 3));
     final notesController = TextEditingController();
-    final picked = await showDatePicker(
+    final ok = await showDialog<bool>(
       context: context,
-      initialDate: date,
-      firstDate: DateTime.now().subtract(const Duration(days: 1)),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    if (picked != null) date = picked;
-    if (!mounted) return;
-    final notes = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Nouvelle relance'),
-        content: TextField(
-          controller: notesController,
-          decoration: const InputDecoration(labelText: 'Notes (optionnel)', border: OutlineInputBorder()),
-          maxLines: 2,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Nouvelle relance'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today),
+                  title: Text(formatSmartEventDate(date)),
+                  subtitle: const Text('Date prévue'),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: date,
+                      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) setDialogState(() => date = picked);
+                  },
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: notesController,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes (optionnel)',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Créer')),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, null), child: const Text('Annuler')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, notesController.text), child: const Text('Créer')),
-        ],
       ),
     );
-    if (!mounted || notes == null) return;
+    if (ok != true || !mounted) return;
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       await ApiService.createFollowUp(
         applicationId: app.id,
         followUpDate: date,
-        notes: notes.isEmpty ? null : notes,
+        notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
         token: auth.token,
       );
       if (mounted) {
@@ -437,16 +463,63 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
 
   Future<void> _showAddEntretien(BuildContext context) async {
     DateTime date = DateTime.now().add(const Duration(days: 7));
-    final picked = await showDatePicker(
+    final locationController = TextEditingController();
+    final notesController = TextEditingController();
+    final ok = await showDialog<bool>(
       context: context,
-      initialDate: date,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Nouvel entretien'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today),
+                  title: Text(formatSmartEventDate(date)),
+                  subtitle: const Text('Date'),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: date,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) setDialogState(() => date = picked);
+                  },
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: locationController,
+                  decoration: const InputDecoration(labelText: 'Lieu (optionnel)', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: notesController,
+                  decoration: const InputDecoration(labelText: 'Notes (optionnel)', border: OutlineInputBorder()),
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Créer')),
+          ],
+        ),
+      ),
     );
-    if (picked == null || !mounted) return;
+    if (ok != true || !mounted) return;
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      await ApiService.createInterview(applicationId: app.id, interviewDate: picked, token: auth.token);
+      await ApiService.createInterview(
+        applicationId: app.id,
+        interviewDate: date,
+        location: locationController.text.trim().isEmpty ? null : locationController.text.trim(),
+        notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+        token: auth.token,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Entretien créé')));
         _load();
@@ -457,34 +530,106 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   }
 
   Future<void> _showAddAppel(BuildContext context) async {
-    final subjectController = TextEditingController(text: 'Appel ${app.company.name}');
-    DateTime date = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: date,
-      firstDate: DateTime.now().subtract(const Duration(days: 30)),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    if (picked != null) date = picked;
+    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    final candidates = <Map<String, dynamic>>[..._contacts];
+    try {
+      if (app.company.id.isNotEmpty) {
+        final byCompany = await ApiService.getContactsByCompany(app.company.id, token: token);
+        for (final c in byCompany) {
+          if (!candidates.any((x) => x['id'] == c['id'])) candidates.add(c);
+        }
+      }
+      final all = await ApiService.getContacts(token: token);
+      for (final c in all) {
+        if (!candidates.any((x) => x['id'] == c['id'])) candidates.add(c);
+      }
+    } catch (_) {}
+
     if (!mounted) return;
-    final subject = await showDialog<String>(
+    final contact = await showContactPickerSheet(
+      context,
+      candidates: candidates,
+      onCreateContact: ({required String firstName, required String lastName, String? email, String? phone}) async {
+        final created = await ApiService.createContact(
+          firstName: firstName,
+          lastName: lastName,
+          email: email ?? '',
+          phone: phone ?? '',
+          companyId: app.company.id.isNotEmpty ? app.company.id : null,
+          token: token,
+        );
+        await ApiService.linkContactToApplication(
+          contactId: created['id'].toString(),
+          applicationId: app.id,
+          token: token,
+        );
+        return created;
+      },
+    );
+    if (contact == null || !mounted) return;
+
+    DateTime date = DateTime.now();
+    final subjectController = TextEditingController(text: 'Appel · ${contactDisplayName(contact)}');
+    final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Nouvel appel'),
-        content: TextField(
-          controller: subjectController,
-          decoration: const InputDecoration(labelText: 'Sujet', border: OutlineInputBorder()),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Nouvel appel'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Contact : ${contactDisplayName(contact)}', style: TextStyle(color: Colors.grey.shade700)),
+                const SizedBox(height: 12),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today),
+                  title: Text(formatSmartEventDate(date)),
+                  subtitle: const Text('Date'),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: date,
+                      firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) setDialogState(() => date = picked);
+                  },
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: subjectController,
+                  decoration: const InputDecoration(labelText: 'Sujet', border: OutlineInputBorder()),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+            ElevatedButton(
+              onPressed: () {
+                if (subjectController.text.trim().isEmpty) return;
+                Navigator.pop(ctx, true);
+              },
+              child: const Text('Créer'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, null), child: const Text('Annuler')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, subjectController.text.trim()), child: const Text('Créer')),
-        ],
       ),
     );
-    if (subject == null || subject.isEmpty || !mounted) return;
+    if (ok != true || !mounted) return;
+    final subject = subjectController.text.trim();
+    if (subject.isEmpty) return;
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      await ApiService.createCall(applicationId: app.id, callDate: date, subject: subject, token: auth.token);
+      await ApiService.createCall(
+        applicationId: app.id,
+        callDate: date,
+        subject: subject,
+        contactId: contact['id']?.toString(),
+        token: auth.token,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appel créé')));
         _load();
