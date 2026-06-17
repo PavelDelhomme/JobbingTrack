@@ -21,7 +21,6 @@ import {
   type DockerServiceRow,
 } from "@/lib/metrics/serviceHealthOverview";
 import { ServiceHealthKpiCards } from "@/components/monitoring/ServiceHealthKpiCards";
-import { PriorityResponseServicesSummary } from "@/components/monitoring/PriorityResponseServicesSummary";
 import { RESPONSE_TIME_SOURCE_NOTE } from "@/lib/metrics/responseTimePresentation";
 import {
   availabilityChartDomain,
@@ -1257,7 +1256,6 @@ const OverviewTab = memo(function OverviewTab({
   return (
     <div className="space-y-6">
       <ServiceHealthKpiCards dockerServices={dockerServices} />
-      <PriorityResponseServicesSummary services={stats.services} />
       <Suspense
         fallback={
           <SectionLoader
@@ -2045,7 +2043,6 @@ function ServicesTab({
         </Link>
         .
       </p>
-      <PriorityResponseServicesSummary services={stats.services} />
       {/* Liste des services */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats.services.map((service: any) => (

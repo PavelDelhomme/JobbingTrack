@@ -1,6 +1,21 @@
 # TODOS — chantier backoffice / API / doc (JobbingTrack)
 
-**Dernière mise à jour : 15 juin 2026** — les tâches à faire passent en premier. Les succès techniques restent conservés plus bas, mais ils ne valent pas validation porteur. Le flux obligatoire est maintenant **`PILOTAGE.md` → `TODOS_A_VALIDER.md` → `TODOS_A_VERIFIER.md` → `docs/TODOS.md`**.
+**Dernière mise à jour : 17 juin 2026** — réorientation porteur vers **mobile + analytics utilisateur** ; backoffice Statistics en file secondaire.
+
+## Priorités mobile — à faire maintenant (17/06)
+
+> Décision porteur : le backoffice a une base suffisante ; prioriser l’**application mobile complète**, les **déploiements**, les **interactions BDD**, l’**interface mobile** et la **remontée analytics utilisateur**.
+
+| # | Sujet | Prochaine action |
+|---|--------|------------------|
+| 1 | **App mobile Flutter (`mobile/`)** | Parcours auth → dashboard → candidatures/entreprises/contacts ; stabiliser `ApiService` + `AuthProvider` ; tests widget/intégration. |
+| 2 | **API mobile ↔ microservices** | Vérifier endpoints métier consommés par l’app ; corriger écarts config (`api_config_store`), headers corrélation B9, session révoquée. |
+| 3 | **Interactions BDD** | CRUD candidatures, relances, entretiens, événements depuis mobile avec preuves Postgres. |
+| 4 | **Déploiements mobile** | Builds debug/release, variables env, doc `mobile/PROCESSUS_APPLICATION_MOBILE_ET_API.md`, pipeline préprod (lot H). |
+| 5 | **Analytics utilisateur (D4/D5)** | Événements normalisés mobile + parcours email/auth ; exposition `/backoffice/user-analytics` ; séparer infra vs produit. |
+| 6 | **Mises à jour app** | Versioning affiché, stratégie MAJ (store / sideload / OTA à cadrer). |
+
+Backlog détaillé : **Lot D — Mobile & observabilité** plus bas dans ce fichier.
 
 ## Pilotage (comment utiliser ce fichier)
 

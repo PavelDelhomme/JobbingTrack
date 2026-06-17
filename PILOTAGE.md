@@ -1,6 +1,21 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 15 juin 2026 (Services — premier correctif CPU/RAM frontend)
+Dernière mise à jour : 17 juin 2026 (réorientation mobile)
+
+## Réorientation produit — 17/06 (décision porteur)
+
+Le backoffice Statistics/Performances a atteint un niveau suffisant pour la validation courante (log-stats ✅, app-data ✅, overview partiellement OK avec correctifs graphes).
+
+**Priorité immédiate** : **application mobile complète** (Lot D) plutôt que la suite Lot A graphes backoffice.
+
+Ordre cible :
+
+1. **Mobile** — parcours app, écrans métier, auth/API, interactions BDD, déploiements, mises à jour.
+2. **Analytics utilisateur** — événements mobile/app, remontée correcte, corrélation backoffice (`/user-analytics`, D4/D5).
+3. **Déploiement mobile** — builds, config env, pipeline préprod/prod (lot H partiel).
+4. **Backoffice** — validations restantes `TODOS_A_VALIDER.md` en file secondaire (une ligne à la fois après mobile).
+
+Les lignes Statistics **Lot A graphes** et **shell** restent dans `TODOS_A_VALIDER.md` mais **ne bloquent plus** le chantier mobile.
 
 ## Pause infra — courte (appliquée le 15/06)
 
@@ -49,13 +64,14 @@ Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécuri
 
 Exception porteur 15/06 : lot **P1D CI/PR/déploiement** clôturé le 15/06 — PR #8 et #9 mergées, PR #7 fermée, préprod Portainer cadrée (`deploy-preprod.yml`, `VPS_PORTAINER_NPM_OVH.md` §5.1), mail récap **3/3 SENT**. Le porteur demande de continuer le **Lot B complet**, avec mail récap à chaque bloc terminé, puis d’enchaîner Lot C selon le même processus.
 
-Priorité immédiate stricte :
+Priorité immédiate stricte (17/06 — réorientation porteur) :
 
-1. Après les incréments explicitement demandés **Lot A graphes** (`feat/monitoring-series-export`, `feat/services-history-sparklines`), reprendre la prochaine ligne ouverte de `TODOS_A_VALIDER.md` après les preuves agent pour **Statistics** (5 lignes) et **Performances Réseau/Corrélation** : **P1A Sécurité login backoffice**, puis **P1A WAF gateway**.
-2. Attendre validation explicite du porteur ou corriger le problème signalé.
-3. Déplacer la ligne validée vers `TODOS_DONE.md`.
-4. Passer seulement ensuite à la ligne suivante de `TODOS_A_VALIDER.md` (P1A/P1B/P1C/P1D, une ligne à la fois).
-5. Reprendre `docs/TODOS.md` uniquement quand les validations porteur bloquantes sont validées ou explicitement reclassées.
+1. **Lot D — Mobile & analytics utilisateur** : app Flutter `mobile/`, API auth/métier, interactions BDD, déploiements, remontée analytics/événements, interface complète. Voir `docs/TODOS.md` § « Priorités mobile ».
+2. Validations backoffice restantes dans `TODOS_A_VALIDER.md` **après** incréments mobile significatifs, sauf correctif bloquant signalé par le porteur.
+3. Déplacer les lignes validées vers `TODOS_DONE.md`.
+4. Reprendre `docs/TODOS.md` backlog backoffice en file secondaire.
+
+Ancienne priorité Lot A graphes (15/06) — **reportée** tant que le mobile n’est pas stabilisé.
 
 ## Flux de travail
 

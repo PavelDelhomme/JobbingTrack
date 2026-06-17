@@ -87,6 +87,9 @@ export function buildStatisticsChartData(
 
   const rows = dataToUse.map((item) => {
     const timeMs = metricTimestampToMs(item.timestamp) ?? Date.now();
+    const error = deriveErrorRatePercent(
+      item as unknown as Record<string, unknown>,
+    );
     return {
       timestamp: item.timestamp,
       timeMs,
@@ -95,10 +98,10 @@ export function buildStatisticsChartData(
       networkRx: item.network_rx_mb,
       networkTx: item.network_tx_mb,
       responseTime: item.response_time_avg,
-      errorRate: item.error_rate,
+      errorRate: error.value,
       availability: item.availability_percent,
       loadScore: item.load_score,
-      errorRateDerived: item.error_rate_derived,
+      errorRateDerived: item.error_rate_derived ?? error.derived,
     };
   });
 

@@ -31,6 +31,27 @@ const COLORS = {
 const CHART_CARD_CLASS =
   "rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900";
 
+function finitePoints(chartData: StatisticsChartPoint[]) {
+  return chartData.filter(
+    (point) =>
+      Number.isFinite(point.timeMs) &&
+      (Number.isFinite(point.availability) || Number.isFinite(point.errorRate)),
+  );
+}
+
+function dataSpanRatio(
+  chartData: StatisticsChartPoint[],
+  xDomainMin: number,
+  xDomainMax: number,
+): number {
+  const points = finitePoints(chartData);
+  if (points.length < 2) return 0;
+  const minMs = Math.min(...points.map((p) => p.timeMs));
+  const maxMs = Math.max(...points.map((p) => p.timeMs));
+  const window = Math.max(1, xDomainMax - xDomainMin);
+  return (maxMs - minMs) / window;
+}
+
 export function StatisticsErrorAvailabilityCharts({
   chartData,
   availabilityDomain,
@@ -64,6 +85,12 @@ export function StatisticsErrorAvailabilityCharts({
     );
   }
 
+  const renderedPoints = finitePoints(chartData);
+  const sparseOnWindow =
+    renderedPoints.length > 0 &&
+    (renderedPoints.length < 8 || dataSpanRatio(chartData, xDomainMin, xDomainMax) < 0.2);
+  const showMarkers = sparseOnWindow || renderedPoints.length <= 40;
+
   const maxErrorRate = Math.max(
     1,
     ...chartData
@@ -90,12 +117,25 @@ export function StatisticsErrorAvailabilityCharts({
             : ` · ${pointCount} point(s) rendu(s)`}
           {errorDerived ? " · taux d'erreur dérivé (100 − disponibilité)" : null}
         </p>
+        {sparseOnWindow ? (
+          <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+            Peu de mesures sur cette fenêtre : les marqueurs indiquent les
+            points disponibles. Réduire la période (ex. 24 h) pour mieux lire la
+            courbe, ou attendre l&apos;historique{" "}
+            <code className="text-[11px]">system_metrics</code>.
+          </p>
+        ) : null}
       </div>
 
       <div className={CHART_CARD_CLASS}>
         <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
           Disponibilité dans le temps
         </h3>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          Métrique infra persistée — les totaux candidatures/utilisateurs sont
+          dans <strong>Statistiques des données</strong> ou l&apos;onglet{" "}
+          <strong>App data</strong>.
+        </p>
         <div className="mt-3 h-72 w-full min-w-0 sm:h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
@@ -130,8 +170,9 @@ export function StatisticsErrorAvailabilityCharts({
                 stroke={COLORS.success}
                 strokeWidth={2}
                 name="Disponibilité (%)"
-                dot={false}
-                connectNulls={false}
+                dot={showMarkers ? { r: 3, strokeWidth: 1 } : false}
+                activeDot={{ r: 5 }}
+                connectNulls
               />
             </LineChart>
           </ResponsiveContainer>
@@ -195,7 +236,9 @@ export function StatisticsErrorAvailabilityCharts({
                 fillOpacity={1}
                 fill="url(#statsColorError)"
                 name="Taux d'erreur (%)"
-                connectNulls={false}
+                dot={showMarkers ? { r: 3, strokeWidth: 1 } : false}
+                activeDot={{ r: 5 }}
+                connectNulls
               />
             </AreaChart>
           </ResponsiveContainer>
