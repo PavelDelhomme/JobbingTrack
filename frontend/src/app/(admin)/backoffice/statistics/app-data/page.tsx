@@ -15,12 +15,26 @@ import {
   StatisticsPageShell,
   StatisticsRefreshButton,
 } from "../StatisticsSubNav";
+import { ChartPeriodCaption } from "@/components/analytics/ChartPeriodCaption";
+import { FilterMultiSelectField } from "@/components/filters";
 import {
   statisticsService,
   type ApplicationStatistics,
   type StatisticsTimelineEntry,
 } from "@/lib/services/statisticsService";
-import { metricTimestampToMs } from "@/lib/utils/date";
+import {
+  APP_DATA_SERIES_OPTIONS,
+  appDataSampleRangeLabel,
+  buildAppDataChartRows,
+  periodDaysToTimeRange,
+} from "@/lib/metrics/appDataTimeline";
+import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
+import {
+  formatLocalChartAxisTick,
+  formatLocalDateTime,
+} from "@/lib/utils/date";
+import { STATS_PERIOD_OPTIONS } from "@/lib/filters/periodOptions";
+import { parseMultiFilterValues } from "@/lib/filters/multiValueFilter";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
 import { DashboardLayoutRegion, SectionLoader, uiEmpty } from "@/lib/ui";
 
@@ -50,6 +64,8 @@ export default function StatisticsAppDataPage() {
   const [stats, setStats] = useState<ApplicationStatistics | null>(null);
   const [timeline, setTimeline] = useState<StatisticsTimelineEntry[]>([]);
   const [timelineNote, setTimelineNote] = useState<string | null>(null);
+  const [periodDays, setPeriodDays] = useState(7);
+  const [visibleSeries, setVisibleSeries] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -57,9 +73,10 @@ export default function StatisticsAppDataPage() {
     setLoading(true);
     setError(null);
     try {
+      const timeRange = periodDaysToTimeRange(periodDays);
       const [s, tl] = await Promise.all([
         statisticsService.getCurrentStatistics(),
-        statisticsService.getStatisticsTimelineResult("7d", 500),
+        statisticsService.getStatisticsTimelineResult(timeRange, 500),
       ]);
       setStats(s);
       setTimeline(tl.timeline);
@@ -69,34 +86,45 @@ export default function StatisticsAppDataPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [periodDays]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const chartRows = useMemo(
-    () =>
-      timeline
-        .map((row) => {
-          const ms = metricTimestampToMs(row.timestamp);
-          return {
-            timeMs: ms ?? NaN,
-            label: row.timestamp,
-            applications: row.total_applications,
-            users: row.total_users,
-            companies: row.total_companies,
-            contacts: row.total_contacts,
-            interviews: row.total_interviews,
-            calls: row.total_calls ?? 0,
-            followups: row.total_followups ?? 0,
-            events: row.total_events ?? 0,
-          };
-        })
-        .filter((r) => Number.isFinite(r.timeMs))
-        .sort((a, b) => a.timeMs - b.timeMs),
-    [timeline],
-  );
+  const chartRows = useMemo(() => buildAppDataChartRows(timeline), [timeline]);
+
+  const sampleRangeLabel = useMemo(() => {
+    return (
+      appDataSampleRangeLabel(chartRows, periodDays) ||
+      STATS_PERIOD_OPTIONS.find((p) => p.value === periodDays)?.label ||
+      `${periodDays} jours`
+    );
+  }, [chartRows, periodDays]);
+
+  const [chartXMin, chartXMax] = useMemo(() => {
+    const now = Date.now();
+    const rangeStart = now - periodDays * 24 * 60 * 60 * 1000;
+    return chartXDomainFromDataRange(
+      rangeStart,
+      now,
+      chartRows.map((row) => row.timeMs),
+    );
+  }, [chartRows, periodDays]);
+
+  const axisShowDate = chartXMax - chartXMin > 24 * 60 * 60 * 1000;
+
+  const activeSeriesKeys = useMemo(() => {
+    const selected = parseMultiFilterValues(visibleSeries);
+    if (selected.length === 0) {
+      return new Set(APP_DATA_SERIES_OPTIONS.map((series) => series.key));
+    }
+    return new Set(
+      selected.filter((key): key is (typeof APP_DATA_SERIES_OPTIONS)[number]["key"] =>
+        APP_DATA_SERIES_OPTIONS.some((series) => series.key === key),
+      ),
+    );
+  }, [visibleSeries]);
 
   const sourceStates = useMemo(() => {
     if (!stats) return [];
@@ -298,16 +326,77 @@ export default function StatisticsAppDataPage() {
             />
           </DashboardLayoutRegion>
 
+          <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+              Évolution temporelle
+            </h2>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Séries issues de{" "}
+              <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">
+                /api/v1/statistics/timeline
+              </code>
+              . Les cartes ci-dessus restent le snapshot courant.
+            </p>
+
+            <div className="mt-4 space-y-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Période timeline
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {STATS_PERIOD_OPTIONS.filter((period) => period.value >= 7).map(
+                    (period) => {
+                      const active = periodDays === period.value;
+                      return (
+                        <button
+                          key={period.value}
+                          type="button"
+                          onClick={() => setPeriodDays(period.value)}
+                          className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                            active
+                              ? "border-violet-600 bg-violet-600 text-white shadow-sm dark:border-violet-500 dark:bg-violet-600"
+                              : "border-gray-200 bg-white text-gray-700 hover:border-violet-300 hover:text-violet-800 dark:border-gray-600 dark:bg-gray-800/80 dark:text-gray-200 dark:hover:border-violet-500"
+                          }`}
+                        >
+                          {period.label}
+                        </button>
+                      );
+                    },
+                  )}
+                </div>
+              </div>
+
+              <FilterMultiSelectField
+                label="Séries affichées"
+                value={visibleSeries}
+                onChange={setVisibleSeries}
+                options={APP_DATA_SERIES_OPTIONS.map((series) => ({
+                  value: series.key,
+                  label: series.label,
+                }))}
+                variant="statistics"
+                hideCheckbox
+                hint="Aucune sélection = toutes les séries visibles sur le graphe."
+              />
+            </div>
+          </div>
+
           {chartRows.length > 1 ? (
             <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-              <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                Timeline (7 j.) — volumes agrégés
+              <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">
+                Volumes agrégés dans le temps
               </h2>
+              <ChartPeriodCaption label={sampleRangeLabel} />
               <div className="h-72 w-full min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={chartRows}
-                    margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
+                    margin={{
+                      top: 8,
+                      right: 16,
+                      left: 0,
+                      bottom: axisShowDate ? 48 : 24,
+                    }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -316,85 +405,58 @@ export default function StatisticsAppDataPage() {
                     <XAxis
                       dataKey="timeMs"
                       type="number"
-                      domain={["dataMin", "dataMax"]}
-                      tickFormatter={(ms) => new Date(ms).toLocaleDateString()}
-                      tick={{ fontSize: 10 }}
+                      domain={[chartXMin, chartXMax]}
+                      angle={axisShowDate ? -35 : -25}
+                      textAnchor="end"
+                      height={axisShowDate ? 56 : 40}
+                      tickFormatter={(ms) =>
+                        formatLocalChartAxisTick(ms as number, {
+                          withDate: axisShowDate,
+                        })
+                      }
+                      tick={{ fontSize: 11 }}
                     />
-                    <YAxis tick={{ fontSize: 10 }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={48} />
                     <Tooltip
                       {...rechartsTooltipProps}
-                      labelFormatter={(_, p) => {
+                      labelFormatter={(_, payload: unknown) => {
                         const ts = (
-                          p as { payload?: { label?: string } }[]
+                          payload as Array<{
+                            payload?: { label?: string };
+                          }>
                         )?.[0]?.payload?.label;
-                        return ts ?? "—";
+                        return ts != null ? formatLocalDateTime(ts) : "—";
                       }}
                     />
-                    <Line
-                      type="monotone"
-                      dataKey="applications"
-                      name="Candidatures"
-                      stroke="#7c3aed"
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="users"
-                      name="Utilisateurs"
-                      stroke="#2563eb"
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="companies"
-                      name="Entreprises"
-                      stroke="#059669"
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="contacts"
-                      name="Contacts"
-                      stroke="#ea580c"
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="interviews"
-                      name="Entretiens"
-                      stroke="#dc2626"
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="calls"
-                      name="Appels"
-                      stroke="#0891b2"
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="followups"
-                      name="Relances"
-                      stroke="#ca8a04"
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="events"
-                      name="Événements"
-                      stroke="#be123c"
-                      dot={false}
-                    />
+                    {APP_DATA_SERIES_OPTIONS.filter((series) =>
+                      activeSeriesKeys.has(series.key),
+                    ).map((series) => (
+                      <Line
+                        key={series.key}
+                        type="monotone"
+                        dataKey={series.key}
+                        name={series.label}
+                        stroke={series.color}
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    ))}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                {chartRows.length} point(s) sur la fenêtre{" "}
+                {STATS_PERIOD_OPTIONS.find((p) => p.value === periodDays)?.label ??
+                  `${periodDays} jours`}
+                .
+              </p>
             </div>
           ) : chartRows.length === 1 ? (
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 text-sm text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100">
               <h2 className="text-base font-semibold">
                 Snapshot applicatif courant
               </h2>
+              <ChartPeriodCaption label={sampleRangeLabel} />
               <p className="mt-1">
                 L’API timeline renvoie actuellement un seul point de synthèse.
                 Les totaux ci-dessus sont donc affichés comme état courant ; le
