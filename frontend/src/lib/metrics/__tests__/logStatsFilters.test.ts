@@ -2,6 +2,7 @@ import {
   buildLogStatsLevelOptions,
   buildLogStatsServiceOptions,
   filterLogStatsRows,
+  resolveLogStatsApiFilters,
 } from "../logStatsFilters";
 
 describe("logStatsFilters", () => {
@@ -47,5 +48,37 @@ describe("logStatsFilters", () => {
     expect(filtered).toHaveLength(1);
     expect(filtered[0].message).toBe("rate limit");
     expect(rows).toHaveLength(3);
+  });
+
+  it("filtre par plusieurs niveaux et services", () => {
+    const filtered = filterLogStatsRows(rows, {
+      level: "WARN, ERROR",
+      service: "jobbingtrack-api-gateway, jobbingtrack-auth-service",
+    });
+
+    expect(filtered).toHaveLength(2);
+  });
+
+  it("résout les filtres API mono vs multi", () => {
+    expect(
+      resolveLogStatsApiFilters({
+        level: "WARN",
+        service: "jobbingtrack-api-gateway",
+      }),
+    ).toEqual({
+      level: "WARN",
+      serviceName: "jobbingtrack-api-gateway",
+      serviceNames: undefined,
+    });
+    expect(
+      resolveLogStatsApiFilters({
+        level: "WARN, ERROR",
+        service: "a, b",
+      }),
+    ).toEqual({
+      level: undefined,
+      serviceName: undefined,
+      serviceNames: ["a", "b"],
+    });
   });
 });
