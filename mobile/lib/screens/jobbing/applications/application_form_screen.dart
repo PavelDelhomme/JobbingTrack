@@ -130,14 +130,16 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       if (widget.application == null) {
         await ApiService.createApplicationFromPayload(payload, token: token);
         if (mounted) {
-          Provider.of<ApplicationProvider>(context, listen: false).loadApplications();
+          Provider.of<ApplicationProvider>(context, listen: false)
+              .loadApplications(token: token);
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Candidature créée')));
           Navigator.of(context).pop(true);
         }
       } else {
         await ApiService.updateApplicationFromPayload(widget.application!.id, payload, token: token);
         if (mounted) {
-          Provider.of<ApplicationProvider>(context, listen: false).loadApplications();
+          Provider.of<ApplicationProvider>(context, listen: false)
+              .loadApplications(token: token);
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Candidature mise à jour')));
           Navigator.of(context).pop(true);
         }

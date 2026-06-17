@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:jobbingtrack_mobile/models/user.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
@@ -9,6 +11,7 @@ class AuthProvider with ChangeNotifier {
   String? _token;
   bool _isLoading = false;
   bool _handlingSessionRevoke = false;
+  bool _sessionRestored = false;
 
   AuthProvider() {
     _wireSecurityCallbacks();
@@ -17,6 +20,37 @@ class AuthProvider with ChangeNotifier {
   User? get user => _user;
   String? get token => _token;
   bool get isLoading => _isLoading;
+  bool get sessionRestored => _sessionRestored;
+
+  /// Restaure la session depuis le stockage local (splash / cold start).
+  Future<bool> restoreSession() async {
+    if (_sessionRestored) return isAuthenticated;
+    _sessionRestored = true;
+    final stored = await ApiConfigStore.loadAuthSession();
+    if (stored == null) return false;
+    try {
+      final userMap = jsonDecode(stored.userJson) as Map<String, dynamic>;
+      _token = stored.token;
+      _user = User.fromJson(userMap);
+      CrashReporter.setToken(_token);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('[AUTH] restoreSession invalid: $e');
+      await ApiConfigStore.clearAuthSession();
+      _token = null;
+      _user = null;
+      return false;
+    }
+  }
+
+  Future<void> _persistSession() async {
+    if (_token == null || _user == null) return;
+    await ApiConfigStore.saveAuthSession(
+      token: _token!,
+      userJson: jsonEncode(_user!.toJson()),
+    );
+  }
 
   Future<void> login(String email, String password) async {
     _isLoading = true;
@@ -29,6 +63,7 @@ class AuthProvider with ChangeNotifier {
         _token = response['token'];
         _user = User.fromJson(response['user']);
         CrashReporter.setToken(_token);
+        await _persistSession();
         CrashReporter.trackAction('login:${_user?.email ?? "unknown"}');
         CrashReporter.flushPendingReports();
         _isLoading = false;
@@ -93,6 +128,7 @@ class AuthProvider with ChangeNotifier {
     );
     CrashReporter.trackAction('logout');
     CrashReporter.setToken(null);
+    await ApiConfigStore.clearAuthSession();
     _user = null;
     _token = null;
     notifyListeners();
@@ -163,6 +199,7 @@ class AuthProvider with ChangeNotifier {
           token: _token,
         );
         CrashReporter.setToken(null);
+        await ApiConfigStore.clearAuthSession();
         _user = null;
         _token = null;
         notifyListeners();

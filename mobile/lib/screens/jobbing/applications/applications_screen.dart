@@ -53,7 +53,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
     final interviewProvider = Provider.of<InterviewProvider>(context, listen: false);
     final followUpProvider = Provider.of<FollowUpProvider>(context, listen: false);
     await Future.wait([
-      appProvider.loadApplications(),
+      appProvider.loadApplications(token: token),
       companyProvider.loadCompanies(token: token),
       contactProvider.loadContacts(token: token),
       interviewProvider.loadInterviews(token: token),
@@ -62,7 +62,9 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
   }
 
   Future<void> _loadApplications() async {
-    await Provider.of<ApplicationProvider>(context, listen: false).loadApplications();
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    await Provider.of<ApplicationProvider>(context, listen: false)
+        .loadApplications(token: auth.token);
   }
 
   @override

@@ -159,7 +159,10 @@ class _SplashScreenState extends State<_SplashScreen> {
       debugPrint('[SPLASH] autoDetectApi error (continuing): $e\n$st');
     }
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed('/login');
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final restored = await auth.restoreSession();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed(restored ? '/home' : '/login');
   }
 
   @override

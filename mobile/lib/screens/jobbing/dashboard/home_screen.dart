@@ -35,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final followUpProvider = Provider.of<FollowUpProvider>(context, listen: false);
     
     await Future.wait([
-      appProvider.loadApplications(),
+      appProvider.loadApplications(token: token),
       interviewProvider.loadInterviews(token: token),
       followUpProvider.loadFollowUps(token: token),
     ]);

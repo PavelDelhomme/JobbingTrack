@@ -284,9 +284,12 @@ class ApiService {
           return (data['applications'] as List).map((json) => Application.fromJson(json)).toList();
         }
         return [];
-      } else {
-        throw Exception('Erreur HTTP ${response.statusCode}');
       }
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
+        throw Exception(body['message'] ?? 'Session expirée — reconnectez-vous');
+      }
+      throw Exception('Erreur HTTP ${response.statusCode}');
     } catch (e) {
       throw Exception('Erreur réseau: $e');
     }
