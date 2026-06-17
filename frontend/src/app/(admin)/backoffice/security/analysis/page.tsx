@@ -8,209 +8,38 @@ import { SectionLoader } from "@/lib/ui";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
-import {
-  countDetectionLikeLogs,
-  hasToken,
-  isSqliThreat,
-  isXssThreat,
-} from "@/lib/security/threatSignals";
 import { formatBlockOriginLabelOrUnknown } from "@/lib/security/securityLabels";
-// ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
+import {
+  ANALYSIS_BLOCKED_IPS_PAGE_SIZE,
+  ANALYSIS_LOGS_FETCH_LIMIT,
+  ANALYSIS_LOGS_WINDOW_DAYS,
+  ANALYSIS_REFRESH_MS,
+  buildSecurityRecommendations,
+  fetchSecurityAnalysisSummary,
+  type SecurityAnalysisSummary,
+} from "@/lib/security/securityAnalysisSummary";
 import { Shield, AlertTriangle, Lock, Eye, Activity } from "@/lib/icons";
-import axios from "axios";
 
 const API_URL = FRONTEND_URLS.api;
-const ANALYSIS_LOGS_WINDOW_DAYS = 30;
-const ANALYSIS_LOGS_FETCH_LIMIT = 2000;
 
 export default function SecurityAnalysisPage() {
   useDocumentTitle("Analyse sécurité");
 
-  const [summary, setSummary] = useState<any>(null);
+  const [summary, setSummary] = useState<SecurityAnalysisSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [serviceError, setServiceError] = useState<string | null>(null);
+  const [blockedPage, setBlockedPage] = useState(1);
 
-  // ✅ OPTIMISATION : useCallback pour éviter les re-créations de fonction
   const loadSecuritySummary = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const logSince = encodeURIComponent(
-        new Date(
-          Date.now() - ANALYSIS_LOGS_WINDOW_DAYS * 24 * 60 * 60 * 1000,
-        ).toISOString(),
-      );
-      const [statsRes, blockedRes, logsRes, threatsRes] =
-        await Promise.allSettled([
-          axios.get(`${API_URL}/api/v1/security/stats?days=1`, {
-            headers,
-            timeout: 7000,
-          }),
-          axios.get(`${API_URL}/api/v1/security/firewall/blocked-ips`, {
-            headers,
-            timeout: 7000,
-          }),
-          axios.get(
-            `${API_URL}/api/v1/security/logs?limit=${ANALYSIS_LOGS_FETCH_LIMIT}&startDate=${logSince}`,
-            { headers, timeout: 7000 },
-          ),
-          axios.get(`${API_URL}/api/v1/security/firewall/threats?limit=200`, {
-            headers,
-            timeout: 7000,
-          }),
-        ]);
-
-      const statsData =
-        statsRes.status === "fulfilled" ? statsRes.value.data : null;
-      const blockedData =
-        blockedRes.status === "fulfilled" ? blockedRes.value.data : null;
-      const logsData =
-        logsRes.status === "fulfilled" ? logsRes.value.data : null;
-      const threatsData =
-        threatsRes.status === "fulfilled" ? threatsRes.value.data : null;
-      const failedSources = [
-        statsRes.status === "rejected" ? "statistiques" : null,
-        blockedRes.status === "rejected" ? "IPs bloquées" : null,
-        logsRes.status === "rejected" ? "logs" : null,
-        threatsRes.status === "rejected" ? "menaces" : null,
-      ].filter(Boolean);
-
-      const stats = statsData?.success ? statsData?.data || {} : {};
-      const blockedRaw =
-        blockedData?.success && Array.isArray(blockedData?.data)
-          ? blockedData.data
-          : [];
-      const blockedIPItems = blockedRaw
-        .map(
-          (
-            x:
-              | string
-              | {
-                  ip?: string;
-                  reason?: string;
-                  blockedAt?: string;
-                  blockOrigin?: string;
-                  threatId?: string;
-                },
-          ) =>
-            typeof x === "string"
-              ? { ip: x, reason: "Blocage actif", blockedAt: undefined }
-              : { ...x },
-        )
-        .filter((x: any) => !!x?.ip);
-      const blockedIpsMeta =
-        blockedData?.meta && typeof blockedData.meta === "object"
-          ? blockedData.meta
-          : null;
-      const logs = Array.isArray(logsData?.data) ? logsData.data : [];
-      const threats = Array.isArray(threatsData?.data) ? threatsData.data : [];
-
-      const sqlEventsLogs = logs.filter(
-        (l: any) =>
-          hasToken(l?.eventType, ["sql_injection", "sql injection"]) ||
-          hasToken(l?.category, ["injection"]) ||
-          hasToken(l?.message, ["sql injection", "sql_injection"]),
-      ).length;
-      const xssEventsLogs = logs.filter(
-        (l: any) =>
-          hasToken(l?.eventType, ["xss"]) ||
-          hasToken(l?.category, ["injection"]) ||
-          hasToken(l?.message, ["xss", "<script", "onerror="]),
-      ).length;
-      const sqlEventsThreats = threats.filter((t: any) =>
-        isSqliThreat(t),
-      ).length;
-      const xssEventsThreats = threats.filter((t: any) =>
-        isXssThreat(t),
-      ).length;
-      const sqlEvents = sqlEventsLogs + sqlEventsThreats;
-      const xssEvents = xssEventsLogs + xssEventsThreats;
-      const failedAuth = logs.filter((l: any) => {
-        const evt = String(l?.eventType || "").toLowerCase();
-        const cat = String(l?.category || "").toLowerCase();
-        return (
-          evt.includes("failed") ||
-          evt.includes("invalid") ||
-          cat === "authentication"
-        );
-      }).length;
-      const suspiciousLogs = logs.filter((l: any) => {
-        const lvl = String(l?.level || "").toLowerCase();
-        return lvl === "warning" || lvl === "error" || lvl === "critical";
-      }).length;
-      const labBlocks = logs.filter(
-        (l: any) =>
-          String(l?.eventType || "").toLowerCase() ===
-          "ip_blocked_lab_simulation",
-      ).length;
-      const manualBlocksStrict = logs.filter(
-        (l: any) =>
-          String(l?.eventType || "").toLowerCase() === "ip_blocked_manually",
-      ).length;
-      const manualBlocks = manualBlocksStrict + labBlocks;
-      const autoBlocks = logs.filter((l: any) => {
-        const evt = String(l?.eventType || "").toLowerCase();
-        return (
-          evt === "threat_blocked" ||
-          evt === "ip_blocked_automatically" ||
-          evt === "payload_auto_block"
-        );
-      }).length;
-      const detectionLogsCount = countDetectionLikeLogs(
-        logs as Record<string, unknown>[],
-      );
-      const openThreatsCount = threats.filter((t: any) => !t?.blocked).length;
-      const ddosThreats = threats.filter((t: any) =>
-        String(t?.threatType || "")
-          .toUpperCase()
-          .includes("DDOS"),
-      ).length;
-      const scoreFromOverview = Number(stats?.overview?.riskScore ?? 0);
-      const scoreFromLive = Math.max(
-        0,
-        100 - Math.min(70, threats.length * 2 + suspiciousLogs),
-      );
-      const securityScore =
-        Number.isFinite(scoreFromOverview) && scoreFromOverview > 0
-          ? Math.round(scoreFromOverview)
-          : Math.round(scoreFromLive);
-      const otherInjectionCount = Math.max(
-        0,
-        threats.length - sqlEventsThreats - xssEventsThreats - ddosThreats,
-      );
-
-      setSummary({
-        ...stats,
-        securityScore,
-        blockedIPs: blockedIPItems,
-        blockedIpsMeta,
-        uniqueBlockedIPs: blockedIPItems.length,
-        manualBlocks,
-        manualBlocksStrict,
-        labBlocks,
-        autoBlocks,
-        detectionLogsCount,
-        openThreatsCount,
-        totalFailedLogins: Number(
-          stats?.overview?.criticalEvents ?? failedAuth,
-        ),
-        totalSuspiciousActivities: Number(
-          stats?.overview?.totalEvents ?? suspiciousLogs,
-        ),
-        totalSqlInjections: Number(stats?.overview?.sqlInjections ?? sqlEvents),
-        totalXssAttempts: Number(stats?.overview?.xssAttempts ?? xssEvents),
-        totalOtherInjections: Number(
-          stats?.overview?.otherInjections ?? otherInjectionCount,
-        ),
-        totalThreatsLive: threats.length,
-        totalLogsLive: logs.length,
+      const analysis = await fetchSecurityAnalysisSummary(API_URL, token, {
+        blockedPage,
+        blockedLimit: ANALYSIS_BLOCKED_IPS_PAGE_SIZE,
       });
-      setServiceError(
-        failedSources.length > 0
-          ? `Données partielles: ${failedSources.join(", ")} indisponible(s).`
-          : null,
-      );
+      setSummary(analysis);
+      setServiceError(null);
     } catch (error) {
       console.error("Erreur chargement analyse:", error);
       setServiceError(
@@ -219,18 +48,26 @@ export default function SecurityAnalysisPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [blockedPage]);
 
   useEffect(() => {
-    loadSecuritySummary();
+    void loadSecuritySummary();
   }, [loadSecuritySummary]);
 
-  // ✅ CORRECTION : useMemo doit être appelé à chaque render, pas conditionnellement
-  // Déplacer avant le if (loading) pour respecter les règles des Hooks
-  const { securityScore } = useMemo(() => {
-    const score = summary?.avgSecurityScore ?? summary?.securityScore ?? 0;
-    return { securityScore: score };
-  }, [summary?.avgSecurityScore, summary?.securityScore]);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      void loadSecuritySummary();
+    }, ANALYSIS_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [loadSecuritySummary]);
+
+  const securityScore = summary?.securityScore ?? 0;
+  const recommendations = useMemo(
+    () => (summary ? buildSecurityRecommendations(summary) : []),
+    [summary],
+  );
+  const blockedPagination = summary?.blockedIpsMeta?.pagination;
+  const blockedTotalPages = blockedPagination?.pages ?? 1;
 
   if (loading) {
     return (
@@ -371,8 +208,9 @@ export default function SecurityAnalysisPage() {
           <span className="font-medium text-gray-900 dark:text-gray-100">
             Source des données:
           </span>{" "}
-          corrélation temps réel `stats + logs + threats` (24h), avec fallback
-          sur le calcul live quand `riskScore` est absent.
+          corrélation temps réel `stats ({ANALYSIS_LOGS_WINDOW_DAYS} j) + logs +
+          threats + firewall`, rafraîchie toutes les{" "}
+          {ANALYSIS_REFRESH_MS / 1000} s.
           <span className="ml-2">
             Menaces live:{" "}
             <strong className="text-gray-900 dark:text-gray-100">
@@ -481,8 +319,9 @@ export default function SecurityAnalysisPage() {
           {summary?.blockedIpsMeta &&
             typeof summary.blockedIpsMeta.count === "number" && (
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-                API consolidée : {summary.blockedIpsMeta.count} entrée(s) — voir
-                aussi{" "}
+                API consolidée : {summary.uniqueBlockedIPs} IP(s) au total —
+                page {blockedPage}/{blockedTotalPages} (
+                {ANALYSIS_BLOCKED_IPS_PAGE_SIZE} par page). Voir aussi{" "}
                 <Link
                   href="/backoffice/security/firewall#liste-ips-bloquees"
                   className="text-blue-600 hover:underline"
@@ -493,149 +332,125 @@ export default function SecurityAnalysisPage() {
               </p>
             )}
           <div className="space-y-2">
-            {summary?.blockedIPs?.length > 0 ? (
-              summary.blockedIPs.map(
-                (
-                  ipItem: {
-                    ip: string;
-                    reason?: string;
-                    blockedAt?: string;
-                    blockOrigin?: string;
-                    threatId?: string;
-                  },
-                  index: number,
-                ) => {
-                  const originLabel = formatBlockOriginLabelOrUnknown(
-                    ipItem.blockOrigin,
-                  );
-                  return (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg gap-2"
-                    >
-                      <div className="min-w-0">
-                        <span className="font-mono text-gray-900 dark:text-gray-100">
-                          {ipItem.ip}
-                        </span>
-                        {ipItem.blockedAt && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatLocalDateTime(ipItem.blockedAt)}
-                          </p>
-                        )}
-                        {ipItem.reason && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {ipItem.reason}
-                          </p>
-                        )}
-                        {ipItem.threatId && (
-                          <Link
-                            href={`/backoffice/security/threats/${ipItem.threatId}`}
-                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                          >
-                            Fiche menace
-                          </Link>
-                        )}
-                      </div>
-                      <span className="text-xs px-2 py-0.5 rounded shrink-0 bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200">
-                        {originLabel}
+            {(summary?.blockedIPs?.length ?? 0) > 0 ? (
+              summary!.blockedIPs.map((ipItem, index) => {
+                const originLabel = formatBlockOriginLabelOrUnknown(
+                  ipItem.blockOrigin,
+                );
+                return (
+                  <div
+                    key={`${ipItem.ip}-${index}`}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg gap-2"
+                  >
+                    <div className="min-w-0">
+                      <span className="font-mono text-gray-900 dark:text-gray-100">
+                        {ipItem.ip}
                       </span>
+                      {ipItem.blockedAt && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {formatLocalDateTime(ipItem.blockedAt)}
+                        </p>
+                      )}
+                      {ipItem.reason && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {ipItem.reason}
+                        </p>
+                      )}
+                      {ipItem.threatId && (
+                        <Link
+                          href={`/backoffice/security/threats/${ipItem.threatId}`}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Fiche menace
+                        </Link>
+                      )}
                     </div>
-                  );
-                },
-              )
+                    <span className="text-xs px-2 py-0.5 rounded shrink-0 bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200">
+                      {originLabel}
+                    </span>
+                  </div>
+                );
+              })
             ) : (
               <p className="text-gray-500 dark:text-gray-400 text-center py-4">
                 Aucune IP bloquée actuellement
               </p>
             )}
           </div>
+          {blockedTotalPages > 1 && (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                disabled={blockedPage <= 1 || loading}
+                onClick={() => setBlockedPage((p) => Math.max(1, p - 1))}
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-gray-600"
+              >
+                Précédent
+              </button>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Page {blockedPage} / {blockedTotalPages}
+              </span>
+              <button
+                type="button"
+                disabled={blockedPage >= blockedTotalPages || loading}
+                onClick={() =>
+                  setBlockedPage((p) => Math.min(blockedTotalPages, p + 1))
+                }
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-gray-600"
+              >
+                Suivant
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Recommandations */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold mb-4">
+          <h2 className="text-xl font-bold mb-2">
             Recommandations de Sécurité
           </h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            Mises à jour automatiquement selon le score live, les menaces
+            ouvertes, injections et blocages observés (rafraîchissement{" "}
+            {ANALYSIS_REFRESH_MS / 1000} s).
+          </p>
           <div className="space-y-3">
-            {securityScore >= 80 ? (
-              <>
-                <div className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <span className="text-green-600 dark:text-green-400 text-xl">
-                    ✓
+            {recommendations.map((rec) => {
+              const tone =
+                rec.severity === "ok"
+                  ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                  : rec.severity === "info"
+                    ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                    : rec.severity === "warning"
+                      ? "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800"
+                      : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800";
+              const body = (
+                <div
+                  className={`flex items-start gap-3 p-3 rounded-lg border ${tone}`}
+                >
+                  <span className="text-xl shrink-0">
+                    {rec.severity === "ok"
+                      ? "✓"
+                      : rec.severity === "info"
+                        ? "ℹ"
+                        : rec.severity === "warning"
+                          ? "⚠"
+                          : "✗"}
                   </span>
                   <div>
-                    <p className="font-medium text-green-800 dark:text-green-200">
-                      Sécurité Robuste
-                    </p>
-                    <p className="text-sm text-green-700 dark:text-green-300">
-                      Votre application maintient un excellent niveau de
-                      sécurité
-                    </p>
+                    <p className="font-medium">{rec.title}</p>
+                    <p className="text-sm opacity-90">{rec.message}</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <span className="text-blue-600 dark:text-blue-400 text-xl">
-                    ℹ
-                  </span>
-                  <div>
-                    <p className="font-medium text-blue-800 dark:text-blue-200">
-                      Surveillance Continue
-                    </p>
-                    <p className="text-sm text-blue-700 dark:text-blue-300">
-                      Continuez à surveiller régulièrement les logs de sécurité
-                    </p>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-start gap-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                  <span className="text-orange-600 dark:text-orange-400 text-xl">
-                    ⚠
-                  </span>
-                  <div>
-                    <p className="font-medium text-orange-800 dark:text-orange-200">
-                      Augmenter la Surveillance
-                    </p>
-                    <p className="text-sm text-orange-700 dark:text-orange-300">
-                      Activez l&apos;authentification à deux facteurs pour tous
-                      les utilisateurs
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                  <span className="text-red-600 dark:text-red-400 text-xl">
-                    ✗
-                  </span>
-                  <div>
-                    <p className="font-medium text-red-800 dark:text-red-200">
-                      Action Requise
-                    </p>
-                    <p className="text-sm text-red-700 dark:text-red-300">
-                      Vérifiez et bloquez les IPs suspectes identifiées
-                    </p>
-                  </div>
-                </div>
-                {(summary?.totalSqlInjections || 0) +
-                  (summary?.totalXssAttempts || 0) >
-                  0 && (
-                  <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                    <span className="text-red-600 dark:text-red-400 text-xl">
-                      🛡
-                    </span>
-                    <div>
-                      <p className="font-medium text-red-800 dark:text-red-200">
-                        Durcir immédiatement les protections d’injection
-                      </p>
-                      <p className="text-sm text-red-700 dark:text-red-300">
-                        Vérifie les règles WAF SQL/XSS, active le blocage
-                        automatique et confirme les logs de rejet côté gateway.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+              );
+              return rec.href ? (
+                <Link key={rec.title} href={rec.href} className="block">
+                  {body}
+                </Link>
+              ) : (
+                <div key={rec.title}>{body}</div>
+              );
+            })}
           </div>
         </div>
       </div>

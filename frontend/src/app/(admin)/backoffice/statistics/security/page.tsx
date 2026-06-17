@@ -8,7 +8,12 @@ import {
 } from "../StatisticsSubNav";
 import { analyticsService } from "@/lib/api/analytics.service";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
-import { buildSecurityConsistencySummary } from "@/lib/metrics/securityStatisticsComparison";
+import { buildSecurityConsistencySummary, buildSecurityCrossPageRows } from "@/lib/metrics/securityStatisticsComparison";
+import {
+  fetchSecurityAnalysisSummary,
+  type SecurityAnalysisSummary,
+} from "@/lib/security/securityAnalysisSummary";
+import { FRONTEND_URLS } from "@/config/ports.config";
 import { DashboardLayoutRegion, SectionLoader, uiEmpty } from "@/lib/ui";
 
 function num(v: unknown): number {
@@ -60,6 +65,9 @@ export default function StatisticsSecurityPage() {
   const [persistedLogsTotal, setPersistedLogsTotal] = useState<number | null>(
     null,
   );
+  const [liveAnalysis, setLiveAnalysis] = useState<SecurityAnalysisSummary | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -69,15 +77,21 @@ export default function StatisticsSecurityPage() {
     setLoading(true);
     setError(null);
     try {
-      const [m, s, pStats, live] = await Promise.all([
+      const token =
+        typeof localStorage !== "undefined"
+          ? localStorage.getItem("token")
+          : null;
+      const [m, s, pStats, live, analysis] = await Promise.all([
         analyticsService.getSecurityMetrics(hoursWindow),
         analyticsService.getSecurityPersistenceSummary(hoursWindow),
         analyticsService.getPersistenceStats(),
         analyticsService.getSecuritySummary(30 * 24),
+        fetchSecurityAnalysisSummary(FRONTEND_URLS.api, token).catch(() => null),
       ]);
       setMetrics(Array.isArray(m) ? m : []);
       setPSummary(s && typeof s === "object" ? s : null);
       setLiveSummary(live && typeof live === "object" ? live : null);
+      setLiveAnalysis(analysis);
       const counts = pStats?.counts as Record<string, unknown> | undefined;
       const logsTotal =
         counts && typeof counts.securityLogs === "number"
@@ -128,15 +142,18 @@ export default function StatisticsSecurityPage() {
             scoreSum: 0,
             scoreCount: 0,
           } satisfies DayBucket);
-        b.failedLogins += num(row.failedLoginAttempts);
-        b.sqlInjections += num(row.potentialSqlInjections);
-        b.xssAttempts += num(row.potentialXssAttempts);
-        b.suspicious += num(row.suspiciousActivities);
-        b.alerts += num(row.activeSecurityAlerts);
-        b.intrusions += num(row.intrusionAttempts);
-        b.ddos += num(row.ddosAttacks);
-        b.rateLimit += num(row.rateLimitExceeded);
-        b.invalidToken += num(row.invalidTokenAttempts);
+        b.failedLogins = Math.max(b.failedLogins, num(row.failedLoginAttempts));
+        b.sqlInjections = Math.max(
+          b.sqlInjections,
+          num(row.potentialSqlInjections),
+        );
+        b.xssAttempts = Math.max(b.xssAttempts, num(row.potentialXssAttempts));
+        b.suspicious = Math.max(b.suspicious, num(row.suspiciousActivities));
+        b.alerts = Math.max(b.alerts, num(row.activeSecurityAlerts));
+        b.intrusions = Math.max(b.intrusions, num(row.intrusionAttempts));
+        b.ddos = Math.max(b.ddos, num(row.ddosAttacks));
+        b.rateLimit = Math.max(b.rateLimit, num(row.rateLimitExceeded));
+        b.invalidToken = Math.max(b.invalidToken, num(row.invalidTokenAttempts));
         b.snapshots += 1;
         if (row.securityScore !== undefined && row.securityScore !== null) {
           b.scoreSum += num(row.securityScore);
@@ -191,6 +208,10 @@ export default function StatisticsSecurityPage() {
   const consistency = useMemo(
     () => buildSecurityConsistencySummary(pSummary, liveSummary),
     [pSummary, liveSummary],
+  );
+  const crossPageRows = useMemo(
+    () => buildSecurityCrossPageRows(pSummary, liveAnalysis),
+    [pSummary, liveAnalysis],
   );
   const consistencyTone =
     consistency.level === "critical"
@@ -278,15 +299,16 @@ export default function StatisticsSecurityPage() {
                 </p>
                 <p className="mt-1">{consistency.message}</p>
                 <p className="mt-1 text-xs opacity-90">
-                  Fenêtres comparées : Statistics persistance 7 j · Sécurité
-                  opérationnelle 30 j.
+                  Fenêtres : Statistics persistance {hoursWindow} h (pic max par
+                  snapshot) · Analyse live {liveAnalysis?.statsWindowDays ?? 30}{" "}
+                  j (logs + menaces + firewall).
                 </p>
               </div>
               <Link
-                href="/backoffice/security"
+                href="/backoffice/security/analysis"
                 className="shrink-0 font-medium underline hover:no-underline"
               >
-                Ouvrir /security →
+                Ouvrir Analyse →
               </Link>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -328,6 +350,71 @@ export default function StatisticsSecurityPage() {
             </div>
           </div>
 
+          {liveAnalysis && (
+            <div className="rounded-xl border border-gray-300 bg-white p-4 text-sm shadow-sm dark:border-gray-700 dark:bg-gray-900">
+              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                    Comparatif Statistics persisté vs Analyse live
+                  </h2>
+                  <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                    Même logique que la page{" "}
+                    <Link
+                      href="/backoffice/security/analysis"
+                      className="font-medium text-violet-700 underline hover:no-underline dark:text-violet-300"
+                    >
+                      Analyse de Sécurité
+                    </Link>
+                    . Les écarts viennent des sources et fenêtres, pas d’un
+                    bug d’affichage isolé.
+                  </p>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Score Analyse live :{" "}
+                  <span className="font-bold tabular-nums">
+                    {liveAnalysis.securityScore}
+                  </span>
+                  /100
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-900/80">
+                      <th className="px-2 py-2 font-medium">Indicateur</th>
+                      <th className="px-2 py-2 font-medium tabular-nums">
+                        Persisté ({hoursWindow} h)
+                      </th>
+                      <th className="px-2 py-2 font-medium tabular-nums">
+                        Live Analyse ({liveAnalysis.statsWindowDays} j)
+                      </th>
+                      <th className="px-2 py-2 font-medium">Lecture</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {crossPageRows.map((row) => (
+                      <tr
+                        key={row.label}
+                        className="border-b border-gray-100 dark:border-gray-700/80"
+                      >
+                        <td className="px-2 py-2 font-medium">{row.label}</td>
+                        <td className="px-2 py-2 tabular-nums">
+                          {row.persisted == null ? "—" : row.persisted}
+                        </td>
+                        <td className="px-2 py-2 tabular-nums">
+                          {row.live == null ? "—" : row.live}
+                        </td>
+                        <td className="px-2 py-2 text-gray-600 dark:text-gray-400">
+                          {row.note}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* Résumé agrégateur (BDD) */}
           <div>
             <h2 className="mb-3 text-base font-semibold text-gray-900 dark:text-gray-100">
@@ -352,7 +439,7 @@ export default function StatisticsSecurityPage() {
               <DashboardLayoutRegion variant="dense" className="gap-4">
                 <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                    Échecs connexion (cumul)
+                    Échecs connexion (pic snapshot)
                   </p>
                   <p className="mt-1 text-2xl font-bold tabular-nums">
                     {num(pSummary.totalFailedLogins)}
@@ -360,7 +447,7 @@ export default function StatisticsSecurityPage() {
                 </div>
                 <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                    Tentatives SQLi / XSS (cumul)
+                    Tentatives SQLi / XSS (pic snapshot)
                   </p>
                   <p className="mt-1 text-lg font-bold tabular-nums">
                     {num(pSummary.totalSqlInjectionAttempts)} /{" "}
@@ -369,7 +456,7 @@ export default function StatisticsSecurityPage() {
                 </div>
                 <div className="rounded-xl border border-gray-300 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">
-                    Activités suspectes / alertes
+                    Activités suspectes / alertes (pic snapshot)
                   </p>
                   <p className="mt-1 text-lg font-bold tabular-nums">
                     {num(pSummary.totalSuspiciousActivities)} /{" "}
@@ -462,9 +549,8 @@ export default function StatisticsSecurityPage() {
                 Agrégation par jour (séries persistées)
               </h2>
               <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-                Somme des compteurs par jour civil (UTC) sur les snapshots de la
-                fenêtre. Blocages IP : {fromMetrics.blockedIpTouches} entrées
-                listées dans les lignes (non dédupliquées jour par jour).
+                Somme des pics journaliers (max par jour civil), pas une somme
+                brute de tous les snapshots.
               </p>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-xs">

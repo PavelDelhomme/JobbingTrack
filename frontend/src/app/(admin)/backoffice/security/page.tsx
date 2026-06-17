@@ -433,6 +433,14 @@ export default function SecurityOverviewPage() {
 
       const ipsArray =
         blockedIps?.data || blockedIps?.ips || blockedIps?.blockedIps || [];
+      const blockedIpsTotal =
+        typeof blockedIps?.meta?.pagination?.total === "number"
+          ? blockedIps.meta.pagination.total
+          : typeof blockedIps?.meta?.count === "number"
+            ? blockedIps.meta.count
+            : Array.isArray(ipsArray)
+              ? ipsArray.length
+              : 0;
       const rulesArray = firewallRules?.data || firewallRules?.rules || [];
       const servicesObj = metrics?.services || {};
       const servicesEntries =
@@ -504,7 +512,7 @@ export default function SecurityOverviewPage() {
         logsTruncated: logsLen >= SECURITY_LOGS_FETCH_LIMIT,
         logsPeriodDays: LOGS_WINDOW_DAYS,
         threatsCount: Array.isArray(threatsArray) ? threatsArray.length : 0,
-        blockedIpsCount: Array.isArray(ipsArray) ? ipsArray.length : 0,
+        blockedIpsCount: blockedIpsTotal,
         blockedIpsSubtitle: formatBlockedIpsOriginsSubtitle(
           blockedIps?.meta?.byOrigin,
         ),

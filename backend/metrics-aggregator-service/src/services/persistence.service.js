@@ -1853,13 +1853,13 @@ class PersistenceService {
       failedLoginAttempts: Number(meta.failedLoginAttempts || 0),
       successfulLogins: Number(meta.successfulLogins || 0),
       blockedIPs: Array.isArray(meta.blockedIPs) ? meta.blockedIPs : [],
-      suspiciousActivities: Number(meta.suspiciousActivities || intrusionAttempts || 0),
+      suspiciousActivities: Number(meta.suspiciousActivities || 0),
       potentialSqlInjections: Number(meta.potentialSqlInjections || 0),
       potentialXssAttempts: Number(meta.potentialXssAttempts || 0),
       rateLimitExceeded: Number(meta.rateLimitExceeded || 0),
       invalidTokenAttempts: Number(meta.invalidTokenAttempts || 0),
       securityScore: isScore ? Number(row.value || 100) : Number(meta.securityScore || 100),
-      activeSecurityAlerts: Number(meta.activeSecurityAlerts || criticalEvents || ddosAttacks || 0),
+      activeSecurityAlerts: Number(meta.activeSecurityAlerts || 0),
       intrusionAttempts: Number(meta.intrusionAttempts || 0),
       ddosAttacks: Number(meta.ddosAttacks || 0),
       rawMetricType: row.metricType,
@@ -1902,21 +1902,24 @@ class PersistenceService {
       };
     }
 
-    const total = metrics.reduce((acc, m) => ({
-      failedLogins: acc.failedLogins + m.failedLoginAttempts,
-      suspicious: acc.suspicious + m.suspiciousActivities,
-      alerts: acc.alerts + m.activeSecurityAlerts,
-      sqlInjections: acc.sqlInjections + m.potentialSqlInjections,
-      xssAttempts: acc.xssAttempts + m.potentialXssAttempts,
-      securityScore: acc.securityScore + (m.securityScore || 0),
-    }), {
-      failedLogins: 0,
-      suspicious: 0,
-      alerts: 0,
-      sqlInjections: 0,
-      xssAttempts: 0,
-      securityScore: 0,
-    });
+    const total = metrics.reduce(
+      (acc, m) => ({
+        failedLogins: Math.max(acc.failedLogins, m.failedLoginAttempts || 0),
+        suspicious: Math.max(acc.suspicious, m.suspiciousActivities || 0),
+        alerts: Math.max(acc.alerts, m.activeSecurityAlerts || 0),
+        sqlInjections: Math.max(acc.sqlInjections, m.potentialSqlInjections || 0),
+        xssAttempts: Math.max(acc.xssAttempts, m.potentialXssAttempts || 0),
+        securityScore: acc.securityScore + (m.securityScore || 0),
+      }),
+      {
+        failedLogins: 0,
+        suspicious: 0,
+        alerts: 0,
+        sqlInjections: 0,
+        xssAttempts: 0,
+        securityScore: 0,
+      },
+    );
 
     // Collecter tous les IPs bloqués uniques
     const allBlockedIPs = new Set();
@@ -1936,6 +1939,7 @@ class PersistenceService {
       uniqueBlockedIPs: allBlockedIPs.size,
       period: `${hours}h`,
       dataPoints: metrics.length,
+      aggregationMethod: 'max_per_snapshot',
       source: metrics.some((m) => m.source === 'security_metrics')
         ? 'security_metrics'
         : 'security_metrics_aggregated',
