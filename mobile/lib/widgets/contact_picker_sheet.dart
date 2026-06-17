@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 
+/// Résultat spécial : appel sans contact (entreprise / candidature seulement).
+const String kCallWithoutContactFlag = '__call_without_contact__';
+
 /// Sélection d'un contact existant ou création rapide (nom seul ou prénom + nom).
 Future<Map<String, dynamic>?> showContactPickerSheet(
   BuildContext context, {
@@ -11,6 +14,8 @@ Future<Map<String, dynamic>?> showContactPickerSheet(
     String? email,
     String? phone,
   }) onCreateContact,
+  bool allowWithoutContact = false,
+  String? withoutContactLabel,
 }) async {
   return showModalBottomSheet<Map<String, dynamic>>(
     context: context,
@@ -19,6 +24,8 @@ Future<Map<String, dynamic>?> showContactPickerSheet(
       return _ContactPickerBody(
         candidates: candidates,
         onCreateContact: onCreateContact,
+        allowWithoutContact: allowWithoutContact,
+        withoutContactLabel: withoutContactLabel,
       );
     },
   );
@@ -32,10 +39,14 @@ class _ContactPickerBody extends StatefulWidget {
     String? email,
     String? phone,
   }) onCreateContact;
+  final bool allowWithoutContact;
+  final String? withoutContactLabel;
 
   const _ContactPickerBody({
     required this.candidates,
     required this.onCreateContact,
+    this.allowWithoutContact = false,
+    this.withoutContactLabel,
   });
 
   @override
@@ -100,6 +111,14 @@ class _ContactPickerBodyState extends State<_ContactPickerBody> {
               const SizedBox(height: 12),
               Text('Choisir un contact', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
+              if (widget.allowWithoutContact)
+                ListTile(
+                  leading: Icon(Icons.phone_in_talk_outlined, color: Colors.blue.shade700),
+                  title: Text(widget.withoutContactLabel ?? 'Appel sans contact'),
+                  subtitle: const Text('Lié à la candidature / entreprise uniquement'),
+                  onTap: () => Navigator.pop(context, {kCallWithoutContactFlag: true}),
+                ),
+              if (widget.allowWithoutContact) const Divider(height: 8),
               ...widget.candidates.map(
                 (c) => ListTile(
                   leading: const Icon(Icons.person_outline),

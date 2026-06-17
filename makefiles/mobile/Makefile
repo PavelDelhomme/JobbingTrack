@@ -9,7 +9,7 @@
 EMULATOR_CONTROLLER_DIR := $(ROOT_DIR)/tools/emulator-controller
 MOBILE_DIR := $(ROOT_DIR)/mobile
 
-.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop restart-emulator verify-mobile-emulator verify-mobile-scenarios help-emulator test-emulator-controller mobile-device-ready run-mobile mobile-login-admin mobile-login-user mobile-test-accounts mobile-register-smoke mobile-verify-email-smoke mobile-sync-test-env mobile-verify-email
+.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop restart-emulator verify-mobile-emulator verify-mobile-scenarios help-emulator test-emulator-controller mobile-device-ready run-mobile mobile-login-admin mobile-login-user mobile-test-accounts mobile-smoke-full-journey mobile-register-smoke mobile-verify-email-smoke mobile-sync-test-env mobile-verify-email
 
 # Démarrer le lanceur (port 5056) qui démarre le contrôleur (5055). Depuis le backoffice on peut Démarrer/Arrêter le contrôleur sans terminal.
 emulator-controller: ## Démarrer le lanceur + contrôleur (5056 + 5055). Backoffice → Démarrer/Arrêter le contrôleur sans terminal
@@ -103,6 +103,10 @@ mobile-test-accounts: ## Smoke ADB admin + user (menu ADMIN visible / masqué)
 	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true
 	@adb reverse tcp:5003 tcp:5003 2>/dev/null || true
 	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke-mobile-accounts-adb.js"
+
+mobile-smoke-full-journey: ## Parcours API complet (candidature, contact, entretien, relance, appels, analytics)
+	@echo "📱 Smoke parcours complet API mobile..."
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke-full-journey-api.js"
 
 mobile-register-smoke: ## Smoke inscription UI (télémétrie + écran vérif email)
 	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true

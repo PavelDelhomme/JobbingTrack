@@ -548,6 +548,10 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     if (!mounted) return;
     final contact = await showContactPickerSheet(
       context,
+      allowWithoutContact: true,
+      withoutContactLabel: app.company.name.isNotEmpty
+          ? 'Appel sans contact · ${app.company.name}'
+          : 'Appel sans contact',
       candidates: candidates,
       onCreateContact: ({required String firstName, required String lastName, String? email, String? phone}) async {
         final created = await ApiService.createContact(
@@ -568,8 +572,12 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     );
     if (contact == null || !mounted) return;
 
+    final withoutContact = contact[kCallWithoutContactFlag] == true;
     DateTime date = DateTime.now();
-    final subjectController = TextEditingController(text: 'Appel · ${contactDisplayName(contact)}');
+    final defaultSubject = withoutContact
+        ? 'Appel · ${app.company.name.isNotEmpty ? app.company.name : app.position}'
+        : 'Appel · ${contactDisplayName(contact)}';
+    final subjectController = TextEditingController(text: defaultSubject);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -580,7 +588,13 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Contact : ${contactDisplayName(contact)}', style: TextStyle(color: Colors.grey.shade700)),
+                if (!withoutContact)
+                  Text('Contact : ${contactDisplayName(contact)}', style: TextStyle(color: Colors.grey.shade700))
+                else
+                  Text(
+                    'Sans contact — entreprise : ${app.company.name.isNotEmpty ? app.company.name : "—"}',
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
                 const SizedBox(height: 12),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -627,7 +641,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         applicationId: app.id,
         callDate: date,
         subject: subject,
-        contactId: contact['id']?.toString(),
+        contactId: withoutContact ? null : contact['id']?.toString(),
         token: auth.token,
       );
       if (mounted) {

@@ -9,6 +9,7 @@ import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
+import 'package:jobbingtrack_mobile/widgets/company_autocomplete_field.dart';
 
 /// Écran formulaire complet pour créer ou modifier une candidature (tous les champs backend).
 class ApplicationFormScreen extends StatefulWidget {
@@ -30,9 +31,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   String? _agencyId;
   List<Company> _agencies = [];
   bool _interimMode = false;
-  /// Nom saisi pour une nouvelle entreprise (utilisé si _companyId == null).
-  final _companyNameController = TextEditingController();
-  bool _useNewCompany = false;
+  String _companyName = '';
   final _position = TextEditingController();
   final _description = TextEditingController();
   final _jobUrl = TextEditingController();
@@ -60,7 +59,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       _location.text = a.location;
       _notes.text = a.notes;
       _companyId = a.company.id;
-      _companyNameController.text = a.company.name;
+      _companyName = a.company.name;
       _agencyId = a.agencyId;
       _applicationDate = a.appliedDate;
     }
@@ -97,15 +96,16 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     if (mounted) {
       setState(() {
         _companies = companyProvider.companies;
-        if (widget.application == null && _companies.isEmpty) _useNewCompany = true;
-        if (!_useNewCompany && _companyId == null && _companies.isNotEmpty) _companyId = _companies.first.id;
+        if (widget.application == null && _companyName.isEmpty && _companies.isNotEmpty) {
+          _companyId = _companies.first.id;
+          _companyName = _companies.first.name;
+        }
       });
     }
   }
 
   @override
   void dispose() {
-    _companyNameController.dispose();
     _position.dispose();
     _description.dispose();
     _jobUrl.dispose();
@@ -132,7 +132,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     if (_companyId != null && _companyId!.isNotEmpty) {
       payload['companyId'] = _companyId;
     } else {
-      final name = _companyNameController.text.trim();
+      final name = _companyName.trim();
       if (name.isNotEmpty) payload['companyName'] = name;
     }
     final sm = int.tryParse(_salaryMin.text.trim());
@@ -147,8 +147,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    final hasCompany = (_companyId != null && _companyId!.isNotEmpty) ||
-        (_companyNameController.text.trim().isNotEmpty);
+    final hasCompany = (_companyId != null && _companyId!.isNotEmpty) || _companyName.trim().isNotEmpty;
     if (!hasCompany) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Choisissez une entreprise ou saisissez son nom')));
       return;
@@ -201,62 +200,16 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Entreprise : sélection existante ou nouveau nom (API crée l'entreprise si besoin)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text('Entreprise *', style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+            CompanyAutocompleteField(
+              companies: _companies,
+              selectedCompanyId: _companyId,
+              initialName: _companyName,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Saisir ou choisir une entreprise' : null,
+              onChanged: (sel) => setState(() {
+                _companyId = sel.companyId;
+                _companyName = sel.name;
+              }),
             ),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<bool>(
-                    value: _useNewCompany,
-                    decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
-                    items: const [
-                      DropdownMenuItem(value: false, child: Text('Sélectionner une existante')),
-                      DropdownMenuItem(value: true, child: Text('Nouvelle entreprise (saisir le nom)')),
-                    ],
-                    onChanged: (v) {
-                      setState(() {
-                        _useNewCompany = v ?? false;
-                        if (_useNewCompany) {
-                          _companyId = null;
-                        } else {
-                          _companyNameController.clear();
-                          if (_companies.isNotEmpty) _companyId = _companies.first.id;
-                        }
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (_useNewCompany)
-              TextFormField(
-                controller: _companyNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nom de l\'entreprise',
-                  hintText: 'Ex. Tech Corp',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) {
-                  if (_useNewCompany && (v == null || v.trim().isEmpty)) return 'Saisir le nom de l\'entreprise';
-                  return null;
-                },
-                onChanged: (_) => setState(() {}),
-              )
-            else
-              DropdownButtonFormField<String>(
-                value: _companyId,
-                decoration: const InputDecoration(labelText: 'Entreprise', border: OutlineInputBorder()),
-                items: _companies.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                onChanged: (v) => setState(() => _companyId = v),
-                validator: (v) {
-                  if (!_useNewCompany && (v == null || v.isEmpty)) return 'Choisir une entreprise';
-                  return null;
-                },
-              ),
             const SizedBox(height: 12),
             if (_interimMode) ...[
               DropdownButtonFormField<String?>(
