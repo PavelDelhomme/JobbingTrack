@@ -40,13 +40,14 @@ describe('security persistence summary', () => {
     expect(summary).toMatchObject({
       avgSecurityScore: 70,
       totalFailedLogins: 2,
-      totalSuspiciousActivities: 5,
-      totalSecurityAlerts: 3,
+      totalSuspiciousActivities: 4,
+      totalSecurityAlerts: 2,
       totalSqlInjectionAttempts: 3,
       totalXssAttempts: 5,
       uniqueBlockedIPs: 2,
       period: '168h',
       dataPoints: 2,
+      aggregationMethod: 'max_per_snapshot',
       source: 'security_metrics',
     });
   });

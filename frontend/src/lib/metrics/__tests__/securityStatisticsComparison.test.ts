@@ -1,4 +1,7 @@
-import { buildSecurityConsistencySummary } from "../securityStatisticsComparison";
+import {
+  buildSecurityConsistencySummary,
+  buildSecurityCrossPageRows,
+} from "../securityStatisticsComparison";
 
 describe("securityStatisticsComparison", () => {
   it("marque critique quand /security live expose des incidents récents", () => {
@@ -60,5 +63,29 @@ describe("securityStatisticsComparison", () => {
     expect(summary.level).toBe("critical");
     expect(summary.liveScore).toBeNull();
     expect(summary.message).toContain("Console Sécurité live indisponible");
+  });
+
+  it("compare persisté vs live Analyse sur les mêmes libellés", () => {
+    const rows = buildSecurityCrossPageRows(
+      {
+        totalFailedLogins: 0,
+        totalSuspiciousActivities: 4,
+        totalSqlInjectionAttempts: 0,
+        totalXssAttempts: 0,
+        uniqueBlockedIPs: 0,
+      },
+      {
+        totalFailedLogins: 0,
+        totalSuspiciousActivities: 18,
+        totalSqlInjections: 15,
+        totalXssAttempts: 25,
+        uniqueBlockedIPs: 5,
+        detectionLogsCount: 6,
+      },
+    );
+
+    expect(rows).toHaveLength(6);
+    expect(rows.find((r) => r.label.includes("suspectes"))?.live).toBe(18);
+    expect(rows.find((r) => r.label.includes("IPs"))?.live).toBe(5);
   });
 });

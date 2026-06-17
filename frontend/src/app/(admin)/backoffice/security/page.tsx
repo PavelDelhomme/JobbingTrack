@@ -27,6 +27,12 @@ import {
   type SecurityScoreWeights,
 } from "@/lib/security/securityScore";
 import securityService from "@/lib/services/securityService";
+import {
+  SECURITY_LIVE_LOGS_FETCH_LIMIT,
+  SECURITY_LIVE_OVERVIEW_REFRESH_MS,
+  SECURITY_LIVE_WINDOW_DAYS,
+} from "@/lib/security/securityLiveConstants";
+import { filterActiveThreats } from "@/lib/security/threatIgnore";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -106,9 +112,9 @@ type IncidentItem = {
   href: string;
 };
 
-const LOGS_WINDOW_DAYS = 30;
-const SECURITY_LOGS_FETCH_LIMIT = 500;
-const SECURITY_OVERVIEW_REFRESH_MS = 15000;
+const LOGS_WINDOW_DAYS = SECURITY_LIVE_WINDOW_DAYS;
+const SECURITY_LOGS_FETCH_LIMIT = SECURITY_LIVE_LOGS_FETCH_LIMIT;
+const SECURITY_OVERVIEW_REFRESH_MS = SECURITY_LIVE_OVERVIEW_REFRESH_MS;
 
 const defaultOverview: SecurityOverview = {
   logsCount: 0,
@@ -322,7 +328,10 @@ export default function SecurityOverviewPage() {
       }
 
       const logsArray = logs?.data || logs?.logs || [];
-      const threatsArray = threats?.data || threats?.threats || [];
+      const threatsArrayRaw = threats?.data || threats?.threats || [];
+      const threatsArray = filterActiveThreats(
+        Array.isArray(threatsArrayRaw) ? threatsArrayRaw : [],
+      );
       const logsForStats = Array.isArray(logsArray) ? logsArray : [];
       const manualBlocksCount = logsForStats.filter(
         (l: any) =>
@@ -433,6 +442,14 @@ export default function SecurityOverviewPage() {
 
       const ipsArray =
         blockedIps?.data || blockedIps?.ips || blockedIps?.blockedIps || [];
+      const blockedIpsTotal =
+        typeof blockedIps?.meta?.pagination?.total === "number"
+          ? blockedIps.meta.pagination.total
+          : typeof blockedIps?.meta?.count === "number"
+            ? blockedIps.meta.count
+            : Array.isArray(ipsArray)
+              ? ipsArray.length
+              : 0;
       const rulesArray = firewallRules?.data || firewallRules?.rules || [];
       const servicesObj = metrics?.services || {};
       const servicesEntries =
@@ -504,7 +521,7 @@ export default function SecurityOverviewPage() {
         logsTruncated: logsLen >= SECURITY_LOGS_FETCH_LIMIT,
         logsPeriodDays: LOGS_WINDOW_DAYS,
         threatsCount: Array.isArray(threatsArray) ? threatsArray.length : 0,
-        blockedIpsCount: Array.isArray(ipsArray) ? ipsArray.length : 0,
+        blockedIpsCount: blockedIpsTotal,
         blockedIpsSubtitle: formatBlockedIpsOriginsSubtitle(
           blockedIps?.meta?.byOrigin,
         ),

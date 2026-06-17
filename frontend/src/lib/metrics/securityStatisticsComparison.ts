@@ -5,6 +5,7 @@ export interface SecurityPersistenceSnapshot {
   totalSecurityAlerts?: unknown;
   totalSqlInjectionAttempts?: unknown;
   totalXssAttempts?: unknown;
+  uniqueBlockedIPs?: unknown;
   dataPoints?: unknown;
   source?: unknown;
   period?: unknown;
@@ -25,6 +26,69 @@ export interface LiveSecuritySummary {
 }
 
 export type SecurityConsistencyLevel = "ok" | "watch" | "critical";
+
+export interface SecurityCrossPageRow {
+  label: string;
+  persisted: number | null;
+  live: number | null;
+  note: string;
+}
+
+export function buildSecurityCrossPageRows(
+  persisted: SecurityPersistenceSnapshot | null,
+  live: SecurityAnalysisLike | null,
+): SecurityCrossPageRow[] {
+  const p = persisted ?? {};
+  const l = live ?? {};
+
+  return [
+    {
+      label: "Échecs connexion / auth",
+      persisted: optionalNumber(p.totalFailedLogins),
+      live: optionalNumber(l.totalFailedLogins),
+      note: "Persisté = pic snapshot · Live = stats + logs 30 j",
+    },
+    {
+      label: "Activités suspectes",
+      persisted: optionalNumber(p.totalSuspiciousActivities),
+      live: optionalNumber(l.totalSuspiciousActivities),
+      note: "Ne pas sommer les snapshots : pic max sur la fenêtre persistée",
+    },
+    {
+      label: "Tentatives SQLi",
+      persisted: optionalNumber(p.totalSqlInjectionAttempts),
+      live: optionalNumber(l.totalSqlInjections),
+      note: "Live = corrélation logs + menaces",
+    },
+    {
+      label: "Tentatives XSS",
+      persisted: optionalNumber(p.totalXssAttempts),
+      live: optionalNumber(l.totalXssAttempts),
+      note: "Live = corrélation logs + menaces",
+    },
+    {
+      label: "IPs bloquées (uniques)",
+      persisted: optionalNumber(p.uniqueBlockedIPs),
+      live: optionalNumber(l.uniqueBlockedIPs),
+      note: "Live = API firewall consolidée (total paginé)",
+    },
+    {
+      label: "Détections (signaux logs)",
+      persisted: null,
+      live: optionalNumber(l.detectionLogsCount),
+      note: "Indicateur live uniquement (page Analyse)",
+    },
+  ];
+}
+
+export interface SecurityAnalysisLike {
+  totalFailedLogins?: unknown;
+  totalSuspiciousActivities?: unknown;
+  totalSqlInjections?: unknown;
+  totalXssAttempts?: unknown;
+  uniqueBlockedIPs?: unknown;
+  detectionLogsCount?: unknown;
+}
 
 export interface SecurityConsistencySummary {
   level: SecurityConsistencyLevel;

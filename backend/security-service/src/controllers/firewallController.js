@@ -7,6 +7,11 @@ const networkMonitor = require('../network-monitor');
 const firewallEngine = require('../firewall-engine');
 const { logger, logSecurityEvent } = require('../utils/logger');
 const securityService = require('../services/securityService');
+const {
+  isThreatIgnored,
+  activeThreatWhereClause,
+  mergeThreatMetadata,
+} = require('../utils/threatIgnore');
 const { lookupGeoIp, enrichIpBatch } = require('../utils/geoipProvider');
 
 const prisma = new PrismaClient();
@@ -83,7 +88,14 @@ function enrichThreatForApi(threat) {
     const first = meta.connectionDetails[0];
     if (first && first.localIp) destIp = String(first.localIp);
   }
-  return { ...threat, destIp };
+  return {
+    ...threat,
+    destIp,
+    ignored: isThreatIgnored(threat),
+    ignoreReason:
+      typeof meta.ignoreReason === 'string' ? meta.ignoreReason : null,
+    ignoredAt: typeof meta.ignoredAt === 'string' ? meta.ignoredAt : null,
+  };
 }
 
 function summarizeApplicationContext(
@@ -1048,6 +1060,7 @@ async function getNetworkThreats(req, res) {
       destIp,
       threatType,
       blocked,
+      ignored,
       destPort,
       startDate,
       endDate
@@ -1069,6 +1082,11 @@ async function getNetworkThreats(req, res) {
     }
     if (blocked === 'true' || blocked === 'false') {
       where.blocked = blocked === 'true';
+    }
+    if (ignored === 'true') {
+      where.metadata = { path: ['ignored'], equals: true };
+    } else if (ignored !== 'all' && ignored !== '1') {
+      Object.assign(where, activeThreatWhereClause());
     }
     if (destPort !== undefined && destPort !== null && String(destPort).trim() !== '') {
       const parsedPort = parseInt(destPort, 10);
@@ -1485,6 +1503,102 @@ async function blockThreat(req, res) {
     res.status(500).json({
       success: false,
       error: 'Erreur lors du blocage de la menace'
+    });
+  }
+}
+
+/**
+ * POST /api/v1/security/firewall/threats/:id/ignore
+ * Marquer une menace comme faux positif (exclue des compteurs opérationnels).
+ */
+async function ignoreThreat(req, res) {
+  try {
+    const { id } = req.params;
+    const reason =
+      typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 500) : '';
+
+    const threat = await prisma.networkThreat.findUnique({ where: { id } });
+    if (!threat) {
+      return res.status(404).json({ success: false, error: 'Menace non trouvée' });
+    }
+
+    const updated = await prisma.networkThreat.update({
+      where: { id },
+      data: {
+        metadata: mergeThreatMetadata(threat, {
+          ignored: true,
+          ignoredAt: new Date().toISOString(),
+          ignoredBy: req.user?.id || null,
+          ignoreReason: reason || 'Faux positif — ignorée par un opérateur',
+        }),
+      },
+    });
+
+    await securityService.createSecurityLog({
+      level: 'info',
+      category: 'firewall',
+      eventType: 'threat_ignored',
+      message: `Menace ignorée (faux positif): ${threat.threatType} depuis ${threat.sourceIp}`,
+      sourceIP: req.ip || 'unknown',
+      userId: req.user?.id || null,
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      metadata: {
+        threatId: threat.id,
+        threatType: threat.threatType,
+        sourceIp: threat.sourceIp,
+        ignoreReason: reason || null,
+      },
+    }).catch(() => {});
+
+    res.json({
+      success: true,
+      data: enrichThreatForApi(updated),
+      message: 'Menace marquée comme ignorée (faux positif)',
+    });
+  } catch (error) {
+    logger.error('Erreur ignore menace:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors du marquage faux positif',
+    });
+  }
+}
+
+/**
+ * POST /api/v1/security/firewall/threats/:id/unignore
+ * Réintégrer une menace ignorée dans les compteurs.
+ */
+async function unignoreThreat(req, res) {
+  try {
+    const { id } = req.params;
+    const threat = await prisma.networkThreat.findUnique({ where: { id } });
+    if (!threat) {
+      return res.status(404).json({ success: false, error: 'Menace non trouvée' });
+    }
+
+    const prev = mergeThreatMetadata(threat, {});
+    delete prev.ignored;
+    delete prev.ignoredAt;
+    delete prev.ignoredBy;
+    delete prev.ignoreReason;
+
+    const updated = await prisma.networkThreat.update({
+      where: { id },
+      data: { metadata: prev },
+    });
+
+    res.json({
+      success: true,
+      data: enrichThreatForApi(updated),
+      message: 'Menace réintégrée dans les compteurs',
+    });
+  } catch (error) {
+    logger.error('Erreur unignore menace:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la réintégration de la menace',
     });
   }
 }
@@ -2084,6 +2198,8 @@ module.exports = {
   getThreatDetails,
   createThreat,
   blockThreat,
+  ignoreThreat,
+  unignoreThreat,
   deleteThreat,
   purgeThreats,
   blockIp,

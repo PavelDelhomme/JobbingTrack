@@ -48,6 +48,8 @@ interface NetworkThreat {
   severity: string;
   detectedAt: string;
   blocked: boolean;
+  ignored?: boolean;
+  ignoreReason?: string | null;
   metadata?: any;
 }
 
@@ -57,6 +59,7 @@ type ThreatFilters = {
   sourceIp: string;
   destIp: string;
   blocked: string;
+  ignored: string;
   destPort: string;
   startDate: string;
   endDate: string;
@@ -68,10 +71,16 @@ const DEFAULT_THREAT_FILTERS: ThreatFilters = {
   sourceIp: "",
   destIp: "",
   blocked: "",
+  ignored: "",
   destPort: "",
   startDate: "",
   endDate: "",
 };
+
+const IGNORED_FILTER_OPTIONS = [
+  { value: "true", label: "Faux positifs seulement" },
+  { value: "all", label: "Toutes (incl. ignorées)" },
+];
 
 const BLOCKED_FILTER_OPTIONS = [
   { value: "true", label: "Bloqué" },
@@ -87,6 +96,7 @@ function buildInitialThreatFilters(
     sourceIp: searchParams.get("sourceIp") || "",
     destIp: searchParams.get("destIp") || "",
     blocked: searchParams.get("blocked") || "",
+    ignored: searchParams.get("ignored") || "",
     destPort: searchParams.get("destPort") || "",
     startDate: searchParams.get("startDate") || "",
     endDate: searchParams.get("endDate") || "",
@@ -136,6 +146,7 @@ export default function ThreatsPage() {
         if (applied.sourceIp) params.sourceIp = applied.sourceIp;
         if (applied.destIp) params.destIp = applied.destIp;
         if (applied.blocked) params.blocked = applied.blocked;
+        if (applied.ignored) params.ignored = applied.ignored;
         if (applied.destPort) params.destPort = applied.destPort;
         if (applied.startDate) params.startDate = applied.startDate;
         if (applied.endDate) params.endDate = applied.endDate;
@@ -510,11 +521,18 @@ export default function ThreatsPage() {
               formatSuggestion={formatThreatTypeLabel}
             />
             <FilterSelectField
-              label="Statut"
+              label="Statut blocage"
               value={draft.blocked}
               onChange={(value) => updateDraft("blocked", value)}
               options={BLOCKED_FILTER_OPTIONS}
               placeholder="Tous"
+            />
+            <FilterSelectField
+              label="Faux positifs"
+              value={draft.ignored}
+              onChange={(value) => updateDraft("ignored", value)}
+              options={IGNORED_FILTER_OPTIONS}
+              placeholder="Actives (défaut)"
             />
             <FacetAutocompleteField
               label="IP source"

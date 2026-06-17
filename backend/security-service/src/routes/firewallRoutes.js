@@ -20,6 +20,8 @@ router.get('/threats', firewallController.getNetworkThreats);
 router.get('/threats/:id', firewallController.getThreatDetails);
 router.post('/threats', firewallController.createThreat);
 router.post('/threats/:id/block', firewallController.blockThreat);
+router.post('/threats/:id/ignore', firewallController.ignoreThreat);
+router.post('/threats/:id/unignore', firewallController.unignoreThreat);
 router.delete('/threats/:id', firewallController.deleteThreat);
 router.delete('/threats', firewallController.purgeThreats);
 
