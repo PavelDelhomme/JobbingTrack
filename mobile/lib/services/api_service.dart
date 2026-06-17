@@ -5,6 +5,7 @@ import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/models/user.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/models/company.dart';
+import 'package:jobbingtrack_mobile/models/app_notification.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/models/call.dart';
@@ -654,6 +655,90 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<Company> createCompany({
+    required String name,
+    String? website,
+    String? industry,
+    String? location,
+    String? description,
+    String companyType = 'EMPLOYER',
+    String? token,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'name': name.trim(),
+        'companyType': companyType,
+        if (website != null && website.trim().isNotEmpty) 'website': website.trim(),
+        if (industry != null && industry.trim().isNotEmpty) 'industry': industry.trim(),
+        if (location != null && location.trim().isNotEmpty) 'location': location.trim(),
+        if (description != null && description.trim().isNotEmpty) 'description': description.trim(),
+      };
+      final response = await _post(
+        '/api/v1/companies',
+        headers: _jsonHeaders(token),
+        body: jsonEncode(body),
+      );
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        final raw = data['company'];
+        if (raw != null) return Company.fromJson(Map<String, dynamic>.from(raw));
+      }
+      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      throw Exception(err['message'] ?? err['error'] ?? 'Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  /// Notifications in-app utilisateur.
+  static Future<List<AppNotification>> getNotifications({
+    String? token,
+    int limit = 50,
+    bool? isRead,
+  }) async {
+    try {
+      var path = '/api/v1/notifications?limit=$limit';
+      if (isRead != null) path += '&isRead=$isRead';
+      final response = await _get(path, headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['notifications'] is List) {
+          return (data['notifications'] as List)
+              .map((e) => AppNotification.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+        }
+        return [];
+      }
+      throw Exception('Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<void> markNotificationRead(String id, {String? token}) async {
+    final response = await _put(
+      '/api/v1/notifications/${Uri.encodeComponent(id)}/mark-read',
+      headers: _jsonHeaders(token),
+    );
+    if (response.statusCode != 200) {
+      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
+    }
+  }
+
+  static Future<void> markAllNotificationsRead({String? token}) async {
+    final response = await _put(
+      '/api/v1/notifications/mark-all-read',
+      headers: _jsonHeaders(token),
+    );
+    if (response.statusCode != 200) {
+      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
     }
   }
 

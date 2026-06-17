@@ -4,7 +4,7 @@ import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 
-/// Écran de déverrouillage après restauration de session (biométrie ou code appareil).
+/// Écran de déverrouillage : biométrie puis session JWT ou reconnexion sécurisée (D6).
 class BiometricUnlockScreen extends StatefulWidget {
   const BiometricUnlockScreen({super.key});
 
@@ -32,13 +32,24 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> {
       reason: 'Confirmez votre identité pour ouvrir JobbingTrack',
     );
     if (!mounted) return;
-    if (ok) {
+    if (!ok) {
+      setState(() {
+        _unlocking = false;
+        _error = 'Déverrouillage annulé ou refusé';
+      });
+      return;
+    }
+
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final sessionOk = await auth.ensureSessionAfterBiometric();
+    if (!mounted) return;
+    if (sessionOk) {
       Navigator.of(context).pushReplacementNamed('/home');
       return;
     }
     setState(() {
       _unlocking = false;
-      _error = 'Déverrouillage annulé ou refusé';
+      _error = 'Session expirée — reconnectez-vous avec votre mot de passe';
     });
   }
 
@@ -47,6 +58,7 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> {
     await ApiConfigStore.saveBiometricUnlockEnabled(false);
     if (!mounted) return;
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    await auth.disableBiometricUnlock();
     await auth.clearLocalSession();
     if (!mounted) return;
     Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);

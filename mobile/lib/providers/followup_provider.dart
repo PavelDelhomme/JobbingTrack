@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/utils/upcoming_timeline.dart';
 
 class FollowUpProvider with ChangeNotifier {
   List<FollowUp> _followUps = [];
@@ -9,11 +10,9 @@ class FollowUpProvider with ChangeNotifier {
   List<FollowUp> get followUps => _followUps;
   bool get isLoading => _isLoading;
 
-  List<FollowUp> get pendingFollowUps =>
-      _followUps.where((f) => f.status == 'PENDING' || f.status == 'PLANNED').toList();
+  List<FollowUp> get pendingFollowUps => filterUpcomingFollowUps(_followUps);
 
-  List<FollowUp> get completedFollowUps =>
-      _followUps.where((f) => f.status == 'COMPLETED').toList();
+  List<FollowUp> get completedFollowUps => filterPastFollowUps(_followUps);
 
   Future<void> loadFollowUps({String? token, String? applicationId}) async {
     _isLoading = true;

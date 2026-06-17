@@ -5,6 +5,7 @@ import 'package:jobbingtrack_mobile/models/user.dart';
 import 'package:jobbingtrack_mobile/utils/admin_access.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/services/biometric_credential_store.dart';
 import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
 
 class AuthProvider with ChangeNotifier {
@@ -95,11 +96,17 @@ class AuthProvider with ChangeNotifier {
         _user = User.fromJson(response['user']);
         CrashReporter.setToken(_token);
         await ApiConfigStore.saveKeepLoggedIn(keepLoggedIn);
-        if (keepLoggedIn) {
+        if (keepLoggedIn && enableBiometric) {
           await _persistSession();
-          await ApiConfigStore.saveBiometricUnlockEnabled(enableBiometric);
+          await BiometricCredentialStore.save(email: email, password: password);
+          await ApiConfigStore.saveBiometricUnlockEnabled(true);
+        } else if (keepLoggedIn) {
+          await _persistSession();
+          await BiometricCredentialStore.clear();
+          await ApiConfigStore.saveBiometricUnlockEnabled(false);
         } else {
           await ApiConfigStore.clearAuthSession();
+          await BiometricCredentialStore.clear();
           await ApiConfigStore.saveBiometricUnlockEnabled(false);
         }
         CrashReporter.trackAction('login:${_user?.email ?? "unknown"}');
@@ -153,6 +160,46 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// Après biométrie : rafraîchit la session JWT ou reconnecte via identifiants sécurisés (D6).
+  Future<bool> ensureSessionAfterBiometric() async {
+    if (_token != null && _user != null) {
+      try {
+        await _refreshProfileFromServer();
+        if (isAuthenticated) return true;
+      } catch (_) {}
+    }
+    final creds = await BiometricCredentialStore.load();
+    if (creds == null) return false;
+    try {
+      final response = await ApiService.login(creds.email, creds.password);
+      if (response['success'] == true) {
+        _token = response['token'];
+        _user = User.fromJson(response['user']);
+        CrashReporter.setToken(_token);
+        await _persistSession();
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('[AUTH] ensureSessionAfterBiometric: $e');
+    }
+    return false;
+  }
+
+  Future<void> saveBiometricCredentials(String password) async {
+    if (_user == null || password.isEmpty) {
+      throw Exception('Mot de passe requis');
+    }
+    await BiometricCredentialStore.save(email: _user!.email, password: password);
+    await ApiConfigStore.saveBiometricUnlockEnabled(true);
+    await ApiConfigStore.saveKeepLoggedIn(true);
+  }
+
+  Future<void> disableBiometricUnlock() async {
+    await BiometricCredentialStore.clear();
+    await ApiConfigStore.saveBiometricUnlockEnabled(false);
+  }
+
   Future<void> logout() async {
     final deviceId = await ApiConfigStore.getOrCreateDeviceId();
     final userId = _user?.id;
@@ -167,6 +214,7 @@ class AuthProvider with ChangeNotifier {
     CrashReporter.trackAction('logout');
     CrashReporter.setToken(null);
     await ApiConfigStore.clearAuthSession();
+    await BiometricCredentialStore.clear();
     await ApiConfigStore.saveBiometricUnlockEnabled(false);
     _user = null;
     _token = null;
@@ -269,6 +317,8 @@ class AuthProvider with ChangeNotifier {
         );
         CrashReporter.setToken(null);
         await ApiConfigStore.clearAuthSession();
+        await BiometricCredentialStore.clear();
+        await ApiConfigStore.saveBiometricUnlockEnabled(false);
         _user = null;
         _token = null;
         notifyListeners();

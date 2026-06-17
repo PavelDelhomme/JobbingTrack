@@ -1,16 +1,142 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:jobbingtrack_mobile/models/app_notification.dart';
+import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/providers/notification_provider.dart';
+import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 
 class MobileNotificationCenter extends StatelessWidget {
   const MobileNotificationCenter({super.key});
 
+  Future<void> _openSheet(BuildContext context) async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final provider = Provider.of<NotificationProvider>(context, listen: false);
+    try {
+      await provider.loadNotifications(token: auth.token);
+    } catch (_) {}
+
+    if (!context.mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => const _NotificationSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final unread = context.watch<NotificationProvider>().unreadCount;
+
     return IconButton(
-      onPressed: () {
-        // TODO: Show notifications
-      },
-      icon: const Icon(Icons.notifications),
+      onPressed: () => _openSheet(context),
       tooltip: 'Notifications',
+      icon: Badge(
+        isLabelVisible: unread > 0,
+        label: Text(unread > 9 ? '9+' : '$unread'),
+        child: const Icon(Icons.notifications_outlined),
+      ),
+    );
+  }
+}
+
+class _NotificationSheet extends StatelessWidget {
+  const _NotificationSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<NotificationProvider>();
+    final auth = context.watch<AuthProvider>();
+    final height = MediaQuery.of(context).size.height * 0.65;
+
+    return SafeArea(
+      child: SizedBox(
+        height: height,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text('Notifications', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                  ),
+                  if (provider.unreadCount > 0)
+                    TextButton(
+                      onPressed: provider.isLoading
+                          ? null
+                          : () => provider.markAllAsRead(token: auth.token),
+                      child: const Text('Tout marquer lu'),
+                    ),
+                ],
+              ),
+            ),
+            if (provider.lastError != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(provider.lastError!, style: TextStyle(color: Colors.red.shade700, fontSize: 13)),
+              ),
+            Expanded(
+              child: provider.isLoading && provider.notifications.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : provider.notifications.isEmpty
+                      ? Center(
+                          child: Text(
+                            'Aucune notification',
+                            style: TextStyle(color: Colors.grey.shade600),
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: () => provider.loadNotifications(token: auth.token),
+                          child: ListView.builder(
+                            itemCount: provider.notifications.length,
+                            itemBuilder: (_, i) => _NotificationTile(n: provider.notifications[i]),
+                          ),
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationTile extends StatelessWidget {
+  final AppNotification n;
+
+  const _NotificationTile({required this.n});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final provider = Provider.of<NotificationProvider>(context, listen: false);
+
+    return ListTile(
+      leading: Icon(
+        n.read ? Icons.notifications_none : Icons.notifications_active,
+        color: n.read ? Colors.grey : Colors.blue.shade700,
+      ),
+      title: Text(n.title, style: TextStyle(fontWeight: n.read ? FontWeight.normal : FontWeight.w600)),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (n.message.isNotEmpty) Text(n.message, maxLines: 2, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 4),
+          Text(
+            formatUserLocalDateTime(n.createdAt.toIso8601String()),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+      onTap: () async {
+        if (!n.read) {
+          try {
+            await provider.markAsRead(n.id, token: auth.token);
+          } catch (_) {}
+        }
+      },
     );
   }
 }
