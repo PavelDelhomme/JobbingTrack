@@ -34,6 +34,7 @@ migrate_working_dir/
 /build/
 .flutter-gradle-cache/
 **/flutter/ephemeral/
+**/Flutter/ephemeral/
 
 # Symbolication related
 app.*.symbols
