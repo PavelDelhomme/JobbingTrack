@@ -143,3 +143,40 @@ export function availabilityChartDomain(
     Math.min(100, Math.ceil(max + pad)),
   ];
 }
+
+const SOURCE_LABELS: Record<StatisticsHistorySource, string> = {
+  system_metrics: "Persistance system_metrics",
+  snapshots: "Snapshots conteneurs",
+  empty: "Aucune série",
+};
+
+export function statisticsHistorySourceLabel(
+  source: StatisticsHistorySource,
+): string {
+  return SOURCE_LABELS[source];
+}
+
+/** Plage réelle des points rendus, avec repli sur le libellé de période sticky. */
+export function statisticsSampleRangeLabel(
+  points: Array<{ timeMs: number }>,
+  fallbackLabel: string,
+): string {
+  if (points.length === 0) return fallbackLabel;
+  let minMs: number | null = null;
+  let maxMs: number | null = null;
+  for (const point of points) {
+    if (!Number.isFinite(point.timeMs)) continue;
+    if (minMs == null || point.timeMs < minMs) minMs = point.timeMs;
+    if (maxMs == null || point.timeMs > maxMs) maxMs = point.timeMs;
+  }
+  if (minMs == null || maxMs == null) return fallbackLabel;
+  const fmt = (ms: number) =>
+    new Date(ms).toLocaleString("fr-FR", {
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  return `${fmt(minMs)} → ${fmt(maxMs)}`;
+}

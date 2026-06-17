@@ -26,6 +26,7 @@ import { RESPONSE_TIME_SOURCE_NOTE } from "@/lib/metrics/responseTimePresentatio
 import {
   availabilityChartDomain,
   buildStatisticsChartData,
+  statisticsSampleRangeLabel,
 } from "@/lib/metrics/statisticsTimeSeries";
 import { preferencesService } from "@/lib/services/preferencesService";
 import {
@@ -85,7 +86,6 @@ import {
   SectionLoader,
   useStatisticsPanelPrefs,
 } from "@/lib/ui";
-import { MetricsSeriesCaption } from "@/components/monitoring/MetricsSeriesCaption";
 import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
 import {
   TimeRangeSelector,
@@ -941,6 +941,11 @@ export default function StatisticsPage() {
   );
   const chartAxisShowDate = chartXMax - chartXMin > 24 * 60 * 60 * 1000;
 
+  const chartPeriodLabel = useMemo(
+    () => statisticsSampleRangeLabel(chartData, rangeLabel),
+    [chartData, rangeLabel],
+  );
+
   if (authLoading || (loading && !stats)) {
     return (
       <StatisticsPageShell
@@ -1173,7 +1178,7 @@ export default function StatisticsPage() {
             router={router}
             dockerServices={dockerServicesSnapshot}
             historySeriesMeta={historySeriesMeta}
-            timeRangeLabel={rangeLabel}
+            chartPeriodLabel={chartPeriodLabel}
             availabilityDomain={availabilityDomain}
             chartXMin={chartXMin}
             chartXMax={chartXMax}
@@ -1188,7 +1193,7 @@ export default function StatisticsPage() {
             historySeriesMeta={historySeriesMeta}
             availabilityDomain={availabilityDomain}
             dockerServices={dockerServicesSnapshot}
-            timeRangeLabel={rangeLabel}
+            chartPeriodLabel={chartPeriodLabel}
             chartXMin={chartXMin}
             chartXMax={chartXMax}
             chartAxisShowDate={chartAxisShowDate}
@@ -1214,7 +1219,7 @@ const OverviewTab = memo(function OverviewTab({
   router,
   dockerServices,
   historySeriesMeta,
-  timeRangeLabel,
+  chartPeriodLabel,
   availabilityDomain,
   chartXMin,
   chartXMax,
@@ -1253,12 +1258,6 @@ const OverviewTab = memo(function OverviewTab({
     <div className="space-y-6">
       <ServiceHealthKpiCards dockerServices={dockerServices} />
       <PriorityResponseServicesSummary services={stats.services} />
-      <MetricsSeriesCaption
-        pointCount={historySeriesMeta?.pointCount ?? 0}
-        errorDerived={historySeriesMeta?.errorDerived}
-        source={historySeriesMeta?.source}
-        timeRangeLabel={timeRangeLabel}
-      />
       <Suspense
         fallback={
           <SectionLoader
@@ -1274,6 +1273,9 @@ const OverviewTab = memo(function OverviewTab({
           xDomainMin={chartXMin}
           xDomainMax={chartXMax}
           axisShowDate={chartAxisShowDate}
+          periodLabel={chartPeriodLabel}
+          pointCount={historySeriesMeta?.pointCount ?? 0}
+          source={historySeriesMeta?.source}
         />
       </Suspense>
       <div className="flex flex-wrap gap-3 text-sm">
@@ -2534,7 +2536,7 @@ const SecurityTab = memo(function SecurityTab({
   historySeriesMeta,
   availabilityDomain,
   dockerServices,
-  timeRangeLabel,
+  chartPeriodLabel,
   chartXMin,
   chartXMax,
   chartAxisShowDate,
@@ -2578,12 +2580,26 @@ const SecurityTab = memo(function SecurityTab({
           Console sécurité live →
         </Link>
       </div>
-      <MetricsSeriesCaption
-        pointCount={historySeriesMeta?.pointCount ?? 0}
-        errorDerived={historySeriesMeta?.errorDerived}
-        source={historySeriesMeta?.source}
-        timeRangeLabel={timeRangeLabel}
-      />
+      <Suspense
+        fallback={
+          <SectionLoader
+            message="Chargement des graphiques disponibilité / erreur…"
+            className="min-h-[280px]"
+          />
+        }
+      >
+        <StatisticsErrorAvailabilityCharts
+          chartData={chartData}
+          availabilityDomain={availabilityDomain}
+          errorDerived={historySeriesMeta?.errorDerived}
+          xDomainMin={chartXMin}
+          xDomainMax={chartXMax}
+          axisShowDate={chartAxisShowDate}
+          periodLabel={chartPeriodLabel}
+          pointCount={historySeriesMeta?.pointCount ?? 0}
+          source={historySeriesMeta?.source}
+        />
+      </Suspense>
 
       {/* Métriques de sécurité */}
       <DashboardLayoutRegion variant="dense">
@@ -2635,24 +2651,6 @@ const SecurityTab = memo(function SecurityTab({
           </div>
         </div>
       </DashboardLayoutRegion>
-
-      <Suspense
-        fallback={
-          <SectionLoader
-            message="Chargement des graphiques disponibilité / erreur…"
-            className="min-h-[280px]"
-          />
-        }
-      >
-        <StatisticsErrorAvailabilityCharts
-          chartData={chartData}
-          availabilityDomain={availabilityDomain}
-          errorDerived={historySeriesMeta?.errorDerived}
-          xDomainMin={chartXMin}
-          xDomainMax={chartXMax}
-          axisShowDate={chartAxisShowDate}
-        />
-      </Suspense>
 
       {/* État des services */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">

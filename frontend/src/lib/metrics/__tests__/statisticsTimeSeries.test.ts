@@ -2,6 +2,7 @@ import {
   availabilityChartDomain,
   buildStatisticsChartData,
   deriveErrorRatePercent,
+  statisticsSampleRangeLabel,
 } from "../statisticsTimeSeries";
 
 describe("statisticsTimeSeries", () => {
@@ -85,5 +86,17 @@ describe("statisticsTimeSeries", () => {
     ]);
     expect(domain[0]).toBeLessThan(88);
     expect(domain[1]).toBeGreaterThan(96);
+  });
+
+  it("formate une plage d’échantillon avec repli", () => {
+    const label = statisticsSampleRangeLabel(
+      [
+        { timeMs: Date.parse("2026-06-17T10:00:00.000Z") },
+        { timeMs: Date.parse("2026-06-17T12:00:00.000Z") },
+      ],
+      "7 jours",
+    );
+    expect(label).toMatch(/→/);
+    expect(statisticsSampleRangeLabel([], "24 h")).toBe("24 h");
   });
 });
