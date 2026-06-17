@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useUrlPagination } from "@/hooks/useUrlPagination";
 import { Pagination } from "@/components/ui/Pagination";
 import {
-  FacetAutocompleteField,
+  FacetMultiValueField,
   FilterBar,
+  FilterMultiSelectField,
   FilterSelectField,
 } from "@/components/filters";
 import Link from "next/link";
@@ -16,6 +17,7 @@ import {
   facetOptionsFromValues,
   mergeFacetSuggestions,
 } from "@/lib/filters/facetUtils";
+import { parseMultiFilterValues } from "@/lib/filters/multiValueFilter";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
@@ -339,18 +341,14 @@ export default function ThreatsPage() {
   );
 
   const activeBadges = [
-    applied.severity
-      ? {
-          key: "severity",
-          label: `sévérité ${formatSecuritySeverity(applied.severity)}`,
-        }
-      : null,
-    applied.threatType
-      ? {
-          key: "threatType",
-          label: `type ${formatThreatTypeLabel(applied.threatType)}`,
-        }
-      : null,
+    ...parseMultiFilterValues(applied.severity).map((token) => ({
+      key: `severity-${token}`,
+      label: `sévérité ${formatSecuritySeverity(token)}`,
+    })),
+    ...parseMultiFilterValues(applied.threatType).map((token) => ({
+      key: `threatType-${token}`,
+      label: `type ${formatThreatTypeLabel(token)}`,
+    })),
     applied.blocked
       ? {
           key: "blocked",
@@ -358,15 +356,29 @@ export default function ThreatsPage() {
             applied.blocked === "true" ? "statut bloqué" : "statut non bloqué",
         }
       : null,
-    applied.sourceIp
-      ? { key: "sourceIp", label: `IP source ${applied.sourceIp}` }
+    applied.ignored
+      ? {
+          key: "ignored",
+          label:
+            applied.ignored === "true"
+              ? "faux positifs seulement"
+              : applied.ignored === "all"
+                ? "toutes (incl. ignorées)"
+                : "actives (défaut)",
+        }
       : null,
-    applied.destIp
-      ? { key: "destIp", label: `IP dest ${applied.destIp}` }
-      : null,
-    applied.destPort
-      ? { key: "destPort", label: `port ${applied.destPort}` }
-      : null,
+    ...parseMultiFilterValues(applied.sourceIp).map((token) => ({
+      key: `sourceIp-${token}`,
+      label: `IP source ${token}`,
+    })),
+    ...parseMultiFilterValues(applied.destIp).map((token) => ({
+      key: `destIp-${token}`,
+      label: `IP dest ${token}`,
+    })),
+    ...parseMultiFilterValues(applied.destPort).map((token) => ({
+      key: `destPort-${token}`,
+      label: `port ${token}`,
+    })),
     applied.startDate
       ? { key: "startDate", label: `début ${applied.startDate}` }
       : null,
@@ -505,20 +517,21 @@ export default function ThreatsPage() {
           badges={activeBadges}
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
-            <FilterSelectField
+            <FilterMultiSelectField
               label="Sévérité"
               value={draft.severity}
               onChange={(value) => updateDraft("severity", value)}
               options={getThreatSeverityFilterOptions()}
-              placeholder="Toutes"
+              hint="Plusieurs niveaux possibles."
             />
-            <FacetAutocompleteField
+            <FacetMultiValueField
               label="Type"
               value={draft.threatType}
               onChange={(value) => updateDraft("threatType", value)}
               suggestions={threatTypeSuggestions}
-              placeholder="BRUTE_FORCE, PORT_SCAN..."
+              placeholder="BRUTE_FORCE, PORT_SCAN…"
               formatSuggestion={formatThreatTypeLabel}
+              hint="Plusieurs types de menace."
             />
             <FilterSelectField
               label="Statut blocage"
@@ -534,26 +547,29 @@ export default function ThreatsPage() {
               options={IGNORED_FILTER_OPTIONS}
               placeholder="Actives (défaut)"
             />
-            <FacetAutocompleteField
+            <FacetMultiValueField
               label="IP source"
               value={draft.sourceIp}
               onChange={(value) => updateDraft("sourceIp", value)}
               suggestions={sourceIpSuggestions}
-              placeholder="IP source (ex: 198.51.100.42)"
+              placeholder="203.0.113.10, 198.51.100.42…"
+              hint="Plusieurs IP sources."
             />
-            <FacetAutocompleteField
+            <FacetMultiValueField
               label="IP destination"
               value={draft.destIp}
               onChange={(value) => updateDraft("destIp", value)}
               suggestions={destIpSuggestions}
-              placeholder="IP dest (ex: 172.18.0.10)"
+              placeholder="172.18.0.10, 10.0.0.5…"
+              hint="Plusieurs IP destinations."
             />
-            <FacetAutocompleteField
+            <FacetMultiValueField
               label="Port destination"
               value={draft.destPort}
               onChange={(value) => updateDraft("destPort", value)}
               suggestions={destPortSuggestions}
-              placeholder="Port dest (ex: 3017)"
+              placeholder="3017, 443, 80…"
+              hint="Plusieurs ports."
             />
             <label className="flex flex-col gap-1 text-sm font-medium">
               Début

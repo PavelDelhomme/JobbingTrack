@@ -6,12 +6,13 @@ import { useSearchParams } from "next/navigation";
 import { SecurityPageShell } from "../SecuritySubNav";
 import {
   FacetAutocompleteField,
+  FacetMultiValueField,
   FilterBar,
-  FilterSelectField,
+  FilterMultiSelectField,
 } from "@/components/filters";
 import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import { facetOptionsFromValues } from "@/lib/filters/facetUtils";
-import type { FilterBadge } from "@/lib/filters/types";
+import { parseMultiFilterValues } from "@/lib/filters/multiValueFilter";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
@@ -25,8 +26,9 @@ import {
 } from "@/lib/security/incidents";
 import {
   filterIncidentRows,
-  type IncidentKindFilter,
+  formatIncidentFilterBadges,
 } from "@/lib/security/incidentFilters";
+import { INCIDENT_KIND_FILTER_OPTIONS } from "@/lib/security/incidentFilterOptions";
 import {
   formatSecurityEventTypeLabel,
   formatSecuritySeverity,
@@ -43,13 +45,17 @@ const API_URL = FRONTEND_URLS.api;
 const LOGS_WINDOW_DAYS = 14;
 
 type IncidentDetailFilters = {
+  kinds: string;
   severity: string;
+  eventTypes: string;
   source: string;
   query: string;
 };
 
 const DEFAULT_INCIDENT_DETAIL_FILTERS: IncidentDetailFilters = {
+  kinds: "",
   severity: "",
+  eventTypes: "",
   source: "",
   query: "",
 };
@@ -104,7 +110,6 @@ export default function SecurityIncidentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [incidents, setIncidents] = useState<IncidentRow[]>([]);
-  const [kindFilter, setKindFilter] = useState<IncidentKindFilter>("all");
   const [mobileOnly, setMobileOnly] = useState(
     () => searchParams.get("mobile") === "1",
   );
@@ -306,36 +311,36 @@ export default function SecurityIncidentsPage() {
     [incidents],
   );
 
-  const filterBadges = useMemo((): FilterBadge[] => {
-    const badges: FilterBadge[] = [];
-    if (applied.severity) {
-      badges.push({
-        key: "severity",
-        label: `Gravité : ${formatSecuritySeverity(applied.severity)}`,
-      });
-    }
-    if (applied.source.trim()) {
-      badges.push({
-        key: "source",
-        label: `Source : ${applied.source.trim()}`,
-      });
-    }
-    if (applied.query.trim()) {
-      badges.push({
-        key: "query",
-        label: `Recherche : ${applied.query.trim()}`,
-      });
-    }
-    return badges;
-  }, [applied]);
+  const filterBadges = useMemo(
+    () => formatIncidentFilterBadges(applied),
+    [applied],
+  );
+
+  const selectedKinds = useMemo(
+    () => parseMultiFilterValues(applied.kinds),
+    [applied.kinds],
+  );
 
   const filtered = useMemo(() => {
-    let rows = filterIncidentRows(incidents, kindFilter, applied);
+    let rows = filterIncidentRows(incidents, applied);
     if (mobileOnly) {
       rows = rows.filter((row) => isMobileIncidentRow(row));
     }
     return rows;
-  }, [incidents, kindFilter, applied, mobileOnly]);
+  }, [incidents, applied, mobileOnly]);
+
+  const applyKindShortcut = (kinds: string) => {
+    setPage(1);
+    reset({ ...applied, kinds });
+  };
+
+  const isKindShortcutActive = (key: "all" | "threat" | "alert" | "event") => {
+    if (key === "all") return selectedKinds.length === 0;
+    return (
+      selectedKinds.length === 1 &&
+      selectedKinds[0]?.toLowerCase() === key.toLowerCase()
+    );
+  };
 
   const handleApplyFilters = () => {
     setPage(1);
@@ -420,11 +425,10 @@ export default function SecurityIncidentsPage() {
               key={key}
               type="button"
               onClick={() => {
-                setKindFilter(key);
-                setPage(1);
+                applyKindShortcut(key === "all" ? "" : key);
               }}
               className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-                kindFilter === key
+                isKindShortcutActive(key)
                   ? "bg-red-600 text-white"
                   : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
               }`}
@@ -463,18 +467,49 @@ export default function SecurityIncidentsPage() {
           badges={filterBadges}
         >
           <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <FilterSelectField
+            <FilterMultiSelectField
+              label="Types d'incident"
+              value={draft.kinds}
+              onChange={(value) => updateDraft("kinds", value)}
+              options={[...INCIDENT_KIND_FILTER_OPTIONS]}
+              hint="Combiner Menaces, Alertes et Événements."
+            />
+            <FilterMultiSelectField
               label="Gravité"
               value={draft.severity}
               onChange={(value) => updateDraft("severity", value)}
               options={getSecuritySeverityFilterOptions()}
+              hint="Sélection multiple possible."
             />
-            <FacetAutocompleteField
+            <FacetMultiValueField
+              label="Nature / type technique"
+              value={draft.eventTypes}
+              onChange={(value) => updateDraft("eventTypes", value)}
+              suggestions={facetOptionsFromValues(
+                incidents.flatMap((row) => [
+                  row.eventType,
+                  row.title,
+                ]),
+                (value) =>
+                  formatThreatTypeLabel(value) ||
+                  formatSecurityEventTypeLabel(value) ||
+                  value,
+              )}
+              placeholder="BRUTE_FORCE, sql_injection…"
+              formatSuggestion={(value) =>
+                formatThreatTypeLabel(value) ||
+                formatSecurityEventTypeLabel(value) ||
+                value
+              }
+              hint="Plusieurs types séparés par virgule ou via suggestions."
+            />
+            <FacetMultiValueField
               label="Source (IP / origine)"
               value={draft.source}
               onChange={(value) => updateDraft("source", value)}
               suggestions={sourceSuggestions}
-              placeholder="Filtrer par source…"
+              placeholder="203.0.113.10, 198.51.100.42…"
+              hint="Plusieurs IP ou origines possibles."
             />
             <FacetAutocompleteField
               label="Recherche titre / description"
