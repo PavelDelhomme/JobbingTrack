@@ -6,20 +6,15 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { FilterBar, FilterMultiSelectField, FilterSelectField } from "@/components/filters";
+import { BarChart, Bar, Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { FilterBar, FilterMultiSelectField, FacetMultiValueField } from "@/components/filters";
 import {
   StatisticsPageShell,
   StatisticsRefreshButton,
 } from "../StatisticsSubNav";
+import { ChartPeriodCaption } from "@/components/analytics/ChartPeriodCaption";
+import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
+import { formatLocalChartAxisTick, formatLocalDateTime } from "@/lib/utils/date";
 import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import { analyticsService } from "@/lib/api/analytics.service";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
@@ -31,6 +26,11 @@ import {
   filterLogStatsRows,
   resolveLogStatsApiFilters,
 } from "@/lib/metrics/logStatsFilters";
+import {
+  buildLogStatsTimelineRows,
+  logStatsSampleRangeLabel,
+} from "@/lib/metrics/logStatsTimeSeries";
+import { logLevelChipTone } from "@/lib/metrics/logLevelChipTone";
 import { parseMultiFilterValues } from "@/lib/filters/multiValueFilter";
 import {
   DashboardLayoutRegion,
@@ -216,15 +216,6 @@ export default function StatisticsLogStatsPage() {
     );
   }, [logs, optionLogs]);
 
-  const periodOptions = useMemo(
-    () =>
-      STATS_PERIOD_OPTIONS.map((period) => ({
-        value: String(period.value),
-        label: period.label,
-      })),
-    [],
-  );
-
   const filterBadges = useMemo((): FilterBadge[] => {
     const badges: FilterBadge[] = [];
     const periodLabel =
@@ -251,6 +242,30 @@ export default function StatisticsLogStatsPage() {
   const filteredLogs = useMemo(() => {
     return filterLogStatsRows(logs, applied);
   }, [logs, applied.level, applied.service]);
+
+  const sampleRangeLabel = useMemo(() => {
+    return (
+      logStatsSampleRangeLabel(filteredLogs, applied.periodDays) ||
+      STATS_PERIOD_OPTIONS.find((p) => p.value === applied.periodDays)?.label ||
+      `${applied.periodDays} jours`
+    );
+  }, [applied.periodDays, filteredLogs]);
+
+  const timelineRows = useMemo(() => {
+    return buildLogStatsTimelineRows(filteredLogs, applied.periodDays, 80);
+  }, [applied.periodDays, filteredLogs]);
+
+  const [chartXMin, chartXMax] = useMemo(() => {
+    const now = Date.now();
+    const rangeStart = now - applied.periodDays * 24 * 60 * 60 * 1000;
+    return chartXDomainFromDataRange(
+      rangeStart,
+      now,
+      timelineRows.map((row) => row.timeMs),
+    );
+  }, [applied.periodDays, timelineRows]);
+
+  const axisShowDate = chartXMax - chartXMin > 24 * 60 * 60 * 1000;
 
   const byLevel = useMemo(() => {
     const m: Record<string, number> = {};
@@ -321,37 +336,59 @@ export default function StatisticsLogStatsPage() {
             onReset={() => reset(DEFAULT_LOG_STATS_FILTERS)}
             badges={filterBadges}
           >
-            <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-3">
-              <FilterSelectField
-                label="Période"
-                value={String(draft.periodDays)}
-                onChange={(value) =>
-                  updateDraft("periodDays", Number(value) || 14)
-                }
-                options={periodOptions}
-                allowEmpty={false}
-                placeholder="Choisir une période"
-              />
-              <FilterMultiSelectField
-                label="Niveau"
-                value={draft.level}
-                onChange={(value) => updateDraft("level", value)}
-                options={levelOptions.map((level) => ({
-                  value: level,
-                  label: level,
-                }))}
-                hint="Plusieurs niveaux possibles."
-              />
-              <FilterMultiSelectField
-                label="Service"
-                value={draft.service}
-                onChange={(value) => updateDraft("service", value)}
-                options={serviceOptions.map((service) => ({
-                  value: service,
-                  label: service,
-                }))}
-                hint="Plusieurs services possibles."
-              />
+            <div className="space-y-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Période d&apos;échantillon
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {STATS_PERIOD_OPTIONS.map((period) => {
+                    const active = draft.periodDays === period.value;
+                    return (
+                      <button
+                        key={period.value}
+                        type="button"
+                        onClick={() => updateDraft("periodDays", period.value)}
+                        className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                          active
+                            ? "border-violet-600 bg-violet-600 text-white shadow-sm dark:border-violet-500 dark:bg-violet-600"
+                            : "border-gray-200 bg-white text-gray-700 hover:border-violet-300 hover:text-violet-800 dark:border-gray-600 dark:bg-gray-800/80 dark:text-gray-200 dark:hover:border-violet-500"
+                        }`}
+                      >
+                        {period.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Fenêtre glissante sur les logs persistés (max 800 lignes par
+                  requête), comme les graphes Performances.
+                </p>
+              </div>
+
+              <div className="grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-2">
+                <FilterMultiSelectField
+                  label="Niveau"
+                  value={draft.level}
+                  onChange={(value) => updateDraft("level", value)}
+                  options={levelOptions.map((level) => ({
+                    value: level,
+                    label: level,
+                  }))}
+                  variant="statistics"
+                  toneForValue={logLevelChipTone}
+                  hideCheckbox
+                  hint="Cliquez pour activer ou retirer un niveau."
+                />
+                <FacetMultiValueField
+                  label="Service"
+                  value={draft.service}
+                  onChange={(value) => updateDraft("service", value)}
+                  suggestions={serviceOptions}
+                  placeholder="Filtrer ou choisir un service…"
+                  hint="Saisie libre ou suggestion. Plusieurs services possibles."
+                />
+              </div>
             </div>
           </FilterBar>
 
@@ -406,11 +443,80 @@ export default function StatisticsLogStatsPage() {
             </p>
           )}
 
+          {timelineRows.length > 0 ? (
+            <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+              <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">
+                Volume de logs dans le temps
+              </h2>
+              <ChartPeriodCaption label={sampleRangeLabel} />
+              <div className="h-56 w-full min-w-0 sm:h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={timelineRows}
+                    margin={{ top: 8, right: 16, left: 0, bottom: axisShowDate ? 48 : 24 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="opacity-40"
+                    />
+                    <XAxis
+                      dataKey="timeMs"
+                      type="number"
+                      domain={[chartXMin, chartXMax]}
+                      angle={axisShowDate ? -35 : -25}
+                      textAnchor="end"
+                      height={axisShowDate ? 56 : 40}
+                      tickFormatter={(ms) =>
+                        formatLocalChartAxisTick(ms as number, {
+                          withDate: axisShowDate,
+                        })
+                      }
+                      tick={{ fontSize: 11 }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 11 }}
+                      width={40}
+                    />
+                    <Tooltip
+                      {...rechartsTooltipProps}
+                      labelFormatter={(_, payload: unknown) => {
+                        const ts = (
+                          payload as Array<{
+                            payload?: { timestamp?: string };
+                          }>
+                        )?.[0]?.payload?.timestamp;
+                        return ts != null ? formatLocalDateTime(ts) : "—";
+                      }}
+                      formatter={(value) => [
+                        value != null ? String(value) : "—",
+                        "Lignes",
+                      ]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#7c3aed"
+                      strokeWidth={2}
+                      dot={false}
+                      name="Lignes"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                {timelineRows.length} point(s) rendu(s) sur l&apos;échantillon
+                filtré ({filteredLogs.length} lignes).
+              </p>
+            </div>
+          ) : null}
+
           {byLevel.length > 0 ? (
             <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-              <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                Répartition par niveau (échantillon)
+              <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">
+                Répartition par niveau
               </h2>
+              <ChartPeriodCaption label={sampleRangeLabel} />
               <div className="h-64 w-full min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -450,9 +556,10 @@ export default function StatisticsLogStatsPage() {
 
           {byService.length > 0 ? (
             <div className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-              <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-100">
-                Top services (échantillon)
+              <h2 className="mb-1 text-base font-semibold text-gray-900 dark:text-gray-100">
+                Top services
               </h2>
+              <ChartPeriodCaption label={sampleRangeLabel} />
               <div className="h-64 w-full min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -486,9 +593,9 @@ export default function StatisticsLogStatsPage() {
           ) : null}
 
           <p className={`text-xs ${uiText.subtle}`}>
-            {filteredLogs.length} / {logs.length} lignes affichées (fenêtre{" "}
-            {applied.periodDays}
-            jours, filtres appliqués côté API puis côté UI, max 800).
+            Échantillon : {filteredLogs.length} / {logs.length} lignes sur{" "}
+            {applied.periodDays} j (max 800, filtres API + UI). Compteurs
+            globaux ci-dessus = tables complètes.
           </p>
 
           <div className="flex flex-wrap gap-2">
