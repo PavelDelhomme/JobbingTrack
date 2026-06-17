@@ -20,6 +20,7 @@ import {
   SECURITY_LIVE_THREATS_FETCH_LIMIT,
   SECURITY_LIVE_WINDOW_DAYS,
 } from "./securityLiveConstants";
+import { filterActiveThreats } from "./threatIgnore";
 
 export const ANALYSIS_LOGS_WINDOW_DAYS = SECURITY_LIVE_WINDOW_DAYS;
 export const ANALYSIS_LOGS_FETCH_LIMIT = SECURITY_LIVE_LOGS_FETCH_LIMIT;
@@ -177,7 +178,7 @@ export function buildSecurityAnalysisSummary(input: {
         : blockedIPItems.length;
 
   const logs = input.logs;
-  const threats = input.threats;
+  const threats = filterActiveThreats(input.threats);
 
   const { sqlEventsLogs, xssEventsLogs } = countInjectionFromLogs(logs);
   const sqlEventsThreats = threats.filter((t) => isSqliThreat(t)).length;

@@ -4,6 +4,7 @@ const { spawn } = require('child_process');
 const axios = require('axios');
 const { prisma } = require('../config/database');
 const { logger, logSecurityEvent } = require('../utils/logger');
+const { activeThreatWhereClause } = require('../utils/threatIgnore');
 const dataGenerator = require('./dataGenerator');
 const securityAlertEmailNotifier = require('./securityAlertEmailNotifier');
 const { lookupGeoIp } = require('../utils/geoipProvider');
@@ -512,7 +513,8 @@ class SecurityService {
         where: {
           detectedAt: {
             gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
-          }
+          },
+          ...activeThreatWhereClause(),
         }
       }).catch(() => 0);
       metrics.networkThreats = networkThreatsCount;

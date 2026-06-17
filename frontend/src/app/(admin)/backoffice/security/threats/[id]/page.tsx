@@ -45,6 +45,8 @@ interface NetworkThreat {
   severity: string;
   detectedAt: string;
   blocked: boolean;
+  ignored?: boolean;
+  ignoreReason?: string | null;
   status?: string;
   source?: string;
   metadata?: any;
@@ -179,6 +181,64 @@ export default function ThreatDetailsPage() {
     } catch (err: any) {
       console.error("Erreur blocage menace:", err);
       alert("Erreur lors du blocage de la menace");
+    }
+  };
+
+  const reloadThreat = async () => {
+    const response = await axios.get(
+      `${API_GATEWAY_URL}/api/v1/security/firewall/threats/${params.id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      },
+    );
+    if (response.data.success) {
+      setThreat(response.data.data);
+    }
+  };
+
+  const handleIgnore = async () => {
+    const reason = prompt(
+      "Motif (optionnel) — cette menace sera exclue des compteurs et du score :",
+      "Faux positif / test légitime",
+    );
+    if (reason === null) return;
+    try {
+      await axios.post(
+        `${API_GATEWAY_URL}/api/v1/security/firewall/threats/${params.id}/ignore`,
+        { reason },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        },
+      );
+      await reloadThreat();
+    } catch (err: any) {
+      console.error("Erreur ignore menace:", err);
+      alert("Erreur lors du marquage faux positif");
+    }
+  };
+
+  const handleUnignore = async () => {
+    if (
+      !confirm(
+        "Réintégrer cette menace dans les compteurs sécurité et le score global ?",
+      )
+    ) {
+      return;
+    }
+    try {
+      await axios.post(
+        `${API_GATEWAY_URL}/api/v1/security/firewall/threats/${params.id}/unignore`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        },
+      );
+      await reloadThreat();
+    } catch (err: any) {
+      console.error("Erreur unignore menace:", err);
+      alert("Erreur lors de la réintégration");
     }
   };
 
@@ -318,19 +378,51 @@ export default function ThreatDetailsPage() {
       }
       description={formatThreatTypeLabel(threat.threatType)}
       actions={
-        blockStatus.showBlockButton ? (
-          <button
-            onClick={handleBlock}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-          >
-            <Ban className="h-5 w-5" />
-            Bloquer cette menace
-          </button>
-        ) : undefined
+        <div className="flex flex-wrap gap-2">
+          {blockStatus.showBlockButton && (
+            <button
+              type="button"
+              onClick={handleBlock}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+            >
+              <Ban className="h-5 w-5" />
+              Bloquer cette menace
+            </button>
+          )}
+          {blockStatus.kind !== "ignored" ? (
+            <button
+              type="button"
+              onClick={handleIgnore}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
+            >
+              Ignorer (faux positif)
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleUnignore}
+              className="px-4 py-2 border border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm"
+            >
+              Réintégrer dans les compteurs
+            </button>
+          )}
+        </div>
       }
     >
       <div className="space-y-6">
-        {(threat.blocked || blockStatus.kind === "recommended") && (
+        {blockStatus.kind === "ignored" && (
+          <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4 text-sm text-blue-950 dark:text-blue-100">
+            <p className="font-semibold mb-1">{blockStatus.label}</p>
+            <p>{blockStatus.detail}</p>
+            <p className="mt-2 text-xs opacity-90">
+              Cette menace n&apos;alimente plus le score global, les
+              recommandations ni les compteurs de la vue d&apos;ensemble.
+            </p>
+          </div>
+        )}
+
+        {(threat.blocked || blockStatus.kind === "recommended") &&
+          blockStatus.kind !== "ignored" && (
           <div
             className={`rounded-lg border p-4 text-sm ${
               blockStatus.kind === "recommended"

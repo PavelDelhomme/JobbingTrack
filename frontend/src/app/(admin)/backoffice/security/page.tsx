@@ -32,6 +32,7 @@ import {
   SECURITY_LIVE_OVERVIEW_REFRESH_MS,
   SECURITY_LIVE_WINDOW_DAYS,
 } from "@/lib/security/securityLiveConstants";
+import { filterActiveThreats } from "@/lib/security/threatIgnore";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -327,7 +328,10 @@ export default function SecurityOverviewPage() {
       }
 
       const logsArray = logs?.data || logs?.logs || [];
-      const threatsArray = threats?.data || threats?.threats || [];
+      const threatsArrayRaw = threats?.data || threats?.threats || [];
+      const threatsArray = filterActiveThreats(
+        Array.isArray(threatsArrayRaw) ? threatsArrayRaw : [],
+      );
       const logsForStats = Array.isArray(logsArray) ? logsArray : [];
       const manualBlocksCount = logsForStats.filter(
         (l: any) =>

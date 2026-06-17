@@ -2,6 +2,7 @@ import {
   formatBlockOriginLabel,
   isHighOrCriticalSeverity,
 } from "./securityLabels";
+import { isThreatIgnored } from "./threatIgnore";
 
 export type BlockedIpConsolidatedEntry = {
   ip?: string;
@@ -15,10 +16,13 @@ export type ThreatBlockInput = {
   sourceIp: string;
   severity: string;
   blocked: boolean;
+  ignored?: boolean;
+  ignoreReason?: string | null;
   metadata?: Record<string, unknown> | null;
 };
 
 export type ThreatBlockStatusKind =
+  | "ignored"
   | "blocked_automatic"
   | "blocked_manual"
   | "blocked_consolidated"
@@ -92,6 +96,20 @@ export function resolveThreatBlockStatus(
   threat: ThreatBlockInput,
   consolidatedEntry?: BlockedIpConsolidatedEntry | null,
 ): ThreatBlockStatus {
+  if (isThreatIgnored(threat)) {
+    return {
+      kind: "ignored",
+      label: "Ignorée (faux positif)",
+      detail:
+        threat.ignoreReason ||
+        (typeof threat.metadata?.ignoreReason === "string"
+          ? String(threat.metadata.ignoreReason)
+          : "Exclue des compteurs sécurité et du score global."),
+      tone: "info",
+      showBlockButton: false,
+    };
+  }
+
   const blockOrigin = readThreatBlockOrigin(threat, consolidatedEntry);
   const inConsolidated = Boolean(consolidatedEntry);
   const highOrCritical = isHighOrCriticalSeverity(threat.severity);
