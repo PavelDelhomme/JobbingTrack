@@ -38,6 +38,42 @@ import 'package:jobbingtrack_mobile/screens/jobbing/auth/reset_password_screen.d
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/verify_email_screen.dart';
 import 'package:jobbingtrack_mobile/screens/admin/admin_screen.dart';
 
+Route<dynamic>? resolveAppRoute(RouteSettings settings) {
+  if (settings.name != null && settings.name!.startsWith('/reset-password/')) {
+    final token = settings.name!.replaceFirst('/reset-password/', '');
+    return MaterialPageRoute(
+      builder: (context) => ResetPasswordScreen(token: token),
+      settings: settings,
+    );
+  }
+  if (settings.name != null &&
+      (settings.name!.startsWith('/verify-email') || settings.name!.contains('verify-email'))) {
+    String? token;
+    final path = settings.name!;
+    if (path.startsWith('/verify-email/') &&
+        path.length > '/verify-email/'.length &&
+        !path.contains('?')) {
+      token = path.substring('/verify-email/'.length).split('?').first;
+    } else {
+      try {
+        final uri = path.contains('://')
+            ? Uri.tryParse(path)
+            : Uri.tryParse(path.contains('?') ? 'jobbingtrack://verify-email$path' : 'jobbingtrack://verify-email/$path');
+        token = uri?.queryParameters['token'];
+        if ((token == null || token.isEmpty) && path.contains('/verify-email/')) {
+          final parts = path.split('/verify-email/');
+          if (parts.length > 1) token = parts.last.split('?').first;
+        }
+      } catch (_) {}
+    }
+    return MaterialPageRoute(
+      builder: (context) => VerifyEmailScreen(token: token),
+      settings: settings,
+    );
+  }
+  return null;
+}
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([
@@ -79,35 +115,19 @@ class JobbingTrackMobileApp extends StatelessWidget {
           useMaterial3: true,
           // Pas de fontFamily : Inter n'est pas dans pubspec → crash au lancement sur Android si on le met
         ),
-        home: const _SplashScreen(),
-        onGenerateRoute: (settings) {
-          // /reset-password/:token
-          if (settings.name != null && settings.name!.startsWith('/reset-password/')) {
-            final token = settings.name!.replaceFirst('/reset-password/', '');
-            return MaterialPageRoute(
-              builder: (context) => ResetPasswordScreen(token: token),
-              settings: settings,
-            );
-          }
-          // /verify-email, /verify-email/:token ou URL complète avec ?token= (lien email)
-          if (settings.name != null && (settings.name!.startsWith('/verify-email') || settings.name!.contains('verify-email'))) {
-            String? token;
-            final path = settings.name!;
-            if (path.startsWith('/verify-email/') && path.length > '/verify-email/'.length && !path.contains('?')) {
-              token = path.substring('/verify-email/'.length).split('?').first;
-            } else if (path.contains('token=')) {
-              try {
-                final uri = path.startsWith('http') ? Uri.tryParse(path) : Uri.tryParse('http://dummy$path');
-                token = uri?.queryParameters['token'];
-              } catch (_) {}
+        initialRoute: '/',
+        onGenerateInitialRoutes: (String initialRouteName) {
+          if (initialRouteName != '/' && initialRouteName.isNotEmpty) {
+            final generated = resolveAppRoute(RouteSettings(name: initialRouteName));
+            if (generated != null) {
+              return [generated];
             }
-            return MaterialPageRoute(
-              builder: (context) => VerifyEmailScreen(token: token),
-              settings: settings,
-            );
           }
-          return null;
+          return [
+            MaterialPageRoute(builder: (context) => const _SplashScreen()),
+          ];
         },
+        onGenerateRoute: resolveAppRoute,
         routes: {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),

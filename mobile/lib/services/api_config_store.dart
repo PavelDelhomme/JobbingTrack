@@ -85,6 +85,14 @@ class ApiConfigStore {
     await prefs.setBool(_keyAnalyticsActivity, enabled);
   }
 
+  /// Consentement télémétrie activé à l'inscription (obligatoire pour créer un compte).
+  static Future<void> enableTelemetryOnSignup() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAnalyticsConsent, true);
+    await prefs.setBool(_keyAnalyticsPerformance, true);
+    await prefs.setBool(_keyAnalyticsActivity, true);
+  }
+
   static Future<String> getOrCreateAnalyticsSessionId() async {
     final prefs = await SharedPreferences.getInstance();
     final existing = prefs.getString(_keyAnalyticsSessionId);

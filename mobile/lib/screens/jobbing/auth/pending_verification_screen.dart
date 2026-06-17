@@ -1,73 +1,127 @@
 import 'package:flutter/material.dart';
+import 'package:jobbingtrack_mobile/services/api_service.dart';
 
 /// Écran affiché après une inscription réussie : indique à l'utilisateur de vérifier
 /// son email via le lien envoyé, avant de pouvoir se connecter.
-/// Évite de revenir directement au login et clarifie le flux (attendre le mail, cliquer le lien, puis se connecter).
-class PendingVerificationScreen extends StatelessWidget {
+class PendingVerificationScreen extends StatefulWidget {
   final String email;
 
   const PendingVerificationScreen({super.key, required this.email});
+
+  @override
+  State<PendingVerificationScreen> createState() => _PendingVerificationScreenState();
+}
+
+class _PendingVerificationScreenState extends State<PendingVerificationScreen> {
+  bool _resending = false;
+  String? _resendMessage;
+
+  Future<void> _resend() async {
+    setState(() {
+      _resending = true;
+      _resendMessage = null;
+    });
+    try {
+      await ApiService.resendVerificationEmail(widget.email);
+      if (!mounted) return;
+      setState(() {
+        _resendMessage = 'Un nouvel email de vérification a été envoyé.';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _resendMessage = 'Envoi impossible : ${e.toString().replaceAll('Exception: ', '')}';
+      });
+    } finally {
+      if (mounted) setState(() => _resending = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
       child: Scaffold(
-      appBar: AppBar(
-        title: const Text('Vérification requise'),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 48),
-              Icon(Icons.mark_email_unread_outlined, size: 80, color: Colors.blue[600]),
-              const SizedBox(height: 24),
-              Text(
-                'Vérifiez votre email',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue[800]),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Un lien de vérification a été envoyé à :',
-                style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                email,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.blue[700]),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Ouvrez votre boîte mail (Gmail, Proton, BlueMail, etc.), cliquez sur le lien dans l\'email pour activer votre compte, puis revenez ici pour vous connecter.',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.4),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[600],
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Aller à la connexion', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        appBar: AppBar(
+          title: const Text('Vérification requise'),
+          centerTitle: true,
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                const SizedBox(height: 48),
+                Icon(Icons.mark_email_unread_outlined, size: 80, color: Colors.blue[600]),
+                const SizedBox(height: 24),
+                Text(
+                  'Vérifiez votre email',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue[800]),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 48),
-            ],
+                const SizedBox(height: 16),
+                Text(
+                  'Un lien de vérification a été envoyé à :',
+                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  widget.email,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.blue[700]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  '1. Ouvrez votre boîte mail\n'
+                  '2. Cliquez sur le lien de vérification\n'
+                  '3. L\'application s\'ouvrira (ou rouvrez-la) pour confirmer\n'
+                  '4. Revenez ici pour vous connecter',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5),
+                  textAlign: TextAlign.center,
+                ),
+                if (_resendMessage != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    _resendMessage!,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: _resendMessage!.startsWith('Envoi') ? Colors.red[700] : Colors.green[700],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+                const SizedBox(height: 24),
+                OutlinedButton.icon(
+                  onPressed: _resending ? null : _resend,
+                  icon: _resending
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh),
+                  label: Text(_resending ? 'Envoi…' : 'Renvoyer l\'email de vérification'),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[600],
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Aller à la connexion', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                const SizedBox(height: 48),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }

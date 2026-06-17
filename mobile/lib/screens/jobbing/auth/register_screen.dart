@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/services/api_config_store.dart';
+import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/pending_verification_screen.dart';
 
@@ -23,6 +25,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _acceptTerms = false;
+  bool _acceptTelemetry = true;
 
   @override
   void dispose() {
@@ -44,6 +47,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    if (!_acceptTelemetry) {
+      _showSnackBar(
+        'La collecte anonyme de données techniques est requise pour créer un compte. '
+        'Vous pourrez ajuster les détails dans Paramètres après connexion.',
+      );
+      return;
+    }
+
     if (_passwordController.text != _confirmPasswordController.text) {
       _showSnackBar('Les mots de passe ne correspondent pas');
       return;
@@ -61,6 +72,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
       );
+
+      await ApiConfigStore.enableTelemetryOnSignup();
+      await MobileAnalyticsService.instance.initialize();
 
       if (mounted) {
         _showSnackBar('Inscription réussie ! Vérifiez votre email', isSuccess: true);
@@ -363,6 +377,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       fontSize: 12,
                                       color: Colors.grey[700],
                                     ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Télémétrie anonyme (obligatoire à l'inscription)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Semantics(
+                              label: 'Accepter la collecte anonyme de données techniques',
+                              child: Checkbox(
+                                value: _acceptTelemetry,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _acceptTelemetry = value ?? false;
+                                  });
+                                },
+                              ),
+                            ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _acceptTelemetry = !_acceptTelemetry;
+                                  });
+                                },
+                                child: Text(
+                                  'J\'accepte la collecte anonyme de données techniques '
+                                  '(performances, navigation, stabilité) pour améliorer l\'application. '
+                                  'Aucun contenu personnel (candidatures, mots de passe) n\'est transmis. '
+                                  'Obligatoire pour créer un compte.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[700],
+                                    height: 1.35,
                                   ),
                                 ),
                               ),

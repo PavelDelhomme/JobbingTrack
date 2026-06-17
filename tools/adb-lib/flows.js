@@ -119,6 +119,12 @@ async function register(adb, opts = {}) {
   await adb.closeKeyboard();
   await adb.wait(800);
   try { await adb.tap('conditions'); } catch {}
+  await adb.wait(400);
+  try { await adb.tap('données anonymes'); } catch {
+    try { await adb.tap('donnees anonymes'); } catch {
+      try { await adb.tap('techniques'); } catch {}
+    }
+  }
   await adb.wait(500);
   await adb.scrollDown(1200);
   await adb.wait(800);

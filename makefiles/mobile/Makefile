@@ -9,7 +9,7 @@
 EMULATOR_CONTROLLER_DIR := $(ROOT_DIR)/tools/emulator-controller
 MOBILE_DIR := $(ROOT_DIR)/mobile
 
-.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop restart-emulator verify-mobile-emulator verify-mobile-scenarios help-emulator test-emulator-controller
+.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop restart-emulator verify-mobile-emulator verify-mobile-scenarios help-emulator test-emulator-controller mobile-device-ready mobile-login-admin mobile-verify-email
 
 # Démarrer le lanceur (port 5056) qui démarre le contrôleur (5055). Depuis le backoffice on peut Démarrer/Arrêter le contrôleur sans terminal.
 emulator-controller: ## Démarrer le lanceur + contrôleur (5056 + 5055). Backoffice → Démarrer/Arrêter le contrôleur sans terminal
@@ -76,6 +76,25 @@ test-emulator-controller: ## Vérifier que le contrôleur répond (GET /health, 
 		echo "❌ Fichier introuvable : $(EMULATOR_CONTROLLER_DIR)/test-server.js"; exit 1; \
 	fi
 	@cd "$(ROOT_DIR)" && node "$(EMULATOR_CONTROLLER_DIR)/test-server.js"
+
+# Appareil physique : adb reverse + build/install APK
+mobile-device-ready: ## Préparer appareil USB (adb reverse 5002/5003, build APK, install)
+	@bash "$(ROOT_DIR)/scripts/mobile/setup-physical-device.sh"
+
+# Connexion automatique avec le compte admin de test (.env TEST_ADMIN_*)
+mobile-login-admin: ## Login auto sur appareil ADB avec TEST_ADMIN_EMAIL/PASSWORD (.env)
+	@echo "📱 Connexion admin mobile (credentials .env TEST_ADMIN_*)..."
+	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true
+	@adb reverse tcp:5003 tcp:5003 2>/dev/null || true
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke-login-admin-adb.js"
+
+# Ouvrir un lien de vérification email dans l'app (TOKEN=xxx requis)
+mobile-verify-email: ## Ouvrir deep link verify-email sur appareil (TOKEN=xxx)
+	@test -n "$(TOKEN)" || (echo "❌ Usage: make mobile-verify-email TOKEN=<token_du_mail>"; exit 1)
+	@echo "📧 Ouverture jobbingtrack://verify-email?token=$(TOKEN)"
+	@adb shell am start -a android.intent.action.VIEW \
+		-d "jobbingtrack://verify-email?token=$(TOKEN)" \
+		-n com.example.jobbingtrack_mobile/.MainActivity
 
 # Aide émulateur mobile
 help-emulator: ## Aide : tester l'app mobile en direct depuis le backoffice (émulateur ou téléphone connecté)

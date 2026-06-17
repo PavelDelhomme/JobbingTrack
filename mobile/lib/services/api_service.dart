@@ -411,6 +411,22 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> resendVerificationEmail(String email) async {
+    try {
+      final response = await _post(
+        '/api/v1/auth/resend-verification',
+        headers: _jsonHeaders(),
+        body: jsonEncode({'email': email.trim()}),
+      );
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
+      throw Exception(body['message'] ?? body['error'] ?? 'Erreur ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
   static Future<List<Application>> getApplications({String? token}) async {
     try {
       final response = await _get('/api/v1/applications', headers: _jsonHeaders(token));
