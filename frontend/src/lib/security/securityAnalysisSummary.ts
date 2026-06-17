@@ -6,11 +6,25 @@ import {
   isDdosThreat,
 } from "./threatSignals";
 import axios from "axios";
+import {
+  calculateSecurityScore,
+  DEFAULT_SECURITY_SCORE_WEIGHTS,
+  sanitizeSecurityScoreWeights,
+  SECURITY_SCORE_WEIGHTS_STORAGE_KEY,
+  type SecurityScoreWeights,
+} from "./securityScore";
+import {
+  SECURITY_LIVE_BLOCKED_IPS_PAGE_SIZE,
+  SECURITY_LIVE_LOGS_FETCH_LIMIT,
+  SECURITY_LIVE_OVERVIEW_REFRESH_MS,
+  SECURITY_LIVE_THREATS_FETCH_LIMIT,
+  SECURITY_LIVE_WINDOW_DAYS,
+} from "./securityLiveConstants";
 
-export const ANALYSIS_LOGS_WINDOW_DAYS = 30;
-export const ANALYSIS_LOGS_FETCH_LIMIT = 2000;
-export const ANALYSIS_BLOCKED_IPS_PAGE_SIZE = 10;
-export const ANALYSIS_REFRESH_MS = 30_000;
+export const ANALYSIS_LOGS_WINDOW_DAYS = SECURITY_LIVE_WINDOW_DAYS;
+export const ANALYSIS_LOGS_FETCH_LIMIT = SECURITY_LIVE_LOGS_FETCH_LIMIT;
+export const ANALYSIS_BLOCKED_IPS_PAGE_SIZE = SECURITY_LIVE_BLOCKED_IPS_PAGE_SIZE;
+export const ANALYSIS_REFRESH_MS = SECURITY_LIVE_OVERVIEW_REFRESH_MS;
 
 export interface BlockedIpItem {
   ip: string;
@@ -50,6 +64,8 @@ export interface SecurityAnalysisSummary {
   totalThreatsLive: number;
   totalLogsLive: number;
   statsWindowDays: number;
+  detectionsCount: number;
+  wafEnabled: boolean | null;
 }
 
 export interface SecurityRecommendation {
@@ -94,6 +110,36 @@ function countInjectionFromLogs(logs: Record<string, unknown>[]) {
   return { sqlEventsLogs, xssEventsLogs };
 }
 
+export function readStoredSecurityScoreWeights(): SecurityScoreWeights {
+  if (typeof localStorage === "undefined") {
+    return DEFAULT_SECURITY_SCORE_WEIGHTS;
+  }
+  try {
+    const raw = localStorage.getItem(SECURITY_SCORE_WEIGHTS_STORAGE_KEY);
+    if (raw) {
+      return sanitizeSecurityScoreWeights(JSON.parse(raw));
+    }
+  } catch {
+    // ignore
+  }
+  return DEFAULT_SECURITY_SCORE_WEIGHTS;
+}
+
+/** Même formule que la vue d’ensemble Sécurité (`/security`). */
+export function computeSecurityDetectionsCount(
+  logs: Record<string, unknown>[],
+  threats: Record<string, unknown>[],
+): number {
+  const logDetections = countDetectionLikeLogs(logs, {
+    excludeEventTypes: ["network_threat_detected"],
+  });
+  const sqlT = threats.filter((t) => isSqliThreat(t)).length;
+  const xssT = threats.filter((t) => isXssThreat(t)).length;
+  const ddosT = threats.filter((t) => isDdosThreat(t)).length;
+  const otherT = Math.max(0, threats.length - sqlT - xssT - ddosT);
+  return logDetections + sqlT + xssT + otherT + ddosT;
+}
+
 export function buildSecurityAnalysisSummary(input: {
   stats: Record<string, unknown>;
   blockedRaw: unknown[];
@@ -101,6 +147,8 @@ export function buildSecurityAnalysisSummary(input: {
   logs: Record<string, unknown>[];
   threats: Record<string, unknown>[];
   statsWindowDays?: number;
+  wafEnabled?: boolean | null;
+  weights?: SecurityScoreWeights;
 }): SecurityAnalysisSummary {
   const statsWindowDays = input.statsWindowDays ?? ANALYSIS_LOGS_WINDOW_DAYS;
   const stats = input.stats ?? {};
@@ -159,17 +207,22 @@ export function buildSecurityAnalysisSummary(input: {
   }).length;
 
   const detectionLogsCount = countDetectionLikeLogs(logs);
+  const detectionsCount = computeSecurityDetectionsCount(logs, threats);
   const openThreatsCount = threats.filter((t) => !t?.blocked).length;
 
-  const scoreFromOverview = Number(overview.riskScore ?? overview.securityScore ?? 0);
-  const scoreFromLive = Math.max(
-    0,
-    100 - Math.min(70, threats.length * 2 + suspiciousLogs),
+  const weights = sanitizeSecurityScoreWeights(
+    input.weights ?? DEFAULT_SECURITY_SCORE_WEIGHTS,
   );
-  const securityScore =
-    Number.isFinite(scoreFromOverview) && scoreFromOverview > 0
-      ? Math.round(scoreFromOverview)
-      : Math.round(scoreFromLive);
+  const wafEnabled = input.wafEnabled ?? null;
+  const securityScore = calculateSecurityScore(
+    {
+      threatsCount: threats.length,
+      logsCount: logs.length,
+      blockedIpsCount: uniqueBlockedIPs,
+      wafEnabled,
+    },
+    weights,
+  );
 
   const otherInjectionCount = Math.max(
     0,
@@ -197,6 +250,8 @@ export function buildSecurityAnalysisSummary(input: {
     totalThreatsLive: threats.length,
     totalLogsLive: logs.length,
     statsWindowDays,
+    detectionsCount,
+    wafEnabled,
   };
 }
 
@@ -310,7 +365,8 @@ export async function fetchSecurityAnalysisSummary(
   const blockedPage = options?.blockedPage ?? 1;
   const blockedLimit = options?.blockedLimit ?? ANALYSIS_BLOCKED_IPS_PAGE_SIZE;
 
-  const [statsRes, blockedRes, logsRes, threatsRes] = await Promise.allSettled([
+  const [statsRes, blockedRes, logsRes, threatsRes, wafRes] =
+    await Promise.allSettled([
     axios.get(`${apiUrl}/api/v1/security/stats?days=${statsWindowDays}`, {
       headers,
       timeout: 7000,
@@ -321,10 +377,16 @@ export async function fetchSecurityAnalysisSummary(
       params: { page: blockedPage, limit: blockedLimit },
     }),
     axios.get(
-      `${apiUrl}/api/v1/security/logs?limit=${ANALYSIS_LOGS_FETCH_LIMIT}&startDate=${logSince}`,
+      `${apiUrl}/api/v1/security/logs?limit=${SECURITY_LIVE_LOGS_FETCH_LIMIT}&startDate=${logSince}`,
       { headers, timeout: 7000 },
     ),
-    axios.get(`${apiUrl}/api/v1/security/firewall/threats?limit=200`, {
+    axios.get(
+      `${apiUrl}/api/v1/security/firewall/threats?limit=${SECURITY_LIVE_THREATS_FETCH_LIMIT}`,
+      {
+      headers,
+      timeout: 7000,
+    }),
+    axios.get(`${apiUrl}/api/v1/security/waf/config`, {
       headers,
       timeout: 7000,
     }),
@@ -337,6 +399,11 @@ export async function fetchSecurityAnalysisSummary(
   const logsData = logsRes.status === "fulfilled" ? logsRes.value.data : null;
   const threatsData =
     threatsRes.status === "fulfilled" ? threatsRes.value.data : null;
+  const wafData = wafRes.status === "fulfilled" ? wafRes.value.data : null;
+  const wafPayload =
+    wafData?.data && typeof wafData.data === "object" ? wafData.data : wafData;
+  const wafEnabled =
+    typeof wafPayload?.enabled === "boolean" ? wafPayload.enabled : null;
 
   return buildSecurityAnalysisSummary({
     stats: statsData?.success ? statsData.data || {} : {},
@@ -351,5 +418,7 @@ export async function fetchSecurityAnalysisSummary(
     logs: Array.isArray(logsData?.data) ? logsData.data : [],
     threats: Array.isArray(threatsData?.data) ? threatsData.data : [],
     statsWindowDays,
+    wafEnabled,
+    weights: readStoredSecurityScoreWeights(),
   });
 }

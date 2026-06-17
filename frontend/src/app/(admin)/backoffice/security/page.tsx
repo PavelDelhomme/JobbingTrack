@@ -27,6 +27,11 @@ import {
   type SecurityScoreWeights,
 } from "@/lib/security/securityScore";
 import securityService from "@/lib/services/securityService";
+import {
+  SECURITY_LIVE_LOGS_FETCH_LIMIT,
+  SECURITY_LIVE_OVERVIEW_REFRESH_MS,
+  SECURITY_LIVE_WINDOW_DAYS,
+} from "@/lib/security/securityLiveConstants";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -106,9 +111,9 @@ type IncidentItem = {
   href: string;
 };
 
-const LOGS_WINDOW_DAYS = 30;
-const SECURITY_LOGS_FETCH_LIMIT = 500;
-const SECURITY_OVERVIEW_REFRESH_MS = 15000;
+const LOGS_WINDOW_DAYS = SECURITY_LIVE_WINDOW_DAYS;
+const SECURITY_LOGS_FETCH_LIMIT = SECURITY_LIVE_LOGS_FETCH_LIMIT;
+const SECURITY_OVERVIEW_REFRESH_MS = SECURITY_LIVE_OVERVIEW_REFRESH_MS;
 
 const defaultOverview: SecurityOverview = {
   logsCount: 0,

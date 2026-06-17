@@ -91,11 +91,10 @@ export default function SecurityAnalysisPage() {
         <>
           <p>Évaluation complète de la sécurité de votre application</p>
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Logs sécurité : fenêtre glissante de {ANALYSIS_LOGS_WINDOW_DAYS}{" "}
-            jours (limite UI {ANALYSIS_LOGS_FETCH_LIMIT} entrées). Menaces :
-            jusqu'à 200 entrées récentes. Les dates et heures sont affichées en{" "}
-            <strong>heure locale</strong> du navigateur (les API renvoient des
-            timestamps ISO, en pratique UTC ou stockage serveur).
+            Fenêtre {ANALYSIS_LOGS_WINDOW_DAYS} j · limite logs{" "}
+            {ANALYSIS_LOGS_FETCH_LIMIT} · score calculé avec la même pondération
+            que la vue d’ensemble Sécurité (menaces, bruit logs, IPs bloquées,
+            WAF). Rafraîchissement {ANALYSIS_REFRESH_MS / 1000} s.
           </p>
         </>
       }
@@ -238,11 +237,12 @@ export default function SecurityAnalysisPage() {
               Détections (signaux)
             </h2>
             <p className="text-3xl font-bold text-cyan-800 dark:text-cyan-300 mt-2">
-              {summary?.detectionLogsCount ?? 0}
+              {summary?.detectionsCount ?? 0}
             </p>
             <p className="text-xs text-cyan-800/90 dark:text-cyan-300/90 mt-1">
-              Évènements de détection dans les logs (menace / WAF / intrusion…),
-              sans confondre avec un blocage effectif.
+              Aligné vue d’ensemble : logs détection (hors doublon réseau) +
+              menaces typées. Signaux logs bruts :{" "}
+              <strong>{summary?.detectionLogsCount ?? 0}</strong>
             </p>
             <p className="text-xs mt-2 text-cyan-900 dark:text-cyan-200">
               Menaces non marquées « bloquées » en base :{" "}
