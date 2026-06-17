@@ -34,6 +34,8 @@ class CrashReporter {
   static const bool _isDevMode = kDebugMode;
   static const int _prodActionLimit = 500;
 
+  static String? get currentScreenName => _currentScreen;
+
   static void setToken(String? token) => _authToken = token;
 
   static void setCurrentScreen(String screen) {

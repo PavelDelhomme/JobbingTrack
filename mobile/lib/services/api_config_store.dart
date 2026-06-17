@@ -49,6 +49,51 @@ class ApiConfigStore {
     await prefs.remove(_keyAuthUserJson);
   }
 
+  // ——— Télémétrie mobile (consentement RGPD) ———
+  static const _keyAnalyticsConsent = 'telemetry_analytics_consent';
+  static const _keyAnalyticsPerformance = 'telemetry_performance_enabled';
+  static const _keyAnalyticsActivity = 'telemetry_activity_trace_enabled';
+  static const _keyAnalyticsSessionId = 'telemetry_session_id';
+
+  static Future<bool> loadAnalyticsConsent() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyAnalyticsConsent) ?? false;
+  }
+
+  static Future<void> saveAnalyticsConsent(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAnalyticsConsent, enabled);
+  }
+
+  static Future<bool> loadPerformanceTelemetryEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyAnalyticsPerformance) ?? true;
+  }
+
+  static Future<void> savePerformanceTelemetryEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAnalyticsPerformance, enabled);
+  }
+
+  static Future<bool> loadActivityTraceEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyAnalyticsActivity) ?? true;
+  }
+
+  static Future<void> saveActivityTraceEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAnalyticsActivity, enabled);
+  }
+
+  static Future<String> getOrCreateAnalyticsSessionId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getString(_keyAnalyticsSessionId);
+    if (existing != null && existing.trim().isNotEmpty) return existing.trim();
+    final id = 'sess-${DateTime.now().millisecondsSinceEpoch}';
+    await prefs.setString(_keyAnalyticsSessionId, id);
+    return id;
+  }
+
   /// Identifiant stable par appareil pour corrélation sécurité mobile (B9).
   static Future<String> getOrCreateDeviceId() async {
     final prefs = await SharedPreferences.getInstance();

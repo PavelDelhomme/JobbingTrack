@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
+import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/providers/application_provider.dart';
 import 'package:jobbingtrack_mobile/providers/company_provider.dart';
@@ -72,6 +73,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
       child: MaterialApp(
         title: 'JobbingTrack Mobile',
         debugShowCheckedModeBanner: false,
+        navigatorObservers: [MobileAnalyticsRouteObserver()],
         theme: ThemeData(
           primarySwatch: Colors.blue,
           useMaterial3: true,
@@ -161,6 +163,7 @@ class _SplashScreenState extends State<_SplashScreen> {
     if (!mounted) return;
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final restored = await auth.restoreSession();
+    await MobileAnalyticsService.instance.initialize(authToken: auth.token);
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed(restored ? '/home' : '/login');
   }

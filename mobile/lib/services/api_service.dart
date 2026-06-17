@@ -18,6 +18,9 @@ class ApiService {
   /// Appelé quand une requête authentifiée reçoit 401/403 (session révoquée côté serveur).
   static Future<void> Function(String path, int statusCode)? onSessionRevoked;
 
+  /// Hook télémétrie (durée des requêtes API, anonymisé).
+  static void Function(String path, int statusCode, int durationMs)? onRequestComplete;
+
   /// URL de l'API. Par défaut en local : 127.0.0.1 (adb reverse) ou 10.0.2.2 (émulateur).
   static String get baseUrl {
     const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
@@ -88,35 +91,72 @@ class ApiService {
   }
 
   static Future<http.Response> _get(String path, {Map<String, String>? headers}) async {
-    debugPrint('[API] GET $baseUrl$path');
-    final response =
-        await http.get(Uri.parse('$baseUrl$path'), headers: headers).timeout(_timeout);
-    _maybeNotifySessionRevoked(response, headers, path);
-    return response;
+    return _timed(path, () async {
+      debugPrint('[API] GET $baseUrl$path');
+      final response =
+          await http.get(Uri.parse('$baseUrl$path'), headers: headers).timeout(_timeout);
+      _maybeNotifySessionRevoked(response, headers, path);
+      return response;
+    });
   }
 
   static Future<http.Response> _post(String path, {Map<String, String>? headers, Object? body}) async {
-    debugPrint('[API] POST $baseUrl$path');
-    final response =
-        await http.post(Uri.parse('$baseUrl$path'), headers: headers, body: body).timeout(_timeout);
-    _maybeNotifySessionRevoked(response, headers, path);
-    return response;
+    return _timed(path, () async {
+      debugPrint('[API] POST $baseUrl$path');
+      final response =
+          await http.post(Uri.parse('$baseUrl$path'), headers: headers, body: body).timeout(_timeout);
+      _maybeNotifySessionRevoked(response, headers, path);
+      return response;
+    });
   }
 
   static Future<http.Response> _put(String path, {Map<String, String>? headers, Object? body}) async {
-    debugPrint('[API] PUT $baseUrl$path');
-    final response =
-        await http.put(Uri.parse('$baseUrl$path'), headers: headers, body: body).timeout(_timeout);
-    _maybeNotifySessionRevoked(response, headers, path);
-    return response;
+    return _timed(path, () async {
+      debugPrint('[API] PUT $baseUrl$path');
+      final response =
+          await http.put(Uri.parse('$baseUrl$path'), headers: headers, body: body).timeout(_timeout);
+      _maybeNotifySessionRevoked(response, headers, path);
+      return response;
+    });
   }
 
   static Future<http.Response> _delete(String path, {Map<String, String>? headers}) async {
-    debugPrint('[API] DELETE $baseUrl$path');
-    final response =
-        await http.delete(Uri.parse('$baseUrl$path'), headers: headers).timeout(_timeout);
-    _maybeNotifySessionRevoked(response, headers, path);
-    return response;
+    return _timed(path, () async {
+      debugPrint('[API] DELETE $baseUrl$path');
+      final response =
+          await http.delete(Uri.parse('$baseUrl$path'), headers: headers).timeout(_timeout);
+      _maybeNotifySessionRevoked(response, headers, path);
+      return response;
+    });
+  }
+
+  static Future<http.Response> _timed(
+    String path,
+    Future<http.Response> Function() request,
+  ) async {
+    final sw = Stopwatch()..start();
+    try {
+      final response = await request();
+      sw.stop();
+      final cb = onRequestComplete;
+      if (cb != null &&
+          !path.contains('/analytics/') &&
+          !path.contains('/crashes') &&
+          !path.contains('/mobile/security-events')) {
+        cb(path, response.statusCode, sw.elapsedMilliseconds);
+      }
+      return response;
+    } catch (e) {
+      sw.stop();
+      final cb = onRequestComplete;
+      if (cb != null &&
+          !path.contains('/analytics/') &&
+          !path.contains('/crashes') &&
+          !path.contains('/mobile/security-events')) {
+        cb(path, 0, sw.elapsedMilliseconds);
+      }
+      rethrow;
+    }
   }
 
   static void _maybeNotifySessionRevoked(
@@ -176,6 +216,102 @@ class ApiService {
       );
     } catch (e) {
       debugPrint('[API] security-event non envoyé: $e');
+    }
+  }
+
+  // ——— Analytics utilisateur (optionnel, anonyme si pas de token) ———
+
+  static Future<void> postAnalyticsSession({
+    required String sessionId,
+    String? deviceId,
+    String platform = 'mobile',
+    String? osName,
+    String? osVersion,
+    String? token,
+  }) async {
+    try {
+      await _post(
+        '/api/v1/analytics/sessions',
+        headers: _jsonHeaders(token),
+        body: jsonEncode({
+          'sessionId': sessionId,
+          'deviceId': deviceId,
+          'platform': platform,
+          if (osName != null) 'osName': osName,
+          if (osVersion != null) 'osVersion': osVersion,
+          'appVersion': '1.0.0',
+        }),
+      );
+    } catch (e) {
+      debugPrint('[API] analytics session non envoyée: $e');
+    }
+  }
+
+  static Future<void> postAnalyticsEvent({
+    String? sessionId,
+    String? deviceId,
+    required String eventType,
+    required String eventName,
+    String? category,
+    String? page,
+    Map<String, dynamic>? properties,
+    String platform = 'mobile',
+    String? token,
+  }) async {
+    try {
+      await _post(
+        '/api/v1/analytics/events',
+        headers: _jsonHeaders(token),
+        body: jsonEncode({
+          if (sessionId != null) 'sessionId': sessionId,
+          if (deviceId != null) 'deviceId': deviceId,
+          'eventType': eventType,
+          'eventName': eventName,
+          if (category != null) 'category': category,
+          if (page != null) 'page': page,
+          'properties': properties ?? {},
+          'platform': platform,
+          'appVersion': '1.0.0',
+        }),
+      );
+    } catch (e) {
+      debugPrint('[API] analytics event non envoyé: $e');
+    }
+  }
+
+  static Future<void> postAnalyticsPerformance({
+    String? sessionId,
+    String? deviceId,
+    required String metricType,
+    required String metricName,
+    int? duration,
+    int? memoryUsage,
+    int? value,
+    String? page,
+    int? networkLatency,
+    String platform = 'mobile',
+    String? token,
+  }) async {
+    try {
+      await _post(
+        '/api/v1/analytics/performance',
+        headers: _jsonHeaders(token),
+        body: jsonEncode({
+          if (sessionId != null) 'sessionId': sessionId,
+          if (deviceId != null) 'deviceId': deviceId,
+          'metricType': metricType,
+          'metricName': metricName,
+          if (duration != null) 'duration': duration,
+          if (memoryUsage != null) 'memoryUsage': memoryUsage,
+          if (value != null) 'value': value,
+          if (networkLatency != null) 'networkLatency': networkLatency,
+          if (page != null) 'page': page,
+          'platform': platform,
+          'appVersion': '1.0.0',
+        }),
+      );
+    } catch (e) {
+      debugPrint('[API] analytics performance non envoyée: $e');
     }
   }
 
