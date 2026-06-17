@@ -383,6 +383,53 @@ class ApiService {
     }
   }
 
+  static Future<void> archiveApplication(String id, {String? token, String? reason}) async {
+    try {
+      final response = await _post(
+        '/api/v1/applications/$id/archive',
+        headers: _jsonHeaders(token),
+        body: jsonEncode({if (reason != null && reason.isNotEmpty) 'reason': reason}),
+      );
+      if (response.statusCode != 200) {
+        final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
+        throw Exception(body['error'] ?? body['message'] ?? 'Erreur HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<Application> getApplication(String id, {String? token}) async {
+    try {
+      final response = await _get('/api/v1/applications/$id', headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final raw = data['application'];
+        if (raw != null) return Application.fromJson(Map<String, dynamic>.from(raw));
+      }
+      throw Exception('Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<Company> getCompany(String id, {String? token}) async {
+    try {
+      final response = await _get('/api/v1/companies/$id', headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final raw = data['company'];
+        if (raw != null) return Company.fromJson(Map<String, dynamic>.from(raw));
+      }
+      throw Exception('Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
   static Future<List<Company>> getCompanies({String? token}) async {
     try {
       final response = await _get('/api/v1/companies', headers: _jsonHeaders(token));
@@ -433,6 +480,152 @@ class ApiService {
         throw Exception('Erreur HTTP ${response.statusCode}');
       }
     } catch (e) {
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> getContact(String id, {String? token}) async {
+    try {
+      final response = await _get('/api/v1/contacts/$id', headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['contact'] != null) {
+          return Map<String, dynamic>.from(data['contact']);
+        }
+      }
+      throw Exception('Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getContactsByApplication(
+    String applicationId, {
+    String? token,
+  }) async {
+    try {
+      final response = await _get(
+        '/api/v1/contacts/application/${Uri.encodeComponent(applicationId)}',
+        headers: _jsonHeaders(token),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['contacts'] != null) {
+          return List<Map<String, dynamic>>.from(
+            (data['contacts'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+          );
+        }
+        return [];
+      }
+      throw Exception('Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getContactsByCompany(
+    String companyId, {
+    String? token,
+  }) async {
+    try {
+      final response = await _get(
+        '/api/v1/contacts/company/${Uri.encodeComponent(companyId)}',
+        headers: _jsonHeaders(token),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['contacts'] != null) {
+          return List<Map<String, dynamic>>.from(
+            (data['contacts'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+          );
+        }
+        return [];
+      }
+      throw Exception('Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> createContact({
+    required String firstName,
+    required String lastName,
+    String? email,
+    String? phone,
+    String? companyId,
+    String? token,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'firstName': firstName,
+        'lastName': lastName,
+        if (email != null && email.isNotEmpty) 'email': email,
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
+        if (companyId != null && companyId.isNotEmpty) 'companyId': companyId,
+      };
+      final response = await _post('/api/v1/contacts', headers: _jsonHeaders(token), body: jsonEncode(body));
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        if (data['contact'] != null) return Map<String, dynamic>.from(data['contact']);
+      }
+      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<void> linkContactToApplication({
+    required String contactId,
+    required String applicationId,
+    String? token,
+  }) async {
+    try {
+      final response = await _post(
+        '/api/v1/contacts/$contactId/link-application',
+        headers: _jsonHeaders(token),
+        body: jsonEncode({'applicationId': applicationId}),
+      );
+      if (response.statusCode != 200) {
+        final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+        throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<FollowUp> getFollowUp(String id, {String? token}) async {
+    try {
+      final response = await _get('/api/v1/followups/$id', headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final raw = data['followup'];
+        if (raw != null) return FollowUp.fromJson(Map<String, dynamic>.from(raw));
+      }
+      throw Exception('Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<Interview> getInterview(String id, {String? token}) async {
+    try {
+      final response = await _get('/api/v1/interviews/$id', headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final raw = data['interview'];
+        if (raw != null) return Interview.fromJson(Map<String, dynamic>.from(raw));
+      }
+      throw Exception('Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
       throw Exception('Erreur réseau: $e');
     }
   }

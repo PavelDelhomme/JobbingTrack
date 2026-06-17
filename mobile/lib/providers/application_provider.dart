@@ -66,4 +66,14 @@ class ApplicationProvider with ChangeNotifier {
       rethrow;
     }
   }
+
+  Future<void> archiveApplication(String id, {String? token, String? reason}) async {
+    try {
+      await ApiService.archiveApplication(id, token: token, reason: reason);
+      _applications.removeWhere((app) => app.id == id);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

@@ -15,7 +15,13 @@ import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_detail_screen.dart';
-import 'package:intl/intl.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/companies/company_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contact_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
+import 'package:jobbingtrack_mobile/utils/application_labels.dart';
+import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
+import 'package:jobbingtrack_mobile/widgets/application_card.dart';
 
 class ApplicationsScreen extends StatefulWidget {
   const ApplicationsScreen({super.key});
@@ -131,12 +137,77 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
             ? const Center(child: CircularProgressIndicator(color: Colors.blue))
             : applications.isEmpty
                 ? _buildEmptyState()
-                : ListView.builder(
-                    itemCount: applications.length,
-                    itemBuilder: (context, index) => _buildApplicationCard(applications[index]),
+                : RefreshIndicator(
+                    onRefresh: _loadApplications,
+                    child: ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: applications.length,
+                      itemBuilder: (context, index) {
+                        final application = applications[index];
+                        return ApplicationCard(
+                          application: application,
+                          onTap: () => _openApplicationDetail(application),
+                          onDismiss: (direction) => _confirmDismiss(application, direction),
+                        );
+                      },
+                    ),
                   ),
       ),
     );
+  }
+
+  Future<void> _openApplicationDetail(Application application) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => ApplicationDetailScreen(application: application)),
+    );
+    if (result == true) _loadApplications();
+  }
+
+  Future<bool> _confirmDismiss(Application application, DismissDirection direction) async {
+    final isArchive = direction == DismissDirection.startToEnd;
+    final action = isArchive ? 'archiver' : 'mettre à la corbeille';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isArchive ? 'Archiver la candidature ?' : 'Supprimer la candidature ?'),
+        content: Text(
+          isArchive
+              ? '« ${application.position} » sera retirée de la liste active.'
+              : '« ${application.position} » sera déplacée vers la corbeille.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isArchive ? Colors.amber.shade800 : Colors.red.shade700,
+            ),
+            child: Text(isArchive ? 'Archiver' : 'Corbeille'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return false;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final provider = Provider.of<ApplicationProvider>(context, listen: false);
+    try {
+      if (isArchive) {
+        await provider.archiveApplication(application.id, token: auth.token);
+      } else {
+        await provider.deleteApplication(application.id, token: auth.token);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isArchive ? 'Candidature archivée' : 'Candidature déplacée vers la corbeille')),
+        );
+      }
+      return true;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      }
+      return false;
+    }
   }
 
   Widget _buildEntreprisesTab() {
@@ -168,6 +239,10 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
             leading: const Icon(Icons.business, color: Colors.purple),
             title: Text(c.name),
             subtitle: c.website != null && c.website!.isNotEmpty ? Text(c.website!) : null,
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => CompanyDetailScreen(company: c)),
+            ),
           ),
         );
       },
@@ -196,15 +271,22 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
       padding: const EdgeInsets.all(16),
       itemCount: contacts.length,
       itemBuilder: (context, index) {
-        final c = contacts[index];
-        final name = c is Map ? ('${c['firstName'] ?? ''} ${c['lastName'] ?? ''}'.trim()) : c.toString();
-        final email = c is Map ? (c['email'] ?? '') : '';
+        final raw = contacts[index];
+        final map = raw is Map<String, dynamic>
+            ? raw
+            : Map<String, dynamic>.from(raw as Map);
+        final name = contactDisplayName(map);
+        final email = map['email']?.toString() ?? '';
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
             leading: const Icon(Icons.person, color: Colors.green),
-            title: Text(name.isEmpty ? 'Contact' : name),
+            title: Text(name),
             subtitle: email.isNotEmpty ? Text(email) : null,
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => ContactDetailScreen(contact: map)),
+            ),
           ),
         );
       },
@@ -214,7 +296,6 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
   Widget _buildEntretiensTab() {
     final interviewProvider = Provider.of<InterviewProvider>(context);
     final interviews = interviewProvider.interviews;
-    final dateFormat = DateFormat('dd/MM/yyyy');
     if (interviewProvider.isLoading) {
       return const Center(child: CircularProgressIndicator(color: Colors.blue));
     }
@@ -239,8 +320,12 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
             leading: const Icon(Icons.calendar_today, color: Colors.orange),
-            title: Text(dateFormat.format(i.interviewDate)),
+            title: Text(formatSmartEventDate(i.interviewDate)),
             subtitle: Text(i.location ?? i.notes ?? 'Entretien'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => InterviewDetailScreen(interview: i)),
+            ),
           ),
         );
       },
@@ -251,7 +336,6 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
     final followUpProvider = Provider.of<FollowUpProvider>(context);
     final pending = followUpProvider.pendingFollowUps;
     final completed = followUpProvider.completedFollowUps;
-    final dateFormat = DateFormat('dd/MM/yyyy');
     if (followUpProvider.isLoading) {
       return const Center(child: CircularProgressIndicator(color: Colors.blue));
     }
@@ -275,7 +359,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
             padding: const EdgeInsets.only(bottom: 8),
             child: Text('À venir', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[800])),
           ),
-          ...pending.map((f) => _relanceTile(f, dateFormat)),
+          ...pending.map((f) => _relanceTile(f)),
           const SizedBox(height: 16),
         ],
         if (completed.isNotEmpty) ...[
@@ -283,19 +367,23 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
             padding: const EdgeInsets.only(bottom: 8),
             child: Text('Terminées', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[800])),
           ),
-          ...completed.map((f) => _relanceTile(f, dateFormat)),
+          ...completed.map((f) => _relanceTile(f)),
         ],
       ],
     );
   }
 
-  Widget _relanceTile(FollowUp f, DateFormat dateFormat) {
+  Widget _relanceTile(FollowUp f) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: const Icon(Icons.schedule_send, color: Colors.teal),
-        title: Text(dateFormat.format(f.scheduledDate)),
-        subtitle: Text(f.notes ?? 'Relance'),
+        title: Text(formatSmartEventDate(f.scheduledDate)),
+        subtitle: Text(f.notes ?? followUpStatusLabel(f.status)),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),
+        ),
       ),
     );
   }
@@ -325,88 +413,5 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
         ],
       ),
     );
-  }
-
-  Widget _buildApplicationCard(Application application) {
-    Color statusColor = _getStatusColor(application.status);
-    String statusText = _getStatusText(application.status);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(application.position, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[800])),
-                      const SizedBox(height: 4),
-                      Text(application.company.name, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: statusColor.withOpacity(0.3)),
-                  ),
-                  child: Text(statusText, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: statusColor)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.only(top: 12),
-              decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.grey[200]!))),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('📅 ${application.appliedDate.toString().split(' ')[0]}', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-                  GestureDetector(
-                    onTap: () async {
-                      final result = await Navigator.of(context).push<bool>(
-                        MaterialPageRoute(builder: (_) => ApplicationDetailScreen(application: application)),
-                      );
-                      if (result == true) _loadApplications();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
-                      child: Text('👁️ Voir détails', style: TextStyle(fontSize: 12, color: Colors.grey[700])),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Color _getStatusColor(String status) {
-    if (status.contains('INTERVIEW')) return Colors.green;
-    if (status == 'REJECTED') return Colors.red;
-    if (status == 'SENT' || status.contains('PENDING')) return Colors.blue;
-    return Colors.grey;
-  }
-
-  String _getStatusText(String status) {
-    if (status == 'INTERVIEW_SCHEDULED') return 'Entretien programmé';
-    if (status == 'SENT') return 'Envoyée';
-    if (status == 'REJECTED') return 'Refusée';
-    return status.replaceAll('_', ' ').toLowerCase();
   }
 }

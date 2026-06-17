@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
+import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/models/interview.dart';
-import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
-import 'package:intl/intl.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/companies/company_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contact_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
+import 'package:jobbingtrack_mobile/utils/application_labels.dart';
+import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
+import 'package:jobbingtrack_mobile/widgets/entity_detail_field.dart';
 
-/// Écran détail d'une candidature : infos, liste relances/entretiens/appels, actions Ajouter relance / entretien / appel.
-/// Retour (back) revient à la liste des candidatures sans quitter l'app.
+/// Détail complet d'une candidature : entreprise, contacts, relances, entretiens, appels.
 class ApplicationDetailScreen extends StatefulWidget {
   final Application application;
 
@@ -21,6 +26,8 @@ class ApplicationDetailScreen extends StatefulWidget {
 }
 
 class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
+  Application? _application;
+  List<Map<String, dynamic>> _contacts = [];
   List<FollowUp> _followUps = [];
   List<Interview> _interviews = [];
   List<Call> _calls = [];
@@ -29,6 +36,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _application = widget.application;
     _load();
   }
 
@@ -38,15 +46,19 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     setState(() => _loading = true);
     try {
       final results = await Future.wait([
+        ApiService.getApplication(widget.application.id, token: token),
+        ApiService.getContactsByApplication(widget.application.id, token: token),
         ApiService.getFollowUps(applicationId: widget.application.id, token: token),
         ApiService.getInterviews(applicationId: widget.application.id, token: token),
         ApiService.getCallsByApplication(widget.application.id, token: token),
       ]);
       if (mounted) {
         setState(() {
-          _followUps = results[0] as List<FollowUp>;
-          _interviews = results[1] as List<Interview>;
-          _calls = results[2] as List<Call>;
+          _application = results[0] as Application;
+          _contacts = results[1] as List<Map<String, dynamic>>;
+          _followUps = results[2] as List<FollowUp>;
+          _interviews = results[3] as List<Interview>;
+          _calls = results[4] as List<Call>;
           _loading = false;
         });
       }
@@ -55,140 +67,339 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     }
   }
 
+  Application get app => _application ?? widget.application;
+
   @override
   Widget build(BuildContext context) {
-    final app = widget.application;
-    final dateFormat = DateFormat('dd/MM/yyyy');
+    final statusColor = applicationStatusColor(app.status);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(app.position),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(true),
-        ),
         actions: [
-          TextButton.icon(
+          IconButton(
+            tooltip: 'Modifier',
             onPressed: () async {
               final result = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(
-                  builder: (_) => ApplicationFormScreen(application: app),
-                ),
+                MaterialPageRoute(builder: (_) => ApplicationFormScreen(application: app)),
               );
               if (result == true && mounted) _load();
             },
-            icon: const Icon(Icons.edit, size: 20),
-            label: const Text('Modifier'),
+            icon: const Icon(Icons.edit_outlined),
           ),
         ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
                 children: [
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(app.company.name, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-                          const SizedBox(height: 4),
-                          Text(app.position, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              _statusChip(app.status),
-                              const SizedBox(width: 8),
-                              Text('📅 ${dateFormat.format(app.appliedDate)}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                            ],
-                          ),
-                        ],
-                      ),
+                  _headerCard(statusColor),
+                  const SizedBox(height: 16),
+                  if (app.description.isNotEmpty)
+                    EntityDetailField(label: 'Description', value: app.description, multiline: true),
+                  if (app.location.isNotEmpty) EntityDetailField(label: 'Lieu', value: app.location),
+                  if (app.notes.isNotEmpty) EntityDetailField(label: 'Notes', value: app.notes, multiline: true),
+                  const SizedBox(height: 8),
+                  _sectionHeader('Entreprise', onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => CompanyDetailScreen(company: app.company)),
+                    );
+                  }),
+                  _linkTile(
+                    icon: Icons.business,
+                    title: app.company.name.isNotEmpty ? app.company.name : 'Voir l\'entreprise',
+                    subtitle: app.company.location.isNotEmpty ? app.company.location : app.company.website,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => CompanyDetailScreen(company: app.company)),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  _sectionTitle('Relances', _followUps.length, onAdd: () => _showAddRelance(context)),
+                  const SizedBox(height: 16),
+                  _sectionHeader('Contacts', actionLabel: 'Ajouter', onAction: () => _showAddContact(context)),
+                  if (_contacts.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text('Aucun contact lié', style: TextStyle(color: Colors.grey.shade600)),
+                    )
+                  else
+                    ..._contacts.map((c) => _linkTile(
+                          icon: Icons.person_outline,
+                          title: contactDisplayName(c),
+                          subtitle: c['email']?.toString() ?? c['phone']?.toString() ?? '',
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => ContactDetailScreen(contact: c)),
+                          ),
+                        )),
+                  const SizedBox(height: 16),
+                  _sectionHeader('Relances', actionLabel: 'Ajouter', onAction: () => _showAddRelance(context)),
                   if (_followUps.isEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text('Aucune relance', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text('Aucune relance', style: TextStyle(color: Colors.grey.shade600)),
                     )
                   else
-                    ..._followUps.take(5).map((f) => _tile('📧 ${dateFormat.format(f.scheduledDate)}', f.notes ?? '')),
-                  const SizedBox(height: 20),
-                  _sectionTitle('Entretiens', _interviews.length, onAdd: () => _showAddEntretien(context)),
+                    ..._followUps.map((f) => _linkTile(
+                          icon: Icons.schedule_send_outlined,
+                          title: formatSmartEventDate(f.scheduledDate),
+                          subtitle: f.notes ?? followUpStatusLabel(f.status),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),
+                          ),
+                        )),
+                  const SizedBox(height: 16),
+                  _sectionHeader('Entretiens', actionLabel: 'Ajouter', onAction: () => _showAddEntretien(context)),
                   if (_interviews.isEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text('Aucun entretien', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text('Aucun entretien', style: TextStyle(color: Colors.grey.shade600)),
                     )
                   else
-                    ..._interviews.take(5).map((i) => _tile('📅 ${dateFormat.format(i.interviewDate)}', i.location ?? i.notes ?? '')),
-                  const SizedBox(height: 20),
-                  _sectionTitle('Appels', _calls.length, onAdd: () => _showAddAppel(context)),
+                    ..._interviews.map((i) => _linkTile(
+                          icon: Icons.event_outlined,
+                          title: formatSmartEventDate(i.interviewDate),
+                          subtitle: i.location ?? i.notes ?? '',
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => InterviewDetailScreen(interview: i)),
+                          ),
+                        )),
+                  const SizedBox(height: 16),
+                  _sectionHeader('Appels', actionLabel: 'Ajouter', onAction: () => _showAddAppel(context)),
                   if (_calls.isEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text('Aucun appel', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text('Aucun appel', style: TextStyle(color: Colors.grey.shade600)),
                     )
                   else
-                    ..._calls.take(5).map((c) => _tile('📞 ${c.subject}', dateFormat.format(c.callDate))),
+                    ..._calls.map((c) => _linkTile(
+                          icon: Icons.phone_outlined,
+                          title: c.subject,
+                          subtitle: formatSmartEventDate(c.callDate),
+                          onTap: null,
+                        )),
                 ],
               ),
             ),
     );
   }
 
-  Widget _statusChip(String status) {
-    Color color = Colors.grey;
-    if (status.contains('INTERVIEW')) color = Colors.green;
-    else if (status == 'REJECTED') color = Colors.red;
-    else if (status == 'SENT' || status.contains('PENDING')) color = Colors.blue;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.4)),
+  Widget _headerCard(Color statusColor) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(app.company.name, style: TextStyle(fontSize: 14, color: Colors.purple.shade700, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Text(app.position, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Chip(
+                  label: Text(applicationStatusLabel(app.status)),
+                  backgroundColor: statusColor.withValues(alpha: 0.12),
+                  side: BorderSide(color: statusColor.withValues(alpha: 0.35)),
+                  labelStyle: TextStyle(color: statusColor, fontWeight: FontWeight.w600),
+                ),
+                Chip(
+                  avatar: const Icon(Icons.event, size: 16),
+                  label: Text('Postulé · ${formatSmartPostulationDate(app.appliedDate)}'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-      child: Text(status.replaceAll('_', ' '), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: color)),
     );
   }
 
-  Widget _sectionTitle(String title, int count, {VoidCallback? onAdd}) {
-    String addLabel = 'Ajouter';
-    if (title == 'Relances') addLabel = 'Ajouter relance';
-    else if (title == 'Entretiens') addLabel = 'Ajouter entretien';
-    else if (title == 'Appels') addLabel = 'Ajouter appel';
+  Widget _sectionHeader(String title, {String? actionLabel, VoidCallback? onAction, VoidCallback? onTap}) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        TextButton.icon(
-          onPressed: onAdd,
-          icon: const Icon(Icons.add, size: 18),
-          label: Text(addLabel),
+        Expanded(
+          child: InkWell(
+            onTap: onTap,
+            child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          ),
         ),
+        if (actionLabel != null && onAction != null)
+          TextButton.icon(onPressed: onAction, icon: const Icon(Icons.add, size: 18), label: Text(actionLabel)),
       ],
     );
   }
 
-  Widget _tile(String title, String subtitle) {
-    return ListTile(
-      dense: true,
-      title: Text(title, style: const TextStyle(fontSize: 14)),
-      subtitle: subtitle.isNotEmpty ? Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[600]), maxLines: 1, overflow: TextOverflow.ellipsis) : null,
+  Widget _linkTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    VoidCallback? onTap,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Icon(icon, color: Colors.blue.shade700),
+        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: subtitle.isNotEmpty ? Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis) : null,
+        trailing: onTap != null ? const Icon(Icons.chevron_right) : null,
+        onTap: onTap,
+      ),
     );
+  }
+
+  Future<void> _showAddContact(BuildContext context) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person_add_outlined),
+              title: const Text('Créer un nouveau contact'),
+              onTap: () => Navigator.pop(ctx, 'create'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Lier un contact existant'),
+              onTap: () => Navigator.pop(ctx, 'link'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'create') {
+      await _createContactDialog();
+    } else {
+      await _linkExistingContact();
+    }
+  }
+
+  Future<void> _createContactDialog() async {
+    final firstName = TextEditingController();
+    final lastName = TextEditingController();
+    final email = TextEditingController();
+    final phone = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nouveau contact'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: firstName, decoration: const InputDecoration(labelText: 'Prénom *')),
+              TextField(controller: lastName, decoration: const InputDecoration(labelText: 'Nom *')),
+              TextField(controller: email, decoration: const InputDecoration(labelText: 'Email')),
+              TextField(controller: phone, decoration: const InputDecoration(labelText: 'Téléphone')),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Créer')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    if (firstName.text.trim().isEmpty || lastName.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Prénom et nom requis')));
+      return;
+    }
+    try {
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      final created = await ApiService.createContact(
+        firstName: firstName.text.trim(),
+        lastName: lastName.text.trim(),
+        email: email.text.trim(),
+        phone: phone.text.trim(),
+        companyId: app.company.id.isNotEmpty ? app.company.id : null,
+        token: token,
+      );
+      await ApiService.linkContactToApplication(
+        contactId: created['id'].toString(),
+        applicationId: app.id,
+        token: token,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contact ajouté')));
+        _load();
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
+  }
+
+  Future<void> _linkExistingContact() async {
+    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    List<Map<String, dynamic>> candidates = [];
+    try {
+      if (app.company.id.isNotEmpty) {
+        candidates = await ApiService.getContactsByCompany(app.company.id, token: token);
+      }
+      if (candidates.isEmpty) {
+        candidates = await ApiService.getContacts(token: token);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      return;
+    }
+    final linkedIds = _contacts.map((c) => c['id']).toSet();
+    candidates = candidates.where((c) => !linkedIds.contains(c['id'])).toList();
+    if (!mounted) return;
+    if (candidates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aucun contact disponible à lier')));
+      return;
+    }
+    final picked = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        builder: (_, controller) => ListView.builder(
+          controller: controller,
+          itemCount: candidates.length,
+          itemBuilder: (_, i) {
+            final c = candidates[i];
+            return ListTile(
+              title: Text(contactDisplayName(c)),
+              subtitle: Text(c['email']?.toString() ?? ''),
+              onTap: () => Navigator.pop(ctx, c),
+            );
+          },
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    try {
+      await ApiService.linkContactToApplication(
+        contactId: picked['id'].toString(),
+        applicationId: app.id,
+        token: token,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contact lié')));
+        _load();
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
   }
 
   Future<void> _showAddRelance(BuildContext context) async {
     DateTime date = DateTime.now().add(const Duration(days: 3));
     final notesController = TextEditingController();
-    final picked = await showDatePicker(context: context, initialDate: date, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 365)));
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: date,
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
     if (picked != null) date = picked;
     if (!mounted) return;
     final notes = await showDialog<String>(
@@ -209,7 +420,12 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     if (!mounted || notes == null) return;
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      await ApiService.createFollowUp(applicationId: widget.application.id, followUpDate: date, notes: notes.isEmpty ? null : notes, token: auth.token);
+      await ApiService.createFollowUp(
+        applicationId: app.id,
+        followUpDate: date,
+        notes: notes.isEmpty ? null : notes,
+        token: auth.token,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Relance créée')));
         _load();
@@ -221,12 +437,16 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
 
   Future<void> _showAddEntretien(BuildContext context) async {
     DateTime date = DateTime.now().add(const Duration(days: 7));
-    final picked = await showDatePicker(context: context, initialDate: date, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 365)));
-    if (picked != null) date = picked;
-    if (!mounted) return;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: date,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked == null || !mounted) return;
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      await ApiService.createInterview(applicationId: widget.application.id, interviewDate: date, token: auth.token);
+      await ApiService.createInterview(applicationId: app.id, interviewDate: picked, token: auth.token);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Entretien créé')));
         _load();
@@ -237,9 +457,14 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   }
 
   Future<void> _showAddAppel(BuildContext context) async {
-    final subjectController = TextEditingController(text: 'Appel ${widget.application.company.name}');
+    final subjectController = TextEditingController(text: 'Appel ${app.company.name}');
     DateTime date = DateTime.now();
-    final picked = await showDatePicker(context: context, initialDate: date, firstDate: DateTime.now().subtract(const Duration(days: 30)), lastDate: DateTime.now().add(const Duration(days: 365)));
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: date,
+      firstDate: DateTime.now().subtract(const Duration(days: 30)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
     if (picked != null) date = picked;
     if (!mounted) return;
     final subject = await showDialog<String>(
@@ -259,7 +484,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     if (subject == null || subject.isEmpty || !mounted) return;
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      await ApiService.createCall(applicationId: widget.application.id, callDate: date, subject: subject, token: auth.token);
+      await ApiService.createCall(applicationId: app.id, callDate: date, subject: subject, token: auth.token);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appel créé')));
         _load();
