@@ -67,6 +67,11 @@ class AppDrawer extends StatelessWidget {
                 route: '/applications',
               ),
               _DrawerItem(
+                icon: Icons.search,
+                title: 'Recherche globale',
+                route: '/search',
+              ),
+              _DrawerItem(
                 icon: Icons.business,
                 title: 'Entreprises',
                 route: '/companies',

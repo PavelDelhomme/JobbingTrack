@@ -22,6 +22,7 @@ import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/widgets/application_card.dart';
+import 'package:jobbingtrack_mobile/widgets/global_search_entry_bar.dart';
 
 class ApplicationsScreen extends StatefulWidget {
   const ApplicationsScreen({super.key});
@@ -81,7 +82,10 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
       appBar: AppBar(
         title: const Text('Candidatures'),
         centerTitle: true,
-        actions: [MobileNotificationCenter()],
+        actions: [
+          globalSearchIconButton(context),
+          MobileNotificationCenter(),
+        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
