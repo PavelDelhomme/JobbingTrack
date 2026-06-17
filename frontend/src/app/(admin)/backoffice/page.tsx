@@ -1159,7 +1159,7 @@ export default function BackofficePage() {
               subtitle={`${stats.totalUsers || 0} utilisateurs`}
               icon={<Users className="h-6 w-6" />}
               color="green"
-              href="/backoffice/users"
+              href="/backoffice/users?status=active"
             />
             <MetricCard
               title="Signaux sécurité"
@@ -1169,7 +1169,7 @@ export default function BackofficePage() {
               subtitle="Événements sécurité récents"
               icon={<Shield className="h-6 w-6" />}
               color="red"
-              href="/backoffice/security"
+              href="/backoffice/security/incidents"
             />
             <MetricCard
               title="Santé système"
@@ -1181,6 +1181,7 @@ export default function BackofficePage() {
               subtitle="Disponibilité"
               icon={<Zap className="h-6 w-6" />}
               color="blue"
+              href="/backoffice/performances"
             />
             <MetricCard
               title="Temps de réponse"
@@ -1192,6 +1193,7 @@ export default function BackofficePage() {
               subtitle="Moyenne endpoints affichés"
               icon={<Clock className="h-6 w-6" />}
               color="purple"
+              href="/backoffice/performances/latency"
             />
             <MetricCard
               title="CPU conteneurs JobbingTrack"
@@ -1226,6 +1228,7 @@ export default function BackofficePage() {
                     ? "yellow"
                     : "green"
               }
+              href="/backoffice/performances/cpu-memory"
             />
             <MetricCard
               title="Mémoire conteneurs JobbingTrack"
@@ -1251,6 +1254,7 @@ export default function BackofficePage() {
                     ? "yellow"
                     : "green"
               }
+              href="/backoffice/performances/cpu-memory"
             />
           </DashboardLayoutRegion>
         </div>
@@ -2415,30 +2419,14 @@ function MetricCard({
   // 'negative-is-bad' pour Disponibilité (plus = mieux)
   // 'positive-is-bad' pour CPU, Mémoire, Temps de réponse (moins = mieux)
 }) {
-  const colors = {
-    blue: "bg-blue-500 hover:bg-blue-600",
-    green: "bg-green-500 hover:bg-green-600",
-    purple: "bg-purple-500 hover:bg-purple-600",
-    orange: "bg-orange-500 hover:bg-orange-600",
-    yellow: "bg-yellow-500 hover:bg-yellow-600",
-    pink: "bg-pink-500 hover:bg-pink-600",
-    red: "bg-red-500 hover:bg-red-600",
-  };
-
-  const CardComponent = href ? "a" : "div";
-
-  // Déterminer la couleur de la tendance
   const getTrendColor = () => {
     if (trend === undefined || trend === null || trend === 0)
       return "text-white/70";
 
     if (trendType === "positive-is-bad") {
-      // Pour CPU, Mémoire, Temps de réponse : augmentation = mauvais (rouge), diminution = bon (vert)
       return trend > 0 ? "text-red-200" : "text-green-200";
-    } else {
-      // Pour Disponibilité : augmentation = bon (vert), diminution = mauvais (rouge)
-      return trend > 0 ? "text-green-200" : "text-red-200";
     }
+    return trend > 0 ? "text-green-200" : "text-red-200";
   };
 
   const getTrendIcon = () => {
@@ -2446,31 +2434,40 @@ function MetricCard({
     return trend > 0 ? "↑" : "↓";
   };
 
-  return (
-    <CardComponent
-      href={href}
-      className={`relative overflow-hidden rounded-lg shadow-lg transition-all duration-200 ${href ? "cursor-pointer hover:scale-105" : ""} ${color === "blue" ? "bg-gradient-to-br from-blue-500 to-blue-600" : color === "green" ? "bg-gradient-to-br from-green-500 to-green-600" : color === "purple" ? "bg-gradient-to-br from-purple-500 to-purple-600" : color === "orange" ? "bg-gradient-to-br from-orange-500 to-orange-600" : color === "yellow" ? "bg-gradient-to-br from-yellow-500 to-yellow-600" : color === "pink" ? "bg-gradient-to-br from-pink-500 to-pink-600" : "bg-gradient-to-br from-red-500 to-red-600"} text-white`}
-    >
-      <div className="p-4 md:p-6">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-white/80">{icon}</div>
-          {trend !== undefined && trend !== null && trend !== 0 ? (
-            <div
-              className={`text-sm font-semibold ${getTrendColor()} flex items-center gap-0.5`}
-            >
-              <span>{getTrendIcon()}</span>
-              <span>{Math.abs(trend).toFixed(1)}%</span>
-            </div>
-          ) : href ? (
-            <div className="text-white/60 text-sm">→</div>
-          ) : null}
-        </div>
-        <div className="space-y-1">
-          <p className="text-2xl md:text-3xl font-bold">{value}</p>
-          <p className="text-sm font-medium text-white/90">{title}</p>
-          <p className="text-xs text-white/70">{subtitle}</p>
-        </div>
+  const cardClassName = `relative block overflow-hidden rounded-lg shadow-lg transition-all duration-200 ${href ? "cursor-pointer hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" : ""} ${color === "blue" ? "bg-gradient-to-br from-blue-500 to-blue-600" : color === "green" ? "bg-gradient-to-br from-green-500 to-green-600" : color === "purple" ? "bg-gradient-to-br from-purple-500 to-purple-600" : color === "orange" ? "bg-gradient-to-br from-orange-500 to-orange-600" : color === "yellow" ? "bg-gradient-to-br from-yellow-500 to-yellow-600" : color === "pink" ? "bg-gradient-to-br from-pink-500 to-pink-600" : "bg-gradient-to-br from-red-500 to-red-600"} text-white`;
+
+  const cardBody = (
+    <div className="p-4 md:p-6">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-white/80">{icon}</div>
+        {trend !== undefined && trend !== null && trend !== 0 ? (
+          <div
+            className={`text-sm font-semibold ${getTrendColor()} flex items-center gap-0.5`}
+          >
+            <span>{getTrendIcon()}</span>
+            <span>{Math.abs(trend).toFixed(1)}%</span>
+          </div>
+        ) : href ? (
+          <div className="text-white/60 text-sm" aria-hidden>
+            →
+          </div>
+        ) : null}
       </div>
-    </CardComponent>
+      <div className="space-y-1">
+        <p className="text-2xl md:text-3xl font-bold">{value}</p>
+        <p className="text-sm font-medium text-white/90">{title}</p>
+        <p className="text-xs text-white/70">{subtitle}</p>
+      </div>
+    </div>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className={cardClassName}>
+        {cardBody}
+      </Link>
+    );
+  }
+
+  return <div className={cardClassName}>{cardBody}</div>;
 }

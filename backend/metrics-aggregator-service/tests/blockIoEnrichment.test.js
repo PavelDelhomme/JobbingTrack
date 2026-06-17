@@ -52,4 +52,27 @@ describe('blockIoEnrichment', () => {
     });
     expect(containersForDb['cloudity-api-gateway']).toBeUndefined();
   });
+
+  it('ignore docker stats si blockIO déjà présent (agent/cgroups)', async () => {
+    const containersForDb = {
+      'jobbingtrack-postgres': {
+        cpu: { percentage: 2 },
+        blockIO: { read: 1000, write: 2000 },
+      },
+    };
+    const dockerService = {
+      getAllContainersStats: async () => {
+        throw new Error('docker stats ne doit pas être appelé');
+      },
+    };
+    await enrichContainersBlockIoFromDockerStats(
+      containersForDb,
+      dockerService,
+      (name) => name.startsWith('jobbingtrack-'),
+    );
+    expect(containersForDb['jobbingtrack-postgres'].blockIO).toEqual({
+      read: 1000,
+      write: 2000,
+    });
+  });
 });

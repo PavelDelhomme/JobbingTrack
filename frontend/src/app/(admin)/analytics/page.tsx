@@ -4,37 +4,15 @@ import { useEffect, useState, useMemo, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { AdminLayout } from "@/components/features";
 import { useAuth } from "@/lib/hooks/auth";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import axios from "axios";
-import {
-  Settings,
-  BarChart3,
-  PieChart,
-  TrendingUp,
-  Eye,
-  EyeOff,
-  Calendar,
-} from "lucide-react";
+import { Settings, Calendar } from "lucide-react";
 import { centralMetricsService } from "@/lib/services/centralMetricsService";
 import { DashboardLayoutRegion, useAnalyticsPanelPrefs } from "@/lib/ui";
-import { useMetrics } from "@/lib/hooks/useMetrics";
 import { DataSourceBadge } from "@/components/ui";
 import { FRONTEND_URLS } from "@/config/ports.config";
 
 const API_GATEWAY_URL = FRONTEND_URLS.api;
-
-const API_URL = FRONTEND_URLS.api;
-
-// Interfaces pour les vraies données système
-interface PerformanceMetrics {
-  totalRequests: number;
-  successfulRequests: number;
-  failedRequests: number;
-  averageResponseTime: number;
-  errorRate: number;
-  successRate: number;
-  uptime: number;
-}
 
 interface ErrorLog {
   id: string;
@@ -138,11 +116,8 @@ const AvailabilityChart = dynamic(
 );
 
 function AnalyticsContent() {
-  const { token, user } = useAuth();
-  const router = useRouter();
+  const { token } = useAuth();
   const searchParams = useSearchParams();
-  const { metrics, isConnected, error, isLoading, refreshMetrics } =
-    useMetrics();
 
   const [activeTab, setActiveTab] = useState<
     | "cpu-system"
@@ -170,8 +145,7 @@ function AnalyticsContent() {
   const [servicesSnapshot, setServicesSnapshot] = useState<any[]>([]);
 
   const [showCustomization, setShowCustomization] = useState(false);
-  const { customization, updateCustomization, resetCustomization } =
-    useAnalyticsPanelPrefs();
+  useAnalyticsPanelPrefs();
 
   useEffect(() => {
     const tabFromUrl = searchParams.get("tab");

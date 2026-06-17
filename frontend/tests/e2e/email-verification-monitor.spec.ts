@@ -15,42 +15,62 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:5002";
 
-const VERIFICATION_EMAILS = [
-  requireEnvValue(
-    ["TEST_VERIFICATION_GMAIL_EMAIL"],
-    "Email vérification Gmail",
-  ),
-  requireEnvValue(
-    ["TEST_VERIFICATION_PROTON_EMAIL"],
-    "Email vérification Proton",
-  ),
-  requireEnvValue(
-    ["TEST_VERIFICATION_BLUEMAIL_EMAIL"],
-    "Email vérification BlueMail",
-  ),
-] as const;
+function readVerificationConfig():
+  | {
+      emails: readonly [string, string, string];
+      password: string;
+    }
+  | null {
+  try {
+    return {
+      emails: [
+        requireEnvValue(
+          ["TEST_VERIFICATION_GMAIL_EMAIL"],
+          "Email vérification Gmail",
+        ),
+        requireEnvValue(
+          ["TEST_VERIFICATION_PROTON_EMAIL"],
+          "Email vérification Proton",
+        ),
+        requireEnvValue(
+          ["TEST_VERIFICATION_BLUEMAIL_EMAIL"],
+          "Email vérification BlueMail",
+        ),
+      ],
+      password: requireEnvValue(
+        ["TEST_VERIFICATION_EMAIL_PASSWORD"],
+        "Mot de passe comptes vérification email",
+      ),
+    };
+  } catch {
+    return null;
+  }
+}
 
-const PASSWORD = requireEnvValue(
-  ["TEST_VERIFICATION_EMAIL_PASSWORD"],
-  "Mot de passe comptes vérification email",
-);
+const verificationConfig = readVerificationConfig();
 
 test.describe("Inscription + vérification email (Email Monitor)", () => {
+  test.skip(
+    !verificationConfig,
+    "Variables TEST_VERIFICATION_* absentes (CI ou env sans MailHog)",
+  );
+
   // Skip si pas de MailHog / SMTP configuré ou emails de test non disponibles (CI, env sans données)
   test("inscription des 3 comptes puis vérification dans Email Monitor", async ({
     page,
     request,
   }) => {
+    const config = verificationConfig!;
     test.skip(
       !!process.env.TEST_SKIP_EMAIL_MONITOR,
       "TEST_SKIP_EMAIL_MONITOR: skip vérification emails réels",
     );
     // 1) Inscription des 3 utilisateurs via l’API (sans auth)
-    for (const email of VERIFICATION_EMAILS) {
+    for (const email of config.emails) {
       const res = await request.post(`${API_URL}/api/v1/auth/register`, {
         data: {
           email,
-          password: PASSWORD,
+          password: config.password,
           firstName: "Test",
           lastName: email.includes("gmail")
             ? "Gmail"

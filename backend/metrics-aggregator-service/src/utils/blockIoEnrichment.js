@@ -45,6 +45,15 @@ async function enrichContainersBlockIoFromDockerStats(
   isJobbingTrackContainer,
 ) {
   if (!containersForDb || typeof containersForDb !== 'object') return containersForDb;
+
+  const missingBlockIo = Object.entries(containersForDb).some(([name, data]) => {
+    if (!isJobbingTrackContainer(name)) return false;
+    const read = data?.blockIO?.read;
+    const write = data?.blockIO?.write;
+    return read == null && write == null;
+  });
+  if (!missingBlockIo) return containersForDb;
+
   const stats = await dockerService.getAllContainersStats();
   for (const stat of stats) {
     const name = stat.name;

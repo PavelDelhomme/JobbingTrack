@@ -833,6 +833,52 @@ jobs:
     # Tests frontend obligatoires sur tous les push/PR (unitaires, lint, coverage)
     # Tests E2E optionnels - voir conditions dans les étapes individuelles
 
+    env:
+      NODE_ENV: test
+      JT_SKIP_STRICT_ENV: "1"
+      ADMIN_EMAIL: admin@jobbingtrack.test
+      ADMIN_PASSWORD: CiE2eAdminPassword123!
+      TEST_ADMIN_EMAIL: admin@jobbingtrack.test
+      TEST_ADMIN_PASSWORD: CiE2eAdminPassword123!
+      TEST_USER_EMAIL: user@jobbingtrack.test
+      TEST_USER_PASSWORD: CiE2eUserPassword123!
+      E2E_GENERATED_USER_PASSWORD: CiE2eUserPassword123!
+      DATABASE_URL: postgresql://postgres:jobbingtrack123@localhost:5432/jobbingtrack_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-jwt-secret-minimum-32-characters-long
+      JWT_REFRESH_SECRET: ci-jwt-refresh-secret-min-32-chars
+      SECURITY_INTERNAL_SECRET: ci-security-internal-secret-value
+      DEV_TEST_BYPASS_TOKEN: jtbypass1-ci-github-actions-playwright-e2e-test
+      PLAYWRIGHT_API_GATEWAY_URL: http://127.0.0.1:5002
+      API_URL: http://127.0.0.1:5002
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:5002
+      NEXT_PUBLIC_AUTH_SERVICE_URL: http://127.0.0.1:5002
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: jobbingtrack_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: jobbingtrack123
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
     steps:
       - name: Checkout du code
         uses: actions/checkout@v6.0.2
@@ -907,6 +953,8 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || contains(github.ref, 'refs/heads/release') || github.event_name == 'schedule'
         run: |
           echo "Tests E2E avec Playwright (Chromium)..."
+          chmod +x scripts/ci/prepare-playwright-e2e-stack.sh
+          bash scripts/ci/prepare-playwright-e2e-stack.sh
           cd frontend
           npx playwright install chromium --with-deps
           npm run test:e2e:ci

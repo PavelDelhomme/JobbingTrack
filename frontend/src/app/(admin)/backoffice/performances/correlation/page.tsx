@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/features";
 import { PerformancesSubNav } from "../PerformancesSubNav";
+import { CorrelationSubNav } from "@/components/performances/correlation/CorrelationSubNav";
 import { analyticsService } from "@/lib/api/analytics.service";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import {
@@ -3040,10 +3041,20 @@ export default function PerformancesCorrelationPage() {
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 max-w-2xl">
             Synthèse + détail par service sur la période définie ci-dessous. Les
             métriques ne sont chargées que pour les services présents dans la
-            file mémoire (bouton « tout le filtre » ou clic unitaire).
+            file mémoire (bouton « tout le filtre » ou clic unitaire). Pour les
+            pics CPU / mémoire / réseau / I/O par conteneur, voir{" "}
+            <Link
+              href="/backoffice/performances/correlation/containers"
+              className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+            >
+              Signaux conteneurs
+            </Link>
+            .
           </p>
         </div>
         <PerformancesSubNav />
+
+        <CorrelationSubNav />
 
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800 sm:p-6">
           <div className="mb-4 flex flex-wrap items-center gap-2">

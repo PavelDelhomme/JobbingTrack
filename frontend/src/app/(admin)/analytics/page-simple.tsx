@@ -3,11 +3,6 @@
 import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/features";
 import { useAuth } from "@/lib/hooks/auth";
-import { FRONTEND_URLS } from "@/config/ports.config";
-import axios from "axios";
-
-const API_URL = FRONTEND_URLS.api;
-
 export default function AnalyticsPage() {
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);

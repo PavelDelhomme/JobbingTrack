@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/hooks/auth";
 import { UsersPageShell } from "./UsersPageShell";
 import {
@@ -15,7 +15,9 @@ import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import { mergeFacetSuggestions } from "@/lib/filters/facetUtils";
 import {
   USER_ROLE_FILTER_OPTIONS,
+  USER_STATUS_FILTER_OPTIONS,
   USER_TEST_FILTER_OPTIONS,
+  type UserStatusFilter,
   type UserTestFilter,
 } from "@/lib/filters/userFilterOptions";
 import { filterUsers, type UserListFilters } from "@/lib/filters/userFilters";
@@ -45,7 +47,13 @@ const DEFAULT_USER_FILTERS: UserListFilters = {
   query: "",
   role: "",
   testFilter: "all",
+  statusFilter: "all",
 };
+
+function parseStatusFilterFromUrl(value: string | null): UserStatusFilter {
+  if (value === "active" || value === "inactive") return value;
+  return "all";
+}
 
 interface User {
   id: string;
@@ -61,12 +69,19 @@ interface User {
 
 export default function UsersManagementPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { token, user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const { applied, draft, updateDraft, apply, reset, hasDraftChanges } =
     useAppliedFilters<UserListFilters>(DEFAULT_USER_FILTERS);
   const [cleaningTest, setCleaningTest] = useState(false);
+
+  useEffect(() => {
+    const statusFilter = parseStatusFilterFromUrl(searchParams.get("status"));
+    if (statusFilter === "all") return;
+    reset({ ...DEFAULT_USER_FILTERS, statusFilter });
+  }, [searchParams, reset]);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -235,6 +250,13 @@ export default function UsersManagementPage() {
           (option) => option.value === applied.testFilter,
         )?.label || applied.testFilter;
       badges.push({ key: "testFilter", label: `Origine : ${testLabel}` });
+    }
+    if (applied.statusFilter !== "all") {
+      const statusLabel =
+        USER_STATUS_FILTER_OPTIONS.find(
+          (option) => option.value === applied.statusFilter,
+        )?.label || applied.statusFilter;
+      badges.push({ key: "statusFilter", label: `Statut : ${statusLabel}` });
     }
     return badges;
   }, [applied]);
@@ -480,7 +502,7 @@ export default function UsersManagementPage() {
           onReset={handleResetFilters}
           badges={filterBadges}
         >
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(16rem,1fr)_minmax(0,13rem)_minmax(0,16rem)_auto_auto]">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(16rem,1fr)_minmax(0,11rem)_minmax(0,14rem)_minmax(0,14rem)_auto_auto]">
             <FacetAutocompleteField
               label="Recherche"
               value={draft.query}
@@ -494,6 +516,15 @@ export default function UsersManagementPage() {
               onChange={(value) => updateDraft("role", value)}
               options={[...USER_ROLE_FILTER_OPTIONS]}
               placeholder="Tous les rôles"
+            />
+            <FilterSelectField
+              label="Statut"
+              value={draft.statusFilter}
+              onChange={(value) =>
+                updateDraft("statusFilter", value as UserStatusFilter)
+              }
+              options={[...USER_STATUS_FILTER_OPTIONS]}
+              allowEmpty={false}
             />
             <FilterSelectField
               label="Origine"

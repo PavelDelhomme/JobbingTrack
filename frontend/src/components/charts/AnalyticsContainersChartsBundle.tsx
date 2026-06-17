@@ -18,7 +18,32 @@ import {
   formatLocalDateTime,
 } from "@/lib/utils/date";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
+import { hasBlockIoSeries } from "@/lib/monitoring/containerBlockIoChartModel";
 import { useSyncedChartBrushRange } from "@/lib/charts/useSyncedChartBrushRange";
+
+function formatMbTick(value: number | string): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  if (n >= 1024) return `${(n / 1024).toFixed(1)} Go`;
+  if (n >= 1) return `${n.toFixed(1)} Mo`;
+  return `${(n * 1024).toFixed(0)} Ko`;
+}
+
+function rowsInBrushWindow<T extends { timeMs: number }>(
+  rows: T[],
+  masterRows: { timeMs: number }[],
+  brushStart: number,
+  brushEnd: number,
+): T[] {
+  if (rows.length === 0 || masterRows.length === 0) return rows;
+  const startMs = masterRows[brushStart]?.timeMs;
+  const endMs = masterRows[brushEnd]?.timeMs;
+  if (startMs == null || endMs == null) return rows;
+  const minMs = Math.min(startMs, endMs);
+  const maxMs = Math.max(startMs, endMs);
+  const filtered = rows.filter((r) => r.timeMs >= minMs && r.timeMs <= maxMs);
+  return filtered.length > 0 ? filtered : rows;
+}
 
 function formatPercentTick(value: number | string): string {
   const n = Number(value);
@@ -526,6 +551,41 @@ export function AnalyticsContainersChartsBundle({
     });
   };
 
+  const showBlockIo = useMemo(() => {
+    if (mode !== "single") return false;
+    const rows = chartData.map((row) => ({
+      timeMs: Number(row.timeMs),
+      readMb:
+        row.blockReadMb != null
+          ? Number(row.blockReadMb)
+          : row.readMb != null
+            ? Number(row.readMb)
+            : null,
+      writeMb:
+        row.blockWriteMb != null
+          ? Number(row.blockWriteMb)
+          : row.writeMb != null
+            ? Number(row.writeMb)
+            : null,
+      readMbPerMin:
+        row.blockReadMbPerMin != null ? Number(row.blockReadMbPerMin) : null,
+      writeMbPerMin:
+        row.blockWriteMbPerMin != null ? Number(row.blockWriteMbPerMin) : null,
+    }));
+    return hasBlockIoSeries(rows);
+  }, [chartData, mode]);
+
+  const displayBlockIoData = useMemo(() => {
+    if (!showBlockIo) return [];
+    const filtered = rowsInBrushWindow(
+      chartData as Array<{ timeMs: number } & Record<string, string | number | null>>,
+      chartData as Array<{ timeMs: number }>,
+      brushStart,
+      brushEnd,
+    );
+    return filtered.length > 0 ? filtered : chartData;
+  }, [brushEnd, brushStart, chartData, showBlockIo]);
+
   if (mode === "multi") {
     return (
       <>
@@ -747,6 +807,7 @@ export function AnalyticsContainersChartsBundle({
   }
 
   return (
+    <>
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0">
       <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
         {selectedContainerLabel} — CPU et mémoire (%)
@@ -857,5 +918,161 @@ export function AnalyticsContainersChartsBundle({
         ) : null}
       </div>
     </div>
+    {showBlockIo ? (
+      <>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+            {selectedContainerLabel} — Block I/O cumulé (lecture / écriture)
+          </h2>
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+            Cumuls alignés <code className="text-[11px]">docker stats Block I/O</code>{" "}
+            — collectés via cgroups (<code className="text-[11px]">io.stat</code>
+            ), sans appel <code className="text-[11px]">docker stats</code> en boucle.
+          </p>
+          <ChartPeriodCaption label={rangeLabel} />
+          <div className="w-full min-h-[220px] sm:min-h-[320px]">
+            <ResponsiveContainer width="100%" height={320} minHeight={220}>
+              <LineChart
+                data={displayBlockIoData}
+                margin={{ top: 5, right: 30, left: 20, bottom: chartBottom }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
+                <XAxis
+                  dataKey="timeMs"
+                  type="number"
+                  domain={[chartXDomainMin, chartXDomainMax]}
+                  tickFormatter={(ms) =>
+                    formatLocalChartAxisTick(ms as number, {
+                      withDate: containerAxisShowDate,
+                    })
+                  }
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis tickFormatter={formatMbTick} tick={{ fontSize: 12 }} />
+                <Tooltip
+                  {...rechartsTooltipProps}
+                  labelFormatter={(_, payload: unknown) => {
+                    const ts = (
+                      payload as Array<{ payload?: { timestamp?: string } }>
+                    )?.[0]?.payload?.timestamp;
+                    return ts != null ? formatLocalDateTime(ts) : "—";
+                  }}
+                  formatter={(value: unknown, name: string) => [
+                    value != null && typeof value === "number"
+                      ? formatMbTick(value)
+                      : "—",
+                    name === "blockReadMb" ? "Lecture" : "Écriture",
+                  ]}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="blockReadMb"
+                  stroke="#6366F1"
+                  strokeWidth={2}
+                  name="Lecture cumulée"
+                  dot={false}
+                  connectNulls={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="blockWriteMb"
+                  stroke="#F59E0B"
+                  strokeWidth={2}
+                  strokeDasharray="6 3"
+                  name="Écriture cumulée"
+                  dot={false}
+                  connectNulls={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 min-w-0">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+            {selectedContainerLabel} — débit Block I/O observé (Mo/min)
+          </h2>
+          <ChartPeriodCaption label={rangeLabel} />
+          <div className="w-full min-h-[220px] sm:min-h-[320px]">
+            <ResponsiveContainer width="100%" height={320} minHeight={220}>
+              <LineChart
+                data={displayBlockIoData}
+                margin={{
+                  top: 5,
+                  right: 30,
+                  left: 20,
+                  bottom: showSyncedBrush ? chartBottomBrush : chartBottom,
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
+                <XAxis
+                  dataKey="timeMs"
+                  type="number"
+                  domain={[chartXDomainMin, chartXDomainMax]}
+                  tickFormatter={(ms) =>
+                    formatLocalChartAxisTick(ms as number, {
+                      withDate: containerAxisShowDate,
+                    })
+                  }
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis tickFormatter={formatMbTick} tick={{ fontSize: 12 }} />
+                <Tooltip
+                  {...rechartsTooltipProps}
+                  labelFormatter={(_, payload: unknown) => {
+                    const ts = (
+                      payload as Array<{ payload?: { timestamp?: string } }>
+                    )?.[0]?.payload?.timestamp;
+                    return ts != null ? formatLocalDateTime(ts) : "—";
+                  }}
+                  formatter={(value: unknown, name: string) => [
+                    value != null && typeof value === "number"
+                      ? `${Number(value).toFixed(2)} Mo/min`
+                      : "—",
+                    name === "blockReadMbPerMin" ? "Lecture" : "Écriture",
+                  ]}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="blockReadMbPerMin"
+                  stroke="#6366F1"
+                  strokeWidth={2}
+                  name="Lecture Mo/min"
+                  dot={false}
+                  connectNulls={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="blockWriteMbPerMin"
+                  stroke="#F59E0B"
+                  strokeWidth={2}
+                  strokeDasharray="6 3"
+                  name="Écriture Mo/min"
+                  dot={false}
+                  connectNulls={false}
+                />
+                {showSyncedBrush ? (
+                  <Brush
+                    dataKey="timeMs"
+                    height={18}
+                    travellerWidth={8}
+                    startIndex={brushStart}
+                    endIndex={brushEnd}
+                    tickFormatter={(ms) =>
+                      formatLocalChartAxisTick(ms as number, {
+                        withDate: containerAxisShowDate,
+                      })
+                    }
+                    onChange={onBrushChange}
+                  />
+                ) : null}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </>
+    ) : null}
+    </>
   );
 }

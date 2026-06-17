@@ -33,6 +33,11 @@ import {
   normalizeMetricTimestampToIso,
 } from "@/lib/utils/date";
 import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
+import {
+  appendBlockIoRates,
+  blockIoFromContainerLive,
+  blockIoFromMetricRow,
+} from "@/lib/monitoring/containerBlockIoChartModel";
 import { analyticsService } from "@/lib/api/analytics.service";
 import {
   PerformanceEmptyState,
@@ -94,6 +99,10 @@ interface ContainerMetric {
   timeMs?: number;
   cpuUsagePercent?: number | null;
   memoryUsagePercent?: number | null;
+  blockReadBytes?: number | null;
+  blockWriteBytes?: number | null;
+  blockReadMb?: number | null;
+  blockWriteMb?: number | null;
 }
 
 function compressData<T extends { timestamp: string }>(
@@ -293,6 +302,7 @@ export default function ContainersAnalyticsPage() {
               : ((d.timestamp as Date)?.toISOString?.() ?? "");
           const timestamp = normalizeMetricTimestampToIso(rawTs);
           const timeMs = metricRowToTimeMs(d, timestamp);
+          const blockIo = blockIoFromMetricRow(d);
           return {
             timestamp,
             ...(timeMs != null ? { timeMs } : {}),
@@ -308,6 +318,10 @@ export default function ContainersAnalyticsPage() {
                 : d.memory_usage_percent != null
                   ? Number(d.memory_usage_percent)
                   : null,
+            blockReadBytes: blockIo.readBytes,
+            blockWriteBytes: blockIo.writeBytes,
+            blockReadMb: blockIo.readMb,
+            blockWriteMb: blockIo.writeMb,
           };
         })
         .filter((d) => d.timestamp)
@@ -321,6 +335,8 @@ export default function ContainersAnalyticsPage() {
       injectMetricTimeGaps(rows, METRIC_GAP_MS, [
         "cpuUsagePercent",
         "memoryUsagePercent",
+        "blockReadMb",
+        "blockWriteMb",
       ]);
 
     if (selectedContainer === ALL_CONTAINERS_VALUE) {
@@ -503,7 +519,15 @@ export default function ContainersAnalyticsPage() {
         if (!selected) return [];
         const cpu = containerCpu(selected);
         const memory = containerMemory(selected);
-        if (cpu == null && memory == null) return [];
+        const blockIo = blockIoFromContainerLive(selected);
+        if (
+          cpu == null &&
+          memory == null &&
+          blockIo.readMb == null &&
+          blockIo.writeMb == null
+        ) {
+          return [];
+        }
         return livePointTimes().map((timeMs) => {
           const iso = new Date(timeMs).toISOString();
           return {
@@ -513,19 +537,25 @@ export default function ContainersAnalyticsPage() {
             datetime: formatLocalDateTime(iso),
             cpu,
             memory,
+            blockReadMb: blockIo.readMb,
+            blockWriteMb: blockIo.writeMb,
+            blockReadMbPerMin: 0,
+            blockWriteMbPerMin: 0,
           };
         });
       }
       const keys: (keyof ContainerMetric)[] = [
         "cpuUsagePercent",
         "memoryUsagePercent",
+        "blockReadMb",
+        "blockWriteMb",
       ];
       const compressed = compressData(
         rawMetrics,
         SINGLE_CONTAINER_RENDER_POINTS,
         keys,
       );
-      return compressed.map((d) => {
+      const mapped = compressed.map((d) => {
         const timeMs =
           typeof d.timeMs === "number" && Number.isFinite(d.timeMs)
             ? d.timeMs
@@ -538,8 +568,19 @@ export default function ContainersAnalyticsPage() {
           cpu: d.cpuUsagePercent != null ? Number(d.cpuUsagePercent) : null,
           memory:
             d.memoryUsagePercent != null ? Number(d.memoryUsagePercent) : null,
+          readMb: d.blockReadMb != null ? Number(d.blockReadMb) : null,
+          writeMb: d.blockWriteMb != null ? Number(d.blockWriteMb) : null,
+          blockReadMb: d.blockReadMb != null ? Number(d.blockReadMb) : null,
+          blockWriteMb: d.blockWriteMb != null ? Number(d.blockWriteMb) : null,
+          readMbPerMin: null as number | null,
+          writeMbPerMin: null as number | null,
         };
       });
+      return appendBlockIoRates(mapped, METRIC_GAP_MS).map((row) => ({
+        ...row,
+        blockReadMbPerMin: row.readMbPerMin,
+        blockWriteMbPerMin: row.writeMbPerMin,
+      }));
     }
     const names = Object.keys(rawMetricsByContainer).filter(
       (n) => rawMetricsByContainer[n].length > 0,
@@ -687,7 +728,7 @@ export default function ContainersAnalyticsPage() {
   return (
     <PerformancePageShell
       title="Performances — conteneurs"
-      description="Métriques par conteneur (CPU, mémoire) dans le temps."
+      description="Métriques par conteneur (CPU, mémoire, Block I/O) — source cgroups / agent, alignée docker stats."
       actions={
         <>
           <label className="flex min-w-0 items-center gap-2">
