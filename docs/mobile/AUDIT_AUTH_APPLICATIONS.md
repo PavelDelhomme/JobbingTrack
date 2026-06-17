@@ -32,11 +32,20 @@ Branche : `feat/mobile-auth-applications-audit`
 ## Validation technique
 
 ```bash
+# Flutter système Arch peut être cassé (dart 3.12 vs snapshot) — utiliser :
+export PATH="$HOME/flutter-sdk/bin:$PATH"
+
+# Appareil physique (Samsung, etc.)
+bash scripts/mobile/setup-physical-device.sh
+
 # API mobile authentifiée (stack locale)
 node tests/performance/test-mobile-api-authenticated.js
 
-# Analyse Dart
-cd mobile && flutter analyze
+# Smoke UI login sur appareil ADB
+node scripts/mobile/smoke-login-adb.js
+
+# Scénarios ADB (candidatures, navigation)
+node tools/adb-lib/examples/run-scenario.js
 ```
 
 ## Dettes restantes (hors ce lot)

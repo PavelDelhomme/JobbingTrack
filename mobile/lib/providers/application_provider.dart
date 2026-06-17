@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 
