@@ -1,3 +1,9 @@
+import {
+  matchesAnyNormalizedValue,
+  matchesAnyToken,
+  parseMultiFilterValues,
+} from "@/lib/filters/multiValueFilter";
+
 export type LogStatsRow = {
   level?: string | null;
   serviceName?: string | null;
@@ -29,14 +35,41 @@ export function filterLogStatsRows<T extends LogStatsRow>(
   rows: T[],
   filters: LogStatsFilterState,
 ): T[] {
+  const levels = parseMultiFilterValues(filters.level);
+  const services = parseMultiFilterValues(filters.service);
+
   return rows.filter((row) => {
-    if (filters.level) {
+    if (levels.length) {
       const level = (row.level || "inconnu").toString();
-      if (level !== filters.level) return false;
+      if (
+        !matchesAnyNormalizedValue(level, levels, (value) =>
+          value.trim().toUpperCase(),
+        )
+      ) {
+        return false;
+      }
     }
-    if (filters.service) {
-      if ((row.serviceName || "").toString() !== filters.service) return false;
+    if (services.length) {
+      const service = (row.serviceName || "").toString();
+      if (!matchesAnyToken(service, services, "equals")) {
+        return false;
+      }
     }
     return true;
   });
+}
+
+export function resolveLogStatsApiFilters(filters: LogStatsFilterState): {
+  level?: string;
+  serviceName?: string;
+  serviceNames?: string[];
+} {
+  const levels = parseMultiFilterValues(filters.level);
+  const services = parseMultiFilterValues(filters.service);
+
+  return {
+    level: levels.length === 1 ? levels[0] : undefined,
+    serviceName: services.length === 1 ? services[0] : undefined,
+    serviceNames: services.length > 1 ? services : undefined,
+  };
 }

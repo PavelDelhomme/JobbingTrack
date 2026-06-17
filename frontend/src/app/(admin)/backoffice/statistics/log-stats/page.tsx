@@ -15,7 +15,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { FilterBar, FilterSelectField } from "@/components/filters";
+import { FilterBar, FilterMultiSelectField, FilterSelectField } from "@/components/filters";
 import {
   StatisticsPageShell,
   StatisticsRefreshButton,
@@ -29,7 +29,9 @@ import {
   buildLogStatsLevelOptions,
   buildLogStatsServiceOptions,
   filterLogStatsRows,
+  resolveLogStatsApiFilters,
 } from "@/lib/metrics/logStatsFilters";
+import { parseMultiFilterValues } from "@/lib/filters/multiValueFilter";
 import {
   DashboardLayoutRegion,
   SectionLoader,
@@ -175,13 +177,15 @@ export default function StatisticsLogStatsPage() {
       const since = new Date(
         Date.now() - applied.periodDays * 24 * 60 * 60 * 1000,
       ).toISOString();
+      const apiFilters = resolveLogStatsApiFilters(applied);
       const [st, rows, optionRows] = await Promise.all([
         analyticsService.getPersistenceStats(),
         analyticsService.getPersistenceLogs({
           limit: 800,
           startDate: since,
-          level: applied.level || undefined,
-          serviceName: applied.service || undefined,
+          level: apiFilters.level,
+          serviceName: apiFilters.serviceName,
+          serviceNames: apiFilters.serviceNames,
         }),
         analyticsService.getPersistenceLogs({
           limit: 800,
@@ -228,10 +232,18 @@ export default function StatisticsLogStatsPage() {
       `${applied.periodDays} jours`;
     badges.push({ key: "period", label: `Période : ${periodLabel}` });
     if (applied.level) {
-      badges.push({ key: "level", label: `Niveau : ${applied.level}` });
+      const levels = parseMultiFilterValues(applied.level);
+      badges.push({
+        key: "level",
+        label: `Niveau : ${levels.join(", ")}`,
+      });
     }
     if (applied.service) {
-      badges.push({ key: "service", label: `Service : ${applied.service}` });
+      const services = parseMultiFilterValues(applied.service);
+      badges.push({
+        key: "service",
+        label: `Service : ${services.join(", ")}`,
+      });
     }
     return badges;
   }, [applied]);
@@ -291,7 +303,8 @@ export default function StatisticsLogStatsPage() {
             (period) => period.value === applied.periodDays,
           )?.label ?? `${applied.periodDays} jours`}
           , échantillon). Les compteurs sont globaux par table ; les graphes
-          appliquent la période, le niveau et le service sélectionnés.
+          appliquent la période et les niveaux / services sélectionnés (multi
+          possible).
         </>
       }
       actions={<StatisticsRefreshButton onClick={() => void load()} />}
@@ -319,7 +332,7 @@ export default function StatisticsLogStatsPage() {
                 allowEmpty={false}
                 placeholder="Choisir une période"
               />
-              <FilterSelectField
+              <FilterMultiSelectField
                 label="Niveau"
                 value={draft.level}
                 onChange={(value) => updateDraft("level", value)}
@@ -327,8 +340,9 @@ export default function StatisticsLogStatsPage() {
                   value: level,
                   label: level,
                 }))}
+                hint="Plusieurs niveaux possibles."
               />
-              <FilterSelectField
+              <FilterMultiSelectField
                 label="Service"
                 value={draft.service}
                 onChange={(value) => updateDraft("service", value)}
@@ -336,6 +350,7 @@ export default function StatisticsLogStatsPage() {
                   value: service,
                   label: service,
                 }))}
+                hint="Plusieurs services possibles."
               />
             </div>
           </FilterBar>
