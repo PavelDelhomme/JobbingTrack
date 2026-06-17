@@ -355,6 +355,38 @@ class ApiService {
     }
   }
 
+  /// Met à jour le profil de l'utilisateur connecté (prénom, nom, téléphone).
+  static Future<User> updateUserProfile({
+    required String userId,
+    required String firstName,
+    required String lastName,
+    String? phone,
+    String? token,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'firstName': firstName,
+        'lastName': lastName,
+        if (phone != null) 'phone': phone,
+      };
+      final response = await _put(
+        '/api/v1/auth/users/${Uri.encodeComponent(userId)}',
+        headers: _jsonHeaders(token),
+        body: jsonEncode(body),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final raw = data['user'];
+        if (raw is Map) return User.fromJson(Map<String, dynamic>.from(raw));
+      }
+      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> register({
     required String email,
     required String password,

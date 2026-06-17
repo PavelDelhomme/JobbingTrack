@@ -203,6 +203,36 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// Met à jour le profil (prénom, nom, téléphone) et persiste la session locale.
+  Future<void> updateProfile({
+    required String firstName,
+    required String lastName,
+    String? phone,
+  }) async {
+    if (_user == null || _token == null) {
+      throw Exception('Non connecté');
+    }
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final updated = await ApiService.updateUserProfile(
+        userId: _user!.id,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: phone?.trim(),
+        token: _token,
+      );
+      _user = updated;
+      await _persistSession();
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   /// Vérifie l'email avec le token reçu par email (lien de vérification).
   Future<void> verifyEmail(String token) async {
     _isLoading = true;
