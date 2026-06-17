@@ -10,6 +10,7 @@ Ce fichier archive ce que le porteur a réellement validé. Les validations tech
 
 | Date | Élément validé | Environnement | Preuve / remarque |
 |------|----------------|---------------|-------------------|
+| 17/06/2026 | Sécurité — filtres multi-valeurs Incidents & Menaces | local | Validation porteur explicite : `OK filtres multi Incidents Menaces`. Filtres combinés types/gravités/IP/ports sur `/security/incidents` et `/security/threats`. |
 | 17/06/2026 | Statistics — onglet Sécurité cohérent avec `/security` | local | Validation porteur explicite : `OK Statistics Sécurité`. Comparatif persisté/live, score unifié Vue d'ensemble ↔ Analyse, menaces ignorables (faux positifs exclus des compteurs). PR #17 mergée sur `dev`. |
 | 12/06/2026 | Performances HTTPS dev — proxy metrics-aggregator | local HTTPS | Validation porteur explicite : « je valide bien le https ». Correctif : `/api/metrics-aggregator/*` routé vers le proxy Next avant `/api/` dans Nginx dev HTTPS ; après redémarrage `jobbingtrack-dev-https-proxy`, endpoints conteneurs et historique système en **200** sur `https://jobbingtrack.localhost:5443`, page Conteneurs remplie et Corrélation sans 404. |
 | 12/06/2026 | Corrélation performances — KPI logs après login | local HTTPS | Validation porteur explicite : graphes et smoke **200** OK. Preuves agent : 404 Corrélation corrigée via proxy HTTPS metrics-aggregator, graphes CPU/mémoire/réseau/I/O/TR visibles, détail graphique avant liste sur petit/moyen écran, Playwright Corrélation OK (24h ↔ 168h). |
