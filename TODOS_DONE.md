@@ -1,6 +1,6 @@
 # TODOs validés par le porteur
 
-Dernière mise à jour : 12 juin 2026
+Dernière mise à jour : 17 juin 2026
 
 ## Rôle
 
@@ -10,6 +10,7 @@ Ce fichier archive ce que le porteur a réellement validé. Les validations tech
 
 | Date | Élément validé | Environnement | Preuve / remarque |
 |------|----------------|---------------|-------------------|
+| 17/06/2026 | Performances Disque — volume utilisé/total + brush | local | Validation porteur explicite : « c'est parfait on valide ». Graphes volume sur 24 h (~680 / 900 Go), cartes utilisé/total + espace libre, Block I/O inchangé, plus d’overlay Next.js NaN. Correctif `diskMetricsModel.ts`, série complète dans les charts, brush pleine plage par défaut. |
 | 17/06/2026 | Sécurité — filtres multi-valeurs Incidents & Menaces | local | Validation porteur explicite : `OK filtres multi Incidents Menaces`. Filtres combinés types/gravités/IP/ports sur `/security/incidents` et `/security/threats`. |
 | 17/06/2026 | Statistics — onglet Sécurité cohérent avec `/security` | local | Validation porteur explicite : `OK Statistics Sécurité`. Comparatif persisté/live, score unifié Vue d'ensemble ↔ Analyse, menaces ignorables (faux positifs exclus des compteurs). PR #17 mergée sur `dev`. |
 | 12/06/2026 | Performances HTTPS dev — proxy metrics-aggregator | local HTTPS | Validation porteur explicite : « je valide bien le https ». Correctif : `/api/metrics-aggregator/*` routé vers le proxy Next avant `/api/` dans Nginx dev HTTPS ; après redémarrage `jobbingtrack-dev-https-proxy`, endpoints conteneurs et historique système en **200** sur `https://jobbingtrack.localhost:5443`, page Conteneurs remplie et Corrélation sans 404. |

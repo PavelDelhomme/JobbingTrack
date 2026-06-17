@@ -36,6 +36,13 @@ import {
 import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
 import { useSyncedChartBrushRange } from "@/lib/charts/useSyncedChartBrushRange";
 import { rechartsTooltipProps } from "@/lib/charts/rechartsTooltipTheme";
+import {
+  diskVolumeAxisMaxGb,
+  latestRowInBrushSlice,
+  normalizeDiskSystemRows,
+  pickDiskGb,
+  type DiskMetricRow,
+} from "@/lib/monitoring/diskMetricsModel";
 import { analyticsService } from "@/lib/api/analytics.service";
 import {
   PerformanceChartCard,
@@ -63,14 +70,6 @@ interface ContainerInfo {
   blockReadBytes?: number;
   blockWriteBytes?: number;
   [key: string]: unknown;
-}
-
-interface DiskMetricRow {
-  timestamp: string;
-  timeMs: number;
-  usage: number | null;
-  used: number | null;
-  total: number | null;
 }
 
 interface ContainerIoMetric {
@@ -108,32 +107,10 @@ function numberOrNull(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function bytesToGb(value: unknown): number | null {
-  const n = numberOrNull(value);
-  if (n == null || n <= 0) return null;
-  return n / 1024 ** 3;
-}
-
 function bytesToMb(value: unknown): number | null {
   const n = numberOrNull(value);
   if (n == null || n < 0) return null;
   return n / 1024 ** 2;
-}
-
-function pickGb(
-  row: Record<string, unknown>,
-  gbKeys: string[],
-  byteKeys: string[],
-): number | null {
-  for (const key of byteKeys) {
-    const value = bytesToGb(row[key]);
-    if (value != null) return value;
-  }
-  for (const key of gbKeys) {
-    const value = numberOrNull(row[key]);
-    if (value != null && value > 0) return value;
-  }
-  return null;
 }
 
 function pickMbFromBytes(
@@ -156,22 +133,6 @@ function compressRows<T extends { timeMs: number }>(rows: T[]): T[] {
   if (rows.length <= TARGET_POINTS) return rows;
   const step = Math.ceil(rows.length / TARGET_POINTS);
   return rows.filter((_, index) => index % step === 0);
-}
-
-function rowsInBrushWindow<T extends { timeMs: number }>(
-  rows: T[],
-  masterRows: { timeMs: number }[],
-  brushStart: number,
-  brushEnd: number,
-): T[] {
-  if (rows.length === 0 || masterRows.length === 0) return rows;
-  const startMs = masterRows[brushStart]?.timeMs;
-  const endMs = masterRows[brushEnd]?.timeMs;
-  if (startMs == null || endMs == null) return rows;
-  const minMs = Math.min(startMs, endMs);
-  const maxMs = Math.max(startMs, endMs);
-  const filtered = rows.filter((r) => r.timeMs >= minMs && r.timeMs <= maxMs);
-  return filtered.length > 0 ? filtered : rows;
 }
 
 function buildIoRateRows(rows: AggregatedIoRow[]): AggregatedIoRow[] {
@@ -306,35 +267,6 @@ export default function PerformancesDiskPage() {
     const controller = new AbortController();
     const { startDate, endDate, limit } = getParams();
 
-    const normalizeSystemRows = (data: Record<string, unknown>[]) =>
-      data
-        .map((raw) => {
-          const tsIso =
-            normalizeMetricTimestampToIso(raw.timestamp) ||
-            String(raw.timestamp ?? "");
-          const timeMs = metricRowToTimeMs(raw, tsIso);
-          const usage = numberOrNull(
-            raw.diskUsagePercent ?? raw.disk_usage_percent,
-          );
-          return {
-            timestamp: tsIso,
-            timeMs: timeMs ?? NaN,
-            usage,
-            used: pickGb(
-              raw,
-              ["diskUsedGb", "disk_used_gb"],
-              ["diskUsedBytes", "disk_used_bytes"],
-            ),
-            total: pickGb(
-              raw,
-              ["diskTotalGb", "disk_total_gb"],
-              ["diskTotalBytes", "disk_total_bytes"],
-            ),
-          };
-        })
-        .filter((row) => Number.isFinite(row.timeMs))
-        .sort((a, b) => a.timeMs - b.timeMs);
-
     const normalizeContainerIoRows = (data: Record<string, unknown>[]) =>
       data
         .map((raw): ContainerIoMetric => {
@@ -434,7 +366,7 @@ export default function PerformancesDiskPage() {
           analyticsService.getContainersList().catch(() => []),
         ]);
         if (cancelled || controller.signal.aborted) return;
-        const normalizedSystem = normalizeSystemRows(systemData);
+        const normalizedSystem = normalizeDiskSystemRows(systemData);
 
         const activeContainers = (containers as ContainerInfo[]).filter(
           (container) => container.name,
@@ -480,12 +412,12 @@ export default function PerformancesDiskPage() {
                 const usage = numberOrNull(
                   latestRaw.diskUsagePercent ?? latestRaw.disk_usage_percent,
                 );
-                const used = pickGb(
+                const used = pickDiskGb(
                   latestRaw,
                   ["diskUsedGb", "disk_used_gb"],
                   ["diskUsedBytes", "disk_used_bytes"],
                 );
-                const total = pickGb(
+                const total = pickDiskGb(
                   latestRaw,
                   ["diskTotalGb", "disk_total_gb"],
                   ["diskTotalBytes", "disk_total_bytes"],
@@ -581,49 +513,72 @@ export default function PerformancesDiskPage() {
     ? formatCustomRangeLabel(customStart, customEnd)
     : formatRangeLabel(rangeStart, rangeEnd, timeRange);
 
+  const brushMasterRows = systemRows.length > 0 ? systemRows : ioRows;
+  const defaultBrushVisiblePoints = Math.max(brushMasterRows.length, 1);
+  const { brushStart, brushEnd, onBrushChange, resetBrush, hasCustomBrush } =
+    useSyncedChartBrushRange(
+      brushMasterRows.length,
+      defaultBrushVisiblePoints,
+    );
+
+  const brushWindowMs = useMemo(() => {
+    if (brushMasterRows.length === 0) return null;
+    const startMs = brushMasterRows[brushStart]?.timeMs;
+    const endMs = brushMasterRows[brushEnd]?.timeMs;
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return null;
+    return {
+      min: Math.min(startMs, endMs),
+      max: Math.max(startMs, endMs),
+    };
+  }, [brushEnd, brushMasterRows, brushStart]);
+
   const [chartXMin, chartXMax] = useMemo(() => {
+    const rangeStartMs = rangeStart.getTime();
+    const rangeEndMs = rangeEnd.getTime();
+    if (hasCustomBrush && brushWindowMs) {
+      return [brushWindowMs.min, brushWindowMs.max];
+    }
     return chartXDomainFromDataRange(
-      rangeStart.getTime(),
-      rangeEnd.getTime(),
+      rangeStartMs,
+      rangeEndMs,
       [...systemRows, ...ioRows].map((row) => row.timeMs),
     );
-  }, [ioRows, rangeEnd, rangeStart, systemRows]);
+  }, [
+    brushWindowMs,
+    hasCustomBrush,
+    ioRows,
+    rangeEnd,
+    rangeStart,
+    systemRows,
+  ]);
 
   const axisShowDate = chartXMax - chartXMin > 24 * 60 * 60 * 1000;
   const chartBottom = axisShowDate ? 72 : 60;
   const chartBottomBrush = chartBottom + 24;
 
-  const brushMasterRows = systemRows.length > 0 ? systemRows : ioRows;
-  const { brushStart, brushEnd, onBrushChange, resetBrush, hasCustomBrush } =
-    useSyncedChartBrushRange(brushMasterRows.length, 80);
-
-  const displaySystemRows = useMemo(
-    () => rowsInBrushWindow(systemRows, brushMasterRows, brushStart, brushEnd),
-    [brushEnd, brushMasterRows, brushStart, systemRows],
-  );
-  const displayIoRows = useMemo(
-    () => rowsInBrushWindow(ioRows, brushMasterRows, brushStart, brushEnd),
-    [brushEnd, brushMasterRows, brushStart, ioRows],
-  );
-
   const brushOnSystemCharts = systemRows.length > 0;
   const brushOnIoRateChart = !brushOnSystemCharts && ioRows.length > 0;
 
-  const latest = displaySystemRows.length
-    ? displaySystemRows[displaySystemRows.length - 1]
-    : systemRows.length
-      ? systemRows[systemRows.length - 1]
-      : null;
-  const latestIo = displayIoRows.length
-    ? displayIoRows[displayIoRows.length - 1]
-    : ioRows.length
-      ? ioRows[ioRows.length - 1]
-      : null;
+  const latest = latestRowInBrushSlice(systemRows, brushStart, brushEnd);
+  const latestIo = latestRowInBrushSlice(ioRows, brushStart, brushEnd);
+  const volumeAxisMax = useMemo(
+    () => diskVolumeAxisMaxGb(systemRows),
+    [systemRows],
+  );
+  const hasVolumeSeries = useMemo(
+    () =>
+      systemRows.some(
+        (row) =>
+          (row.used != null && Number.isFinite(row.used)) ||
+          (row.total != null && Number.isFinite(row.total)),
+      ),
+    [systemRows],
+  );
   const ioRateMax = maxWithFallback(
-    displayIoRows.flatMap((row) => [row.readMbPerMin, row.writeMbPerMin]),
+    ioRows.flatMap((row) => [row.readMbPerMin, row.writeMbPerMin]),
   );
   const ioCumulativeMax = maxWithFallback(
-    displayIoRows.flatMap((row) => [row.readMb ?? 0, row.writeMb ?? 0]),
+    ioRows.flatMap((row) => [row.readMb ?? 0, row.writeMb ?? 0]),
   );
 
   const goPrev = useCallback(() => {
@@ -721,7 +676,7 @@ export default function PerformancesDiskPage() {
         </PerformanceEmptyState>
       ) : (
         <div className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Usage disque actuel
@@ -734,11 +689,28 @@ export default function PerformancesDiskPage() {
             </div>
             <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Volume utilisé
+                Volume utilisé / total
               </p>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {latest && latest.used != null
-                  ? `${latest.used.toFixed(1)} Go`
+                {latest && latest.used != null && latest.total != null
+                  ? `${latest.used.toFixed(1)} / ${latest.total.toFixed(1)} Go`
+                  : latest && latest.used != null
+                    ? `${latest.used.toFixed(1)} Go`
+                    : latest && latest.total != null
+                      ? `${latest.total.toFixed(1)} Go total`
+                      : "—"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Espace libre
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {latest &&
+                latest.used != null &&
+                latest.total != null &&
+                latest.total >= latest.used
+                  ? `${(latest.total - latest.used).toFixed(1)} Go`
                   : "—"}
               </p>
             </div>
@@ -773,7 +745,7 @@ export default function PerformancesDiskPage() {
               <div className="w-full min-h-[240px] sm:min-h-[340px]">
                 <ResponsiveContainer width="100%" height={340} minHeight={240}>
                   <LineChart
-                    data={displaySystemRows}
+                    data={systemRows}
                     margin={{
                       top: 5,
                       right: 30,
@@ -837,7 +809,7 @@ export default function PerformancesDiskPage() {
             </PerformanceChartCard>
           ) : null}
 
-          {systemRows.length > 0 ? (
+          {systemRows.length > 0 && hasVolumeSeries ? (
             <PerformanceChartCard
               title="Volume disque — utilisé / total"
               periodLabel={rangeLabel}
@@ -845,7 +817,7 @@ export default function PerformancesDiskPage() {
               <div className="w-full min-h-[220px] sm:min-h-[300px]">
                 <ResponsiveContainer width="100%" height={300} minHeight={220}>
                   <LineChart
-                    data={displaySystemRows}
+                    data={systemRows}
                     margin={{
                       top: 5,
                       right: 30,
@@ -875,6 +847,7 @@ export default function PerformancesDiskPage() {
                       tick={{ fontSize: 12 }}
                     />
                     <YAxis
+                      domain={[0, volumeAxisMax]}
                       tickFormatter={(v) => `${Number(v).toFixed(0)} Go`}
                       tick={{ fontSize: 12 }}
                     />
@@ -888,12 +861,20 @@ export default function PerformancesDiskPage() {
                         )?.[0]?.payload?.timestamp;
                         return ts != null ? formatLocalDateTime(ts) : "—";
                       }}
-                      formatter={(value, name) => [
-                        value != null && Number.isFinite(Number(value))
-                          ? `${Number(value).toFixed(2)} Go`
-                          : "—",
-                        name === "used" ? "Utilisé" : "Total",
-                      ]}
+                      formatter={(value, name) => {
+                        const label =
+                          name === "used" ||
+                          name === "Utilisé" ||
+                          String(name).includes("Utilisé")
+                            ? "Utilisé"
+                            : "Total";
+                        return [
+                          value != null && Number.isFinite(Number(value))
+                            ? `${Number(value).toFixed(2)} Go`
+                            : "—",
+                          label,
+                        ];
+                      }}
                     />
                     <Legend />
                     <Line
@@ -916,16 +897,18 @@ export default function PerformancesDiskPage() {
                     />
                     {brushOnSystemCharts ? (
                       <Brush
-                        dataKey="timeMs"
                         height={18}
                         travellerWidth={8}
                         startIndex={brushStart}
                         endIndex={brushEnd}
-                        tickFormatter={(ms) =>
-                          formatLocalChartAxisTick(ms as number, {
-                            withDate: axisShowDate,
-                          })
-                        }
+                        tickFormatter={(index) => {
+                          const row = systemRows[Number(index)];
+                          return row
+                            ? formatLocalChartAxisTick(row.timeMs, {
+                                withDate: axisShowDate,
+                              })
+                            : "";
+                        }}
                         onChange={onBrushChange}
                       />
                     ) : null}
@@ -943,7 +926,7 @@ export default function PerformancesDiskPage() {
               <div className="w-full min-h-[220px] sm:min-h-[320px]">
                 <ResponsiveContainer width="100%" height={320} minHeight={220}>
                   <LineChart
-                    data={displayIoRows}
+                    data={ioRows}
                     margin={{
                       top: 5,
                       right: 30,
@@ -1025,7 +1008,7 @@ export default function PerformancesDiskPage() {
               <div className="w-full min-h-[220px] sm:min-h-[300px]">
                 <ResponsiveContainer width="100%" height={300} minHeight={220}>
                   <LineChart
-                    data={displayIoRows}
+                    data={ioRows}
                     margin={{
                       top: 5,
                       right: 30,
@@ -1106,16 +1089,18 @@ export default function PerformancesDiskPage() {
                     />
                     {brushOnIoRateChart ? (
                       <Brush
-                        dataKey="timeMs"
                         height={18}
                         travellerWidth={8}
                         startIndex={brushStart}
                         endIndex={brushEnd}
-                        tickFormatter={(ms) =>
-                          formatLocalChartAxisTick(ms as number, {
-                            withDate: axisShowDate,
-                          })
-                        }
+                        tickFormatter={(index) => {
+                          const row = ioRows[Number(index)];
+                          return row
+                            ? formatLocalChartAxisTick(row.timeMs, {
+                                withDate: axisShowDate,
+                              })
+                            : "";
+                        }}
                         onChange={onBrushChange}
                       />
                     ) : null}

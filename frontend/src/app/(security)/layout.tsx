@@ -3,7 +3,7 @@
 import { PageLoader } from "@/lib/ui";
 import { useAuth } from "@/lib/hooks/auth";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function SecurityLayout({
   children,
@@ -12,6 +12,11 @@ export default function SecurityLayout({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -25,7 +30,7 @@ export default function SecurityLayout({
     }
   }, [user, loading, router]);
 
-  if (loading) {
+  if (!mounted || loading) {
     return <PageLoader message="Connexion sécurité…" />;
   }
 
