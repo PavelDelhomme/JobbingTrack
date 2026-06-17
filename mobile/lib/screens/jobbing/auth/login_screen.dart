@@ -278,7 +278,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         CheckboxListTile(
                           contentPadding: EdgeInsets.zero,
                           title: const Text('Déverrouiller avec la biométrie'),
-                          subtitle: const Text('Empreinte ou reconnaissance faciale au prochain lancement'),
+                          subtitle: const Text(
+                            'Identifiants chiffrés (Keychain/Keystore) · empreinte au lancement',
+                          ),
                           value: _enableBiometric,
                           onChanged: _keepLoggedIn
                               ? (v) => setState(() => _enableBiometric = v ?? false)

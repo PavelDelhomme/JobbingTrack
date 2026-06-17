@@ -1,6 +1,6 @@
 # Déverrouillage biométrique — stockage sécurisé des identifiants (backlog)
 
-**Statut** : cadrage produit / technique — **pas encore implémenté** (juin 2026).  
+**Statut** : implémenté partiellement (juin 2026) — `flutter_secure_storage` + `BiometricCredentialStore` ; reconnexion API après biométrie si JWT expiré.  
 **Priorité** : Lot D mobile, après stabilisation des parcours courants.  
 **Validation** : smoke E2E appareil réel + revue sécurité avant prod.
 

@@ -6,6 +6,7 @@ import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
+import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/widgets/back_to_home_scope.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -188,15 +189,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             title: const Text('Déverrouillage biométrique'),
                             subtitle: Text(
                               _keepLoggedIn
-                                  ? 'Au lancement, confirmer avec empreinte ou visage'
+                                  ? 'Identifiants chiffrés (Keychain/Keystore) + empreinte au lancement'
                                   : 'Activez « Garder la connexion » à la prochaine connexion',
                             ),
                             value: _keepLoggedIn && _biometricUnlock,
                             onChanged: _keepLoggedIn
-                                ? (v) async {
-                                    setState(() => _biometricUnlock = v);
-                                    await ApiConfigStore.saveBiometricUnlockEnabled(v);
-                                  }
+                                ? (v) => _setBiometricUnlock(context, auth, v)
                                 : null,
                           ),
                         ],
@@ -229,6 +227,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => HelpFeedbackScreen(type: type)),
     );
+  }
+
+  Future<void> _setBiometricUnlock(BuildContext context, AuthProvider auth, bool enabled) async {
+    if (!enabled) {
+      setState(() => _biometricUnlock = false);
+      await auth.disableBiometricUnlock();
+      return;
+    }
+
+    final controller = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Activer la biométrie'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Confirmez votre mot de passe pour enregistrer vos identifiants de façon chiffrée sur cet appareil.',
+              style: TextStyle(color: Colors.grey.shade700, height: 1.35),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Mot de passe actuel'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Activer')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    try {
+      await ApiService.login(auth.user!.email, controller.text);
+      await auth.saveBiometricCredentials(controller.text);
+      if (mounted) setState(() => _biometricUnlock = true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+        );
+      }
+    }
   }
 
   void _showDiagnostics(BuildContext context) {

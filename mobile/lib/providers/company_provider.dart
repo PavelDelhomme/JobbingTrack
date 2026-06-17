@@ -22,4 +22,27 @@ class CompanyProvider with ChangeNotifier {
       rethrow;
     }
   }
+
+  Future<Company> createCompany({
+    required String name,
+    String? website,
+    String? industry,
+    String? location,
+    String? description,
+    String companyType = 'EMPLOYER',
+    String? token,
+  }) async {
+    final created = await ApiService.createCompany(
+      name: name,
+      website: website,
+      industry: industry,
+      location: location,
+      description: description,
+      companyType: companyType,
+      token: token,
+    );
+    _companies.insert(0, created);
+    notifyListeners();
+    return created;
+  }
 }

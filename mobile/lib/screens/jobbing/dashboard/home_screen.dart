@@ -4,6 +4,9 @@ import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/providers/application_provider.dart';
 import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
+import 'package:jobbingtrack_mobile/providers/notification_provider.dart';
+import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
+import 'package:jobbingtrack_mobile/utils/upcoming_timeline.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
@@ -34,11 +37,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final appProvider = Provider.of<ApplicationProvider>(context, listen: false);
     final interviewProvider = Provider.of<InterviewProvider>(context, listen: false);
     final followUpProvider = Provider.of<FollowUpProvider>(context, listen: false);
+    final notifProvider = Provider.of<NotificationProvider>(context, listen: false);
     
     await Future.wait([
       appProvider.loadApplications(token: token),
       interviewProvider.loadInterviews(token: token),
       followUpProvider.loadFollowUps(token: token),
+      notifProvider.loadNotifications(token: token).catchError((_) {}),
     ]);
   }
 
@@ -75,7 +80,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = authProvider.user;
     final applications = appProvider.applications;
     final interviews = interviewProvider.interviews;
-    final followUps = followUpProvider.pendingFollowUps;
+    final followUps = followUpProvider.followUps;
+    final upcoming = buildUpcomingTimeline(interviews: interviews, followUps: followUps);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -126,9 +132,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 20),
 
                 // Statistiques principales
-                _buildMainStats(applications, interviews, followUps),
+                _buildMainStats(applications, interviews, followUpProvider.pendingFollowUps),
 
                 const SizedBox(height: 24),
+
+                if (upcoming.isNotEmpty) ...[
+                  _buildUpcomingSection(upcoming),
+                  const SizedBox(height: 24),
+                ],
 
                 // Statistiques par statut
                 _buildStatusBreakdown(applications),
@@ -136,10 +147,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
 
                 // Actions urgentes
-                if (followUps.isNotEmpty)
-                  _buildUrgentActions(followUps),
+                if (followUpProvider.pendingFollowUps.isNotEmpty)
+                  _buildUrgentActions(followUpProvider.pendingFollowUps),
 
-                if (followUps.isNotEmpty)
+                if (followUpProvider.pendingFollowUps.isNotEmpty)
                   const SizedBox(height: 24),
 
                 // Actions rapides
@@ -424,6 +435,56 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             );
           }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpcomingSection(List<UpcomingTimelineItem> items) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.upcoming, color: Colors.blue.shade700),
+              const SizedBox(width: 8),
+              Text(
+                'À venir',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[800]),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...items.map((item) {
+            final icon = item.kind == UpcomingKind.interview ? Icons.event : Icons.schedule_send;
+            final color = item.kind == UpcomingKind.interview ? Colors.orange : Colors.teal;
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(icon, color: color),
+              title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text('${formatSmartEventDate(item.when)} · ${item.subtitle}'),
+              onTap: () {
+                if (item.kind == UpcomingKind.interview) {
+                  Navigator.of(context).pushNamed('/interviews');
+                } else {
+                  Navigator.of(context).pushNamed('/followups');
+                }
+              },
+            );
+          }),
         ],
       ),
     );
