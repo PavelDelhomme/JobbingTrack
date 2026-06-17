@@ -13,7 +13,9 @@ test.describe("Menaces B10 — FilterBar", () => {
       timeout: 90000,
     });
 
-    await page.locator("label", { hasText: "Sévérité" }).locator("select").selectOption("HIGH");
+    await page
+      .getByRole("checkbox", { name: /Sévérité: Haute/i })
+      .check();
     await expect(
       page.getByText("Filtres modifiés, pas encore appliqués"),
     ).toBeVisible();
@@ -39,7 +41,9 @@ test.describe("Incidents B10 — FilterBar", () => {
       page.getByRole("heading", { name: /Incidents & menaces/i }),
     ).toBeVisible({ timeout: 90000 });
 
-    await page.locator("label", { hasText: "Gravité" }).locator("select").selectOption("critical");
+    await page
+      .getByRole("checkbox", { name: /Gravité: Critique/i })
+      .check();
     await expect(
       page.getByText("Filtres modifiés, pas encore appliqués"),
     ).toBeVisible();

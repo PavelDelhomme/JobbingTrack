@@ -12,6 +12,12 @@ const {
   activeThreatWhereClause,
   mergeThreatMetadata,
 } = require('../utils/threatIgnore');
+const {
+  parseQueryMultiValue,
+  buildUpperInFilter,
+  buildInsensitiveContainsFilter,
+  buildIntInFilter,
+} = require('../utils/queryMultiValue');
 const { lookupGeoIp, enrichIpBatch } = require('../utils/geoipProvider');
 
 const prisma = new PrismaClient();
@@ -1068,17 +1074,21 @@ async function getNetworkThreats(req, res) {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const where = {};
-    if (severity) {
-      where.severity = severity.toUpperCase();
+    const severityValues = parseQueryMultiValue(severity);
+    if (severityValues.length) {
+      where.severity = buildUpperInFilter(severityValues);
     }
-    if (sourceIp) {
-      where.sourceIp = { contains: String(sourceIp), mode: 'insensitive' };
+    const sourceIpValues = parseQueryMultiValue(sourceIp);
+    if (sourceIpValues.length) {
+      where.sourceIp = buildInsensitiveContainsFilter(sourceIpValues);
     }
-    if (destIp) {
-      where.destIp = { contains: String(destIp), mode: 'insensitive' };
+    const destIpValues = parseQueryMultiValue(destIp);
+    if (destIpValues.length) {
+      where.destIp = buildInsensitiveContainsFilter(destIpValues);
     }
-    if (threatType) {
-      where.threatType = String(threatType).toUpperCase();
+    const threatTypeValues = parseQueryMultiValue(threatType);
+    if (threatTypeValues.length) {
+      where.threatType = buildUpperInFilter(threatTypeValues);
     }
     if (blocked === 'true' || blocked === 'false') {
       where.blocked = blocked === 'true';
@@ -1088,10 +1098,11 @@ async function getNetworkThreats(req, res) {
     } else if (ignored !== 'all' && ignored !== '1') {
       Object.assign(where, activeThreatWhereClause());
     }
-    if (destPort !== undefined && destPort !== null && String(destPort).trim() !== '') {
-      const parsedPort = parseInt(destPort, 10);
-      if (!Number.isNaN(parsedPort)) {
-        where.destPort = parsedPort;
+    const destPortValues = parseQueryMultiValue(destPort);
+    if (destPortValues.length) {
+      const destPortFilter = buildIntInFilter(destPortValues);
+      if (destPortFilter !== undefined) {
+        where.destPort = destPortFilter;
       }
     }
     if (startDate || endDate) {
