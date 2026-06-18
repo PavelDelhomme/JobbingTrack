@@ -64,6 +64,7 @@ router.get('/events', authenticate, analyticsController.getEvents);
 // Erreurs
 router.post('/errors', optionalAuth, analyticsController.trackError);
 router.get('/errors', authenticate, analyticsController.getErrors);
+router.patch('/errors/:id/resolve', authenticate, analyticsController.resolveError);
 
 // Performance
 router.post('/performance', optionalAuth, analyticsController.trackPerformance);

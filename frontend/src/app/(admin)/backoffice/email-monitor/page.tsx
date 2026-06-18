@@ -17,6 +17,7 @@ import { mergeFacetSuggestions } from "@/lib/filters/facetUtils";
 import {
   EMAIL_STATUS_FILTER_OPTIONS,
   EMAIL_TYPE_FILTER_OPTIONS,
+  EMAIL_CHANNEL_FILTER_OPTIONS,
 } from "@/lib/filters/emailMonitorOptions";
 import type { FilterBadge } from "@/lib/filters/types";
 import { formatLocalDateTime } from "@/lib/utils/date";
@@ -72,14 +73,17 @@ type EmailLog = {
 type EmailFilters = {
   status: string;
   type: string;
+  channel: string;
   query: string;
 };
 
 function buildInitialEmailFilters(searchParams: URLSearchParams): EmailFilters {
   const type = searchParams.get("type");
+  const channel = searchParams.get("channel");
   return {
     status: "",
     type: type === "NOTIFICATION" ? "NOTIFICATION" : "",
+    channel: channel === "crash_report" ? "crash_report" : "",
     query: "",
   };
 }
@@ -132,6 +136,12 @@ export default function EmailMonitorPage() {
           ?.label || applied.type;
       badges.push({ key: "type", label: `Type : ${label}` });
     }
+    if (applied.channel) {
+      const label =
+        EMAIL_CHANNEL_FILTER_OPTIONS.find((o) => o.value === applied.channel)
+          ?.label || applied.channel;
+      badges.push({ key: "channel", label: `Canal : ${label}` });
+    }
     if (applied.query.trim()) {
       badges.push({
         key: "query",
@@ -164,6 +174,9 @@ export default function EmailMonitorPage() {
         }
         if (applied.type) {
           params.append("type", applied.type);
+        }
+        if (applied.channel) {
+          params.append("channel", applied.channel);
         }
         if (applied.query.trim()) {
           params.append("q", applied.query.trim());
@@ -213,7 +226,7 @@ export default function EmailMonitorPage() {
         if (!silent) setIsLoading(false);
       }
     },
-    [API_URL, applied.query, applied.status, applied.type, limit, page],
+    [API_URL, applied.query, applied.status, applied.type, applied.channel, limit, page],
   );
 
   loadEmailsRef.current = loadEmails;
@@ -408,9 +421,9 @@ export default function EmailMonitorPage() {
       description={
         <>
           Suivez les emails envoyés par JobbingTrack : statut, destinataire,
-          date et contenu. Utilisez <strong>Notification</strong> pour les
-          alertes sécurité et <strong>Vérification</strong> pour les parcours
-          inscription.
+          date et contenu. Filtrez <strong>Crash / retour mobile</strong> pour
+          les rapports bug et crash. Utilisez <strong>Notification</strong> pour
+          les alertes sécurité.
         </>
       }
       actions={
@@ -537,7 +550,7 @@ export default function EmailMonitorPage() {
         onReset={handleResetFilters}
         badges={filterBadges}
       >
-        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <FacetAutocompleteField
             label="Recherche"
             value={draft.query}
@@ -556,6 +569,12 @@ export default function EmailMonitorPage() {
             value={draft.type}
             onChange={(value) => updateDraft("type", value)}
             options={[...EMAIL_TYPE_FILTER_OPTIONS]}
+          />
+          <FilterSelectField
+            label="Canal"
+            value={draft.channel}
+            onChange={(value) => updateDraft("channel", value)}
+            options={[...EMAIL_CHANNEL_FILTER_OPTIONS]}
           />
         </div>
       </FilterBar>
@@ -668,6 +687,13 @@ export default function EmailMonitorPage() {
                         <Badge variant="outline">
                           {getTypeLabel(email.type)}
                         </Badge>
+                        {email.metadata?.channel === "crash_report" && (
+                          <Badge variant="destructive">
+                            {email.metadata?.feedback === true
+                              ? "Retour mobile"
+                              : "Crash report"}
+                          </Badge>
+                        )}
                         {email.metadata?.mirror?.sent === true && (
                           <Badge variant="secondary">Miroir SMTP OK</Badge>
                         )}

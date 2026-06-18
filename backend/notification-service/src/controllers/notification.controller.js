@@ -1,6 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const logger = require('../utils/logger');
 const emailService = require('../services/emailService');
+const { buildCrashReportEmailHtml } = require('../templates/crashReportEmailHtml');
+const { compressHtml, maybeDecompressEmailContent } = require('../utils/emailContentCodec');
 
 const prisma = new PrismaClient();
 
@@ -303,7 +305,7 @@ const deleteNotification = async (req, res, next) => {
 // Récupérer les logs d'emails
 const getEmailLogs = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status, type, q } = req.query;
+    const { page = 1, limit = 20, status, type, q, channel } = req.query;
     const userId = req.user.id;
     const role = String(req.user.role || '').toUpperCase();
     const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
@@ -317,6 +319,9 @@ const getEmailLogs = async (req, res, next) => {
       ...(status && { status }),
       ...(type && { type })
     };
+    if (channel === 'crash_report') {
+      where.metadata = { path: ['channel'], equals: 'crash_report' };
+    }
     if (q) {
       const query = String(q).trim();
       if (query) {
@@ -340,8 +345,8 @@ const getEmailLogs = async (req, res, next) => {
 
     res.json({
       success: true,
-      data: emailLogs,
-      emailLogs,
+      data: emailLogs.map(maybeDecompressEmailContent),
+      emailLogs: emailLogs.map(maybeDecompressEmailContent),
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -703,9 +708,8 @@ const reportCrash = async (req, res, next) => {
       userId: userId !== 'anonymous' ? userId.substring(0, 8) + '...' : 'anonymous'
     };
 
+    let effectiveUserId = null;
     try {
-      let effectiveUserId = null;
-
       if (userId !== 'anonymous') {
         let existingUser = await prisma.user.findUnique({
           where: { id: userId },
@@ -766,45 +770,101 @@ const reportCrash = async (req, res, next) => {
       logger.warn('Sauvegarde crash en BDD echouee:', dbError.message?.slice(0, 120));
     }
 
-    const emailSubject = `[JobbingTrack Crash] ${crashType} — ${new Date().toLocaleDateString('fr-FR')}`;
-    const emailBody = [
-      '=== RAPPORT DE CRASH JOBBINGTRACK ===',
-      '',
-      `Type: ${crashType}`,
-      `Message: ${crashMessage}`,
-      `Date: ${new Date().toLocaleString('fr-FR')}`,
-      `Ecran: ${screenName || 'inconnu'}`,
-      '',
-      '--- Appareil ---',
-      deviceInfo ? [
-        `Plateforme: ${deviceInfo.platform || 'N/A'}`,
-        `OS: ${deviceInfo.osVersion || 'N/A'}`,
-        `Modele: ${deviceInfo.deviceModel || 'N/A'}`,
-        `App version: ${deviceInfo.appVersion || appVersion || 'N/A'}`,
-      ].join('\n') : 'Infos appareil non disponibles',
-      '',
-      '--- Stack Trace ---',
-      stackTrace || '(non fournie)',
-      '',
-      '--- Actions utilisateur recentes ---',
-      userActions?.length > 0 ? userActions.join('\n') : '(aucune)',
-      '',
-      '--- Metadata ---',
-      JSON.stringify(metadata || {}, null, 2),
-      '',
-      `Session: ${sessionId || 'N/A'}`,
-      `User: ${anonymizedReport.userId}`,
-    ].join('\n');
+    const normalizedActions = Array.isArray(userActions)
+      ? userActions.map((a) => (typeof a === 'string' ? a : JSON.stringify(a)))
+      : [];
+
+    const emailSubject = (() => {
+      const cat = metadata?.category;
+      const isFeedback = metadata?.feedback === true;
+      if (isFeedback && cat) {
+        return `[JobbingTrack Retour] ${cat} — ${new Date().toLocaleDateString('fr-FR')}`;
+      }
+      return `[JobbingTrack Crash] ${crashType} — ${new Date().toLocaleDateString('fr-FR')}`;
+    })();
+
+    const emailHtml = buildCrashReportEmailHtml({
+      crashType,
+      message: crashMessage,
+      stackTrace,
+      deviceInfo: deviceInfo
+        ? {
+            ...deviceInfo,
+            appVersion: deviceInfo.appVersion || appVersion,
+          }
+        : null,
+      appVersion: appVersion || deviceInfo?.appVersion,
+      sessionId,
+      screenName,
+      userActions: normalizedActions,
+      metadata,
+      userId: anonymizedReport.userId,
+      timestamp: new Date().toLocaleString('fr-FR'),
+      screenshotAttached: Boolean(metadata?.screenshotCompressed),
+    });
+
+    const emailHtmlStored = compressHtml(emailHtml);
 
     try {
       const crashReportEmail = process.env.CRASH_REPORT_EMAIL || 'alerts@example.invalid';
       const { from: crashReportFrom, replyTo: crashReportReplyTo } =
         emailService.getCrashReportIdentity();
+      const mirrorEnabled =
+        process.env.CRASH_REPORT_SMTP_MIRROR_ENABLED === 'true' ||
+        process.env.SECURITY_ALERT_SMTP_MIRROR_ENABLED === 'true';
 
-      await emailService.sendEmail(crashReportEmail, emailSubject, emailBody, {
+      let emailLog = null;
+      try {
+        if (prisma.emailLog && typeof prisma.emailLog.create === 'function') {
+          emailLog = await prisma.emailLog.create({
+            data: {
+              userId: effectiveUserId || null,
+              to: crashReportEmail,
+              from: crashReportFrom,
+              subject: emailSubject,
+              type: 'NOTIFICATION',
+              status: 'PENDING',
+              emailContent: emailHtmlStored,
+              metadata: {
+                channel: 'crash_report',
+                crashType,
+                feedback: metadata?.feedback === true,
+                category: metadata?.category || null,
+                screenName: screenName || null,
+                contentCompressed: true,
+              },
+            },
+          });
+        }
+      } catch (logError) {
+        logger.warn('Log EmailLog crash report indisponible:', logError.message?.slice(0, 120));
+      }
+
+      const deliveryInfo = await emailService.sendEmail(crashReportEmail, emailSubject, emailHtml, {
         from: crashReportFrom,
-        replyTo: crashReportReplyTo
+        replyTo: crashReportReplyTo,
+        securityAlertMirror: mirrorEnabled,
+        awaitSecurityAlertMirror: mirrorEnabled,
       });
+
+      if (emailLog?.id && prisma.emailLog && typeof prisma.emailLog.update === 'function') {
+        await prisma.emailLog.update({
+          where: { id: emailLog.id },
+          data: {
+            status: 'SENT',
+            sentAt: new Date(),
+            metadata: {
+              channel: 'crash_report',
+              crashType,
+              feedback: metadata?.feedback === true,
+              category: metadata?.category || null,
+              screenName: screenName || null,
+              mirror: deliveryInfo?.securityAlertMirror || null,
+            },
+          },
+        });
+      }
+
       logger.info(`Crash report envoye au destinataire crash configure: ${crashType}`);
     } catch (emailError) {
       logger.warn('Envoi email crash echoue:', emailError.message);

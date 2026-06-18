@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jobbingtrack_mobile/services/secure_auth_session_store.dart';
+import 'package:jobbingtrack_mobile/utils/device_id.dart';
 
 /// Persistance locale de l'URL API choisie sur l'appareil (hors dart-define).
 class ApiConfigStore {
@@ -131,15 +132,16 @@ class ApiConfigStore {
     return id;
   }
 
-  /// Identifiant stable par appareil pour corrélation sécurité mobile (B9).
+  /// Identifiant stable par appareil (UUID v4) pour télémétrie et sécurité mobile.
   static Future<String> getOrCreateDeviceId() async {
     final prefs = await SharedPreferences.getInstance();
-    final existing = prefs.getString(_keyDeviceId);
-    if (existing != null && existing.trim().isNotEmpty) {
-      return existing.trim();
+    final existing = prefs.getString(_keyDeviceId)?.trim();
+    if (existing != null &&
+        existing.isNotEmpty &&
+        DeviceId.isUuidV4(existing)) {
+      return existing;
     }
-    final id =
-        'mob-${DateTime.now().millisecondsSinceEpoch}-${DateTime.now().microsecond}';
+    final id = DeviceId.generateUuidV4();
     await prefs.setString(_keyDeviceId, id);
     return id;
   }

@@ -15,10 +15,15 @@ class MobileDeviceInfo {
       final plugin = DeviceInfoPlugin();
       if (Platform.isAndroid) {
         final info = await plugin.androidInfo;
+        final release = info.version.release.trim();
+        final sdk = info.version.sdkInt;
+        final osVersion = release.isNotEmpty
+            ? 'Android $release (API $sdk)'
+            : 'Android (API $sdk)';
         _cache = {
           'deviceModel': '${info.manufacturer} ${info.model}'.trim(),
           'osName': 'Android',
-          'osVersion': info.version.release,
+          'osVersion': osVersion,
         };
       } else if (Platform.isIOS) {
         final info = await plugin.iosInfo;

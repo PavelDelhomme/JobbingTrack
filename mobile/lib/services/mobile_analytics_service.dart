@@ -7,6 +7,7 @@ import 'package:jobbingtrack_mobile/services/analytics_telemetry_queue.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
+import 'package:jobbingtrack_mobile/services/diagnostic_payload_codec.dart';
 import 'package:jobbingtrack_mobile/services/mobile_device_info.dart';
 import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
 
@@ -331,17 +332,31 @@ class MobileAnalyticsService extends ChangeNotifier {
   Future<void> _flushPerformanceSnapshot() async {
     final summary = CrashReporter.getAnalyticsSummary();
     final device = CrashReporter.getDeviceMonitoring();
+    final page = CrashReporter.currentScreenName;
+    final token = _authToken;
+    final sessionId = _sessionId;
+    final deviceId = _deviceId;
+    final platform = _platform;
+
+    final rss = device['memoryRssBytes'] as int?;
+    final sessionMs = summary['sessionDurationMs'] as int?;
+    final totalApiCalls = summary['totalApiCalls'] as int? ?? 0;
+    final totalErrors = summary['totalErrors'] as int? ?? 0;
+    // Une seule ligne par flush — memoryUsage en Mo entiers (schéma BDD).
+    final rssMb = rss != null ? (rss / (1024 * 1024)).round() : null;
+
     await ApiService.postAnalyticsPerformance(
-      sessionId: _sessionId,
-      deviceId: _deviceId,
+      sessionId: sessionId,
+      deviceId: deviceId,
       metricType: 'mobile_snapshot',
       metricName: 'session_health',
-      duration: summary['sessionDurationMs'] as int?,
-      memoryUsage: device['memoryRssBytes'] as int?,
-      page: CrashReporter.currentScreenName,
-      platform: _platform,
-      value: summary['totalApiCalls'] as int?,
-      token: _authToken,
+      duration: sessionMs,
+      memoryUsage: rssMb,
+      value: totalApiCalls,
+      networkLatency: totalErrors,
+      page: page,
+      platform: platform,
+      token: token,
     );
   }
 
@@ -372,6 +387,7 @@ class MobileAnalyticsService extends ChangeNotifier {
     required String category,
     required String message,
     bool includeDiagnostics = true,
+    String? screenshotCompressed,
     String? authToken,
     String? userId,
   }) async {
@@ -387,7 +403,12 @@ class MobileAnalyticsService extends ChangeNotifier {
     };
 
     if (includeDiagnostics) {
-      metadata['diagnostic'] = await CrashReporter.collectFullDiagnostic();
+      metadata['diagnosticCompressed'] = DiagnosticPayloadCodec.compressJson(
+        await CrashReporter.collectCompactDiagnostic(),
+      );
+    }
+    if (screenshotCompressed != null && screenshotCompressed.isNotEmpty) {
+      metadata['screenshotCompressed'] = screenshotCompressed;
     }
 
     await CrashReporter.reportManualError(
@@ -396,26 +417,15 @@ class MobileAnalyticsService extends ChangeNotifier {
       metadata: metadata,
     );
 
-    await ApiService.postSecurityEvent(
-      eventType: 'security_signal',
-      message: 'Retour mobile ($category): ${trimmed.length > 200 ? trimmed.substring(0, 200) : trimmed}',
-      deviceId: _deviceId,
-      userId: userId,
-      metadata: metadata,
-      token: authToken,
-    );
-
-    if (_consent) {
-      await ApiService.postAnalyticsEvent(
-        sessionId: _sessionId,
+    if (category == 'signalement') {
+      await ApiService.postSecurityEvent(
+        eventType: 'security_signal',
+        message:
+            'Retour mobile ($category): ${trimmed.length > 200 ? trimmed.substring(0, 200) : trimmed}',
         deviceId: _deviceId,
-        eventType: 'feedback',
-        eventName: category,
-        category: 'mobile',
-        page: CrashReporter.currentScreenName,
-        platform: _platform,
-        properties: {'messageLength': trimmed.length, 'includeDiagnostics': includeDiagnostics},
-        token: authToken ?? _authToken,
+        userId: userId,
+        metadata: metadata,
+        token: authToken,
       );
     }
   }

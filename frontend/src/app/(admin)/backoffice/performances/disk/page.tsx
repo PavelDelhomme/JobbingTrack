@@ -52,6 +52,7 @@ import {
   PerformanceLoadingState,
   PerformancePageShell,
 } from "@/components/performances";
+import { PostgresApplicationStorageCard } from "@/components/performances/PostgresApplicationStorageCard";
 
 const METRIC_GAP_MS = 15 * 60 * 1000;
 const HISTORY_FETCH_CONCURRENCY = 3;
@@ -1157,6 +1158,8 @@ export default function PerformancesDiskPage() {
           Voir les détails par service
         </Link>
       </div>
+
+      <PostgresApplicationStorageCard />
     </PerformancePageShell>
   );
 }

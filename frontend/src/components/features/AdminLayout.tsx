@@ -15,6 +15,8 @@ import { FRONTEND_URLS } from "@/config/ports.config";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { TrendingUp, Database, Activity, Server } from "@/lib/icons";
 import { FlaskConical, Eraser } from "lucide-react";
+import { BackofficePageRefreshProvider } from "@/contexts/BackofficePageRefreshContext";
+import { BackofficeRefreshControls } from "./BackofficeRefreshControls";
 
 const BACKOFFICE_API_URL = FRONTEND_URLS.api;
 
@@ -597,6 +599,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   ];
 
   return (
+    <BackofficePageRefreshProvider>
     <div className="min-h-screen overflow-x-hidden">
       <style jsx>{`
         /* Effet de survol amélioré */
@@ -1082,8 +1085,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </div>
 
               {/* Section centrale - Recherche globale - Prend toute la place disponible */}
-              <div className="hidden sm:flex flex-1 min-w-0 mx-4 lg:mx-6">
-                <GlobalSearch className="w-full" />
+              <div className="hidden sm:flex flex-1 min-w-0 mx-4 lg:mx-6 items-center gap-2">
+                <GlobalSearch className="w-full min-w-0" />
+                <BackofficeRefreshControls variant="icon" />
               </div>
 
               {/* Section droite - Actions et contrôles */}
@@ -1224,6 +1228,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                           <span>Services</span>
                         </button>
                         <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+                        <BackofficeRefreshControls variant="menu" />
+                        <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
                         <button
                           onClick={handleGenerateTestData}
                           disabled={!!dataSourceActionLoading}
@@ -1298,5 +1304,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         onSelectSettings={() => setIsSettingsOpen(true)}
       />
     </div>
+    </BackofficePageRefreshProvider>
   );
 }

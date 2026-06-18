@@ -151,6 +151,10 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
   - couverture tests et observabilité pendant transition,
   - suivi conformité/réglementaire selon échéances applicables.
 
+## Priorité basse – Produit / administration
+
+- [ ] **Refonte Gestion des données backoffice** : remettre à jour le hub `/data-management` et les outils admin pour manipuler, archiver, purger et auditer toutes les entités (emails compressés, analytics mobile, logs) avec garde-fous — lot lointain, après validation Lot D mobile.
+
 ## Références
 
 - `STATUS.md` : état courant du projet.

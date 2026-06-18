@@ -35,6 +35,16 @@ router.post('/internal/security-alert-email', authenticateInternalSecret, [
   body('subject').notEmpty(),
   body('html').notEmpty()
 ], controller.sendInternalSecurityAlertEmail);
+router.post('/internal/crash-report', authenticateInternalSecret, (req, res, next) => {
+  if (!req.user && req.body?.userId) {
+    req.user = {
+      id: String(req.body.userId),
+      email: req.body.userEmail || undefined,
+      role: req.body.userRole || 'USER',
+    };
+  }
+  return controller.reportCrash(req, res, next);
+});
 
 // Routes protégées
 router.use(authenticate);

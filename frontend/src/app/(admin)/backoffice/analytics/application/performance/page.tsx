@@ -1,311 +1,267 @@
 "use client";
 
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
-import {
-  TimeRangeSelector,
-  ChartPeriodCaption,
-  useAnalyticsAutoRefresh,
-  ymdLocal,
-  type TimeRangeOption,
-} from "@/components/analytics";
-import {
-  getPeriodMs,
-  formatRangeLabel,
-  formatCustomRangeLabel,
-  localCalendarDayBounds,
-} from "@/components/analytics/timeRangeUtils";
-import { centralMetricsService } from "@/lib/services/centralMetricsService";
-import { statisticsService } from "@/lib/services/statisticsService";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { TimeRangeSelector, ChartPeriodCaption } from "@/components/analytics";
 import { AnalyticsPageShell } from "../ApplicationSubNav";
+import { useApplicationTimeRange } from "../useApplicationTimeRange";
+import { useRegisterBackofficeRefresh } from "@/hooks/useRegisterBackofficeRefresh";
+import {
+  fetchApplicationErrors,
+  fetchApplicationPerformance,
+  type ApplicationPerformanceMetric,
+} from "@/lib/services/applicationAnalyticsService";
+import {
+  formatMemoryBytes,
+  formatPerfMetricValue,
+} from "@/lib/analytics/mobileFeedback";
+
+function formatTs(value: string) {
+  try {
+    return new Date(value).toLocaleString("fr-FR");
+  } catch {
+    return value;
+  }
+}
+
+function latestSnapshot(
+  rows: ApplicationPerformanceMetric[],
+): ApplicationPerformanceMetric | undefined {
+  return rows.find((p) => p.metricType === "mobile_snapshot");
+}
 
 export default function ApplicationPerformancePage() {
-  const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null);
-  const [appStats, setAppStats] = useState<Record<string, unknown> | null>(
-    null,
-  );
+  const range = useApplicationTimeRange();
+  const {
+    rangeQuery,
+    consumeSilentFetch,
+    softTick,
+    bumpSoftRefresh,
+    timeRange,
+    setTimeRange,
+    useCustomRange,
+    setUseCustomRange,
+    customStart,
+    setCustomStart,
+    customEnd,
+    setCustomEnd,
+    rangeLabel,
+    goPrev,
+    goNext,
+    canGoNext,
+    handlePeriodNow,
+    handleClearCustomRange,
+  } = range;
+
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<TimeRangeOption>("24h");
-  const [windowEnd, setWindowEnd] = useState<Date>(() => new Date());
-  const [followLive, setFollowLive] = useState(true);
-  const [softTick, setSoftTick] = useState(0);
-  const silentNextFetch = useRef(false);
-  const [useCustomRange, setUseCustomRange] = useState(false);
-  const [customStart, setCustomStart] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 7);
-    return ymdLocal(d);
-  });
-  const [customEnd, setCustomEnd] = useState(() => ymdLocal());
+  const [metrics, setMetrics] = useState<ApplicationPerformanceMetric[]>([]);
+  const [metricsTotal, setMetricsTotal] = useState(0);
+  const [openErrors, setOpenErrors] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadData = useCallback(async () => {
+    const silent = consumeSilentFetch();
+    if (!silent) setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Session admin requise.");
+        setMetrics([]);
+        setMetricsTotal(0);
+        setOpenErrors(0);
+        return;
+      }
+      const [perfRes, errRes] = await Promise.all([
+        fetchApplicationPerformance(token, rangeQuery, { limit: 500 }),
+        fetchApplicationErrors(token, rangeQuery, {
+          limit: 200,
+          resolved: false,
+          excludeFeedback: true,
+        }),
+      ]);
+      setMetrics(perfRes.data);
+      setMetricsTotal(perfRes.pagination.total);
+      setOpenErrors(errRes.pagination.total);
+    } catch (e) {
+      console.error(e);
+      setError("Impossible de charger les métriques mobile.");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [rangeQuery, consumeSilentFetch]);
+
+  useRegisterBackofficeRefresh(
+    useCallback(() => {
+      bumpSoftRefresh();
+    }, [bumpSoftRefresh]),
+  );
 
   useEffect(() => {
-    let cancelled = false;
-    const silent = silentNextFetch.current;
-    silentNextFetch.current = false;
-    (async () => {
-      if (!silent) setLoading(true);
-      try {
-        const [metricsRes, statsRes] = await Promise.all([
-          centralMetricsService.fetchMetrics().catch(() => null),
-          statisticsService.getCurrentStatistics().catch(() => null),
-        ]);
-        if (!cancelled) {
-          setMetrics(
-            metricsRes
-              ? (metricsRes as unknown as Record<string, unknown>)
-              : null,
-          );
-          setAppStats(
-            statsRes ? (statsRes as unknown as Record<string, unknown>) : null,
-          );
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (!cancelled && !silent) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
+    void loadData();
+  }, [loadData, softTick]);
+
+  const kpis = useMemo(() => {
+    const snapshots = metrics.filter((p) => p.metricType === "mobile_snapshot");
+    const latest = latestSnapshot(metrics);
+    const latencies = metrics.filter(
+      (p) => p.metricType === "api_latency" && p.duration != null,
+    );
+    const avgLatency =
+      latencies.length > 0
+        ? latencies.reduce((s, p) => s + (p.duration || 0), 0) /
+          latencies.length
+        : null;
+    const devices = new Set(
+      snapshots.map((p) => p.deviceId).filter(Boolean),
+    ).size;
+
+    return {
+      memory: formatMemoryBytes(
+        latest?.memoryUsage ?? latest?.value ?? null,
+      ),
+      sessionMin: latest?.duration
+        ? `${Math.round(latest.duration / 60000)} min`
+        : "—",
+      avgLatency:
+        avgLatency != null ? `${Math.round(avgLatency)} ms` : "—",
+      snapshots: snapshots.length,
+      devices,
     };
-  }, [softTick]);
-
-  const bumpWindowEndToNow = useCallback(() => {
-    silentNextFetch.current = true;
-    setWindowEnd(new Date());
-    setSoftTick((t) => t + 1);
-  }, []);
-
-  const bumpSoftRefresh = useCallback(() => {
-    silentNextFetch.current = true;
-    setSoftTick((t) => t + 1);
-  }, []);
-
-  useAnalyticsAutoRefresh({
-    followLive,
-    useCustomRange,
-    customEnd,
-    bumpWindowEndToNow,
-    bumpSoftRefresh,
-  });
-
-  const { rangeStart, rangeEnd } = useMemo(() => {
-    if (useCustomRange) {
-      const { start, end } = localCalendarDayBounds(customStart, customEnd);
-      return { rangeStart: start, rangeEnd: end };
-    }
-    const { start, end } = getPeriodMs(timeRange, windowEnd);
-    return { rangeStart: start, rangeEnd: end };
-  }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
-
-  const rangeLabel = useCustomRange
-    ? formatCustomRangeLabel(customStart, customEnd)
-    : formatRangeLabel(rangeStart, rangeEnd, timeRange);
-
-  const goPrev = useCallback(() => {
-    if (useCustomRange) {
-      const { start: rs, end: re } = localCalendarDayBounds(
-        customStart,
-        customEnd,
-      );
-      const days = Math.max(
-        1,
-        Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)),
-      );
-      const ns = new Date(rs);
-      ns.setDate(ns.getDate() - days);
-      const ne = new Date(re);
-      ne.setDate(ne.getDate() - days);
-      setCustomStart(ymdLocal(ns));
-      setCustomEnd(ymdLocal(ne));
-      return;
-    }
-    setFollowLive(false);
-    if (timeRange === "today") {
-      const d = new Date(windowEnd);
-      d.setDate(d.getDate() - 1);
-      setWindowEnd(d);
-    } else {
-      const { start } = getPeriodMs(timeRange, windowEnd);
-      const period = windowEnd.getTime() - start.getTime();
-      setWindowEnd(new Date(windowEnd.getTime() - period));
-    }
-  }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
-
-  const goNext = useCallback(() => {
-    if (useCustomRange) {
-      const { start: rs, end: re } = localCalendarDayBounds(
-        customStart,
-        customEnd,
-      );
-      const days = Math.max(
-        1,
-        Math.ceil((re.getTime() - rs.getTime()) / (24 * 60 * 60 * 1000)),
-      );
-      const ns = new Date(rs);
-      ns.setDate(ns.getDate() + days);
-      const ne = new Date(re);
-      ne.setDate(ne.getDate() + days);
-      const today = ymdLocal();
-      if (ymdLocal(ne) > today) {
-        setCustomEnd(today);
-        setCustomStart(
-          ymdLocal(new Date(Date.now() - days * 24 * 60 * 60 * 1000)),
-        );
-      } else {
-        setCustomStart(ymdLocal(ns));
-        setCustomEnd(ymdLocal(ne));
-      }
-      return;
-    }
-    setFollowLive(false);
-    const now = new Date();
-    if (timeRange === "today") {
-      const d = new Date(windowEnd);
-      d.setDate(d.getDate() + 1);
-      if (d <= now) setWindowEnd(d);
-    } else {
-      const { start } = getPeriodMs(timeRange, windowEnd);
-      const period = windowEnd.getTime() - start.getTime();
-      const nextEnd = new Date(windowEnd.getTime() + period);
-      if (nextEnd <= now) setWindowEnd(nextEnd);
-      else setWindowEnd(now);
-    }
-  }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
-
-  const canGoNext = useMemo(() => {
-    if (useCustomRange) return customEnd < ymdLocal();
-    const now = new Date();
-    if (timeRange === "today")
-      return (
-        windowEnd.toISOString().slice(0, 10) < now.toISOString().slice(0, 10)
-      );
-    return windowEnd.getTime() < now.getTime();
-  }, [useCustomRange, customEnd, timeRange, windowEnd]);
-
-  const handlePeriodNow = useCallback(() => {
-    setUseCustomRange(false);
-    setFollowLive(true);
-    setWindowEnd(new Date());
-    setSoftTick((t) => t + 1);
-  }, []);
-
-  const perf = metrics?.performance as Record<string, unknown> | undefined;
-  const system = metrics?.system as Record<string, unknown> | undefined;
-  const health = metrics?.health as Record<string, unknown> | undefined;
+  }, [metrics]);
 
   return (
     <AnalyticsPageShell
       title="Application — performances live"
       description={
         <p>
-          Indicateurs issus de l&apos;application utilisateur et des services
-          (temps de réponse, disponibilité, statistiques).
+          Métriques remontées par l&apos;app mobile (mémoire RSS, durée de
+          session, latence API, compteurs) — consentement télémétrie requis.
+          RSS ~400–500 Mo est normal sur Android (heap Dart + moteur). Les
+          indicateurs infra Docker sont sur{" "}
+          <span className="font-medium">Performances (infra)</span>.
         </p>
       }
       actions={
         <TimeRangeSelector
-          timeRange={timeRange}
-          setTimeRange={setTimeRange}
-          useCustomRange={useCustomRange}
-          setUseCustomRange={setUseCustomRange}
-          customStart={customStart}
-          setCustomStart={setCustomStart}
-          customEnd={customEnd}
-          setCustomEnd={setCustomEnd}
-          rangeLabel={rangeLabel}
-          goPrev={goPrev}
-          goNext={goNext}
-          canGoNext={canGoNext}
-          onPeriodNow={handlePeriodNow}
+            timeRange={timeRange}
+            setTimeRange={setTimeRange}
+            useCustomRange={useCustomRange}
+            setUseCustomRange={setUseCustomRange}
+            customStart={customStart}
+            setCustomStart={setCustomStart}
+            customEnd={customEnd}
+            setCustomEnd={setCustomEnd}
+            rangeLabel={rangeLabel}
+            goPrev={goPrev}
+            goNext={goNext}
+            canGoNext={canGoNext}
+            onPeriodNow={handlePeriodNow}
+          onClearCustomRange={handleClearCustomRange}
         />
       }
       backHref="/backoffice/analytics"
       showApplicationSubNav
     >
       <ChartPeriodCaption label={rangeLabel} />
-      {loading && !metrics && !appStats ? (
-        <div className="flex items-center justify-center min-h-[200px] sm:h-64 text-gray-500 dark:text-gray-400">
+
+      {loading && metrics.length === 0 ? (
+        <div className="flex min-h-[200px] items-center justify-center text-gray-500 dark:text-gray-400 sm:h-64">
           Chargement…
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {perf?.averageResponseTime != null && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Temps de réponse moyen
-              </p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {Number(perf.averageResponseTime).toFixed(0)} ms
-              </p>
+        <>
+          {error ? (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+              {error}
             </div>
-          )}
-          {health?.availability_percent != null && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Disponibilité
-              </p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {Number(health.availability_percent).toFixed(1)} %
-              </p>
+          ) : null}
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
+            <StatCard label="Mémoire RSS (dernier snapshot)" value={kpis.memory} />
+            <StatCard label="Session (durée)" value={kpis.sessionMin} />
+            <StatCard label="Latence API moy." value={kpis.avgLatency} />
+            <StatCard label="Snapshots session" value={kpis.snapshots} />
+            <StatCard label="Appareils (snapshots)" value={kpis.devices} />
+            <StatCard label="Erreurs ouvertes" value={openErrors} />
+          </div>
+
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            {metricsTotal} échantillon(s) sur la période — flush mobile toutes les
+            5 min si télémétrie performances active. Utilisez Actions → Actualiser
+            ou l&apos;icône à côté de la recherche.
+          </p>
+
+          <section className="mt-6 space-y-3">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Derniers échantillons
+            </h2>
+            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+              <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900/40">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium">Horodatage</th>
+                    <th className="px-3 py-2 text-left font-medium">Type</th>
+                    <th className="px-3 py-2 text-left font-medium">Métrique</th>
+                    <th className="px-3 py-2 text-left font-medium">Valeur</th>
+                    <th className="px-3 py-2 text-left font-medium">Page</th>
+                    <th className="px-3 py-2 text-left font-medium">Appareil</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {metrics.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-3 py-8 text-center text-gray-500 dark:text-gray-400"
+                      >
+                        Aucune métrique mobile — connectez-vous sur l&apos;app avec
+                        télémétrie performances activée.
+                      </td>
+                    </tr>
+                  ) : (
+                    metrics.slice(0, 50).map((p) => (
+                      <tr key={p.id}>
+                        <td className="whitespace-nowrap px-3 py-2 text-gray-600 dark:text-gray-300">
+                          {formatTs(p.timestamp)}
+                        </td>
+                        <td className="px-3 py-2">{p.metricType}</td>
+                        <td className="px-3 py-2">{p.metricName}</td>
+                        <td className="px-3 py-2">{formatPerfMetricValue(p)}</td>
+                        <td className="max-w-[10rem] truncate px-3 py-2">
+                          {p.page || "—"}
+                        </td>
+                        <td
+                          className="max-w-[8rem] truncate px-3 py-2 font-mono text-xs"
+                          title={p.deviceId ?? ""}
+                        >
+                          {p.deviceId ? p.deviceId.slice(0, 8) : "—"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
-          {system?.cpu != null &&
-            typeof system.cpu === "object" &&
-            (system.cpu as Record<string, unknown>).usage != null && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  CPU (système projet)
-                </p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {Number(
-                    (system.cpu as Record<string, unknown>).usage,
-                  ).toFixed(1)}{" "}
-                  %
-                </p>
-              </div>
-            )}
-          {appStats?.users != null &&
-            typeof appStats.users === "object" &&
-            (appStats.users as Record<string, unknown>).total != null && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Utilisateurs total
-                </p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {(appStats.users as Record<string, unknown>).total as number}
-                </p>
-              </div>
-            )}
-          {appStats?.applications != null &&
-            typeof appStats.applications === "object" &&
-            (appStats.applications as Record<string, unknown>).total !=
-              null && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4 min-w-0">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Candidatures total
-                </p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {
-                    (appStats.applications as Record<string, unknown>)
-                      .total as number
-                  }
-                </p>
-              </div>
-            )}
-        </div>
-      )}
-      {!loading && !metrics && !appStats && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center text-gray-500 dark:text-gray-400">
-          Aucune donnée de performances applicatives disponible. Vérifiez que le
-          dashboard et les statistiques sont accessibles.
-        </div>
+          </section>
+        </>
       )}
     </AnalyticsPageShell>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="min-w-0 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 sm:p-4">
+      <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">
+        {value}
+      </p>
+    </div>
   );
 }

@@ -76,6 +76,7 @@ services:
       - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - NODE_ENV=${NODE_ENV:?set NODE_ENV in .env}
+      - NOTIFICATION_SERVICE_URL=${NOTIFICATION_SERVICE_URL:-http://notification-service:3008}
       - PORT=3000
       - REDIS_URL=redis://${REDIS_HOST:?set REDIS_HOST in .env}:${REDIS_INTERNAL_PORT:?set REDIS_INTERNAL_PORT in .env}
       - SECURITY_INTERNAL_SECRET=${SECURITY_INTERNAL_SECRET:?set SECURITY_INTERNAL_SECRET in .env}
@@ -767,6 +768,9 @@ services:
       - ./backend/notification-service/src:/app/src
     environment:
       - CRASH_REPORT_EMAIL=${CRASH_REPORT_EMAIL}
+      - CRASH_REPORT_FROM=${CRASH_REPORT_FROM:-${SMTP_FROM}}
+      - CRASH_REPORT_REPLY_TO=${CRASH_REPORT_REPLY_TO:-${CRASH_REPORT_EMAIL}}
+      - CRASH_REPORT_SMTP_MIRROR_ENABLED=${CRASH_REPORT_SMTP_MIRROR_ENABLED:-true}
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production-2025}

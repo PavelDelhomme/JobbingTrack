@@ -23,3 +23,11 @@ export type EmailStatusFilter =
 export type EmailTypeFilter =
   | ""
   | (typeof EMAIL_TYPE_FILTER_OPTIONS)[number]["value"];
+
+export const EMAIL_CHANNEL_FILTER_OPTIONS = [
+  { value: "crash_report", label: "Crash / retour mobile" },
+] as const;
+
+export type EmailChannelFilter =
+  | ""
+  | (typeof EMAIL_CHANNEL_FILTER_OPTIONS)[number]["value"];

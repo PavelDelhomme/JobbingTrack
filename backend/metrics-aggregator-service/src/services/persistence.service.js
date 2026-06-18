@@ -365,7 +365,46 @@ class PersistenceService {
         oldest: range.oldest || null,
         newest: range.newest || null,
       },
+      postgresApplicationTables: await this.getPostgresApplicationTableSizes().catch(() => []),
+      postgresDatabaseBytes: await this.getPostgresDatabaseSizeBytes().catch(() => null),
     };
+  }
+
+  async getPostgresDatabaseSizeBytes() {
+    if (!this.isDatabaseEnabled()) return null;
+    const rows = await prisma.$queryRawUnsafe(`
+      SELECT pg_database_size(current_database())::bigint AS bytes
+    `);
+    return Number(rows?.[0]?.bytes || 0);
+  }
+
+  async getPostgresApplicationTableSizes() {
+    if (!this.isDatabaseEnabled()) return [];
+    const tables = [
+      'email_logs',
+      'user_performances',
+      'user_events',
+      'user_errors',
+      'user_sessions',
+      'notifications',
+      'aggregated_logs',
+      'container_logs',
+    ];
+    const inList = tables.map((t) => `'${t}'`).join(', ');
+    const rows = await prisma.$queryRawUnsafe(`
+      SELECT c.relname AS table_name,
+             pg_total_relation_size(c.oid)::bigint AS bytes
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'public'
+        AND c.relkind = 'r'
+        AND c.relname IN (${inList})
+      ORDER BY bytes DESC
+    `);
+    return (rows || []).map((r) => ({
+      table: r.table_name,
+      bytes: Number(r.bytes || 0),
+    }));
   }
 
   /**

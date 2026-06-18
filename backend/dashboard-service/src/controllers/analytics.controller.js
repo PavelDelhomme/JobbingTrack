@@ -1238,12 +1238,17 @@ class AnalyticsController {
     try {
       const targetUserId = resolveAnalyticsTargetUserId(req);
       if (!assertAnalyticsTargetAccess(req, res, targetUserId)) return;
+      const role = req.user?.role;
+      const isAdmin = isAnalyticsAdmin(role);
       const { 
         limit = 100, 
         offset = 0,
         errorType,
         severity,
-        resolved
+        resolved,
+        scope,
+        platform,
+        excludeFeedback
       } = req.query;
 
       const tw = resolveUserAnalyticsTimeWindow(req.query, 7, 366);
@@ -1254,13 +1259,21 @@ class AnalyticsController {
 
       // ✅ CORRECTION : Gérer le cas où les tables n'existent pas
       try {
-        const where = {
-          userId: targetUserId || undefined
-        };
+        const where = {};
+
+        if (scope === 'application' && isAdmin) {
+          if (platform) applyPlatformFilter(where, platform);
+          if (req.query.userId) where.userId = req.query.userId;
+        } else {
+          where.userId = targetUserId || undefined;
+        }
 
         if (errorType) where.errorType = errorType;
         if (severity) where.severity = severity;
         if (resolved !== undefined) where.resolved = resolved === 'true';
+        if (excludeFeedback === 'true') {
+          where.errorName = { not: 'ManualReport' };
+        }
         where.timestamp = { gte: startDate, lte: endDate };
 
         const [errors, total] = await Promise.all([
@@ -1321,7 +1334,41 @@ class AnalyticsController {
       });
     }
   }
+
+  /**
+   * Marquer une erreur applicative comme traitée / non traitée
+   * PATCH /api/v1/analytics/errors/:id/resolve
+   */
+  async resolveError(req, res) {
+    try {
+      if (!isAnalyticsAdmin(req.user?.role)) {
+        return res.status(403).json({ success: false, error: 'Accès admin requis' });
+      }
+      if (!prisma.userError || typeof prisma.userError.update !== 'function') {
+        return res.status(503).json({ success: false, error: 'Table UserError non disponible' });
+      }
+
+      const { id } = req.params;
+      const resolved = req.body?.resolved !== false;
+
+      const updated = await prisma.userError.update({
+        where: { id: String(id) },
+        data: { resolved: Boolean(resolved) }
+      });
+
+      res.json({ success: true, data: updated });
+    } catch (error) {
+      if (error.code === 'P2025') {
+        return res.status(404).json({ success: false, error: 'Erreur introuvable' });
+      }
+      console.error('[ANALYTICS] Erreur résolution erreur:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erreur lors de la mise à jour du statut',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
 }
 
 module.exports = new AnalyticsController();
-

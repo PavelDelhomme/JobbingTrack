@@ -55,6 +55,20 @@ export interface CrashReportSummary {
   metadata?: Record<string, unknown>;
 }
 
+export interface ApplicationAnalyticsError {
+  id: string;
+  errorType: string;
+  errorName: string;
+  errorMessage: string;
+  severity: string;
+  page?: string | null;
+  platform?: string | null;
+  deviceId?: string | null;
+  appVersion?: string | null;
+  resolved: boolean;
+  timestamp: string;
+}
+
 function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
@@ -153,4 +167,64 @@ export async function fetchCrashReports(
   );
   if (!res.data?.success) return [];
   return res.data.data ?? [];
+}
+
+export async function fetchApplicationErrors(
+  token: string,
+  rangeQuery: string,
+  options?: {
+    limit?: number;
+    offset?: number;
+    resolved?: boolean;
+    severity?: string;
+    excludeFeedback?: boolean;
+  },
+): Promise<PaginatedAnalyticsResult<ApplicationAnalyticsError>> {
+  const params = buildParams(rangeQuery, {
+    scope: "application",
+    platform: "mobile",
+    limit: options?.limit ?? 100,
+    offset: options?.offset ?? 0,
+    resolved:
+      options?.resolved === undefined
+        ? undefined
+        : options.resolved
+          ? "true"
+          : "false",
+    severity: options?.severity,
+    excludeFeedback:
+      options?.excludeFeedback === true ? "true" : undefined,
+  });
+
+  const res = await axios.get(
+    `${FRONTEND_URLS.api}/api/v1/analytics/errors?${params.toString()}`,
+    { headers: authHeaders(token) },
+  );
+  if (!res.data?.success) {
+    return {
+      data: [],
+      pagination: { total: 0, limit: options?.limit ?? 100, offset: 0, pages: 0 },
+    };
+  }
+  return {
+    data: res.data.data ?? [],
+    pagination: res.data.pagination ?? {
+      total: (res.data.data ?? []).length,
+      limit: options?.limit ?? 100,
+      offset: options?.offset ?? 0,
+      pages: 1,
+    },
+  };
+}
+
+export async function resolveApplicationError(
+  token: string,
+  errorId: string,
+  resolved = true,
+): Promise<void> {
+  await axios.patch(
+    `${FRONTEND_URLS.api}/api/v1/analytics/errors/${encodeURIComponent(errorId)}/resolve`,
+    { resolved },
+    { headers: authHeaders(token) },
+  );
 }

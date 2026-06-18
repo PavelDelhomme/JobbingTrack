@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { TimeRangeSelector, ChartPeriodCaption } from "@/components/analytics";
 import { AnalyticsRecordDetailDialog } from "@/components/analytics/AnalyticsRecordDetailDialog";
 import { Pagination } from "@/components/ui/Pagination";
+import { useRegisterBackofficeRefresh } from "@/hooks/useRegisterBackofficeRefresh";
 import { AnalyticsPageShell } from "../ApplicationSubNav";
 import { useApplicationTimeRange } from "../useApplicationTimeRange";
 import {
@@ -12,6 +13,7 @@ import {
   type ApplicationAnalyticsEvent,
   type ApplicationPerformanceMetric,
 } from "@/lib/services/applicationAnalyticsService";
+import { formatPerfMetricValue } from "@/lib/analytics/mobileFeedback";
 
 const PAGE_SIZE = 15;
 
@@ -23,20 +25,13 @@ function formatTs(value: string) {
   }
 }
 
-function formatPerfValue(p: ApplicationPerformanceMetric) {
-  if (p.duration != null) return `${p.duration} ms`;
-  if (p.memoryUsage != null) return `${Math.round(p.memoryUsage)} o`;
-  if (p.networkLatency != null) return `${p.networkLatency} ms`;
-  if (p.value != null) return String(p.value);
-  return "—";
-}
-
 export default function ApplicationActivityPage() {
   const range = useApplicationTimeRange();
   const {
     rangeQuery,
     consumeSilentFetch,
     softTick,
+    bumpSoftRefresh,
     timeRange,
     setTimeRange,
     useCustomRange,
@@ -50,6 +45,7 @@ export default function ApplicationActivityPage() {
     goNext,
     canGoNext,
     handlePeriodNow,
+    handleClearCustomRange,
   } = range;
 
   const [loading, setLoading] = useState(true);
@@ -110,6 +106,12 @@ export default function ApplicationActivityPage() {
       if (!silent) setLoading(false);
     }
   }, [rangeQuery, consumeSilentFetch, eventsPage, perfPage, eventTypeFilter, eventNameFilter]);
+
+  useRegisterBackofficeRefresh(
+    useCallback(() => {
+      bumpSoftRefresh();
+    }, [bumpSoftRefresh]),
+  );
 
   useEffect(() => {
     void loadData();
@@ -182,6 +184,7 @@ export default function ApplicationActivityPage() {
           goNext={goNext}
           canGoNext={canGoNext}
           onPeriodNow={handlePeriodNow}
+          onClearCustomRange={handleClearCustomRange}
         />
       }
       backHref="/backoffice/analytics"
@@ -358,7 +361,7 @@ export default function ApplicationActivityPage() {
                         </td>
                         <td className="px-3 py-2">{p.metricType}</td>
                         <td className="px-3 py-2">{p.metricName}</td>
-                        <td className="px-3 py-2">{formatPerfValue(p)}</td>
+                        <td className="px-3 py-2">{formatPerfMetricValue(p)}</td>
                         <td className="max-w-[12rem] truncate px-3 py-2">{p.page || "—"}</td>
                       </tr>
                     ))

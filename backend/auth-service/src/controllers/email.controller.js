@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const { prisma } = require('../utils/prismaClient');
 const emailService = require('../services/emailService');
+const { maybeDecompressEmailContent } = require('../utils/emailContentCodec');
 const logger = require('../utils/logger');
 const { exec } = require('child_process');
 const { promisify } = require('util');
@@ -20,6 +21,7 @@ const getEmailLogs = async (req, res) => {
       status,
       to,
       q,
+      channel,
       startDate,
       endDate
     } = req.query;
@@ -30,6 +32,9 @@ const getEmailLogs = async (req, res) => {
     // Filtres
     if (type) where.type = type;
     if (status) where.status = status;
+    if (channel === 'crash_report') {
+      where.metadata = { path: ['channel'], equals: 'crash_report' };
+    }
     if (to) where.to = { contains: to, mode: 'insensitive' };
     if (q) {
       const query = String(q).trim();
@@ -100,7 +105,7 @@ const getEmailLogs = async (req, res) => {
 
     res.json({
       success: true,
-      data: logs,
+      data: logs.map(maybeDecompressEmailContent),
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),

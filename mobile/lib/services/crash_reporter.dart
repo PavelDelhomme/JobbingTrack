@@ -6,6 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/services/api_config_store.dart';
+import 'package:jobbingtrack_mobile/services/mobile_device_info.dart';
+import 'package:jobbingtrack_mobile/services/app_version_info.dart';
 
 class CrashReporter {
   static String? _authToken;
@@ -355,22 +358,32 @@ class CrashReporter {
     Map<String, dynamic>? metadata,
   }) async {
     try {
-      final deviceInfo = getDeviceMonitoring();
+      final mobileInfo = await MobileDeviceInfo.collect();
+      final appVersion = await AppVersionInfo.get();
+      final deviceInfo = {
+        ...getDeviceMonitoring(),
+        'deviceModel': mobileInfo['deviceModel'],
+        'osName': mobileInfo['osName'],
+        'osVersion': mobileInfo['osVersion'],
+        'appVersion': appVersion,
+      };
       final analytics = getAnalyticsSummary();
+      final formattedActions = _formatUserActionsForReport();
       final report = {
         'crashType': crashType,
         'message': message.length > 2000 ? message.substring(0, 2000) : message,
         'stackTrace': stackTrace,
         'deviceInfo': deviceInfo,
-        'appVersion': '1.0.0',
+        'appVersion': appVersion,
         'sessionId': _sessionId,
         'screenName': screenName ?? _currentScreen ?? 'unknown',
-        'userActions': _isDevMode
-            ? _actionLog
-            : _actionLog.length > 100
-                ? _actionLog.sublist(_actionLog.length - 100)
-                : _actionLog,
-        'analytics': analytics,
+        'userActions': formattedActions,
+        'analytics': {
+          'sessionDurationMs': analytics['sessionDurationMs'],
+          'totalApiCalls': analytics['totalApiCalls'],
+          'totalErrors': analytics['totalErrors'],
+          'screenVisits': analytics['screenVisits'],
+        },
         'metadata': {
           ...?metadata,
           if (context != null) 'context': context,
@@ -380,8 +393,13 @@ class CrashReporter {
       debugPrint('[CrashReporter] Envoi rapport: $crashType - $message');
 
       final sent = await _sendReport(report);
-      if (_authToken != null && _authToken!.isNotEmpty) {
+      final isUserFeedback = metadata?['feedback'] == true;
+      if (_authToken != null && _authToken!.isNotEmpty && !isUserFeedback) {
+        final deviceId = await ApiConfigStore.getOrCreateDeviceId();
+        final sessionId = await ApiConfigStore.getOrCreateAnalyticsSessionId();
         unawaited(ApiService.postAnalyticsError(
+          sessionId: sessionId,
+          deviceId: deviceId,
           errorType: 'mobile',
           errorName: crashType,
           errorMessage: message,
@@ -503,6 +521,57 @@ class CrashReporter {
     }
   }
 
+  static List<String> _formatUserActionsForReport() {
+    final slice = _actionLog.length > 60
+        ? _actionLog.sublist(_actionLog.length - 60)
+        : List<Map<String, dynamic>>.from(_actionLog);
+    return slice.map(_formatActionLine).toList();
+  }
+
+  static String _formatActionLine(Map<String, dynamic> a) {
+    final type = a['type'] as String? ?? '?';
+    switch (type) {
+      case 'navigation':
+        return 'nav ${a['from'] ?? '?'} → ${a['to'] ?? '?'}';
+      case 'button_tap':
+        return 'tap ${a['buttonId'] ?? '?'} @ ${a['screen'] ?? _currentScreen ?? '?'}';
+      case 'api_call':
+        return 'api ${a['method'] ?? 'GET'} ${a['endpoint'] ?? '?'} → ${a['statusCode'] ?? '?'} (${a['durationMs'] ?? '?'} ms)';
+      case 'network_error':
+        return 'net ${a['statusCode'] ?? '?'} ${a['url'] ?? a['error'] ?? ''}'.trim();
+      case 'form_submit':
+        return 'form ${a['form'] ?? '?'} ${a['success'] == true ? 'OK' : 'KO'}';
+      default:
+        return '$type ${jsonEncode(a)}';
+    }
+  }
+
+  static Future<Map<String, dynamic>> collectCompactDiagnostic() async {
+    final mobileInfo = await MobileDeviceInfo.collect();
+    final analytics = getAnalyticsSummary();
+    final actionsByType = <String, int>{};
+    for (final a in _actionLog) {
+      final t = a['type'] as String? ?? 'unknown';
+      actionsByType[t] = (actionsByType[t] ?? 0) + 1;
+    }
+    return {
+      'deviceModel': mobileInfo['deviceModel'],
+      'osVersion': mobileInfo['osVersion'],
+      'memoryRssMb': getDeviceMonitoring()['memoryRssMb'],
+      'analytics': {
+        'sessionDurationMs': analytics['sessionDurationMs'],
+        'totalApiCalls': analytics['totalApiCalls'],
+        'totalErrors': analytics['totalErrors'],
+        'screenVisits': analytics['screenVisits'],
+        'currentScreen': analytics['currentScreen'],
+      },
+      'actionsByType': actionsByType,
+      'recentActions': _formatUserActionsForReport().take(30).toList(),
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+  }
+
+  /// Diagnostic complet (legacy) — préférer [collectCompactDiagnostic] + compression.
   static Future<Map<String, dynamic>> collectFullDiagnostic() async {
     final deviceInfo = getDeviceMonitoring();
     final analytics = getAnalyticsSummary();

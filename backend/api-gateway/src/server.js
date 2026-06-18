@@ -372,7 +372,7 @@ app.get('/api/v1/health', (req, res) => {
 
 // ✅ Rapports de crash (app mobile) — route dédiée, sans auth, hors notification-service
 // Le notification-service gère uniquement les notifications in-app utilisateur.
-app.post('/api/v1/crashes', (req, res) => {
+app.post('/api/v1/crashes', async (req, res) => {
   try {
     const raw = req.body || {};
     if (!raw.crashType || !raw.message) {
@@ -386,10 +386,14 @@ app.post('/api/v1/crashes', (req, res) => {
       appVersion: raw.appVersion || raw.version || null,
       osVersion: raw.osVersion || null,
       device: raw.device || raw.deviceInfo || null,
+      deviceInfo: raw.deviceInfo || raw.device || null,
       buildNumber: raw.buildNumber || null,
       userId: raw.userId || null,
       sessionId: raw.sessionId || null,
       stackTrace: raw.stackTrace || raw.stack || null,
+      screenName: raw.screenName || null,
+      userActions: raw.userActions || [],
+      metadata: raw.metadata || {},
       ...raw,
     };
     const dir = path.join(__dirname, '..', 'logs', 'crashes');
@@ -399,6 +403,53 @@ app.post('/api/v1/crashes', (req, res) => {
     const filepath = path.join(dir, filename);
     fs.writeFileSync(filepath, JSON.stringify(body, null, 2), 'utf8');
     logger.info('Crash report saved', { file: filename });
+
+    const internalSecret = effectiveSecurityInternalSecret();
+    const notificationUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3008';
+    if (internalSecret) {
+      let forwardUser = null;
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+          const jwt = require('jsonwebtoken');
+          const decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+          forwardUser = {
+            id: decoded.userId,
+            email: decoded.email,
+            role: decoded.role,
+          };
+        } catch (_) {
+          /* JWT optionnel */
+        }
+      }
+      axios.post(
+        `${notificationUrl}/api/v1/notifications/internal/crash-report`,
+        {
+          crashType: body.crashType,
+          message: body.message,
+          stackTrace: body.stackTrace,
+          deviceInfo: body.deviceInfo,
+          appVersion: body.appVersion,
+          sessionId: body.sessionId,
+          screenName: body.screenName,
+          userActions: body.userActions,
+          metadata: body.metadata,
+          userId: forwardUser?.id || body.userId,
+          userEmail: forwardUser?.email,
+          userRole: forwardUser?.role,
+        },
+        {
+          timeout: 8000,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Internal-Secret': internalSecret,
+          },
+        },
+      ).catch((err) => {
+        logger.warn('Crash report email forward failed', { message: err.message });
+      });
+    }
+
     res.status(201).json({ success: true, message: 'Rapport enregistré', file: filename });
   } catch (err) {
     logger.error('Crash report save error:', err.message);

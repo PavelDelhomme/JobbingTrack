@@ -151,6 +151,17 @@ export function useApplicationTimeRange() {
     setSoftTick((t) => t + 1);
   }, []);
 
+  const handleClearCustomRange = useCallback(() => {
+    setUseCustomRange(false);
+    setFollowLive(true);
+    setWindowEnd(new Date());
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    setCustomStart(ymdLocal(d));
+    setCustomEnd(ymdLocal());
+    setSoftTick((t) => t + 1);
+  }, []);
+
   const consumeSilentFetch = useCallback(() => {
     const silent = silentNextFetch.current;
     silentNextFetch.current = false;
@@ -174,6 +185,7 @@ export function useApplicationTimeRange() {
     goNext,
     canGoNext,
     handlePeriodNow,
+    handleClearCustomRange,
     softTick,
     consumeSilentFetch,
     bumpSoftRefresh,

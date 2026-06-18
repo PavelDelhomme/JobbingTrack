@@ -80,6 +80,7 @@ export interface TimeRangeSelectorProps {
   goNext: () => void;
   canGoNext: boolean;
   onPeriodNow?: () => void;
+  onClearCustomRange?: () => void;
   options?: TimeRangeOption[];
   showNavigationHint?: boolean;
 }
@@ -98,6 +99,7 @@ export function TimeRangeSelector({
   goNext,
   canGoNext,
   onPeriodNow,
+  onClearCustomRange,
   options = DEFAULT_OPTIONS,
   showNavigationHint = true,
 }: TimeRangeSelectorProps) {
@@ -197,6 +199,15 @@ export function TimeRangeSelector({
                 Utiliser cette plage
               </span>
             </label>
+            {useCustomRange && onClearCustomRange ? (
+              <button
+                type="button"
+                onClick={onClearCustomRange}
+                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Annuler la plage
+              </button>
+            ) : null}
           </div>
         </div>
       </details>

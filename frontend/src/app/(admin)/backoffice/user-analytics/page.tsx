@@ -36,6 +36,13 @@ import { fetchAnalyticsUsers } from "@/lib/analytics/fetchAnalyticsUsers";
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 
+function formatDeviceIdLabel(deviceId?: string | null): string {
+  if (!deviceId?.trim()) return "ID —";
+  const id = deviceId.trim();
+  if (id.length <= 13) return `ID ${id}`;
+  return `ID ${id.slice(0, 8)}…`;
+}
+
 interface UserStats {
   totalSessions: number;
   activeSessions: number;
@@ -625,7 +632,7 @@ export default function UserAnalyticsPage() {
                               <td className="py-2 pr-4 text-gray-600 dark:text-gray-400">
                                 {s.deviceModel ||
                                   (s.deviceId
-                                    ? `ID ${s.deviceId.slice(0, 12)}…`
+                                    ? formatDeviceIdLabel(s.deviceId)
                                     : "—")}
                                 {s.osName ? (
                                   <span className="block text-xs text-gray-400">
@@ -767,8 +774,8 @@ export default function UserAnalyticsPage() {
                     onViewAll={() => setActiveTab("mobile")}
                     rows={(versionsData?.devices ?? []).slice(0, 5).map((d) => ({
                       id: d.id,
-                      primary: `${d.platform} · ${d.appVersion ?? "?"}`,
-                      secondary: d.deviceModel || d.osName || "—",
+                      primary: `${d.platform} · ${d.osVersion ?? d.osName ?? "?"}`,
+                      secondary: `${d.deviceModel ?? "—"} · ${formatDeviceIdLabel(d.deviceId)}`,
                       meta: new Date(d.lastSeen).toLocaleString("fr-FR"),
                     }))}
                   />
@@ -960,8 +967,11 @@ export default function UserAnalyticsPage() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                             <span>{error.platform || "—"}</span>
                             {error.deviceId ? (
-                              <span className="block text-xs text-gray-400 truncate max-w-[140px]">
-                                {error.deviceId}
+                              <span
+                                className="block text-xs text-gray-400 truncate max-w-[140px]"
+                                title={error.deviceId}
+                              >
+                                {formatDeviceIdLabel(error.deviceId)}
                               </span>
                             ) : null}
                             {error.appVersion ? (
@@ -1101,10 +1111,16 @@ export default function UserAnalyticsPage() {
                         <thead className="bg-gray-50 dark:bg-gray-900">
                           <tr>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                              ID appareil
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                               Plateforme
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                              Modèle / OS
+                              Modèle
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                              Version OS
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                               Version app
@@ -1120,11 +1136,19 @@ export default function UserAnalyticsPage() {
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                           {versionsData.devices.map((d) => (
                             <tr key={d.id}>
+                              <td className="px-4 py-3 text-sm font-mono text-gray-600 dark:text-gray-400">
+                                <span title={d.deviceId}>
+                                  {formatDeviceIdLabel(d.deviceId)}
+                                </span>
+                              </td>
                               <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
                                 {d.platform}
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                                {d.deviceModel || d.osName || "—"}
+                                {d.deviceModel || "—"}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                                {d.osVersion || d.osName || "—"}
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
                                 {d.appVersion || "—"}
