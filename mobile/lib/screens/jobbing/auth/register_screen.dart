@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
-import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/pending_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -115,9 +114,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       appBar: AppBar(
         title: const Text('Inscription'),
         centerTitle: true,
-        actions: [
-          MobileNotificationCenter(),
-        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(

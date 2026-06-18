@@ -336,28 +336,30 @@ services:
     networks:
       - jobbingtrack-network
 
-  # Grafana pour les dashboards
-  grafana:
-    image: grafana/grafana:latest
-    container_name: jobbingtrack-grafana-prod
-    mem_limit: ${GRAFANA_MEMORY_LIMIT:-384m}
-    restart: unless-stopped
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana-dashboards:/var/lib/grafana/dashboards
-    networks:
-      - jobbingtrack-network
+  # [OBSOLÈTE] Grafana — remplacé par backoffice Performances + metrics-aggregator.
+  # Conserver commenté tant que prod n'a pas validé le retrait définitif.
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: jobbingtrack-grafana-prod
+  #   profiles: ["legacy-monitoring"]
+  #   mem_limit: ${GRAFANA_MEMORY_LIMIT:-384m}
+  #   restart: unless-stopped
+  #   environment:
+  #     GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+  #     GF_USERS_ALLOW_SIGN_UP: "false"
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+  #     - ./monitoring/grafana-dashboards:/var/lib/grafana/dashboards
+  #   networks:
+  #     - jobbingtrack-network
 
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
-  grafana_data:
-    driver: local
+  # grafana_data:
+  #   driver: local
   docker_stats:
     driver: local
 

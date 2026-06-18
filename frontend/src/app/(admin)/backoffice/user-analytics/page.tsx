@@ -14,6 +14,17 @@ import {
   Smartphone,
 } from "lucide-react";
 import axios from "axios";
+import { Pagination } from "@/components/ui/Pagination";
+import { AnalyticsRecordDetailDialog } from "@/components/analytics/AnalyticsRecordDetailDialog";
+import { OverviewPreview } from "@/components/analytics/OverviewPreview";
+import { useClientPagination } from "@/lib/hooks/useClientPagination";
+import {
+  classifyEventSource,
+  eventSourceLabel,
+  filterEventsBySource,
+  uniqueEventTypes,
+  type EventSourceFilter,
+} from "@/lib/analytics/eventSource";
 
 interface UserStats {
   totalSessions: number;
@@ -32,6 +43,8 @@ interface UserEvent {
   eventName: string;
   category: string;
   page: string;
+  platform?: string | null;
+  deviceId?: string | null;
   timestamp: string;
   properties: any;
 }
@@ -67,9 +80,16 @@ interface VersionsData {
     Array<{ appVersion: string; count: number }>
   >;
   performances: Array<{
+    id?: string;
     metricType?: string;
     metricName?: string;
     value?: number;
+    duration?: number;
+    memoryUsage?: number;
+    networkLatency?: number;
+    page?: string;
+    platform?: string;
+    deviceId?: string;
     timestamp: string;
   }>;
 }
@@ -95,6 +115,22 @@ export default function UserAnalyticsPage() {
   >("overview");
   const [versionsData, setVersionsData] = useState<VersionsData | null>(null);
   const [eventsLoadError, setEventsLoadError] = useState<string | null>(null);
+  const [detailTitle, setDetailTitle] = useState("");
+  const [detailRecord, setDetailRecord] = useState<Record<string, unknown> | null>(null);
+  const [eventSourceFilter, setEventSourceFilter] =
+    useState<EventSourceFilter>("all");
+  const [eventTypeFilter, setEventTypeFilter] = useState("all");
+
+  const filteredEvents = useMemo(
+    () => filterEventsBySource(events, eventSourceFilter, eventTypeFilter),
+    [events, eventSourceFilter, eventTypeFilter],
+  );
+  const eventTypeOptions = useMemo(() => uniqueEventTypes(events), [events]);
+
+  const eventsPagination = useClientPagination(filteredEvents, 15);
+  const errorsPagination = useClientPagination(errors, 15);
+  const perfList = versionsData?.performances ?? [];
+  const perfPagination = useClientPagination(perfList, 15);
 
   const rangeQuery = useMemo(() => {
     if (rangeMode === "custom") {
@@ -182,6 +218,10 @@ export default function UserAnalyticsPage() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    eventsPagination.resetPage();
+  }, [eventSourceFilter, eventTypeFilter]);
 
   return (
     <AdminLayout>
@@ -408,15 +448,94 @@ export default function UserAnalyticsPage() {
                     ))}
                   </div>
                 </div>
+
+                {/* Aperçus onglets détaillés */}
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <OverviewPreview
+                    title="Derniers événements"
+                    empty="Aucun événement — vérifiez la télémétrie mobile (connecté + consentement)."
+                    onViewAll={() => setActiveTab("events")}
+                    rows={events.slice(0, 5).map((e) => ({
+                      id: e.id,
+                      primary: `${e.eventType} · ${e.eventName}`,
+                      secondary: e.page || "—",
+                      meta: new Date(e.timestamp).toLocaleString("fr-FR"),
+                    }))}
+                  />
+                  <OverviewPreview
+                    title="Dernières erreurs"
+                    empty="Aucune erreur enregistrée sur la période."
+                    onViewAll={() => setActiveTab("errors")}
+                    rows={errors.slice(0, 5).map((e) => ({
+                      id: e.id,
+                      primary: e.errorType,
+                      secondary: e.errorMessage,
+                      meta: e.severity,
+                    }))}
+                  />
+                  <OverviewPreview
+                    title="Échantillons performance"
+                    empty="Aucune métrique — l'app mobile envoie des snapshots toutes les 5 min si consentement actif."
+                    onViewAll={() => setActiveTab("performance")}
+                    rows={(versionsData?.performances ?? []).slice(0, 5).map((p, i) => ({
+                      id: String(i),
+                      primary: `${p.metricType ?? "—"} · ${p.metricName ?? "—"}`,
+                      secondary: p.value != null ? String(p.value) : "—",
+                      meta: new Date(p.timestamp).toLocaleString("fr-FR"),
+                    }))}
+                  />
+                  <OverviewPreview
+                    title="Appareils enregistrés"
+                    empty="Aucun appareil — enregistrement au login mobile avec télémétrie active."
+                    onViewAll={() => setActiveTab("mobile")}
+                    rows={(versionsData?.devices ?? []).slice(0, 5).map((d) => ({
+                      id: d.id,
+                      primary: `${d.platform} · ${d.appVersion ?? "?"}`,
+                      secondary: d.deviceModel || d.osName || "—",
+                      meta: new Date(d.lastSeen).toLocaleString("fr-FR"),
+                    }))}
+                  />
+                </div>
               </div>
             )}
 
             {activeTab === "events" && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Événements récents
-                  </h3>
+                <div className="flex flex-col gap-3 border-b border-gray-200 px-6 py-4 dark:border-gray-700 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Événements
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      Filtrez par source (backoffice, app mobile, appels API) et par type.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <select
+                      value={eventSourceFilter}
+                      onChange={(e) =>
+                        setEventSourceFilter(e.target.value as EventSourceFilter)
+                      }
+                      className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    >
+                      <option value="all">Toutes sources</option>
+                      <option value="mobile">App mobile</option>
+                      <option value="backoffice">Backoffice / web</option>
+                      <option value="api">API / réseau</option>
+                    </select>
+                    <select
+                      value={eventTypeFilter}
+                      onChange={(e) => setEventTypeFilter(e.target.value)}
+                      className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    >
+                      <option value="all">Tous types</option>
+                      {eventTypeOptions.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 {eventsLoadError && (
                   <div className="mx-6 mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-800 dark:text-amber-200 text-sm">
@@ -428,13 +547,16 @@ export default function UserAnalyticsPage() {
                     <thead className="bg-gray-50 dark:bg-gray-900">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                          Source
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                           Type
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                           Nom
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                          Page
+                          Page / plateforme
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                           Date
@@ -442,8 +564,20 @@ export default function UserAnalyticsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {events.map((event) => (
-                        <tr key={event.id}>
+                      {eventsPagination.slice.map((event) => (
+                        <tr
+                          key={event.id}
+                          className="cursor-pointer hover:bg-blue-50/60 dark:hover:bg-blue-950/20"
+                          onClick={() => {
+                            setDetailTitle(`Événement · ${event.eventName}`);
+                            setDetailRecord(event as unknown as Record<string, unknown>);
+                          }}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                              {eventSourceLabel(classifyEventSource(event))}
+                            </span>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                               {event.eventType}
@@ -453,7 +587,12 @@ export default function UserAnalyticsPage() {
                             {event.eventName}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                            {event.page || "N/A"}
+                            <span>{event.page || "—"}</span>
+                            {event.platform ? (
+                              <span className="ml-1 text-xs text-gray-400">
+                                ({event.platform})
+                              </span>
+                            ) : null}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                             {new Date(event.timestamp).toLocaleString("fr-FR")}
@@ -463,6 +602,19 @@ export default function UserAnalyticsPage() {
                     </tbody>
                   </table>
                 </div>
+                <Pagination
+                  currentPage={eventsPagination.page}
+                  totalPages={eventsPagination.totalPages}
+                  totalItems={eventsPagination.totalItems}
+                  itemsPerPage={eventsPagination.pageSize}
+                  startIndex={eventsPagination.startIndex}
+                  endIndex={eventsPagination.endIndex}
+                  onPageChange={eventsPagination.goToPage}
+                  onNext={eventsPagination.goNext}
+                  onPrevious={eventsPagination.goPrevious}
+                  canGoNext={eventsPagination.canGoNext}
+                  canGoPrevious={eventsPagination.canGoPrevious}
+                />
               </div>
             )}
 
@@ -495,8 +647,15 @@ export default function UserAnalyticsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {errors.map((error) => (
-                        <tr key={error.id}>
+                      {errorsPagination.slice.map((error) => (
+                        <tr
+                          key={error.id}
+                          className="cursor-pointer hover:bg-blue-50/60 dark:hover:bg-blue-950/20"
+                          onClick={() => {
+                            setDetailTitle(`Erreur · ${error.errorType}`);
+                            setDetailRecord(error as unknown as Record<string, unknown>);
+                          }}
+                        >
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
                               {error.errorType}
@@ -529,6 +688,19 @@ export default function UserAnalyticsPage() {
                     </tbody>
                   </table>
                 </div>
+                <Pagination
+                  currentPage={errorsPagination.page}
+                  totalPages={errorsPagination.totalPages}
+                  totalItems={errorsPagination.totalItems}
+                  itemsPerPage={errorsPagination.pageSize}
+                  startIndex={errorsPagination.startIndex}
+                  endIndex={errorsPagination.endIndex}
+                  onPageChange={errorsPagination.goToPage}
+                  onNext={errorsPagination.goNext}
+                  onPrevious={errorsPagination.goPrevious}
+                  canGoNext={errorsPagination.canGoNext}
+                  canGoPrevious={errorsPagination.canGoPrevious}
+                />
               </div>
             )}
 
@@ -546,29 +718,41 @@ export default function UserAnalyticsPage() {
                   </p>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-6 shadow dark:border-gray-700 dark:bg-gray-800">
+                  <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                    Cliquez sur une ligne pour le détail (mémoire, durée, session, appareil…).
+                  </p>
                   {versionsData?.performances?.length ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-gray-50 dark:bg-gray-900">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                              Type
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                              Métrique
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                              Valeur
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                              Date
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                          {versionsData.performances.map(
-                            (p: any, i: number) => (
-                              <tr key={i}>
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50 dark:bg-gray-900">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                                Type
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                                Métrique
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                                Valeur
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                                Date
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                            {perfPagination.slice.map((p, i) => (
+                              <tr
+                                key={`${p.timestamp}-${i}`}
+                                className="cursor-pointer hover:bg-blue-50/60 dark:hover:bg-blue-950/20"
+                                onClick={() => {
+                                  setDetailTitle(
+                                    `Performance · ${p.metricName ?? p.metricType ?? "échantillon"}`,
+                                  );
+                                  setDetailRecord(p as unknown as Record<string, unknown>);
+                                }}
+                              >
                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
                                   {p.metricType || "—"}
                                 </td>
@@ -579,21 +763,32 @@ export default function UserAnalyticsPage() {
                                   {p.value != null ? p.value : "—"}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                                  {new Date(p.timestamp).toLocaleString(
-                                    "fr-FR",
-                                  )}
+                                  {new Date(p.timestamp).toLocaleString("fr-FR")}
                                 </td>
                               </tr>
-                            ),
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <Pagination
+                        className="mt-4"
+                        currentPage={perfPagination.page}
+                        totalPages={perfPagination.totalPages}
+                        totalItems={perfPagination.totalItems}
+                        itemsPerPage={perfPagination.pageSize}
+                        startIndex={perfPagination.startIndex}
+                        endIndex={perfPagination.endIndex}
+                        onPageChange={perfPagination.goToPage}
+                        onNext={perfPagination.goNext}
+                        onPrevious={perfPagination.goPrevious}
+                        canGoNext={perfPagination.canGoNext}
+                        canGoPrevious={perfPagination.canGoPrevious}
+                      />
+                    </>
                   ) : (
                     <p className="text-gray-500 dark:text-gray-400">
-                      Aucune métrique sur cette période. Les mesures sont
-                      enregistrées côté mobile / web lorsque le client envoie
-                      des événements performance.
+                      Aucune métrique sur cette période. Connectez-vous sur l&apos;app
+                      mobile avec télémétrie active — snapshots envoyés toutes les 5 min.
                     </p>
                   )}
                 </div>
@@ -757,6 +952,16 @@ export default function UserAnalyticsPage() {
           </>
         )}
       </div>
+
+      <AnalyticsRecordDetailDialog
+        open={detailRecord != null}
+        title={detailTitle}
+        record={detailRecord}
+        onClose={() => {
+          setDetailRecord(null);
+          setDetailTitle("");
+        }}
+      />
     </AdminLayout>
   );
 }

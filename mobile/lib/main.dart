@@ -15,13 +15,8 @@ import 'package:jobbingtrack_mobile/providers/notification_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/login_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/register_screen.dart';
-import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/home_screen.dart';
-import 'package:jobbingtrack_mobile/screens/jobbing/applications/applications_screen.dart';
+import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
-import 'package:jobbingtrack_mobile/screens/jobbing/companies/companies_screen.dart';
-import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contacts_screen.dart';
-import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interviews_screen.dart';
-import 'package:jobbingtrack_mobile/screens/jobbing/users/profile_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/users/settings_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/analytics_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/logs/logs_screen.dart';
@@ -30,9 +25,7 @@ import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/statistics_screen.
 import 'package:jobbingtrack_mobile/screens/jobbing/test_data/test_data_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/trash/trash_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/users/users_screen.dart';
-import 'package:jobbingtrack_mobile/screens/jobbing/followups/followups_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/calls/calls_screen.dart';
-import 'package:jobbingtrack_mobile/screens/jobbing/calendar/events_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/forgot_password_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/reset_password_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/verify_email_screen.dart';
@@ -139,13 +132,36 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/forgot-password': (context) => const ForgotPasswordScreen(),
-          '/home': (context) => const HomeScreen(),
-          '/applications': (context) => const ApplicationsScreen(),
+          '/home': (context) => ShellNavigation.buildShell(context),
+          '/applications': (context) => ShellNavigation.buildShell(
+                context,
+                fallback: ShellNavigation.argsForRoute('/applications'),
+              ),
+          '/companies': (context) => ShellNavigation.buildShell(
+                context,
+                fallback: ShellNavigation.argsForRoute('/companies'),
+              ),
+          '/contacts': (context) => ShellNavigation.buildShell(
+                context,
+                fallback: ShellNavigation.argsForRoute('/contacts'),
+              ),
+          '/interviews': (context) => ShellNavigation.buildShell(
+                context,
+                fallback: ShellNavigation.argsForRoute('/interviews'),
+              ),
+          '/followups': (context) => ShellNavigation.buildShell(
+                context,
+                fallback: ShellNavigation.argsForRoute('/followups'),
+              ),
+          '/events': (context) => ShellNavigation.buildShell(
+                context,
+                fallback: ShellNavigation.argsForRoute('/events'),
+              ),
+          '/profile': (context) => ShellNavigation.buildShell(
+                context,
+                fallback: ShellNavigation.argsForRoute('/profile'),
+              ),
           '/application-form': (context) => const ApplicationFormScreen(),
-          '/companies': (context) => const CompaniesScreen(),
-          '/contacts': (context) => const ContactsScreen(),
-          '/interviews': (context) => const InterviewsScreen(),
-          '/profile': (context) => const ProfileScreen(),
           '/settings': (context) => const SettingsScreen(),
           '/analytics': (context) => const AdminGuard(child: AnalyticsScreen()),
           '/logs': (context) => const AdminGuard(child: LogsScreen()),
@@ -154,9 +170,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/test-data': (context) => const AdminGuard(child: TestDataScreen()),
           '/trash': (context) => const AdminGuard(child: TrashScreen()),
           '/users': (context) => const AdminGuard(child: UsersScreen()),
-          '/followups': (context) => const FollowUpsScreen(),
           '/calls': (context) => const CallsScreen(),
-          '/events': (context) => const EventsScreen(),
           '/interim': (context) => const InterimScreen(),
           '/biometric-unlock': (context) => const BiometricUnlockScreen(),
           '/admin': (context) => const AdminGuard(child: AdminScreen()),

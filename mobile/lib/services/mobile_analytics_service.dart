@@ -17,8 +17,12 @@ class MobileAnalyticsService {
   bool _activityTraceEnabled = true;
   String? _sessionId;
   String? _deviceId;
+  String? _authToken;
   Timer? _syncTimer;
   bool _sessionStarted = false;
+
+  String get _platform =>
+      Platform.isAndroid ? 'android' : (Platform.isIOS ? 'ios' : 'mobile');
 
   bool get isEnabled => _consent;
   bool get performanceEnabled => _consent && _performanceEnabled;
@@ -30,7 +34,10 @@ class MobileAnalyticsService {
     _activityTraceEnabled = await ApiConfigStore.loadActivityTraceEnabled();
     _sessionId = await ApiConfigStore.getOrCreateAnalyticsSessionId();
     _deviceId = await ApiConfigStore.getOrCreateDeviceId();
-    if (authToken != null) CrashReporter.setToken(authToken);
+    if (authToken != null) {
+      _authToken = authToken;
+      CrashReporter.setToken(authToken);
+    }
 
     ApiService.onRequestComplete = _onApiRequestComplete;
 
@@ -45,7 +52,10 @@ class MobileAnalyticsService {
     _consent = enabled;
     await ApiConfigStore.saveAnalyticsConsent(enabled);
     if (enabled) {
-      if (authToken != null) CrashReporter.setToken(authToken);
+      if (authToken != null) {
+        _authToken = authToken;
+        CrashReporter.setToken(authToken);
+      }
       await _startSession();
       _syncTimer?.cancel();
       _syncTimer = Timer.periodic(const Duration(minutes: 5), (_) => flushTelemetry());
@@ -67,17 +77,39 @@ class MobileAnalyticsService {
     await ApiConfigStore.saveActivityTraceEnabled(enabled);
   }
 
+  Future<void> updateAuthToken(String? authToken) async {
+    _authToken = authToken;
+    if (authToken != null) {
+      CrashReporter.setToken(authToken);
+      if (_consent) await _registerDevice();
+    }
+  }
+
   Future<void> _startSession() async {
     if (_sessionStarted || _sessionId == null) return;
+    final platform = Platform.isAndroid ? 'android' : (Platform.isIOS ? 'ios' : 'mobile');
     await ApiService.postAnalyticsSession(
       sessionId: _sessionId!,
       deviceId: _deviceId,
-      platform: Platform.isAndroid ? 'android' : (Platform.isIOS ? 'ios' : 'mobile'),
+      platform: platform,
       osName: Platform.operatingSystem,
       osVersion: Platform.operatingSystemVersion,
-      token: null,
+      token: _authToken,
     );
+    await _registerDevice();
     _sessionStarted = true;
+  }
+
+  Future<void> _registerDevice() async {
+    if (_deviceId == null) return;
+    final platform = Platform.isAndroid ? 'android' : (Platform.isIOS ? 'ios' : 'mobile');
+    await ApiService.postAnalyticsDevice(
+      deviceId: _deviceId!,
+      platform: platform,
+      osName: Platform.operatingSystem,
+      osVersion: Platform.operatingSystemVersion,
+      token: _authToken,
+    );
   }
 
   static String sanitizeEndpoint(String path) {
@@ -87,9 +119,15 @@ class MobileAnalyticsService {
   }
 
   void _onApiRequestComplete(String path, int statusCode, int durationMs) {
-    if (!performanceEnabled) return;
+    if (!performanceEnabled && !activityTraceEnabled) return;
     final sanitized = sanitizeEndpoint(path);
     CrashReporter.trackApiCall(sanitized, statusCode, durationMs);
+
+    if (statusCode >= 400) {
+      unawaited(_reportApiError(sanitized, statusCode, durationMs));
+    }
+
+    if (!performanceEnabled) return;
     if (durationMs > 3000) {
       unawaited(ApiService.postAnalyticsPerformance(
         sessionId: _sessionId,
@@ -99,14 +137,52 @@ class MobileAnalyticsService {
         duration: durationMs,
         networkLatency: durationMs,
         page: CrashReporter.currentScreenName,
-        platform: 'mobile',
-        token: null,
+        platform: _platform,
+        token: _authToken,
       ));
     }
   }
 
+  Future<void> _reportApiError(String endpoint, int statusCode, int durationMs) async {
+    if (!_consent) return;
+    final message = 'HTTP $statusCode sur $endpoint (${durationMs}ms)';
+    await ApiService.postAnalyticsError(
+      sessionId: _sessionId,
+      deviceId: _deviceId,
+      errorType: 'api',
+      errorName: 'api_error',
+      errorMessage: message,
+      page: CrashReporter.currentScreenName,
+      platform: _platform,
+      severity: statusCode >= 500 ? 'critical' : 'warning',
+      properties: {
+        'endpoint': endpoint,
+        'statusCode': statusCode,
+        'durationMs': durationMs,
+      },
+      token: _authToken,
+    );
+    await ApiService.postAnalyticsEvent(
+      sessionId: _sessionId,
+      deviceId: _deviceId,
+      eventType: 'api',
+      eventName: 'api_error',
+      category: 'api',
+      page: CrashReporter.currentScreenName,
+      platform: _platform,
+      properties: {
+        'endpoint': endpoint,
+        'statusCode': statusCode,
+        'durationMs': durationMs,
+      },
+      token: _authToken,
+    );
+  }
+
   Future<void> trackScreen(String screenName) async {
-    CrashReporter.setCurrentScreen(screenName);
+    final normalized = _normalizeScreenName(screenName);
+    if (normalized == null) return;
+    CrashReporter.setCurrentScreen(normalized);
     if (!activityTraceEnabled) return;
     await ApiService.postAnalyticsEvent(
       sessionId: _sessionId,
@@ -114,11 +190,37 @@ class MobileAnalyticsService {
       eventType: 'navigation',
       eventName: 'screen_view',
       category: 'mobile',
-      page: screenName,
-      platform: 'mobile',
+      page: normalized,
+      platform: _platform,
       properties: {'anonymized': true},
-      token: null,
+      token: _authToken,
     );
+  }
+
+  static String? _normalizeScreenName(String raw) {
+    if (raw.isEmpty) return null;
+    if (raw.startsWith('/')) {
+      const allowed = {
+        '/home', '/login', '/register', '/settings', '/search',
+        '/applications', '/companies', '/contacts', '/interviews',
+        '/followups', '/calls', '/events', '/profile', '/admin',
+        '/analytics', '/statistics', '/interim',
+      };
+      return allowed.contains(raw) ? raw : null;
+    }
+    if (raw.contains('MaterialPageRoute') ||
+        raw.contains('DialogRoute') ||
+        raw.contains('PopupRoute') ||
+        raw.startsWith('_')) {
+      return null;
+    }
+    const suffixes = ['Screen', 'Tab', 'Page'];
+    for (final s in suffixes) {
+      if (raw.endsWith(s) && raw.length > s.length) {
+        return raw.substring(0, raw.length - s.length);
+      }
+    }
+    return raw;
   }
 
   Future<void> flushTelemetry() async {
@@ -138,9 +240,9 @@ class MobileAnalyticsService {
       duration: summary['sessionDurationMs'] as int?,
       memoryUsage: device['memoryRssBytes'] as int?,
       page: CrashReporter.currentScreenName,
-      platform: 'mobile',
+      platform: _platform,
       value: summary['totalApiCalls'] as int?,
-      token: null,
+      token: _authToken,
     );
   }
 
@@ -154,7 +256,7 @@ class MobileAnalyticsService {
       eventName: 'activity_batch',
       category: 'mobile',
       page: CrashReporter.currentScreenName,
-      platform: 'mobile',
+      platform: _platform,
       properties: {
         'anonymized': true,
         'actionsByType': actionsByType,
@@ -162,7 +264,7 @@ class MobileAnalyticsService {
         'totalNavigations': diagnostic['analytics']?['totalNavigations'],
         'totalErrors': diagnostic['analytics']?['totalErrors'],
       },
-      token: null,
+      token: _authToken,
     );
   }
 
@@ -212,9 +314,9 @@ class MobileAnalyticsService {
         eventName: category,
         category: 'mobile',
         page: CrashReporter.currentScreenName,
-        platform: 'mobile',
+        platform: _platform,
         properties: {'messageLength': trimmed.length, 'includeDiagnostics': includeDiagnostics},
-        token: authToken,
+        token: authToken ?? _authToken,
       );
     }
   }
@@ -250,7 +352,8 @@ class MobileAnalyticsRouteObserver extends RouteObserver<PageRoute<dynamic>> {
   }
 
   void _track(Route<dynamic> route) {
-    final name = route.settings.name ?? route.runtimeType.toString();
+    final name = route.settings.name;
+    if (name == null || name.isEmpty) return;
     unawaited(MobileAnalyticsService.instance.trackScreen(name));
   }
 }

@@ -37,7 +37,6 @@ OPTIONAL_VARS=(
     "SMTP_PASS"
     "SMTP_FROM"
     "ALLOWED_ORIGINS"
-    "GRAFANA_ADMIN_PASSWORD"
 )
 
 echo "🔍 Vérification des variables requises..."

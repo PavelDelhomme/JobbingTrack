@@ -9,6 +9,7 @@ import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
+import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
@@ -20,10 +21,12 @@ import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/widgets/application_card.dart';
-import 'package:jobbingtrack_mobile/widgets/global_search_entry_bar.dart';
 
 class ApplicationsScreen extends StatefulWidget {
-  const ApplicationsScreen({super.key});
+  final int initialTabIndex;
+  final String? statusFilter;
+
+  const ApplicationsScreen({super.key, this.initialTabIndex = 0, this.statusFilter});
 
   @override
   State<ApplicationsScreen> createState() => _ApplicationsScreenState();
@@ -32,15 +35,33 @@ class ApplicationsScreen extends StatefulWidget {
 class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTickerProviderStateMixin {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   late TabController _tabController;
+  String? _statusFilter;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _statusFilter = widget.statusFilter;
+    _tabController = TabController(
+      length: 5,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 4),
+    );
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadAll());
+  }
+
+  @override
+  void didUpdateWidget(covariant ApplicationsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialTabIndex != widget.initialTabIndex &&
+        _tabController.index != widget.initialTabIndex) {
+      _tabController.animateTo(widget.initialTabIndex.clamp(0, 4));
+    }
+    if (oldWidget.statusFilter != widget.statusFilter) {
+      setState(() => _statusFilter = widget.statusFilter);
+    }
   }
 
   @override
@@ -100,8 +121,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
         title: const Text('Candidatures'),
         centerTitle: true,
         actions: [
-          globalSearchIconButton(context),
           const MobileNotificationCenter(),
+          const ShellAppBarMenu(),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -150,7 +171,10 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
 
   Widget _buildCandidaturesTab() {
     final appProvider = Provider.of<ApplicationProvider>(context);
-    final applications = appProvider.applications;
+    var applications = appProvider.applications;
+    if (_statusFilter != null && _statusFilter!.isNotEmpty) {
+      applications = applications.where((a) => a.status == _statusFilter).toList();
+    }
     final error = appProvider.lastError;
     return SafeArea(
       child: Padding(
@@ -160,14 +184,36 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
             : error != null && error.isNotEmpty && applications.isEmpty
                 ? _buildErrorState(error)
                 : applications.isEmpty
-                ? _buildEmptyState()
+                ? Column(
+                    children: [
+                      if (_statusFilter != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: InputChip(
+                            label: Text('Filtre : ${applicationStatusLabel(_statusFilter!)}'),
+                            onDeleted: () => setState(() => _statusFilter = null),
+                          ),
+                        ),
+                      Expanded(child: _buildEmptyState()),
+                    ],
+                  )
                 : RefreshIndicator(
                     onRefresh: _loadApplications,
                     child: ListView.builder(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      itemCount: applications.length,
+                      itemCount: applications.length + (_statusFilter != null ? 1 : 0),
                       itemBuilder: (context, index) {
-                        final application = applications[index];
+                        if (_statusFilter != null && index == 0) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: InputChip(
+                              label: Text('Filtre : ${applicationStatusLabel(_statusFilter!)}'),
+                              onDeleted: () => setState(() => _statusFilter = null),
+                            ),
+                          );
+                        }
+                        final i = _statusFilter != null ? index - 1 : index;
+                        final application = applications[i];
                         return ApplicationCard(
                           application: application,
                           onTap: () => _openApplicationDetail(application),

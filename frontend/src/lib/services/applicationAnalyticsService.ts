@@ -9,6 +9,9 @@ export interface ApplicationAnalyticsEvent {
   page?: string | null;
   platform?: string | null;
   deviceId?: string | null;
+  sessionId?: string | null;
+  appVersion?: string | null;
+  userId?: string | null;
   timestamp: string;
   properties?: Record<string, unknown> | null;
 }
@@ -20,11 +23,27 @@ export interface ApplicationPerformanceMetric {
   duration?: number | null;
   memoryUsage?: number | null;
   networkLatency?: number | null;
+  cpuUsage?: number | null;
   value?: number | null;
   page?: string | null;
   platform?: string | null;
   deviceId?: string | null;
+  sessionId?: string | null;
+  appVersion?: string | null;
+  userId?: string | null;
   timestamp: string;
+}
+
+export interface AnalyticsPaginationMeta {
+  total: number;
+  limit: number;
+  offset: number;
+  pages: number;
+}
+
+export interface PaginatedAnalyticsResult<T> {
+  data: T[];
+  pagination: AnalyticsPaginationMeta;
 }
 
 export interface CrashReportSummary {
@@ -40,51 +59,88 @@ function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
 
-export async function fetchApplicationEvents(
-  token: string,
+function buildParams(
   rangeQuery: string,
-  filters?: { eventType?: string; eventName?: string },
-): Promise<ApplicationAnalyticsEvent[]> {
-  const params = new URLSearchParams({
-    scope: "application",
-    platform: "mobile",
-    limit: "200",
-  });
+  extra: Record<string, string | number | undefined>,
+) {
+  const params = new URLSearchParams();
   for (const part of rangeQuery.split("&")) {
     const [k, v] = part.split("=");
     if (k && v) params.set(k, decodeURIComponent(v));
   }
-  if (filters?.eventType) params.set("eventType", filters.eventType);
-  if (filters?.eventName) params.set("eventName", filters.eventName);
+  for (const [k, v] of Object.entries(extra)) {
+    if (v !== undefined && v !== "") params.set(k, String(v));
+  }
+  return params;
+}
+
+export async function fetchApplicationEvents(
+  token: string,
+  rangeQuery: string,
+  filters?: { eventType?: string; eventName?: string; limit?: number; offset?: number },
+): Promise<PaginatedAnalyticsResult<ApplicationAnalyticsEvent>> {
+  const params = buildParams(rangeQuery, {
+    scope: "application",
+    platform: "mobile",
+    limit: filters?.limit ?? 200,
+    offset: filters?.offset ?? 0,
+    eventType: filters?.eventType,
+    eventName: filters?.eventName,
+  });
 
   const res = await axios.get(
     `${FRONTEND_URLS.api}/api/v1/analytics/events?${params.toString()}`,
     { headers: authHeaders(token) },
   );
-  if (!res.data?.success) return [];
-  return res.data.data ?? [];
+  if (!res.data?.success) {
+    return {
+      data: [],
+      pagination: { total: 0, limit: filters?.limit ?? 200, offset: 0, pages: 0 },
+    };
+  }
+  return {
+    data: res.data.data ?? [],
+    pagination: res.data.pagination ?? {
+      total: (res.data.data ?? []).length,
+      limit: filters?.limit ?? 200,
+      offset: filters?.offset ?? 0,
+      pages: 1,
+    },
+  };
 }
 
 export async function fetchApplicationPerformance(
   token: string,
   rangeQuery: string,
-): Promise<ApplicationPerformanceMetric[]> {
-  const params = new URLSearchParams({
+  options?: { limit?: number; offset?: number; metricType?: string },
+): Promise<PaginatedAnalyticsResult<ApplicationPerformanceMetric>> {
+  const params = buildParams(rangeQuery, {
     scope: "application",
     platform: "mobile",
-    limit: "200",
+    limit: options?.limit ?? 200,
+    offset: options?.offset ?? 0,
+    metricType: options?.metricType,
   });
-  for (const part of rangeQuery.split("&")) {
-    const [k, v] = part.split("=");
-    if (k && v) params.set(k, decodeURIComponent(v));
-  }
 
   const res = await axios.get(
     `${FRONTEND_URLS.api}/api/v1/analytics/performance?${params.toString()}`,
     { headers: authHeaders(token) },
   );
-  if (!res.data?.success) return [];
-  return res.data.data ?? [];
+  if (!res.data?.success) {
+    return {
+      data: [],
+      pagination: { total: 0, limit: options?.limit ?? 200, offset: 0, pages: 0 },
+    };
+  }
+  return {
+    data: res.data.data ?? [],
+    pagination: res.data.pagination ?? {
+      total: (res.data.data ?? []).length,
+      limit: options?.limit ?? 200,
+      offset: options?.offset ?? 0,
+      pages: 1,
+    },
+  };
 }
 
 export async function fetchCrashReports(

@@ -213,7 +213,7 @@ make test-monitoring    # Tests monitoring
 
 ### 🔧 Utils (makefiles/utils/Makefile)
 ```bash
-make metrics            # Ouvrir Prometheus
+make metrics            # Ouvrir Performances backoffice (monitoring custom)
 make logs-metrics       # Logs métriques
 ```
 

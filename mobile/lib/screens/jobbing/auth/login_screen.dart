@@ -6,7 +6,6 @@ import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
-import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -141,9 +140,6 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(
         title: const Text('Connexion'),
         centerTitle: true,
-        actions: [
-          MobileNotificationCenter(),
-        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(

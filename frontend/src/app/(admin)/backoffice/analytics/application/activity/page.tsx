@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TimeRangeSelector, ChartPeriodCaption } from "@/components/analytics";
+import { AnalyticsRecordDetailDialog } from "@/components/analytics/AnalyticsRecordDetailDialog";
+import { Pagination } from "@/components/ui/Pagination";
 import { AnalyticsPageShell } from "../ApplicationSubNav";
 import { useApplicationTimeRange } from "../useApplicationTimeRange";
 import {
@@ -11,12 +13,22 @@ import {
   type ApplicationPerformanceMetric,
 } from "@/lib/services/applicationAnalyticsService";
 
+const PAGE_SIZE = 15;
+
 function formatTs(value: string) {
   try {
     return new Date(value).toLocaleString("fr-FR");
   } catch {
     return value;
   }
+}
+
+function formatPerfValue(p: ApplicationPerformanceMetric) {
+  if (p.duration != null) return `${p.duration} ms`;
+  if (p.memoryUsage != null) return `${Math.round(p.memoryUsage)} o`;
+  if (p.networkLatency != null) return `${p.networkLatency} ms`;
+  if (p.value != null) return String(p.value);
+  return "—";
 }
 
 export default function ApplicationActivityPage() {
@@ -38,15 +50,23 @@ export default function ApplicationActivityPage() {
     goNext,
     canGoNext,
     handlePeriodNow,
-    rangeStart,
-    rangeEnd,
   } = range;
+
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<ApplicationAnalyticsEvent[]>([]);
-  const [performances, setPerformances] = useState<ApplicationPerformanceMetric[]>(
-    [],
-  );
+  const [eventsTotal, setEventsTotal] = useState(0);
+  const [eventsPage, setEventsPage] = useState(1);
+  const [performances, setPerformances] = useState<ApplicationPerformanceMetric[]>([]);
+  const [perfTotal, setPerfTotal] = useState(0);
+  const [perfPage, setPerfPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [detailTitle, setDetailTitle] = useState("");
+  const [detailRecord, setDetailRecord] = useState<Record<string, unknown> | null>(null);
+  const [eventTypeFilter, setEventTypeFilter] = useState("all");
+  const [eventNameFilter, setEventNameFilter] = useState("all");
+
+  const eventsPages = Math.max(1, Math.ceil(eventsTotal / PAGE_SIZE));
+  const perfPages = Math.max(1, Math.ceil(perfTotal / PAGE_SIZE));
 
   const loadData = useCallback(async () => {
     const silent = consumeSilentFetch();
@@ -58,31 +78,47 @@ export default function ApplicationActivityPage() {
         setError("Session admin requise pour consulter les traces mobile.");
         setEvents([]);
         setPerformances([]);
+        setEventsTotal(0);
+        setPerfTotal(0);
         return;
       }
-      const [navRes, traceRes, perfRes] = await Promise.all([
+
+      const eventsOffset = (eventsPage - 1) * PAGE_SIZE;
+      const perfOffset = (perfPage - 1) * PAGE_SIZE;
+
+      const [eventsRes, perfRes] = await Promise.all([
         fetchApplicationEvents(token, rangeQuery, {
-          eventType: "navigation",
+          limit: PAGE_SIZE,
+          offset: eventsOffset,
+          eventType: eventTypeFilter !== "all" ? eventTypeFilter : undefined,
+          eventName: eventNameFilter !== "all" ? eventNameFilter : undefined,
         }),
-        fetchApplicationEvents(token, rangeQuery, { eventType: "trace" }),
-        fetchApplicationPerformance(token, rangeQuery),
+        fetchApplicationPerformance(token, rangeQuery, {
+          limit: PAGE_SIZE,
+          offset: perfOffset,
+        }),
       ]);
-      setEvents([...navRes, ...traceRes].sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-      ));
-      setPerformances(perfRes);
+
+      setEvents(eventsRes.data);
+      setEventsTotal(eventsRes.pagination.total);
+      setPerformances(perfRes.data);
+      setPerfTotal(perfRes.pagination.total);
     } catch (e) {
       console.error(e);
       setError("Impossible de charger les traces mobile (API analytics).");
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [rangeQuery, consumeSilentFetch]);
+  }, [rangeQuery, consumeSilentFetch, eventsPage, perfPage, eventTypeFilter, eventNameFilter]);
 
   useEffect(() => {
     void loadData();
   }, [loadData, softTick]);
+
+  useEffect(() => {
+    setEventsPage(1);
+    setPerfPage(1);
+  }, [rangeQuery, eventTypeFilter, eventNameFilter]);
 
   const stats = useMemo(() => {
     const screens = new Set(
@@ -106,10 +142,20 @@ export default function ApplicationActivityPage() {
       uniqueScreens: screens.size,
       traceBatches,
       devices: devices.size,
-      perfSamples: performances.length,
+      perfSamples: perfTotal,
       avgLatency,
     };
-  }, [events, performances]);
+  }, [events, performances, perfTotal]);
+
+  const openDetail = (title: string, record: Record<string, unknown>) => {
+    setDetailTitle(title);
+    setDetailRecord(record);
+  };
+
+  const eventsStart = eventsTotal === 0 ? 0 : (eventsPage - 1) * PAGE_SIZE + 1;
+  const eventsEnd = Math.min(eventsPage * PAGE_SIZE, eventsTotal);
+  const perfStart = perfTotal === 0 ? 0 : (perfPage - 1) * PAGE_SIZE + 1;
+  const perfEnd = Math.min(perfPage * PAGE_SIZE, perfTotal);
 
   return (
     <AnalyticsPageShell
@@ -150,11 +196,11 @@ export default function ApplicationActivityPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
-            <StatCard label="Vues d'écran" value={stats.screenViews} />
-            <StatCard label="Écrans uniques" value={stats.uniqueScreens} />
-            <StatCard label="Lots de traces" value={stats.traceBatches} />
-            <StatCard label="Appareils" value={stats.devices} />
-            <StatCard label="Métriques perf." value={stats.perfSamples} />
+            <StatCard label="Vues d'écran (page)" value={stats.screenViews} />
+            <StatCard label="Écrans uniques (page)" value={stats.uniqueScreens} />
+            <StatCard label="Lots de traces (page)" value={stats.traceBatches} />
+            <StatCard label="Appareils (page)" value={stats.devices} />
+            <StatCard label="Métriques perf. (total)" value={stats.perfSamples} />
             <StatCard
               label="Latence API moy."
               value={
@@ -172,9 +218,41 @@ export default function ApplicationActivityPage() {
           ) : null}
 
           <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Événements récents (mobile)
-            </h2>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Événements
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Traces mobile (navigation, lots d&apos;activité, retours). Cliquez sur une ligne pour le détail.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <select
+                  value={eventTypeFilter}
+                  onChange={(e) => setEventTypeFilter(e.target.value)}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+                >
+                  <option value="all">Tous types</option>
+                  <option value="navigation">navigation</option>
+                  <option value="trace">trace</option>
+                  <option value="feedback">feedback</option>
+                  <option value="api">api</option>
+                  <option value="interaction">interaction</option>
+                </select>
+                <select
+                  value={eventNameFilter}
+                  onChange={(e) => setEventNameFilter(e.target.value)}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
+                >
+                  <option value="all">Tous noms</option>
+                  <option value="screen_view">screen_view</option>
+                  <option value="activity_batch">activity_batch</option>
+                  <option value="button_click">button_click</option>
+                  <option value="api_error">api_error</option>
+                </select>
+              </div>
+            </div>
             <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
               <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-900/40">
@@ -194,12 +272,18 @@ export default function ApplicationActivityPage() {
                         className="px-3 py-8 text-center text-gray-500 dark:text-gray-400"
                       >
                         Aucune trace sur la période — activez la télémétrie dans
-                        l&apos;app mobile puis naviguez quelques écrans.
+                        l&apos;app mobile puis naviguez quelques écrans (connecté).
                       </td>
                     </tr>
                   ) : (
-                    events.slice(0, 100).map((ev) => (
-                      <tr key={ev.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/30">
+                    events.map((ev) => (
+                      <tr
+                        key={ev.id}
+                        className="cursor-pointer hover:bg-blue-50/60 dark:hover:bg-blue-950/20"
+                        onClick={() =>
+                          openDetail(`Événement · ${ev.eventName}`, ev as unknown as Record<string, unknown>)
+                        }
+                      >
                         <td className="whitespace-nowrap px-3 py-2 text-gray-600 dark:text-gray-300">
                           {formatTs(ev.timestamp)}
                         </td>
@@ -217,12 +301,28 @@ export default function ApplicationActivityPage() {
                 </tbody>
               </table>
             </div>
+            <Pagination
+              currentPage={eventsPage}
+              totalPages={eventsPages}
+              totalItems={eventsTotal}
+              itemsPerPage={PAGE_SIZE}
+              startIndex={eventsStart}
+              endIndex={eventsEnd}
+              onPageChange={setEventsPage}
+              onNext={() => setEventsPage((p) => Math.min(p + 1, eventsPages))}
+              onPrevious={() => setEventsPage((p) => Math.max(p - 1, 1))}
+              canGoNext={eventsPage < eventsPages}
+              canGoPrevious={eventsPage > 1}
+            />
           </section>
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Performances mobile (échantillons)
             </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Échantillons paginés — clic sur une ligne pour mémoire, latence, CPU, session, etc.
+            </p>
             <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
               <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-900/40">
@@ -245,22 +345,20 @@ export default function ApplicationActivityPage() {
                       </td>
                     </tr>
                   ) : (
-                    performances.slice(0, 50).map((p) => (
-                      <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/30">
+                    performances.map((p) => (
+                      <tr
+                        key={p.id}
+                        className="cursor-pointer hover:bg-blue-50/60 dark:hover:bg-blue-950/20"
+                        onClick={() =>
+                          openDetail(`Performance · ${p.metricName}`, p as unknown as Record<string, unknown>)
+                        }
+                      >
                         <td className="whitespace-nowrap px-3 py-2 text-gray-600 dark:text-gray-300">
                           {formatTs(p.timestamp)}
                         </td>
                         <td className="px-3 py-2">{p.metricType}</td>
                         <td className="px-3 py-2">{p.metricName}</td>
-                        <td className="px-3 py-2">
-                          {p.duration != null
-                            ? `${p.duration} ms`
-                            : p.memoryUsage != null
-                              ? `${Math.round(p.memoryUsage)}`
-                              : p.value != null
-                                ? String(p.value)
-                                : "—"}
-                        </td>
+                        <td className="px-3 py-2">{formatPerfValue(p)}</td>
                         <td className="max-w-[12rem] truncate px-3 py-2">{p.page || "—"}</td>
                       </tr>
                     ))
@@ -268,9 +366,32 @@ export default function ApplicationActivityPage() {
                 </tbody>
               </table>
             </div>
+            <Pagination
+              currentPage={perfPage}
+              totalPages={perfPages}
+              totalItems={perfTotal}
+              itemsPerPage={PAGE_SIZE}
+              startIndex={perfStart}
+              endIndex={perfEnd}
+              onPageChange={setPerfPage}
+              onNext={() => setPerfPage((p) => Math.min(p + 1, perfPages))}
+              onPrevious={() => setPerfPage((p) => Math.max(p - 1, 1))}
+              canGoNext={perfPage < perfPages}
+              canGoPrevious={perfPage > 1}
+            />
           </section>
         </>
       )}
+
+      <AnalyticsRecordDetailDialog
+        open={detailRecord != null}
+        title={detailTitle}
+        record={detailRecord}
+        onClose={() => {
+          setDetailRecord(null);
+          setDetailTitle("");
+        }}
+      />
     </AnalyticsPageShell>
   );
 }

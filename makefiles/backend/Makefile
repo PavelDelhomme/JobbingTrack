@@ -134,7 +134,7 @@ monitoring-down: ## Arrêter stack monitoring (ancien système)
 
 monitoring-ancien-down: monitoring-down ## Alias - Arrêter l'ancien système de monitoring complet
 	@echo ""
-	@echo "📊 Services arrêtés: Prometheus, Grafana, Loki, Promtail, Node Exporter"
+	@echo "📊 Services arrêtés: log-collector-c legacy (profil monitoring-c)"
 
 monitoring-restart: ## Redémarrer stack monitoring
 	@echo "🔄 Redémarrage monitoring..."
@@ -196,14 +196,14 @@ monitoring-logs-service: ## Logs d'un service monitoring (SERVICE=monitoring-c|l
 	@echo "📋 Logs $(SERVICE)..."
 	@docker logs -f jobbingtrack-$(SERVICE) 2>/dev/null || echo "❌ Service $(SERVICE) non trouvé"
 
-monitoring-test: ## Test health des endpoints monitoring
-	@echo "🧪 Test des endpoints monitoring..."
-	@echo "Testing Prometheus..."
-	@curl -s http://localhost:9090/-/healthy >/dev/null && echo "✅ Prometheus OK" || echo "❌ Prometheus DOWN"
-	@echo "Testing Loki..."
-	@curl -s http://localhost:3100/ready >/dev/null && echo "✅ Loki OK" || echo "❌ Loki DOWN"
-	@echo "Testing Grafana..."
-	@curl -s http://localhost:3001/api/health >/dev/null && echo "✅ Grafana OK" || echo "❌ Grafana DOWN"
+monitoring-test: ## Test health du monitoring custom (metrics-aggregator + agent)
+	@echo "🧪 Test du monitoring custom JobbingTrack..."
+	@echo "Testing metrics-aggregator..."
+	@curl -s http://localhost:5004/health >/dev/null && echo "✅ metrics-aggregator OK" || echo "❌ metrics-aggregator DOWN"
+	@echo "Testing monitoring-agent-rs..."
+	@curl -s http://localhost:8015/health >/dev/null && echo "✅ monitoring-agent-rs OK" || echo "⚠️  monitoring-agent-rs DOWN (optionnel si profil monitoring inactif)"
+	@echo ""
+	@echo "ℹ️  Prometheus / Loki / Grafana : stack obsolète (docs/archive/monitoring-old/) — non testée."
 
 monitoring-test-auth: ## Test API avec authentification JWT (TOKEN=xxx)
 	@if [ -z "$(TOKEN)" ]; then \

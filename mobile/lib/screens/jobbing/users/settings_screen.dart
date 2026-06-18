@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/users/help_feedback_screen.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
+import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
@@ -241,7 +244,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           subtitle: Text(
                             _localPhoneContactsCount > 0
                                 ? '$_localPhoneContactsCount contact(s)${_phoneContactsSyncedAt != null ? ' · ${_formatSyncDate(_phoneContactsSyncedAt!)}' : ''}'
-                                : 'Import pour lier à une candidature ou entreprise',
+                                : 'Import local — proposés dans le picker contact (pas créés automatiquement)',
                           ),
                           trailing: _phoneSyncing
                               ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
@@ -380,13 +383,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _showDiagnostics(BuildContext context) {
     final preview = MobileAnalyticsService.instance.localDiagnosticsPreview();
+    final device = CrashReporter.getDeviceMonitoring();
+    final errors = preview['errorCounts'] is Map
+        ? Map<String, dynamic>.from(preview['errorCounts'] as Map)
+        : <String, dynamic>{};
+    final lines = <String>[
+      '--- Session ---',
+      ...preview.entries.where((e) => e.key != 'errorCounts').map((e) => '${e.key}: ${e.value}'),
+      '',
+      '--- Appareil ---',
+      'memoryRssBytes: ${device['memoryRssBytes'] ?? '—'}',
+      'platform: ${device['platform'] ?? Platform.operatingSystem}',
+      '',
+      '--- Erreurs réseau / app (${errors.length}) ---',
+      if (errors.isEmpty) 'Aucune erreur enregistrée cette session',
+      ...errors.entries.map((e) => '${e.key}: ${e.value}x'),
+    ];
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Diagnostic local'),
         content: SingleChildScrollView(
           child: Text(
-            preview.entries.map((e) => '${e.key}: ${e.value}').join('\n'),
+            lines.join('\n'),
             style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
           ),
         ),

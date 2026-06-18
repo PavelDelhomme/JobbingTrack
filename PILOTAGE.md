@@ -85,6 +85,10 @@ Ancienne priorité Lot A graphes (15/06) — **reportée** tant que le mobile n�
 8. Pour préprod/prod : passer ensuite par `A_VALIDER_AVANT_PRODUCTION.md`, `DEPLOIEMENT_PRODUCTION.md`, puis `VALIDATION_PRODUCTION.md`.
 9. **Fin de journée / avant push majeur** : gate suite complète documenté dans `TODOS_A_VALIDER.md` § « Gate technique fin de journée / avant push majeur » (`scripts/run-all-tests-with-reports.sh` + lecture `tests/results/<horodatage>/`). Ne pas le lancer au milieu d’un P0/P1 sauf demande explicite du porteur. Checklist longue : `docs/tests/TESTS_END.md`.
 
+## Format des récaps agent
+
+Les récapitulatifs de session pour le porteur doivent être en **HTML lisible** (sections OK / KO / en attente), pas en Markdown brut. Ne pas signer « Agent Cursor — généré automatiquement ». Voir `.cursor/rules/agent-recaps-html.mdc`.
+
 ## Branches
 
 Suivre `BRANCHES.md` :

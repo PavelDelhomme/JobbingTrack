@@ -81,7 +81,7 @@ export default function ApplicationFeedbackPage() {
         const t = new Date(ts).getTime();
         return t >= startMs && t <= endMs;
       };
-      setFeedbackEvents(eventsRes.filter((e) => inRange(e.timestamp)));
+      setFeedbackEvents(eventsRes.data.filter((e) => inRange(e.timestamp)));
       setCrashes(
         crashesRes
           .filter((c) => inRange(c.timestamp))

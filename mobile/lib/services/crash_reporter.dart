@@ -380,6 +380,23 @@ class CrashReporter {
       debugPrint('[CrashReporter] Envoi rapport: $crashType - $message');
 
       final sent = await _sendReport(report);
+      if (_authToken != null && _authToken!.isNotEmpty) {
+        unawaited(ApiService.postAnalyticsError(
+          errorType: 'mobile',
+          errorName: crashType,
+          errorMessage: message,
+          stackTrace: stackTrace,
+          page: screenName ?? _currentScreen,
+          platform: Platform.isAndroid
+              ? 'android'
+              : (Platform.isIOS ? 'ios' : 'mobile'),
+          severity: crashType == 'FlutterError' || crashType == 'UncaughtError'
+              ? 'critical'
+              : 'error',
+          properties: metadata ?? {},
+          token: _authToken,
+        ));
+      }
       if (!sent) {
         _pendingReports.add(report);
         _persistReport(report);

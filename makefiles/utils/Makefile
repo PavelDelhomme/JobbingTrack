@@ -16,7 +16,7 @@ help-utils: ## Afficher l'aide utilitaires
 	@echo "================================================================"
 	@echo ""
 	@echo "📊 ACCÈS RAPIDE MONITORING:"
-	@echo "  make metrics               - Ouvrir Prometheus (http://localhost:9090)"
+	@echo "  make metrics               - Ouvrir Performances backoffice (http://localhost:5003/backoffice/performances)"
 	@echo "  make logs-metrics          - Logs du système de métriques"
 	@echo ""
 	@echo "📈 SCRIPTS MONITORING:"
@@ -35,12 +35,11 @@ help-utils: ## Afficher l'aide utilitaires
 	@echo ""
 	@echo "🔧 CONFIGURATION:"
 	@echo "  make setup-ports   - Mettre à jour .env avec les ports cohérents"
-	@echo "  Prometheus:        http://localhost:9090"
-	@echo "  Grafana:           http://localhost:3013"
-	@echo "  Loki:              http://localhost:3100"
+	@echo "  Performances BO:   http://localhost:5003/backoffice/performances"
+	@echo "  Metrics API:       http://localhost:5004/health"
 	@echo ""
 	@echo "💡 EXEMPLES:"
-	@echo "  make metrics               # Ouvrir Prometheus"
+	@echo "  make metrics               # Ouvrir Performances backoffice"
 	@echo "  make mon                   # Monitoring complet"
 	@echo "  make mon-save              # Sauvegarder les stats"
 	@echo "  make mon-quick             # Test rapide"
@@ -73,12 +72,12 @@ git-checkout: ## Revenir à un commit ou une branche de manière interactive
 # ACCÈS RAPIDE MONITORING
 # ============================================================================
 
-# Ouvrir Prometheus
-metrics: ## Ouvrir Prometheus dans le navigateur
-	@echo "📊 Ouverture de Prometheus..."
-	@echo "🌐 URL: http://localhost:9090"
+# Ouvrir le backoffice Performances (stack monitoring custom)
+metrics: ## Ouvrir Performances backoffice dans le navigateur
+	@echo "📊 Ouverture Performances backoffice..."
+	@echo "🌐 URL: http://localhost:5003/backoffice/performances"
 	@if command -v xdg-open >/dev/null 2>&1; then \
-		xdg-open http://localhost:9090 2>/dev/null & \
+		xdg-open http://localhost:5003/backoffice/performances 2>/dev/null & \
 	else \
 		echo "💡 Ouvrez votre navigateur à l'adresse ci-dessus"; \
 	fi

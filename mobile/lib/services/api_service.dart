@@ -248,6 +248,31 @@ class ApiService {
     }
   }
 
+  static Future<void> postAnalyticsDevice({
+    required String deviceId,
+    String platform = 'mobile',
+    String? osName,
+    String? osVersion,
+    String? appVersion,
+    String? token,
+  }) async {
+    try {
+      await _post(
+        '/api/v1/analytics/device',
+        headers: _jsonHeaders(token),
+        body: jsonEncode({
+          'deviceId': deviceId,
+          'platform': platform,
+          if (osName != null) 'osName': osName,
+          if (osVersion != null) 'osVersion': osVersion,
+          'appVersion': appVersion ?? '1.0.0',
+        }),
+      );
+    } catch (e) {
+      debugPrint('[API] analytics device non enregistré: $e');
+    }
+  }
+
   static Future<void> postAnalyticsEvent({
     String? sessionId,
     String? deviceId,
@@ -313,6 +338,44 @@ class ApiService {
       );
     } catch (e) {
       debugPrint('[API] analytics performance non envoyée: $e');
+    }
+  }
+
+  static Future<void> postAnalyticsError({
+    String? sessionId,
+    String? deviceId,
+    required String errorType,
+    required String errorName,
+    required String errorMessage,
+    String? stackTrace,
+    String? page,
+    String severity = 'error',
+    String platform = 'mobile',
+    Map<String, dynamic>? properties,
+    String? token,
+  }) async {
+    try {
+      await _post(
+        '/api/v1/analytics/errors',
+        headers: _jsonHeaders(token),
+        body: jsonEncode({
+          if (sessionId != null) 'sessionId': sessionId,
+          if (deviceId != null) 'deviceId': deviceId,
+          'errorType': errorType,
+          'errorName': errorName,
+          'errorMessage': errorMessage.length > 1000
+              ? errorMessage.substring(0, 1000)
+              : errorMessage,
+          if (stackTrace != null) 'stackTrace': stackTrace,
+          if (page != null) 'page': page,
+          'severity': severity,
+          'platform': platform,
+          'appVersion': '1.0.0',
+          'properties': properties ?? {},
+        }),
+      );
+    } catch (e) {
+      debugPrint('[API] analytics error non envoyée: $e');
     }
   }
 
@@ -695,6 +758,30 @@ class ApiService {
   }
 
   /// Notifications in-app utilisateur.
+  static Future<Company> updateCompany(
+    String id, {
+    String? name,
+    String? website,
+    String? industry,
+    String? location,
+    String? description,
+    String? token,
+  }) async {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (website != null) body['website'] = website;
+    if (industry != null) body['industry'] = industry;
+    if (location != null) body['location'] = location;
+    if (description != null) body['description'] = description;
+    final response = await _put('/api/v1/companies/$id', headers: _jsonHeaders(token), body: jsonEncode(body));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['company'] != null) return Company.fromJson(Map<String, dynamic>.from(data['company']));
+    }
+    final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+    throw Exception(err['message'] ?? err['error'] ?? 'Erreur HTTP ${response.statusCode}');
+  }
+
   static Future<List<AppNotification>> getNotifications({
     String? token,
     int limit = 50,
@@ -874,6 +961,32 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> updateContact(
+    String id, {
+    String? firstName,
+    String? lastName,
+    String? email,
+    String? phone,
+    String? position,
+    String? notes,
+    String? token,
+  }) async {
+    final body = <String, dynamic>{};
+    if (firstName != null) body['firstName'] = firstName;
+    if (lastName != null) body['lastName'] = lastName;
+    if (email != null) body['email'] = email;
+    if (phone != null) body['phone'] = phone;
+    if (position != null) body['position'] = position;
+    if (notes != null) body['notes'] = notes;
+    final response = await _put('/api/v1/contacts/$id', headers: _jsonHeaders(token), body: jsonEncode(body));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['contact'] != null) return Map<String, dynamic>.from(data['contact']);
+    }
+    final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+    throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
+  }
+
   static Future<void> linkContactToApplication({
     required String contactId,
     required String applicationId,
@@ -951,6 +1064,8 @@ class ApiService {
     required String applicationId,
     required DateTime followUpDate,
     String? notes,
+    String? contactId,
+    String? followUpTypeId,
     String status = 'PENDING',
     String? token,
   }) async {
@@ -959,6 +1074,8 @@ class ApiService {
         'applicationId': applicationId,
         'followUpDate': followUpDate.toUtc().toIso8601String(),
         if (notes != null && notes.isNotEmpty) 'notes': notes,
+        if (contactId != null && contactId.isNotEmpty) 'contactId': contactId,
+        if (followUpTypeId != null && followUpTypeId.isNotEmpty) 'followUpTypeId': followUpTypeId,
         'status': status,
       };
       final response = await _post('/api/v1/followups', headers: _jsonHeaders(token), body: jsonEncode(body));
@@ -1019,6 +1136,7 @@ class ApiService {
     required String applicationId,
     required DateTime interviewDate,
     String? location,
+    String? videoLink,
     String? notes,
     int? estimatedDuration,
     String? token,
@@ -1028,6 +1146,7 @@ class ApiService {
         'applicationId': applicationId,
         'interviewDate': interviewDate.toUtc().toIso8601String(),
         if (location != null && location.isNotEmpty) 'location': location,
+        if (videoLink != null && videoLink.isNotEmpty) 'videoLink': videoLink,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
         if (estimatedDuration != null) 'estimatedDuration': estimatedDuration,
       };
@@ -1102,6 +1221,38 @@ class ApiService {
       }
       final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
       throw Exception(err['message'] ?? err['error'] ?? 'Erreur HTTP ${response.statusCode}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<Call> updateCall({
+    required String id,
+    DateTime? callDate,
+    String? subject,
+    String? notes,
+    String? contactId,
+    bool clearContact = false,
+    String? token,
+  }) async {
+    try {
+      final body = <String, dynamic>{};
+      if (callDate != null) body['callDate'] = callDate.toUtc().toIso8601String();
+      if (subject != null) body['subject'] = subject;
+      if (notes != null) body['notes'] = notes;
+      if (clearContact) {
+        body['contactId'] = null;
+      } else if (contactId != null && contactId.isNotEmpty) {
+        body['contactId'] = contactId;
+      }
+      final response = await _put('/api/v1/calls/$id', headers: _jsonHeaders(token), body: jsonEncode(body));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final raw = data['call'];
+        if (raw != null) return Call.fromJson(Map<String, dynamic>.from(raw));
+      }
+      throw Exception('Erreur HTTP ${response.statusCode}');
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('Erreur réseau: $e');

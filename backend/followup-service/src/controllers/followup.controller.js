@@ -241,7 +241,9 @@ const createFollowup = async (req, res, next) => {
         companyId: application.companyId,
         followUpDate: new Date(dateValue),
         notes: notes || null,
-        statusId: statusIdToUse
+        statusId: statusIdToUse,
+        followUpTypeId: req.body.followUpTypeId ?? null,
+        followUpMethodId: req.body.followUpMethodId ?? null
       },
       include: {
         application: {
@@ -253,6 +255,12 @@ const createFollowup = async (req, res, next) => {
         status: true
       }
     });
+
+    if (contactId) {
+      await prisma.followUpContact.create({
+        data: { followUpId: followup.id, contactId }
+      });
+    }
 
     logger.info(`Relance ${followup.id} créée pour l'utilisateur ${userId}`);
 

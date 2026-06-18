@@ -37,6 +37,44 @@ function resolveUserAnalyticsTimeWindow(query, defaultDays = 7, maxDays = 366) {
   return { startDate, endDate: now };
 }
 
+/** Filtre plateforme mobile : android, ios et alias mobile. */
+function applyPlatformFilter(where, platform) {
+  if (!platform) return;
+  if (platform === 'mobile') {
+    where.platform = { in: ['mobile', 'android', 'ios'] };
+  } else {
+    where.platform = platform;
+  }
+}
+
+/** Crée la session si absente (évite 404 sur POST /events après cold start mobile). */
+async function ensureAnalyticsSession({ sessionId, userId, deviceId, platform = 'mobile' }) {
+  if (!sessionId || !prisma.userSession || typeof prisma.userSession.findUnique !== 'function') {
+    return null;
+  }
+  let session = await prisma.userSession.findUnique({ where: { sessionId } }).catch(() => null);
+  if (session) return session;
+  if (typeof prisma.userSession.create !== 'function') return null;
+  try {
+    session = await prisma.userSession.create({
+      data: {
+        sessionId,
+        userId: userId || null,
+        deviceId: deviceId || null,
+        platform,
+        startTime: new Date(),
+        isActive: true
+      }
+    });
+    return session;
+  } catch (e) {
+    if (e.code === 'P2002') {
+      return prisma.userSession.findUnique({ where: { sessionId } }).catch(() => null);
+    }
+    return null;
+  }
+}
+
 class AnalyticsController {
   /**
    * Démarrer une nouvelle session utilisateur
@@ -224,18 +262,14 @@ class AnalyticsController {
         appVersion
       } = req.body;
 
-      // Vérifier que la session existe (si la table existe)
+      // Vérifier / créer la session (mobile envoie sessionId avant ack serveur)
       let session = null;
-      if (prisma.userSession && typeof prisma.userSession.findUnique === 'function') {
-        session = await prisma.userSession.findUnique({
-          where: { sessionId }
-        });
-      }
-
-      if (sessionId && !session && prisma.userSession) {
-        return res.status(404).json({
-          success: false,
-          error: 'Session non trouvée'
+      if (sessionId) {
+        session = await ensureAnalyticsSession({
+          sessionId,
+          userId,
+          deviceId,
+          platform: platform || 'mobile'
         });
       }
 
@@ -243,7 +277,7 @@ class AnalyticsController {
         data: {
           userId: userId || null,
           sessionId,
-          deviceId: deviceId || session.deviceId,
+          deviceId: deviceId || session?.deviceId,
           eventType,
           eventName,
           category,
@@ -759,7 +793,7 @@ class AnalyticsController {
             ? prisma.userPerformance.findMany({
                 where: { userId: userId || undefined, timestamp: timeWhere },
                 orderBy: { timestamp: 'desc' },
-                take: 50
+                take: 200
               }).catch(() => [])
             : []
         ]);
@@ -791,7 +825,22 @@ class AnalyticsController {
               totalSessions: d.totalSessions
             })),
             versionsByPlatform: versionsByPlatform || {},
-            performances: (performances || []).slice(0, 20)
+            performances: (performances || []).map(p => ({
+              id: p.id,
+              metricType: p.metricType,
+              metricName: p.metricName,
+              value: p.value,
+              duration: p.duration,
+              memoryUsage: p.memoryUsage,
+              networkLatency: p.networkLatency,
+              cpuUsage: p.cpuUsage,
+              page: p.page,
+              platform: p.platform,
+              deviceId: p.deviceId,
+              sessionId: p.sessionId,
+              appVersion: p.appVersion,
+              timestamp: p.timestamp
+            }))
           }
         });
       } catch (dbError) {
@@ -843,7 +892,7 @@ class AnalyticsController {
         const where = {};
 
         if (scope === 'application' && isAdmin) {
-          if (platform) where.platform = platform;
+          if (platform) applyPlatformFilter(where, platform);
           if (req.query.userId) where.userId = req.query.userId;
         } else {
           where.userId = userId || undefined;
@@ -944,7 +993,7 @@ class AnalyticsController {
 
         const where = {};
         if (scope === 'application' && isAdmin) {
-          if (platform) where.platform = platform;
+          if (platform) applyPlatformFilter(where, platform);
           if (req.query.userId) where.userId = req.query.userId;
         } else {
           where.userId = userId || undefined;

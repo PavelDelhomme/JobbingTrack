@@ -1,6 +1,10 @@
 # Tests de Monitoring - JobbingTrack
 
-Tests d'intégration pour la stack de monitoring (Prometheus, Loki, cAdvisor, Metrics API).
+> **⚠️ Obsolète pour la stack active** : ces tests ciblent Prometheus / Loki / cAdvisor.  
+> Le monitoring courant utilise **monitoring-agent-rs + metrics-aggregator + backoffice Performances**.  
+> Archive configs : `docs/archive/monitoring-old/`. Tests utiles seulement si vous relancez l'ancienne stack.
+
+Tests d'intégration pour l'ancienne stack de monitoring (Prometheus, Loki, cAdvisor, Metrics API).
 
 ## 📁 Structure
 

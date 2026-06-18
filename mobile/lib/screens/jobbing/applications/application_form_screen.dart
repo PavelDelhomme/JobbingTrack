@@ -96,10 +96,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     if (mounted) {
       setState(() {
         _companies = companyProvider.companies;
-        if (widget.application == null && _companyName.isEmpty && _companies.isNotEmpty) {
-          _companyId = _companies.first.id;
-          _companyName = _companies.first.name;
-        }
       });
     }
   }

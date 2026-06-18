@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/utils/admin_access.dart';
 
@@ -300,12 +301,7 @@ class _AppDrawerState extends State<AppDrawer> {
       ),
       selected: isSelected,
       selectedTileColor: Colors.blue[50],
-      onTap: () {
-        Navigator.of(context).pop(); // Fermer le drawer
-        if (!isSelected) {
-          Navigator.of(context).pushNamed(item.route);
-        }
-      },
+      onTap: () => ShellNavigation.navigateFromDrawer(context, item.route),
     );
   }
 }

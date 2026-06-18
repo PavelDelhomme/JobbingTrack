@@ -423,6 +423,11 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   Future<void> _showAddRelance(BuildContext context) async {
     DateTime date = DateTime.now().add(const Duration(days: 3));
     final notesController = TextEditingController();
+    String channel = 'Email';
+    Map<String, dynamic>? selectedContact;
+    const channels = ['Email', 'Téléphone', 'LinkedIn', 'InMail', 'Courrier', 'Autre'];
+
+    final token = Provider.of<AuthProvider>(context, listen: false).token;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -448,13 +453,69 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                   },
                 ),
                 const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: channel,
+                  decoration: const InputDecoration(
+                    labelText: 'Canal / plateforme',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: channels.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                  onChanged: (v) => setDialogState(() => channel = v ?? channel),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    selectedContact == null
+                        ? 'Contact (optionnel)'
+                        : contactDisplayName(selectedContact!),
+                  ),
+                  subtitle: Text(
+                    selectedContact == null
+                        ? 'Relance liée à ${app.company.name.isNotEmpty ? app.company.name : "l\'entreprise"}'
+                        : 'Appuyer pour changer',
+                  ),
+                  trailing: selectedContact != null
+                      ? IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => setDialogState(() => selectedContact = null),
+                        )
+                      : const Icon(Icons.person_search),
+                  onTap: () async {
+                    final picked = await showContactPickerSheet(
+                      ctx,
+                      candidates: _contacts,
+                      onCreateContact: ({required String firstName, required String lastName, String? email, String? phone}) async {
+                        final created = await ApiService.createContact(
+                          firstName: firstName,
+                          lastName: lastName,
+                          email: email ?? '',
+                          phone: phone ?? '',
+                          companyId: app.company.id.isNotEmpty ? app.company.id : null,
+                          token: token,
+                        );
+                        await ApiService.linkContactToApplication(
+                          contactId: created['id'].toString(),
+                          applicationId: app.id,
+                          token: token,
+                        );
+                        return created;
+                      },
+                    );
+                    if (picked != null) setDialogState(() => selectedContact = picked);
+                  },
+                ),
+                const SizedBox(height: 8),
                 TextField(
                   controller: notesController,
                   decoration: const InputDecoration(
-                    labelText: 'Notes (optionnel)',
+                    labelText: 'Notes',
+                    hintText: 'Contexte, message prévu, rappels…',
                     border: OutlineInputBorder(),
+                    alignLabelWithHint: true,
                   ),
-                  maxLines: 2,
+                  maxLines: 5,
+                  minLines: 3,
                 ),
               ],
             ),
@@ -469,10 +530,13 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     if (ok != true || !mounted) return;
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
+      final noteParts = <String>['[Canal: $channel]'];
+      if (notesController.text.trim().isNotEmpty) noteParts.add(notesController.text.trim());
       await ApiService.createFollowUp(
         applicationId: app.id,
         followUpDate: date,
-        notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+        notes: noteParts.join('\n'),
+        contactId: selectedContact?['id']?.toString(),
         token: auth.token,
       );
       if (mounted) {
@@ -487,7 +551,11 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   Future<void> _showAddEntretien(BuildContext context) async {
     DateTime date = DateTime.now().add(const Duration(days: 7));
     final locationController = TextEditingController();
+    final videoLinkController = TextEditingController();
+    final durationController = TextEditingController(text: '60');
     final notesController = TextEditingController();
+    String style = 'Présentiel';
+    const styles = ['Présentiel', 'Distanciel', 'Hybride'];
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -501,7 +569,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.calendar_today),
                   title: Text(formatSmartEventDate(date)),
-                  subtitle: const Text('Date'),
+                  subtitle: const Text('Date et heure (jour)'),
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: ctx,
@@ -513,15 +581,45 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                   },
                 ),
                 const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: style,
+                  decoration: const InputDecoration(labelText: 'Format', border: OutlineInputBorder()),
+                  items: styles.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                  onChanged: (v) => setDialogState(() => style = v ?? style),
+                ),
+                const SizedBox(height: 8),
                 TextField(
                   controller: locationController,
                   decoration: const InputDecoration(labelText: 'Lieu (optionnel)', border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 8),
                 TextField(
+                  controller: videoLinkController,
+                  decoration: const InputDecoration(
+                    labelText: 'Lien visio (optionnel)',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.url,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: durationController,
+                  decoration: const InputDecoration(
+                    labelText: 'Durée estimée (minutes)',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 8),
+                TextField(
                   controller: notesController,
-                  decoration: const InputDecoration(labelText: 'Notes (optionnel)', border: OutlineInputBorder()),
-                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes',
+                    border: OutlineInputBorder(),
+                    alignLabelWithHint: true,
+                  ),
+                  maxLines: 5,
+                  minLines: 3,
                 ),
               ],
             ),
@@ -536,11 +634,16 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     if (ok != true || !mounted) return;
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
+      final duration = int.tryParse(durationController.text.trim());
+      final noteParts = <String>['[Format: $style]'];
+      if (notesController.text.trim().isNotEmpty) noteParts.add(notesController.text.trim());
       await ApiService.createInterview(
         applicationId: app.id,
         interviewDate: date,
         location: locationController.text.trim().isEmpty ? null : locationController.text.trim(),
-        notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+        videoLink: videoLinkController.text.trim().isEmpty ? null : videoLinkController.text.trim(),
+        estimatedDuration: duration,
+        notes: noteParts.join('\n'),
         token: auth.token,
       );
       if (mounted) {
