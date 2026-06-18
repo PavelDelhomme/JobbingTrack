@@ -40,12 +40,35 @@ import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 
 Route<dynamic>? resolveAppRoute(RouteSettings settings) {
-  if (settings.name != null && settings.name!.startsWith('/reset-password/')) {
-    final token = settings.name!.replaceFirst('/reset-password/', '');
-    return MaterialPageRoute(
-      builder: (context) => ResetPasswordScreen(token: token),
-      settings: settings,
-    );
+  if (settings.name != null && settings.name!.contains('reset-password')) {
+    String? token;
+    final path = settings.name!;
+    if (path.startsWith('/reset-password/') &&
+        path.length > '/reset-password/'.length &&
+        !path.contains('?')) {
+      token = path.substring('/reset-password/'.length).split('?').first;
+    } else {
+      try {
+        final uri = path.contains('://')
+            ? Uri.tryParse(path)
+            : Uri.tryParse(
+                path.contains('?')
+                    ? 'jobbingtrack://reset-password$path'
+                    : 'jobbingtrack://reset-password/$path',
+              );
+        token = uri?.queryParameters['token'];
+        if ((token == null || token.isEmpty) && path.contains('/reset-password/')) {
+          final parts = path.split('/reset-password/');
+          if (parts.length > 1) token = parts.last.split('?').first;
+        }
+      } catch (_) {}
+    }
+    if (token != null && token.isNotEmpty) {
+      return MaterialPageRoute(
+        builder: (context) => ResetPasswordScreen(token: token!),
+        settings: settings,
+      );
+    }
   }
   if (settings.name != null &&
       (settings.name!.startsWith('/verify-email') || settings.name!.contains('verify-email'))) {
