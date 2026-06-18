@@ -400,6 +400,7 @@ class MobileAnalyticsService extends ChangeNotifier {
       'anonymized': true,
       'deviceId': _deviceId,
       'sessionId': _sessionId,
+      'screenName': CrashReporter.currentScreenName ?? 'help_feedback',
     };
 
     if (includeDiagnostics) {

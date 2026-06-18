@@ -554,10 +554,29 @@ class CrashReporter {
       final t = a['type'] as String? ?? 'unknown';
       actionsByType[t] = (actionsByType[t] ?? 0) + 1;
     }
+    final errorSlice = _actionLog.where((a) {
+      final type = a['type'] as String? ?? '';
+      return type == 'network_error' ||
+          type == 'error' ||
+          a['stackTrace'] != null ||
+          (type == 'form_submit' && a['success'] == false);
+    }).toList();
+    final recentErrors = (errorSlice.length > 15
+            ? errorSlice.sublist(errorSlice.length - 15)
+            : errorSlice)
+        .map((a) => {
+              'type': a['type'],
+              'message': a['error'] ?? a['message'] ?? a['description'],
+              'screen': a['screen'],
+              if (a['stackTrace'] != null) 'stackTrace': a['stackTrace'],
+              'ts': a['ts'],
+            })
+        .toList();
     return {
       'deviceModel': mobileInfo['deviceModel'],
       'osVersion': mobileInfo['osVersion'],
       'memoryRssMb': getDeviceMonitoring()['memoryRssMb'],
+      'sessionId': _sessionId,
       'analytics': {
         'sessionDurationMs': analytics['sessionDurationMs'],
         'totalApiCalls': analytics['totalApiCalls'],
@@ -566,6 +585,7 @@ class CrashReporter {
         'currentScreen': analytics['currentScreen'],
       },
       'actionsByType': actionsByType,
+      'recentErrors': recentErrors,
       'recentActions': _formatUserActionsForReport().take(30).toList(),
       'timestamp': DateTime.now().toIso8601String(),
     };

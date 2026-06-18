@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const emailService = require('../services/emailService');
 const { buildCrashReportEmailHtml } = require('../templates/crashReportEmailHtml');
 const { compressHtml, maybeDecompressEmailContent } = require('../utils/emailContentCodec');
+const { normalizeCrashReport } = require('../utils/normalizeCrashReport');
 
 const prisma = new PrismaClient();
 
@@ -669,17 +670,21 @@ const getStats = async (req, res, next) => {
 const reportCrash = async (req, res, next) => {
   try {
     const userId = req.user?.id || 'anonymous';
+    const normalized = normalizeCrashReport(req.body);
     const {
       crashType,
       message: crashMessage,
       stackTrace,
+      effectiveStackTrace,
       deviceInfo,
       appVersion,
       sessionId,
       screenName,
       userActions,
-      metadata
-    } = req.body;
+      metadata,
+      diagnostic,
+      screenshotDataUrl,
+    } = normalized;
 
     if (!crashType || !crashMessage) {
       return res.status(400).json({
@@ -787,6 +792,7 @@ const reportCrash = async (req, res, next) => {
       crashType,
       message: crashMessage,
       stackTrace,
+      effectiveStackTrace,
       deviceInfo: deviceInfo
         ? {
             ...deviceInfo,
@@ -798,9 +804,11 @@ const reportCrash = async (req, res, next) => {
       screenName,
       userActions: normalizedActions,
       metadata,
+      diagnostic,
       userId: anonymizedReport.userId,
       timestamp: new Date().toLocaleString('fr-FR'),
       screenshotAttached: Boolean(metadata?.screenshotCompressed),
+      screenshotDataUrl,
     });
 
     const emailHtmlStored = compressHtml(emailHtml);

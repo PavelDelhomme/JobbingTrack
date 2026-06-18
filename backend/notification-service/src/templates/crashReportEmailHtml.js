@@ -41,20 +41,45 @@ function formatUserActions(actions) {
   });
 }
 
+function buildMetadataDisplayBlock(metadata, diagnostic) {
+  if (!metadata || typeof metadata !== 'object') return '—';
+  const display = { ...metadata };
+  if (display.diagnosticCompressed) {
+    display.diagnosticCompressed = `[gzip ${String(display.diagnosticCompressed).length} car.]`;
+  }
+  if (display.screenshotCompressed) {
+    display.screenshotCompressed = `[capture gzip ${String(display.screenshotCompressed).length} car.]`;
+  }
+  if (diagnostic && typeof diagnostic === 'object') {
+    display.diagnosticSummary = {
+      deviceModel: diagnostic.deviceModel,
+      osVersion: diagnostic.osVersion,
+      memoryRssMb: diagnostic.memoryRssMb,
+      actionsByType: diagnostic.actionsByType,
+      recentActions: diagnostic.recentActions?.slice?.(0, 10),
+      analytics: diagnostic.analytics,
+    };
+  }
+  return formatJsonBlock(display);
+}
+
 function buildCrashReportEmailHtml(report) {
   const {
     crashType,
     message,
     stackTrace,
+    effectiveStackTrace,
     deviceInfo,
     appVersion,
     sessionId,
     screenName,
     userActions,
     metadata,
+    diagnostic,
     userId,
     timestamp,
     screenshotAttached,
+    screenshotDataUrl,
   } = report;
 
   const category = metadata?.category;
@@ -85,9 +110,17 @@ function buildCrashReportEmailHtml(report) {
     )
     .join('');
 
-  const metaBlock = metadata?.diagnosticCompressed
-    ? 'Diagnostic compressé (gz) — voir backoffice Retours pour le détail complet.'
-    : formatJsonBlock(metadata);
+  const metaBlock = buildMetadataDisplayBlock(metadata, diagnostic);
+  const traceBlock = escapeHtml(
+    effectiveStackTrace || stackTrace || '(non disponible)',
+  );
+  const screenshotHtml = screenshotDataUrl
+    ? `<h3 style="margin:0 0 8px;font-size:15px;">Capture d'écran</h3>
+              <p style="margin:0 0 8px;font-size:12px;color:#64748b;">Capture jointe par l'utilisateur (compressée côté mobile, affichée ici).</p>
+              <img src="${screenshotDataUrl}" alt="Capture écran retour mobile" style="max-width:100%;height:auto;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:20px;" />`
+    : (screenshotAttached
+      ? `<p style="margin:0 0 20px;font-size:12px;color:#b45309;">Capture demandée mais décompression impossible — voir backoffice Retours.</p>`
+      : '');
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -117,14 +150,16 @@ function buildCrashReportEmailHtml(report) {
                 <tr><td style="padding:4px 0;color:#64748b;">Écran</td><td style="padding:4px 0;font-weight:600;">${escapeHtml(screenName || 'inconnu')}</td></tr>
                 <tr><td style="padding:4px 0;color:#64748b;">Session</td><td style="padding:4px 0;font-family:monospace;font-size:12px;">${escapeHtml(sessionId || 'N/A')}</td></tr>
                 <tr><td style="padding:4px 0;color:#64748b;">Utilisateur</td><td style="padding:4px 0;">${escapeHtml(userId || 'anonymous')}</td></tr>
-                ${screenshotAttached ? '<tr><td style="padding:4px 0;color:#64748b;">Capture</td><td style="padding:4px 0;color:#16a34a;font-weight:600;">Jointe (metadata screenshotCompressed)</td></tr>' : ''}
+                ${screenshotAttached && !screenshotDataUrl ? '<tr><td style="padding:4px 0;color:#64748b;">Capture</td><td style="padding:4px 0;color:#16a34a;font-weight:600;">Jointe (metadata)</td></tr>' : ''}
               </table>
+
+              ${screenshotHtml}
 
               <h3 style="margin:0 0 8px;font-size:15px;">Appareil</h3>
               <table role="presentation" width="100%" style="border:1px solid #e2e8f0;border-radius:8px;border-collapse:collapse;margin-bottom:20px;">${deviceRows || '<tr><td style="padding:10px;">Non disponible</td></tr>'}</table>
 
-              <h3 style="margin:0 0 8px;font-size:15px;">Stack trace</h3>
-              <pre style="margin:0 0 20px;padding:12px;background:#0f172a;color:#e2e8f0;border-radius:8px;font-size:11px;line-height:1.45;white-space:pre-wrap;word-break:break-word;">${escapeHtml(stackTrace || '(non fournie — retour manuel sans exception)')}</pre>
+              <h3 style="margin:0 0 8px;font-size:15px;">Stack trace / contexte technique</h3>
+              <pre style="margin:0 0 20px;padding:12px;background:#0f172a;color:#e2e8f0;border-radius:8px;font-size:11px;line-height:1.45;white-space:pre-wrap;word-break:break-word;">${traceBlock}</pre>
 
               <h3 style="margin:0 0 8px;font-size:15px;">Actions utilisateur récentes</h3>
               <ul style="margin:0 0 20px;padding-left:20px;">${actionsHtml}</ul>
@@ -146,4 +181,9 @@ function buildCrashReportEmailHtml(report) {
 </html>`;
 }
 
-module.exports = { buildCrashReportEmailHtml, escapeHtml, decompressHtml };
+module.exports = {
+  buildCrashReportEmailHtml,
+  buildMetadataDisplayBlock,
+  escapeHtml,
+  decompressHtml,
+};

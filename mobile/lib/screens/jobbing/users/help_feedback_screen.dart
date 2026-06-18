@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
 import 'package:jobbingtrack_mobile/services/diagnostic_payload_codec.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
+import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 
 enum HelpFeedbackType {
   bug,
@@ -60,13 +62,40 @@ class HelpFeedbackScreen extends StatefulWidget {
 class _HelpFeedbackScreenState extends State<HelpFeedbackScreen> {
   final _messageCtrl = TextEditingController();
   final _captureKey = GlobalKey();
+  final _fieldKey = GlobalKey();
+  final _scrollCtrl = ScrollController();
+  final _messageFocus = FocusNode();
   bool _includeDiagnostics = true;
   bool _includeScreenshot = true;
   bool _sending = false;
 
   @override
+  void initState() {
+    super.initState();
+    CrashReporter.setCurrentScreen('help_feedback/${widget.type.category}');
+    _messageFocus.addListener(_scrollFieldIntoView);
+  }
+
+  void _scrollFieldIntoView() {
+    if (!_messageFocus.hasFocus) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final fieldContext = _fieldKey.currentContext;
+      if (fieldContext == null || !mounted) return;
+      Scrollable.ensureVisible(
+        fieldContext,
+        alignment: 0.2,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
   void dispose() {
+    _messageFocus.removeListener(_scrollFieldIntoView);
+    _messageFocus.dispose();
     _messageCtrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
@@ -85,6 +114,7 @@ class _HelpFeedbackScreenState extends State<HelpFeedbackScreen> {
   }
 
   Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
     final message = _messageCtrl.text.trim();
     if (message.length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -118,82 +148,113 @@ class _HelpFeedbackScreenState extends State<HelpFeedbackScreen> {
     }
   }
 
+  Widget _submitAction({required bool compact}) {
+    return TextButton.icon(
+      onPressed: _sending ? null : _submit,
+      icon: _sending
+          ? SizedBox(
+              width: compact ? 16 : 18,
+              height: compact ? 16 : 18,
+              child: const CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(Icons.send, size: compact ? 20 : 18),
+      label: Text(_sending ? '…' : 'Envoyer'),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final safeBottom = MediaQuery.paddingOf(context).bottom;
+    final keyboardBottom = MediaQuery.viewInsetsOf(context).bottom;
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.type.title)),
-      resizeToAvoidBottomInset: true,
-      body: RepaintBoundary(
-        key: _captureKey,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: EdgeInsets.fromLTRB(
-              16,
-              16,
-              16,
-              24 + bottomInset + safeBottom,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Votre message est transmis de façon sécurisée. Aucun mot de passe ni contenu de candidature n\'est inclus automatiquement.',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _messageCtrl,
-                  minLines: 5,
-                  maxLines: 12,
-                  textInputAction: TextInputAction.newline,
-                  decoration: InputDecoration(
-                    hintText: widget.type.hint,
-                    border: const OutlineInputBorder(),
-                    alignLabelWithHint: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Material(
-                  color: Colors.transparent,
-                  child: CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Joindre une capture d\'écran'),
-                    subtitle: const Text(
-                      'Capture compressée de cet écran (sans contenu saisi sensible)',
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        title: Text(widget.type.title),
+        actions: [_submitAction(compact: true)],
+      ),
+      body: AnimatedPadding(
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.only(bottom: keyboardBottom),
+        child: RepaintBoundary(
+          key: _captureKey,
+          child: SafeArea(
+            bottom: false,
+            child: SingleChildScrollView(
+              controller: _scrollCtrl,
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: scrollSafePadding(context, top: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      'Votre message est transmis de façon sécurisée. Aucun mot de passe ni contenu de candidature n\'est inclus automatiquement.',
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
                     ),
-                    value: _includeScreenshot,
-                    onChanged: _sending ? null : (v) => setState(() => _includeScreenshot = v ?? true),
                   ),
-                ),
-                Material(
-                  color: Colors.transparent,
-                  child: CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Joindre un diagnostic technique anonyme'),
-                    subtitle: const Text(
-                      'Mémoire, écrans visités, erreurs récentes, version Android — aide à corriger plus vite',
+                  TextField(
+                    key: _fieldKey,
+                    controller: _messageCtrl,
+                    focusNode: _messageFocus,
+                    minLines: 4,
+                    maxLines: 12,
+                    textInputAction: TextInputAction.newline,
+                    decoration: InputDecoration(
+                      hintText: widget.type.hint,
+                      border: const OutlineInputBorder(),
+                      alignLabelWithHint: true,
+                      filled: true,
+                      fillColor: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.35),
                     ),
-                    value: _includeDiagnostics,
-                    onChanged: _sending ? null : (v) => setState(() => _includeDiagnostics = v ?? true),
                   ),
-                ),
-                const SizedBox(height: 24),
-                FilledButton.icon(
-                  onPressed: _sending ? null : _submit,
-                  icon: _sending
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.send),
-                  label: Text(_sending ? 'Envoi…' : 'Envoyer'),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Material(
+                    color: Colors.transparent,
+                    child: CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Joindre une capture d\'écran'),
+                      subtitle: const Text(
+                        'Capture compressée de cet écran (sans contenu saisi sensible)',
+                      ),
+                      value: _includeScreenshot,
+                      onChanged: _sending
+                          ? null
+                          : (v) => setState(() => _includeScreenshot = v ?? true),
+                    ),
+                  ),
+                  Material(
+                    color: Colors.transparent,
+                    child: CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Joindre un diagnostic technique anonyme'),
+                      subtitle: const Text(
+                        'Mémoire, écrans visités, erreurs récentes, version Android — aide à corriger plus vite',
+                      ),
+                      value: _includeDiagnostics,
+                      onChanged: _sending
+                          ? null
+                          : (v) => setState(() => _includeDiagnostics = v ?? true),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    onPressed: _sending ? null : _submit,
+                    icon: _sending
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.send),
+                    label: Text(_sending ? 'Envoi…' : 'Envoyer'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -396,6 +396,23 @@ app.post('/api/v1/crashes', async (req, res) => {
       metadata: raw.metadata || {},
       ...raw,
     };
+    const mergedMetadata = {
+      ...(typeof body.metadata === 'object' && body.metadata ? body.metadata : {}),
+    };
+    if (body.category && !mergedMetadata.category) mergedMetadata.category = body.category;
+    const feedbackMessage = /^\[(bug|suggestion|signalement)\]\s/i.test(String(body.message || ''));
+    if (
+      body.crashType === 'user_feedback'
+      || body.crashType === 'ManualReport'
+      || body.category
+      || feedbackMessage
+    ) {
+      mergedMetadata.feedback = true;
+    }
+    if (body.sessionId && !mergedMetadata.sessionId) mergedMetadata.sessionId = body.sessionId;
+    if (body.screenName && !mergedMetadata.screenName) mergedMetadata.screenName = body.screenName;
+    if (body.analytics && !mergedMetadata.analytics) mergedMetadata.analytics = body.analytics;
+    body.metadata = mergedMetadata;
     const dir = path.join(__dirname, '..', 'logs', 'crashes');
     fs.mkdirSync(dir, { recursive: true });
     const safe = new Date().toISOString().replace(/[:.]/g, '-');

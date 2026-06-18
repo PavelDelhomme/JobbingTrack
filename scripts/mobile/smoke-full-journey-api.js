@@ -198,10 +198,28 @@ async function main() {
 
   // 10. Retour utilisateur (crash reporter path)
   const crash = await api('POST', '/api/v1/crashes', {
-    crashType: 'user_feedback',
-    message: `Smoke suggestion ${stamp}`,
+    crashType: 'ManualReport',
+    message: `[suggestion] Smoke suggestion ${stamp}`,
     source: 'mobile',
-    category: 'suggestion',
+    sessionId,
+    screenName: '/settings',
+    appVersion: '1.0.0-smoke',
+    deviceInfo: {
+      platform: 'android',
+      osVersion: '14 (smoke)',
+      deviceModel: 'Smoke Device',
+      locale: 'fr_FR',
+      memoryRssMb: '128.0',
+      appVersion: '1.0.0-smoke',
+    },
+    userActions: ['nav /home → /settings', 'tap help_feedback'],
+    metadata: {
+      category: 'suggestion',
+      feedback: true,
+      anonymized: true,
+      deviceId,
+      sessionId,
+    },
   });
   if (crash.status === 200 || crash.status === 201) pass('Retour / crash report');
   else fail('Retour / crash', `${crash.status}`);
