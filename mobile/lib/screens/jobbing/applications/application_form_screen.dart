@@ -14,8 +14,36 @@ import 'package:jobbingtrack_mobile/widgets/company_autocomplete_field.dart';
 /// Écran formulaire complet pour créer ou modifier une candidature (tous les champs backend).
 class ApplicationFormScreen extends StatefulWidget {
   final Application? application;
+  /// Mode popup : pas de drawer ni AppBar shell.
+  final bool modalMode;
+  final ScrollController? scrollController;
 
-  const ApplicationFormScreen({super.key, this.application});
+  const ApplicationFormScreen({
+    super.key,
+    this.application,
+    this.modalMode = false,
+    this.scrollController,
+  });
+
+  /// Ouvre le formulaire de création en bottom sheet (sans drawer).
+  static Future<bool?> showCreateSheet(BuildContext context) {
+    return showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        final height = MediaQuery.sizeOf(ctx).height * 0.92;
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+          child: SizedBox(
+            height: height,
+            child: const ApplicationFormScreen(modalMode: true),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   State<ApplicationFormScreen> createState() => _ApplicationFormScreenState();
@@ -156,8 +184,10 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       if (widget.application == null) {
         await ApiService.createApplicationFromPayload(payload, token: token);
         if (mounted) {
-          Provider.of<ApplicationProvider>(context, listen: false)
+          await Provider.of<ApplicationProvider>(context, listen: false)
               .loadApplications(token: token);
+          await Provider.of<CompanyProvider>(context, listen: false)
+              .loadCompanies(token: token);
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Candidature créée')));
           Navigator.of(context).pop(true);
         }
@@ -179,9 +209,174 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     }
   }
 
+  List<Widget> _buildFormFields() {
+    return [
+      CompanyAutocompleteField(
+        companies: _companies,
+        selectedCompanyId: _companyId,
+        initialName: _companyName,
+        validator: (v) => (v == null || v.trim().isEmpty) ? 'Saisir ou choisir une entreprise' : null,
+        onChanged: (sel) => setState(() {
+          _companyId = sel.companyId;
+          _companyName = sel.name;
+        }),
+      ),
+      const SizedBox(height: 12),
+      if (_interimMode) ...[
+        DropdownButtonFormField<String?>(
+          value: _agencyId,
+          decoration: const InputDecoration(
+            labelText: 'Boîte d\'intérim (optionnel)',
+            border: OutlineInputBorder(),
+            helperText: 'Agence à l\'origine de la proposition',
+          ),
+          items: [
+            const DropdownMenuItem<String?>(value: null, child: Text('— Aucune / classique')),
+            ..._agencies.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name))),
+          ],
+          onChanged: (v) => setState(() => _agencyId = v),
+        ),
+        const SizedBox(height: 12),
+      ],
+      TextFormField(
+        controller: _position,
+        decoration: const InputDecoration(labelText: 'Poste *', border: OutlineInputBorder()),
+        validator: (v) => (v == null || v.trim().isEmpty) ? 'Requis' : null,
+      ),
+      const SizedBox(height: 12),
+      TextFormField(
+        controller: _description,
+        maxLines: 3,
+        decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+      ),
+      const SizedBox(height: 12),
+      TextFormField(
+        controller: _jobUrl,
+        keyboardType: TextInputType.url,
+        decoration: const InputDecoration(labelText: 'URL de l\'offre', border: OutlineInputBorder()),
+      ),
+      const SizedBox(height: 12),
+      TextFormField(
+        controller: _location,
+        decoration: const InputDecoration(labelText: 'Lieu', border: OutlineInputBorder()),
+      ),
+      const SizedBox(height: 12),
+      DropdownButtonFormField<String>(
+        value: _contractType,
+        decoration: const InputDecoration(labelText: 'Type de contrat', border: OutlineInputBorder()),
+        items: _contractTypes.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+        onChanged: (v) => setState(() => _contractType = v ?? 'CDI'),
+      ),
+      const SizedBox(height: 12),
+      DropdownButtonFormField<String>(
+        value: _workMode,
+        decoration: const InputDecoration(labelText: 'Mode de travail', border: OutlineInputBorder()),
+        items: _workModes.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+        onChanged: (v) => setState(() => _workMode = v),
+      ),
+      const SizedBox(height: 12),
+      DropdownButtonFormField<String>(
+        value: _applicationType,
+        decoration: const InputDecoration(labelText: 'Type candidature', border: OutlineInputBorder()),
+        items: _applicationTypes.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+        onChanged: (v) => setState(() => _applicationType = v ?? 'OFFRE'),
+      ),
+      const SizedBox(height: 12),
+      ListTile(
+        title: const Text('Date de candidature'),
+        subtitle: Text(_applicationDate.toString().split(' ')[0]),
+        trailing: const Icon(Icons.calendar_today),
+        onTap: () async {
+          final d = await showDatePicker(context: context, initialDate: _applicationDate, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365)));
+          if (d != null) setState(() => _applicationDate = d);
+        },
+      ),
+      const SizedBox(height: 12),
+      Row(
+        children: [
+          Expanded(
+            child: TextFormField(
+              controller: _salaryMin,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Salaire min (€/an)', border: OutlineInputBorder()),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextFormField(
+              controller: _salaryMax,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Salaire max (€/an)', border: OutlineInputBorder()),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
+      CheckboxListTile(
+        title: const Text('Salaire négociable'),
+        value: _salaryNegotiable,
+        onChanged: (v) => setState(() => _salaryNegotiable = v ?? false),
+      ),
+      const SizedBox(height: 12),
+      TextFormField(
+        controller: _notes,
+        maxLines: 3,
+        decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder()),
+      ),
+      const SizedBox(height: 24),
+      ElevatedButton(
+        onPressed: _saving ? null : _save,
+        child: _saving
+            ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2))
+            : Text(widget.application == null ? 'Créer' : 'Enregistrer'),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.application != null;
+    final form = Form(
+      key: _formKey,
+      child: ListView(
+        controller: widget.scrollController,
+        padding: const EdgeInsets.all(16),
+        children: _buildFormFields(),
+      ),
+    );
+
+    if (widget.modalMode) {
+      return Material(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+              child: Row(
+                children: [
+                  IconButton(
+                    tooltip: 'Fermer',
+                    onPressed: () => Navigator.of(context).pop(false),
+                    icon: const Icon(Icons.close),
+                  ),
+                  Expanded(
+                    child: Text(
+                      isEdit ? 'Modifier la candidature' : 'Nouvelle candidature',
+                      style: Theme.of(context).textTheme.titleMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(width: 48),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(child: form),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       key: _scaffoldKey,
       drawer: AppDrawer(),
@@ -191,131 +386,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       ),
       body: DrawerBackScope(
         scaffoldKey: _scaffoldKey,
-        child: Form(
-          key: _formKey,
-          child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            CompanyAutocompleteField(
-              companies: _companies,
-              selectedCompanyId: _companyId,
-              initialName: _companyName,
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Saisir ou choisir une entreprise' : null,
-              onChanged: (sel) => setState(() {
-                _companyId = sel.companyId;
-                _companyName = sel.name;
-              }),
-            ),
-            const SizedBox(height: 12),
-            if (_interimMode) ...[
-              DropdownButtonFormField<String?>(
-                value: _agencyId,
-                decoration: const InputDecoration(
-                  labelText: 'Boîte d\'intérim (optionnel)',
-                  border: OutlineInputBorder(),
-                  helperText: 'Agence à l\'origine de la proposition',
-                ),
-                items: [
-                  const DropdownMenuItem<String?>(value: null, child: Text('— Aucune / classique')),
-                  ..._agencies.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name))),
-                ],
-                onChanged: (v) => setState(() => _agencyId = v),
-              ),
-              const SizedBox(height: 12),
-            ],
-            TextFormField(
-              controller: _position,
-              decoration: const InputDecoration(labelText: 'Poste *', border: OutlineInputBorder()),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Requis' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _description,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _jobUrl,
-              keyboardType: TextInputType.url,
-              decoration: const InputDecoration(labelText: 'URL de l\'offre', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _location,
-              decoration: const InputDecoration(labelText: 'Lieu', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _contractType,
-              decoration: const InputDecoration(labelText: 'Type de contrat', border: OutlineInputBorder()),
-              items: _contractTypes.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-              onChanged: (v) => setState(() => _contractType = v ?? 'CDI'),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _workMode,
-              decoration: const InputDecoration(labelText: 'Mode de travail', border: OutlineInputBorder()),
-              items: _workModes.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-              onChanged: (v) => setState(() => _workMode = v),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _applicationType,
-              decoration: const InputDecoration(labelText: 'Type candidature', border: OutlineInputBorder()),
-              items: _applicationTypes.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-              onChanged: (v) => setState(() => _applicationType = v ?? 'OFFRE'),
-            ),
-            const SizedBox(height: 12),
-            ListTile(
-              title: const Text('Date de candidature'),
-              subtitle: Text(_applicationDate.toString().split(' ')[0]),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: () async {
-                final d = await showDatePicker(context: context, initialDate: _applicationDate, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365)));
-                if (d != null) setState(() => _applicationDate = d);
-              },
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _salaryMin,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Salaire min (€/an)', border: OutlineInputBorder()),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _salaryMax,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Salaire max (€/an)', border: OutlineInputBorder()),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            CheckboxListTile(
-              title: const Text('Salaire négociable'),
-              value: _salaryNegotiable,
-              onChanged: (v) => setState(() => _salaryNegotiable = v ?? false),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _notes,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _saving ? null : _save,
-              child: _saving ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2)) : Text(isEdit ? 'Enregistrer' : 'Créer'),
-            ),
-          ],
-        ),
-        ),
+        child: form,
       ),
     );
   }

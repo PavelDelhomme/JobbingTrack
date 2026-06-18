@@ -77,6 +77,52 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
     }
   }
 
+  Future<void> _handleMenu(String action) async {
+    final c = _contact ?? widget.contact;
+    final id = c['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    if (action == 'edit') {
+      final ok = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => ContactEditScreen(contact: c)),
+      );
+      if (ok == true) _load();
+      return;
+    }
+    final label = contactDisplayName(c);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(action == 'archive' ? 'Archiver le contact ?' : 'Mettre à la corbeille ?'),
+        content: Text(
+          action == 'archive'
+              ? '$label sera déplacé vers les archives.'
+              : '$label sera déplacé vers la corbeille.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmer')),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      if (action == 'archive') {
+        await ApiService.archiveContact(id, token: token);
+      } else {
+        await ApiService.deleteContact(id, token: token);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(action == 'archive' ? 'Contact archivé' : 'Contact mis à la corbeille')),
+        );
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = _contact ?? widget.contact;
@@ -87,15 +133,13 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
       appBar: AppBar(
         title: Text(contactDisplayName(c)),
         actions: [
-          IconButton(
-            tooltip: 'Modifier',
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () async {
-              final ok = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(builder: (_) => ContactEditScreen(contact: c)),
-              );
-              if (ok == true) _load();
-            },
+          PopupMenuButton<String>(
+            onSelected: _handleMenu,
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'edit', child: Text('Modifier')),
+              PopupMenuItem(value: 'archive', child: Text('Archiver')),
+              PopupMenuItem(value: 'delete', child: Text('Mettre à la corbeille')),
+            ],
           ),
         ],
       ),

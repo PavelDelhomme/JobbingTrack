@@ -15,6 +15,7 @@ Future<Map<String, dynamic>?> showContactPickerSheet(
     required String lastName,
     String? email,
     String? phone,
+    String? notes,
   }) onCreateContact,
   bool allowWithoutContact = false,
   String? withoutContactLabel,
@@ -40,6 +41,7 @@ class _ContactPickerBody extends StatefulWidget {
     required String lastName,
     String? email,
     String? phone,
+    String? notes,
   }) onCreateContact;
   final bool allowWithoutContact;
   final String? withoutContactLabel;
@@ -60,11 +62,13 @@ class _ContactPickerBodyState extends State<_ContactPickerBody> {
   bool _importingPhone = false;
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _notesController = TextEditingController();
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -80,6 +84,7 @@ class _ContactPickerBodyState extends State<_ContactPickerBody> {
         firstName: firstName,
         lastName: lastName,
         email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
       );
       if (mounted) Navigator.pop(context, created);
     } catch (e) {
@@ -218,6 +223,17 @@ class _ContactPickerBodyState extends State<_ContactPickerBody> {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Notes (optionnel)',
+                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 3,
+                minLines: 2,
               ),
               const SizedBox(height: 12),
               FilledButton.icon(

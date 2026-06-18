@@ -97,6 +97,72 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     }
   }
 
+  Future<void> _changeStatus() async {
+    final picked = await showApplicationStatusPicker(context, current: app.status);
+    if (picked == null || picked == app.status || !mounted) return;
+    try {
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      await ApiService.updateApplicationStatus(app.id, picked, token: token);
+      await ApiService.updateApplicationFromPayload(
+        app.id,
+        {'statusEngineOptOut': true},
+        token: token,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Statut : ${applicationStatusLabel(picked)} (automatismes désactivés)')),
+        );
+        _load();
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
+  }
+
+  Future<void> _handleContactAction(Map<String, dynamic> contact, String action) async {
+    final id = contact['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    if (action == 'open') {
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ContactDetailScreen(contact: contact)),
+      );
+      return;
+    }
+    final label = contactDisplayName(contact);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(action == 'archive' ? 'Archiver le contact ?' : 'Mettre à la corbeille ?'),
+        content: Text(
+          action == 'archive'
+              ? '$label sera déplacé vers les archives.'
+              : '$label sera déplacé vers la corbeille.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmer')),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      if (action == 'archive') {
+        await ApiService.archiveContact(id, token: token);
+      } else {
+        await ApiService.deleteContact(id, token: token);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(action == 'archive' ? 'Contact archivé' : 'Contact mis à la corbeille')),
+        );
+        _load();
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
+  }
+
   Application get app => _application ?? widget.application;
 
   @override
@@ -154,14 +220,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                       child: Text('Aucun contact lié', style: TextStyle(color: Colors.grey.shade600)),
                     )
                   else
-                    ..._contacts.map((c) => _linkTile(
-                          icon: Icons.person_outline,
-                          title: contactDisplayName(c),
-                          subtitle: c['email']?.toString() ?? c['phone']?.toString() ?? '',
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => ContactDetailScreen(contact: c)),
-                          ),
-                        )),
+                    ..._contacts.map((c) => _contactTile(c)),
                   const SizedBox(height: 16),
                   _sectionHeader('Relances'),
                   if (_followUps.isEmpty)
@@ -287,6 +346,11 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                   side: BorderSide(color: statusColor.withValues(alpha: 0.35)),
                   labelStyle: TextStyle(color: statusColor, fontWeight: FontWeight.w600),
                 ),
+                ActionChip(
+                  avatar: const Icon(Icons.edit_outlined, size: 16),
+                  label: const Text('Changer statut'),
+                  onPressed: _changeStatus,
+                ),
                 Chip(
                   avatar: const Icon(Icons.event, size: 16),
                   label: Text('Postulé · ${formatSmartPostulationDate(app.appliedDate)}'),
@@ -311,6 +375,32 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         if (actionLabel != null && onAction != null)
           TextButton.icon(onPressed: onAction, icon: const Icon(Icons.add, size: 18), label: Text(actionLabel)),
       ],
+    );
+  }
+
+  Widget _contactTile(Map<String, dynamic> c) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Icon(Icons.person_outline, color: Colors.blue.shade700),
+        title: Text(contactDisplayName(c), maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          c['email']?.toString() ?? c['phone']?.toString() ?? '',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: PopupMenuButton<String>(
+          onSelected: (v) => _handleContactAction(c, v),
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'open', child: Text('Voir le détail')),
+            PopupMenuItem(value: 'archive', child: Text('Archiver')),
+            PopupMenuItem(value: 'delete', child: Text('Mettre à la corbeille')),
+          ],
+        ),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => ContactDetailScreen(contact: c)),
+        ),
+      ),
     );
   }
 
@@ -366,6 +456,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     final lastName = TextEditingController();
     final email = TextEditingController();
     final phone = TextEditingController();
+    final notes = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -378,6 +469,12 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
               TextField(controller: lastName, decoration: const InputDecoration(labelText: 'Nom *')),
               TextField(controller: email, decoration: const InputDecoration(labelText: 'Email')),
               TextField(controller: phone, decoration: const InputDecoration(labelText: 'Téléphone')),
+              TextField(
+                controller: notes,
+                decoration: const InputDecoration(labelText: 'Notes', alignLabelWithHint: true),
+                maxLines: 3,
+                minLines: 2,
+              ),
             ],
           ),
         ),
@@ -399,6 +496,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         lastName: lastName.text.trim(),
         email: email.text.trim(),
         phone: phone.text.trim(),
+        notes: notes.text.trim(),
         companyId: app.company.id.isNotEmpty ? app.company.id : null,
         token: token,
       );
@@ -538,12 +636,13 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                     final picked = await showContactPickerSheet(
                       ctx,
                       candidates: _contacts,
-                      onCreateContact: ({required String firstName, required String lastName, String? email, String? phone}) async {
+                      onCreateContact: ({required String firstName, required String lastName, String? email, String? phone, String? notes}) async {
                         final created = await ApiService.createContact(
                           firstName: firstName,
                           lastName: lastName,
                           email: email ?? '',
                           phone: phone ?? '',
+                          notes: notes,
                           companyId: app.company.id.isNotEmpty ? app.company.id : null,
                           token: token,
                         );
@@ -732,12 +831,13 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
           ? 'Appel sans contact · ${app.company.name}'
           : 'Appel sans contact',
       candidates: candidates,
-      onCreateContact: ({required String firstName, required String lastName, String? email, String? phone}) async {
+      onCreateContact: ({required String firstName, required String lastName, String? email, String? phone, String? notes}) async {
         final created = await ApiService.createContact(
           firstName: firstName,
           lastName: lastName,
           email: email ?? '',
           phone: phone ?? '',
+          notes: notes,
           companyId: app.company.id.isNotEmpty ? app.company.id : null,
           token: token,
         );

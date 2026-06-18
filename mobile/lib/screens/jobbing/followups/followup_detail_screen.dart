@@ -66,11 +66,96 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
     }
   }
 
+  Future<void> _showEditDialog() async {
+    final f = _followUp ?? widget.followUp;
+    DateTime date = f.scheduledDate;
+    final notesController = TextEditingController(text: f.notes ?? '');
+    final responseController = TextEditingController(text: f.response ?? '');
+    String status = f.status;
+    const statuses = ['PENDING', 'COMPLETED', 'CANCELLED'];
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Modifier la relance'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today),
+                  title: Text(formatSmartEventDate(date)),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: date,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) setDialogState(() => date = picked);
+                  },
+                ),
+                DropdownButtonFormField<String>(
+                  value: status,
+                  decoration: const InputDecoration(labelText: 'Statut', border: OutlineInputBorder()),
+                  items: statuses
+                      .map((s) => DropdownMenuItem(value: s, child: Text(followUpStatusLabel(s))))
+                      .toList(),
+                  onChanged: (v) => setDialogState(() => status = v ?? status),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: notesController,
+                  decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder(), alignLabelWithHint: true),
+                  maxLines: 4,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: responseController,
+                  decoration: const InputDecoration(labelText: 'Réponse', border: OutlineInputBorder(), alignLabelWithHint: true),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Enregistrer')),
+          ],
+        ),
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      await ApiService.updateFollowUp(
+        f.id,
+        followUpDate: date,
+        notes: notesController.text.trim(),
+        response: responseController.text.trim(),
+        status: status,
+        token: token,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Relance mise à jour')));
+        _load();
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final f = _followUp ?? widget.followUp;
     return Scaffold(
-      appBar: AppBar(title: const Text('Relance')),
+      appBar: AppBar(
+        title: const Text('Relance'),
+        actions: [
+          IconButton(tooltip: 'Modifier', icon: const Icon(Icons.edit_outlined), onPressed: _showEditDialog),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(

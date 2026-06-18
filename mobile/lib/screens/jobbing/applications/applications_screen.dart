@@ -159,10 +159,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
   Widget? _buildFab() {
     return FloatingActionButton(
       onPressed: () async {
-        final result = await Navigator.of(context).push<bool>(
-          MaterialPageRoute(builder: (_) => const ApplicationFormScreen()),
-        );
-        if (result == true) _loadApplications();
+        final result = await ApplicationFormScreen.showCreateSheet(context);
+        if (result == true) _loadAll();
       },
       backgroundColor: Colors.blue[600],
       child: const Icon(Icons.add),
@@ -494,10 +492,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
           const SizedBox(height: 20),
           ElevatedButton.icon(
             onPressed: () async {
-              final result = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(builder: (_) => const ApplicationFormScreen()),
-              );
-              if (result == true) _loadApplications();
+              final result = await ApplicationFormScreen.showCreateSheet(context);
+              if (result == true) _loadAll();
             },
             icon: const Icon(Icons.add),
             label: const Text('Créer ma première candidature'),

@@ -71,11 +71,98 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
     }
   }
 
+  Future<void> _showEditDialog() async {
+    final i = _interview ?? widget.interview;
+    DateTime date = i.interviewDate;
+    final locationController = TextEditingController(text: i.location ?? '');
+    final videoLinkController = TextEditingController(text: i.videoLink ?? '');
+    final durationController = TextEditingController(text: i.estimatedDuration?.toString() ?? '');
+    final notesController = TextEditingController(text: i.notes ?? '');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Modifier l\'entretien'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today),
+                  title: Text(formatSmartEventDate(date)),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: date,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) setDialogState(() => date = picked);
+                  },
+                ),
+                TextField(
+                  controller: locationController,
+                  decoration: const InputDecoration(labelText: 'Lieu', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: videoLinkController,
+                  decoration: const InputDecoration(labelText: 'Lien visio', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: durationController,
+                  decoration: const InputDecoration(labelText: 'Durée (minutes)', border: OutlineInputBorder()),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: notesController,
+                  decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder(), alignLabelWithHint: true),
+                  maxLines: 4,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Enregistrer')),
+          ],
+        ),
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      await ApiService.updateInterview(
+        i.id,
+        interviewDate: date,
+        location: locationController.text.trim(),
+        videoLink: videoLinkController.text.trim(),
+        estimatedDuration: int.tryParse(durationController.text.trim()),
+        notes: notesController.text.trim(),
+        token: token,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Entretien mis à jour')));
+        _load();
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final i = _interview ?? widget.interview;
     return Scaffold(
-      appBar: AppBar(title: const Text('Entretien')),
+      appBar: AppBar(
+        title: const Text('Entretien'),
+        actions: [
+          IconButton(tooltip: 'Modifier', icon: const Icon(Icons.edit_outlined), onPressed: _showEditDialog),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(

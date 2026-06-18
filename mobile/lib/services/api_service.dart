@@ -721,6 +721,34 @@ class ApiService {
       onHttpError: (response) => _httpError(response),
     );
   }
+
+  /// Changement manuel de statut (+ commentaire optionnel).
+  static Future<Application> updateApplicationStatus(
+    String id,
+    String status, {
+    String? comment,
+    String? token,
+  }) async {
+    final path = '/api/v1/applications/$id/status';
+    final body = <String, dynamic>{
+      'status': status,
+      if (comment != null && comment.isNotEmpty) 'comment': comment,
+    };
+    return OfflineMutationHelper.execute(
+      method: 'PUT',
+      path: path,
+      body: body,
+      entityType: 'application',
+      token: token,
+      successStatus: 200,
+      send: () => _put(path, headers: _jsonHeaders(token), body: jsonEncode(body)),
+      onSuccess: (response) {
+        final data = jsonDecode(response.body);
+        return Application.fromJson(data['application'] ?? data);
+      },
+      onHttpError: (response) => _httpError(response),
+    );
+  }
   static Future<Application> updateApplication(String id, Application application, {String? token}) async {
     final path = '/api/v1/applications/$id';
     final payload = application.toJson();
@@ -1086,6 +1114,7 @@ class ApiService {
     required String lastName,
     String? email,
     String? phone,
+    String? notes,
     String? companyId,
     String? token,
   }) async {
@@ -1095,6 +1124,7 @@ class ApiService {
       'lastName': lastName,
       if (email != null && email.isNotEmpty) 'email': email,
       if (phone != null && phone.isNotEmpty) 'phone': phone,
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
       if (companyId != null && companyId.isNotEmpty) 'companyId': companyId,
     };
     return OfflineMutationHelper.execute(
@@ -1144,6 +1174,30 @@ class ApiService {
         return Map<String, dynamic>.from(data['contact']);
       },
       onHttpError: (response) => _httpError(response),
+    );
+  }
+
+  static Future<void> archiveContact(String id, {String? token}) async {
+    final path = '/api/v1/contacts/$id/archive';
+    await OfflineMutationHelper.executeVoid(
+      method: 'POST',
+      path: path,
+      entityType: 'contact',
+      token: token,
+      successStatus: 200,
+      send: () => _post(path, headers: _jsonHeaders(token)),
+    );
+  }
+
+  static Future<void> deleteContact(String id, {String? token}) async {
+    final path = '/api/v1/contacts/$id';
+    await OfflineMutationHelper.executeVoid(
+      method: 'DELETE',
+      path: path,
+      entityType: 'contact',
+      token: token,
+      successStatus: 200,
+      send: () => _delete(path, headers: _jsonHeaders(token)),
     );
   }
 
@@ -1266,6 +1320,36 @@ class ApiService {
     );
   }
 
+  static Future<FollowUp> updateFollowUp(
+    String id, {
+    DateTime? followUpDate,
+    String? notes,
+    String? response,
+    String? status,
+    String? token,
+  }) async {
+    final path = '/api/v1/followups/$id';
+    final body = <String, dynamic>{};
+    if (followUpDate != null) body['followUpDate'] = followUpDate.toUtc().toIso8601String();
+    if (notes != null) body['notes'] = notes;
+    if (response != null) body['response'] = response;
+    if (status != null) body['status'] = status;
+    return OfflineMutationHelper.execute(
+      method: 'PUT',
+      path: path,
+      body: body,
+      entityType: 'followup',
+      token: token,
+      successStatus: 200,
+      send: () => _put(path, headers: _jsonHeaders(token), body: jsonEncode(body)),
+      onSuccess: (response) {
+        final data = jsonDecode(response.body);
+        return FollowUp.fromJson(Map<String, dynamic>.from(data['followup']));
+      },
+      onHttpError: (response) => _httpError(response),
+    );
+  }
+
   static Future<FollowUp> completeFollowUp(String id, String responseText, {String? token}) async {
     final path = '/api/v1/followups/$id/complete';
     final body = {'response': responseText};
@@ -1345,6 +1429,40 @@ class ApiService {
       token: token,
       successStatus: 201,
       send: () => _post(path, headers: _jsonHeaders(token), body: jsonEncode(body)),
+      onSuccess: (response) {
+        final data = jsonDecode(response.body);
+        return Interview.fromJson(Map<String, dynamic>.from(data['interview']));
+      },
+      onHttpError: (response) => _httpError(response),
+    );
+  }
+
+  static Future<Interview> updateInterview(
+    String id, {
+    DateTime? interviewDate,
+    String? location,
+    String? videoLink,
+    String? notes,
+    int? estimatedDuration,
+    String? status,
+    String? token,
+  }) async {
+    final path = '/api/v1/interviews/$id';
+    final body = <String, dynamic>{};
+    if (interviewDate != null) body['interviewDate'] = interviewDate.toUtc().toIso8601String();
+    if (location != null) body['location'] = location;
+    if (videoLink != null) body['videoLink'] = videoLink;
+    if (notes != null) body['notes'] = notes;
+    if (estimatedDuration != null) body['estimatedDuration'] = estimatedDuration;
+    if (status != null) body['status'] = status;
+    return OfflineMutationHelper.execute(
+      method: 'PUT',
+      path: path,
+      body: body,
+      entityType: 'interview',
+      token: token,
+      successStatus: 200,
+      send: () => _put(path, headers: _jsonHeaders(token), body: jsonEncode(body)),
       onSuccess: (response) {
         final data = jsonDecode(response.body);
         return Interview.fromJson(Map<String, dynamic>.from(data['interview']));

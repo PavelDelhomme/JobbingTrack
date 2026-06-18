@@ -4,6 +4,7 @@ import 'package:jobbingtrack_mobile/models/company.dart';
 import 'package:jobbingtrack_mobile/providers/application_provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contact_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/companies/company_edit_screen.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
@@ -22,6 +23,7 @@ class CompanyDetailScreen extends StatefulWidget {
 
 class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
   Company? _company;
+  List<Map<String, dynamic>> _contacts = [];
   bool _loading = true;
 
   @override
@@ -43,8 +45,13 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
     final token = auth.token;
     try {
       final fresh = await ApiService.getCompany(widget.company.id, token: token);
+      var contacts = <Map<String, dynamic>>[];
+      try {
+        contacts = await ApiService.getContactsByCompany(widget.company.id, token: token);
+      } catch (_) {}
       if (mounted) setState(() {
         _company = fresh;
+        _contacts = contacts;
         _loading = false;
       });
     } catch (_) {
@@ -52,6 +59,66 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
         _company = widget.company;
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _createContactDialog() async {
+    final c = _company ?? widget.company;
+    if (c.id.isEmpty) return;
+    final firstName = TextEditingController();
+    final lastName = TextEditingController();
+    final email = TextEditingController();
+    final phone = TextEditingController();
+    final notes = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nouveau contact'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: firstName, decoration: const InputDecoration(labelText: 'Prénom *')),
+              TextField(controller: lastName, decoration: const InputDecoration(labelText: 'Nom *')),
+              TextField(controller: email, decoration: const InputDecoration(labelText: 'Email')),
+              TextField(controller: phone, decoration: const InputDecoration(labelText: 'Téléphone')),
+              TextField(
+                controller: notes,
+                decoration: const InputDecoration(labelText: 'Notes', alignLabelWithHint: true),
+                maxLines: 3,
+                minLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Créer')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    if (firstName.text.trim().isEmpty || lastName.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Prénom et nom requis')));
+      return;
+    }
+    try {
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      await ApiService.createContact(
+        firstName: firstName.text.trim(),
+        lastName: lastName.text.trim(),
+        email: email.text.trim(),
+        phone: phone.text.trim(),
+        notes: notes.text.trim(),
+        companyId: c.id,
+        token: token,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contact créé')));
+        _load();
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
   }
 
@@ -107,6 +174,33 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                         subtitle: Text(applicationStatusLabel(a.status)),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => ApplicationDetailScreen(application: a)),
+                        ),
+                      )),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('Contacts (${_contacts.length})', style: Theme.of(context).textTheme.titleMedium),
+                    ),
+                    TextButton.icon(
+                      onPressed: _createContactDialog,
+                      icon: const Icon(Icons.person_add_outlined, size: 18),
+                      label: const Text('Ajouter'),
+                    ),
+                  ],
+                ),
+                if (_contacts.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text('Aucun contact', style: TextStyle(color: Colors.grey.shade600)),
+                  )
+                else
+                  ..._contacts.map((contact) => ListTile(
+                        leading: const Icon(Icons.person_outline),
+                        title: Text(contactDisplayName(contact)),
+                        subtitle: Text(contact['email']?.toString() ?? contact['phone']?.toString() ?? ''),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => ContactDetailScreen(contact: contact)),
                         ),
                       )),
               ],
