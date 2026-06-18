@@ -7,6 +7,8 @@ import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/services/local_phone_integrations_service.dart';
+import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/back_to_home_scope.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -25,6 +27,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _biometricUnlock = false;
   bool _biometricAvailable = false;
   bool _keepLoggedIn = true;
+  int _localCallLogCount = 0;
+  int _localPhoneContactsCount = 0;
+  DateTime? _callLogSyncedAt;
+  DateTime? _phoneContactsSyncedAt;
+  bool _phoneSyncing = false;
 
   @override
   void initState() {
@@ -44,6 +51,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final bio = await ApiConfigStore.loadBiometricUnlockEnabled();
     final keep = await ApiConfigStore.loadKeepLoggedIn();
     final bioAvail = await BiometricAuthService.isAvailable();
+    final callCount = await LocalPhoneIntegrationsService.getLocalCallLogCount();
+    final phoneContactsCount = await LocalPhoneIntegrationsService.getLocalPhoneContactsCount();
+    final callSynced = await LocalPhoneIntegrationsService.getCallLogSyncedAt();
+    final contactsSynced = await LocalPhoneIntegrationsService.getContactsSyncedAt();
     if (!mounted) return;
     setState(() {
       _consent = consent;
@@ -53,6 +64,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _biometricUnlock = bio;
       _keepLoggedIn = keep;
       _biometricAvailable = bioAvail;
+      _localCallLogCount = callCount;
+      _localPhoneContactsCount = phoneContactsCount;
+      _callLogSyncedAt = callSynced;
+      _phoneContactsSyncedAt = contactsSynced;
       _loading = false;
     });
   }
@@ -71,7 +86,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         body: _loading
             ? const Center(child: CircularProgressIndicator())
             : ListView(
-                padding: const EdgeInsets.all(16),
+                padding: scrollSafePadding(context),
                 children: [
                   _sectionTitle('Confidentialité & télémétrie'),
                   Card(
@@ -202,6 +217,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  _sectionTitle('Téléphone (local uniquement)'),
+                  Card(
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.phone_in_talk_outlined),
+                          title: const Text('Historique d\'appels téléphone'),
+                          subtitle: Text(
+                            _localCallLogCount > 0
+                                ? '$_localCallLogCount entrée(s)${_callLogSyncedAt != null ? ' · ${_formatSyncDate(_callLogSyncedAt!)}' : ''}'
+                                : 'Non importé — données stockées uniquement sur cet appareil',
+                          ),
+                          trailing: _phoneSyncing
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.download_outlined),
+                          onTap: _phoneSyncing ? null : () => _syncCallLog(context),
+                        ),
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: const Icon(Icons.contacts_outlined),
+                          title: const Text('Contacts du téléphone'),
+                          subtitle: Text(
+                            _localPhoneContactsCount > 0
+                                ? '$_localPhoneContactsCount contact(s)${_phoneContactsSyncedAt != null ? ' · ${_formatSyncDate(_phoneContactsSyncedAt!)}' : ''}'
+                                : 'Import pour lier à une candidature ou entreprise',
+                          ),
+                          trailing: _phoneSyncing
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.download_outlined),
+                          onTap: _phoneSyncing ? null : () => _syncPhoneContacts(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   _sectionTitle('Application'),
                   Card(
                     child: ListTile(
@@ -221,6 +271,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.only(bottom: 8, left: 4),
       child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
     );
+  }
+
+  String _formatSyncDate(DateTime dt) {
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _syncCallLog(BuildContext context) async {
+    setState(() => _phoneSyncing = true);
+    try {
+      final count = await LocalPhoneIntegrationsService.syncCallLogLocally();
+      if (!mounted) return;
+      setState(() {
+        _localCallLogCount = count;
+        _callLogSyncedAt = DateTime.now();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$count appel(s) importé(s) localement')),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _phoneSyncing = false);
+    }
+  }
+
+  Future<void> _syncPhoneContacts(BuildContext context) async {
+    setState(() => _phoneSyncing = true);
+    try {
+      final count = await LocalPhoneIntegrationsService.syncPhoneContactsLocally();
+      if (!mounted) return;
+      setState(() {
+        _localPhoneContactsCount = count;
+        _phoneContactsSyncedAt = DateTime.now();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$count contact(s) importé(s) localement')),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _phoneSyncing = false);
+    }
   }
 
   void _openFeedback(BuildContext context, HelpFeedbackType type) {

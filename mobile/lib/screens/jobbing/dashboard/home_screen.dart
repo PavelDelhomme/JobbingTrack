@@ -251,7 +251,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
 
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
           BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Candidatures'),
@@ -264,6 +266,7 @@ class _HomeScreenState extends State<HomeScreen> {
         unselectedItemColor: Colors.grey[400],
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
+        ),
       ),
     );
   }

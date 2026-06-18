@@ -439,14 +439,16 @@ const getContactsByApplication = async (req, res, next) => {
     const contacts = await prisma.contact.findMany({
       where: {
         userId: req.user.id,
-        contactApplications: {
+        applications: {
           some: {
             applicationId: applicationId
           }
         }
       },
       include: {
-        companies: true
+        companies: {
+          include: { company: true }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });

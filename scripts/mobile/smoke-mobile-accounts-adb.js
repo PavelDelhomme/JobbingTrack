@@ -48,6 +48,7 @@ async function drawerHasAdminSection(phone) {
   }
   console.log('OK: menu ADMINISTRATION visible');
   await adbLib.flows.ensureLoggedOut(phone);
+  await adbLib.flows.restartApp(phone);
   console.log('OK: déconnexion admin');
 
   console.log('\n=== Compte UTILISATEUR TEST ===');

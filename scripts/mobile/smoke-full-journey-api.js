@@ -96,6 +96,12 @@ async function main() {
     });
     if (link.status === 200) pass('Lier contact → candidature');
     else fail('Lier contact', `${link.status}`);
+
+    const contactsByApp = await api('GET', `/api/v1/contacts/application/${appId}`);
+    if (contactsByApp.status === 200) {
+      const n = contactsByApp.data.total ?? contactsByApp.data.contacts?.length ?? 0;
+      pass('GET contacts/candidature', `${n} contact(s)`);
+    } else fail('GET contacts/candidature', `${contactsByApp.status}`);
   }
 
   // 3. Entretien

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:jobbingtrack_mobile/services/local_phone_integrations_service.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
+import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 
 /// Résultat spécial : appel sans contact (entreprise / candidature seulement).
 const String kCallWithoutContactFlag = '__call_without_contact__';
@@ -55,6 +57,7 @@ class _ContactPickerBody extends StatefulWidget {
 
 class _ContactPickerBodyState extends State<_ContactPickerBody> {
   bool _creating = false;
+  bool _importingPhone = false;
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
 
@@ -88,6 +91,62 @@ class _ContactPickerBodyState extends State<_ContactPickerBody> {
     }
   }
 
+  Future<void> _importFromPhone() async {
+    setState(() => _importingPhone = true);
+    try {
+      var local = await LocalPhoneIntegrationsService.getLocalPhoneContacts();
+      if (local.isEmpty) {
+        await LocalPhoneIntegrationsService.syncPhoneContactsLocally();
+        local = await LocalPhoneIntegrationsService.getLocalPhoneContacts();
+      }
+      if (!mounted) return;
+      if (local.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Aucun contact téléphone importé (permission ou liste vide)')),
+        );
+        return;
+      }
+      final picked = await showModalBottomSheet<Map<String, dynamic>>(
+        context: context,
+        isScrollControlled: true,
+        builder: (ctx) => DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.6,
+          builder: (_, controller) => ListView.builder(
+            controller: controller,
+            padding: scrollSafePadding(ctx, top: 8),
+            itemCount: local.length,
+            itemBuilder: (_, i) {
+              final c = local[i];
+              return ListTile(
+                leading: const Icon(Icons.phone_android_outlined),
+                title: Text(c['displayName']?.toString() ?? 'Contact'),
+                subtitle: Text(c['phone']?.toString() ?? c['email']?.toString() ?? ''),
+                onTap: () => Navigator.pop(ctx, c),
+              );
+            },
+          ),
+        ),
+      );
+      if (picked == null || !mounted) return;
+      final created = await widget.onCreateContact(
+        firstName: picked['firstName']?.toString().trim().isNotEmpty == true
+            ? picked['firstName'].toString()
+            : (picked['displayName']?.toString().split(' ').first ?? 'Contact'),
+        lastName: picked['lastName']?.toString().trim().isNotEmpty == true
+            ? picked['lastName'].toString()
+            : (picked['displayName']?.toString().split(' ').skip(1).join(' ') ?? '.'),
+        email: picked['email']?.toString(),
+        phone: picked['phone']?.toString(),
+      );
+      if (mounted) Navigator.pop(context, created);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+    } finally {
+      if (mounted) setState(() => _importingPhone = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
@@ -99,7 +158,7 @@ class _ContactPickerBodyState extends State<_ContactPickerBody> {
         return Material(
           child: ListView(
             controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            padding: scrollSafePadding(context, top: 12, extraBottom: 24),
             children: [
               Center(
                 child: Container(
@@ -133,6 +192,14 @@ class _ContactPickerBodyState extends State<_ContactPickerBody> {
                   child: Text('Aucun contact enregistré.', style: TextStyle(color: Colors.grey.shade600)),
                 ),
               const Divider(height: 28),
+              OutlinedButton.icon(
+                onPressed: _importingPhone ? null : _importFromPhone,
+                icon: _importingPhone
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.import_contacts_outlined),
+                label: const Text('Importer depuis le téléphone'),
+              ),
+              const SizedBox(height: 16),
               Text('Créer à la volée', style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
               TextField(

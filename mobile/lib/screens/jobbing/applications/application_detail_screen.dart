@@ -13,6 +13,7 @@ import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_sc
 import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
+import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/contact_picker_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_detail_field.dart';
 
@@ -45,29 +46,51 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final token = auth.token;
     setState(() => _loading = true);
+    Application? application = _application;
+    var contacts = _contacts;
+    var followUps = _followUps;
+    var interviews = _interviews;
+    var calls = _calls;
+    final errors = <String>[];
+
     try {
-      final results = await Future.wait([
-        ApiService.getApplication(widget.application.id, token: token),
-        ApiService.getContactsByApplication(widget.application.id, token: token),
-        ApiService.getFollowUps(applicationId: widget.application.id, token: token),
-        ApiService.getInterviews(applicationId: widget.application.id, token: token),
-        ApiService.getCallsByApplication(widget.application.id, token: token),
-      ]);
-      if (mounted) {
-        setState(() {
-          _application = results[0] as Application;
-          _contacts = results[1] as List<Map<String, dynamic>>;
-          _followUps = results[2] as List<FollowUp>;
-          _interviews = results[3] as List<Interview>;
-          _calls = results[4] as List<Call>;
-          _loading = false;
-        });
-      }
+      application = await ApiService.getApplication(widget.application.id, token: token);
     } catch (e) {
-      if (mounted) {
-        setState(() => _loading = false);
+      errors.add('Candidature : ${e.toString().replaceAll('Exception: ', '')}');
+    }
+    try {
+      contacts = await ApiService.getContactsByApplication(widget.application.id, token: token);
+    } catch (e) {
+      errors.add('Contacts : ${e.toString().replaceAll('Exception: ', '')}');
+    }
+    try {
+      followUps = await ApiService.getFollowUps(applicationId: widget.application.id, token: token);
+    } catch (e) {
+      errors.add('Relances : ${e.toString().replaceAll('Exception: ', '')}');
+    }
+    try {
+      interviews = await ApiService.getInterviews(applicationId: widget.application.id, token: token);
+    } catch (e) {
+      errors.add('Entretiens : ${e.toString().replaceAll('Exception: ', '')}');
+    }
+    try {
+      calls = await ApiService.getCallsByApplication(widget.application.id, token: token);
+    } catch (e) {
+      errors.add('Appels : ${e.toString().replaceAll('Exception: ', '')}');
+    }
+
+    if (mounted) {
+      setState(() {
+        if (application != null) _application = application;
+        _contacts = contacts;
+        _followUps = followUps;
+        _interviews = interviews;
+        _calls = calls;
+        _loading = false;
+      });
+      if (errors.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur chargement : ${e.toString().replaceAll('Exception: ', '')}')),
+          SnackBar(content: Text(errors.join('\n')), duration: const Duration(seconds: 4)),
         );
       }
     }
@@ -100,7 +123,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: scrollSafePadding(context),
                 children: [
                   _headerCard(statusColor),
                   const SizedBox(height: 16),
@@ -179,9 +202,9 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                     )
                   else
                     ..._calls.map((c) => _linkTile(
-                          icon: Icons.phone_outlined,
+                          icon: c.isCompanyOnly ? Icons.business_outlined : Icons.phone_outlined,
                           title: c.subject,
-                          subtitle: formatSmartEventDate(c.callDate),
+                          subtitle: '${c.isCompanyOnly ? 'Entreprise' : 'Contact · ${c.targetLabel}'} · ${formatSmartEventDate(c.callDate)}',
                           onTap: null,
                         )),
                 ],

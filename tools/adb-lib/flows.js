@@ -46,6 +46,14 @@ async function tapLogout(adb) {
   return false;
 }
 
+async function restartApp(adb) {
+  await adb.shellCommand('am force-stop com.example.jobbingtrack_mobile');
+  await adb.wait(1500);
+  await adb.shellCommand('monkey -p com.example.jobbingtrack_mobile -c android.intent.category.LAUNCHER 1');
+  await adb.wait(4000);
+  await dismissBiometricUnlock(adb);
+}
+
 async function ensureLoggedOut(adb) {
   await dismissBiometricUnlock(adb);
 
@@ -97,6 +105,18 @@ async function ensureLoggedOut(adb) {
     if (await adb.uiContains('Se connecter')) return 'Retour ecran connexion';
     if (await adb.uiContains('Bonjour') && (await tapLogout(adb))) {
       return 'Deconnexion effectuee';
+    }
+  }
+
+  if (
+    !(await adb.uiContains('Email')) &&
+    !(await adb.uiContains('Mot de passe')) &&
+    !(await adb.uiContains('Se connecter'))
+  ) {
+    await restartApp(adb);
+    if (await adb.uiContains('Aller à la connexion')) {
+      await adb.tap('Aller à la connexion');
+      await adb.wait(2500);
     }
   }
   return 'Tentative navigation vers login';
@@ -158,13 +178,34 @@ async function login(adb, email, password) {
 
 async function loginFresh(adb, email, password) {
   await ensureLoggedOut(adb);
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 15; i++) {
     await dismissBiometricUnlock(adb);
-    if ((await adb.uiContains('Email')) || (await adb.uiContains('Mot de passe'))) break;
+    if (
+      (await adb.uiContains('Email')) ||
+      (await adb.uiContains('Mot de passe')) ||
+      ((await adb.uiContains('Connexion')) && (await adb.uiContains('Se connecter')))
+    ) {
+      break;
+    }
     if (await adb.uiContains('Bonjour')) {
       await tapLogout(adb);
+    } else if (await adb.uiContains('Aller à la connexion')) {
+      await adb.tap('Aller à la connexion');
+      await adb.wait(2500);
     }
     await adb.wait(2000);
+  }
+  if (
+    !(await adb.uiContains('Email')) &&
+    !(await adb.uiContains('Mot de passe')) &&
+    !(await adb.uiContains('Se connecter'))
+  ) {
+    await restartApp(adb);
+    for (let i = 0; i < 8; i++) {
+      await dismissBiometricUnlock(adb);
+      if ((await adb.uiContains('Email')) || (await adb.uiContains('Mot de passe'))) break;
+      await adb.wait(2000);
+    }
   }
   if (!(await adb.uiContains('Email')) && !(await adb.uiContains('Mot de passe'))) {
     throw new Error('Ecran de connexion introuvable après déconnexion');
@@ -353,6 +394,7 @@ module.exports = {
   login,
   logout,
   loginFresh,
+  restartApp,
   goToRegister,
   register,
   registerAndLogin,
