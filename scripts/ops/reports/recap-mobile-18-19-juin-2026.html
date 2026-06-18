@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobbingTrack — Récap 18–19 juin 2026</title>
+</head>
+<body style="margin:0;padding:0;background:#eef2f7;font-family:'Segoe UI',Roboto,Arial,Helvetica,sans-serif;color:#1e293b;line-height:1.55;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef2f7;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="680" cellpadding="0" cellspacing="0" style="max-width:680px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(15,23,42,0.10);">
+
+          <!-- En-tête -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1d4ed8 0%,#2563eb 45%,#3b82f6 100%);padding:32px 36px;color:#ffffff;">
+              <div style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.85;margin-bottom:8px;">JobbingTrack · Lot D Mobile</div>
+              <h1 style="margin:0 0 10px;font-size:26px;font-weight:700;line-height:1.25;">Récapitulatif agent<br>18 &amp; 19 juin 2026</h1>
+              <p style="margin:0;font-size:15px;opacity:0.92;">Branche <code style="background:rgba(255,255,255,0.18);padding:2px 8px;border-radius:6px;font-size:13px;">feat/mobile-d7-workflow-push-offline</code></p>
+              <p style="margin:12px 0 0;font-size:13px;opacity:0.85;">Appareil test : Samsung SM_G990B2 · Gateway <code style="background:rgba(255,255,255,0.18);padding:1px 6px;border-radius:4px;">127.0.0.1:5002</code> (adb reverse)</p>
+            </td>
+          </tr>
+
+          <!-- KPIs -->
+          <tr>
+            <td style="padding:28px 36px 8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="25%" style="padding:4px;">
+                    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;text-align:center;">
+                      <div style="font-size:28px;font-weight:700;color:#15803d;">24</div>
+                      <div style="font-size:12px;color:#166534;margin-top:4px;">commits<br>18–19/06</div>
+                    </div>
+                  </td>
+                  <td width="25%" style="padding:4px;">
+                    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;text-align:center;">
+                      <div style="font-size:28px;font-weight:700;color:#1d4ed8;">5</div>
+                      <div style="font-size:12px;color:#1e40af;margin-top:4px;">validations<br>porteur</div>
+                    </div>
+                  </td>
+                  <td width="25%" style="padding:4px;">
+                    <div style="background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:16px;text-align:center;">
+                      <div style="font-size:28px;font-weight:700;color:#a16207;">19/19</div>
+                      <div style="font-size:12px;color:#854d0e;margin-top:4px;">smoke API<br>parcours complet</div>
+                    </div>
+                  </td>
+                  <td width="25%" style="padding:4px;">
+                    <div style="background:#fdf4ff;border:1px solid #e9d5ff;border-radius:12px;padding:16px;text-align:center;">
+                      <div style="font-size:28px;font-weight:700;color:#7e22ce;">8739858a</div>
+                      <div style="font-size:12px;color:#6b21a8;margin-top:4px;">HEAD<br>dernier commit</div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Synthèse -->
+          <tr>
+            <td style="padding:20px 36px;">
+              <h2 style="margin:0 0 12px;font-size:18px;color:#0f172a;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Synthèse exécutive</h2>
+              <p style="margin:0 0 12px;font-size:15px;">
+                Deux journées intenses sur le <strong>chantier mobile Lot D</strong> : parcours candidatures stabilisé, analytics backoffice enrichi,
+                shell navigation 4 onglets, sync offline métier, workflow D7 (API + push scaffold), puis <strong>auth biométrique complète</strong>,
+                déconnexion fiable, table <code style="background:#f1f5f9;padding:1px 6px;border-radius:4px;">audit_logs</code>, inscription/vérif email testable en ADB,
+                et <strong>fallback mot de passe</strong> même avec empreinte enregistrée.
+              </p>
+              <p style="margin:0;font-size:14px;color:#475569;">
+                Tous les commits sont poussés sur <code style="background:#f1f5f9;padding:1px 6px;border-radius:4px;">origin/feat/mobile-d7-workflow-push-offline</code>.
+                Working tree propre au 19/06 soir.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Validations porteur -->
+          <tr>
+            <td style="padding:8px 36px 20px;">
+              <h2 style="margin:0 0 12px;font-size:18px;color:#0f172a;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Validations porteur (archivées TODOS_DONE)</h2>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;font-size:14px;">
+                <tr style="background:#f8fafc;">
+                  <th style="padding:10px 14px;text-align:left;border-bottom:1px solid #e2e8f0;width:90px;">Date</th>
+                  <th style="padding:10px 14px;text-align:left;border-bottom:1px solid #e2e8f0;">Élément</th>
+                </tr>
+                <tr>
+                  <td style="padding:10px 14px;border-bottom:1px solid #f1f5f9;vertical-align:top;color:#64748b;">18/06</td>
+                  <td style="padding:10px 14px;border-bottom:1px solid #f1f5f9;"><strong>Auth + parcours candidatures</strong> — liste non vide, logout purge locale, retour login sans fermer l'app.</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 14px;border-bottom:1px solid #f1f5f9;vertical-align:top;color:#64748b;">18/06</td>
+                  <td style="padding:10px 14px;border-bottom:1px solid #f1f5f9;"><strong>Paramètres télémétrie + Aide/retours</strong> — toggles RGPD, formulaire bug clavier OK.</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 14px;border-bottom:1px solid #f1f5f9;vertical-align:top;color:#64748b;">18/06</td>
+                  <td style="padding:10px 14px;border-bottom:1px solid #f1f5f9;"><strong>Analytics app mobile</strong> — perf live, retours, clavier formulaire bug validé.</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 14px;border-bottom:1px solid #f1f5f9;vertical-align:top;color:#64748b;">19/06</td>
+                  <td style="padding:10px 14px;border-bottom:1px solid #f1f5f9;"><strong>Déconnexion drawer/menu</strong> — drawer, menu ⋮, écran empreinte → login ~2 s.</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 14px;vertical-align:top;color:#64748b;">19/06</td>
+                  <td style="padding:10px 14px;"><strong>Biométrie complète</strong> — « biométrie carrément OK » : login, déverrouillage immédiat, reconnexion empreinte post-logout.</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- JOUR 18 -->
+          <tr>
+            <td style="padding:8px 36px;">
+              <div style="background:#f8fafc;border-left:4px solid #2563eb;border-radius:0 12px 12px 0;padding:20px 24px;margin-bottom:8px;">
+                <h2 style="margin:0 0 16px;font-size:20px;color:#1d4ed8;">📅 Mercredi 18 juin 2026</h2>
+
+                <h3 style="margin:16px 0 8px;font-size:15px;color:#0f172a;">Mobile — parcours &amp; écrans métier</h3>
+                <ul style="margin:0 0 16px;padding-left:20px;font-size:14px;">
+                  <li><strong>Fix HTTP 500</strong> détail candidature (<code>contactApplications</code> → <code>applications</code>) + contacts/entreprise (<code>6bf2c451</code>).</li>
+                  <li><strong>Safe area</strong> bas écran, scroll clavier, bottom nav <code>SafeArea</code>.</li>
+                  <li><strong>Autocomplete entreprise</strong>, appel sans contact, smoke parcours complet 19/19 (<code>d13b8756</code>).</li>
+                  <li><strong>Shell 4 onglets</strong> : drawer synchronisé, retour matériel → Accueil, menu ⋮ (<code>f478c6c3</code>).</li>
+                  <li><strong>FAB détail candidature</strong> + liens croisés contact/relance/entretien/appel (<code>5e8947fb</code>).</li>
+                  <li><strong>Popup candidature</strong>, statuts FR (12 codes), édition entités (<code>4dda9c40</code>).</li>
+                  <li><strong>FAB accueil</strong>, plateforme utilisée perso, heure locale candidature, lien contact (<code>e58bfabb</code>).</li>
+                  <li><strong>Statuts auto</strong> relance/entretien, picker entreprise sheet, appel aligné relance, analytics réseau (<code>1ff5d1c5</code>).</li>
+                </ul>
+
+                <h3 style="margin:16px 0 8px;font-size:15px;color:#0f172a;">Mobile — auth &amp; session</h3>
+                <ul style="margin:0 0 16px;padding-left:20px;font-size:14px;">
+                  <li><strong>Déconnexion volontaire</strong> : purge session chiffrée, files offline/télémétrie, retour login sans fermer l'app (<code>e24ffce6</code>).</li>
+                  <li><strong>Session offline-first</strong> : JWT chiffré, pas de logout sur 401 hors-ligne ; rate-limit auth 60/min en dev.</li>
+                  <li><strong>Smokes E2E auth</strong> : inscription, vérif email, forgot/reset, deep link <code>reset-password</code> (<code>93a0ef4a</code>).</li>
+                  <li><strong>Biométrie Android</strong> : <code>FlutterFragmentActivity</code>, écran déverrouillage centré, fallback mot de passe JobbingTrack.</li>
+                </ul>
+
+                <h3 style="margin:16px 0 8px;font-size:15px;color:#0f172a;">Mobile — analytics &amp; télémétrie</h3>
+                <ul style="margin:0 0 16px;padding-left:20px;font-size:14px;">
+                  <li><strong>File offline gzip</strong> : batch events, JWT jamais sur disque, flush 5 min — tests 10/10.</li>
+                  <li><strong>Sync métier offline</strong> : CRUD candidatures, contacts, entreprises, relances, entretiens, appels.</li>
+                  <li><strong>Fix crash dashboard</strong> : upsert session analytics idempotent (<code>851442fd</code>).</li>
+                  <li><strong>Analytics utilisateur</strong> : filtre userId, sessions actives, recherche serveur paginée (<code>3840cedf</code>, <code>fd95acfb</code>).</li>
+                  <li><strong>Perf live / retours</strong> : KPI snapshots, emails crash HTML inline, clavier formulaire bug corrigé (<code>8888c7f6</code>, <code>dc2b145f</code>).</li>
+                  <li><strong>Activité &amp; traces</strong> : latence API moy., crash Flutter (Hero, setState, dropdown), fix followups/contacts 500 (<code>b07f9697</code>).</li>
+                </ul>
+
+                <h3 style="margin:16px 0 8px;font-size:15px;color:#0f172a;">Lot D7 — workflow, push, offline</h3>
+                <ul style="margin:0 0 16px;padding-left:20px;font-size:14px;">
+                  <li><strong>Workflow API</strong> : status 8 jobs + trigger dev cron (<code>a995c327</code>).</li>
+                  <li><strong>Push scaffold</strong> : register/unregister → <code>UserCustomization.settings.pushDevices</code>.</li>
+                  <li>Script <code>smoke-offline-business-adb.js</code> prêt — validation appareil à reprendre (blocage uiautomator).</li>
+                </ul>
+
+                <h3 style="margin:16px 0 8px;font-size:15px;color:#0f172a;">Frontend backoffice</h3>
+                <ul style="margin:0;padding-left:20px;font-size:14px;">
+                  <li>Bouton <strong>Actualiser</strong> via provider layout admin (<code>54944267</code>).</li>
+                  <li>Shell ADB corrigé : 4 onglets (<code>Tab N of 4</code>), smoke shell OK.</li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+
+          <!-- JOUR 19 -->
+          <tr>
+            <td style="padding:8px 36px 20px;">
+              <div style="background:#f0fdf4;border-left:4px solid #16a34a;border-radius:0 12px 12px 0;padding:20px 24px;">
+                <h2 style="margin:0 0 16px;font-size:20px;color:#15803d;">📅 Jeudi 19 juin 2026</h2>
+
+                <h3 style="margin:16px 0 8px;font-size:15px;color:#0f172a;">Biométrie &amp; déconnexion (<code>2a668a8c</code>)</h3>
+                <ul style="margin:0 0 16px;padding-left:20px;font-size:14px;">
+                  <li><strong>Logout drawer</strong> : bug contexte détruit → <code>appNavigatorKey</code> + navigation post-frame (<code>AuthLogout</code>).</li>
+                  <li><strong>Biométrie Samsung</strong> : <code>canOfferUnlockOption()</code>, déverrouillage immédiat post-login, identifiants conservés au logout.</li>
+                  <li><strong>Écran login</strong> : compte enregistré + « Connexion par empreinte » + « Oublier ce compte ».</li>
+                  <li><strong>Table audit_logs</strong> : <code>ensure-audit-logs.sql</code> dans db-push-all + auto-create au démarrage security-service ; retry auditService.</li>
+                  <li><strong>Unification credentials test</strong> : <code>TEST_USER_PASSWORD</code> unique (suppression <code>MOBILE_TEST_USER_PASSWORD</code>).</li>
+                </ul>
+
+                <h3 style="margin:16px 0 8px;font-size:15px;color:#0f172a;">Inscription &amp; smokes ADB (<code>b6ab7930</code>)</h3>
+                <ul style="margin:0 0 16px;padding-left:20px;font-size:14px;">
+                  <li>Flows ADB post-biométrie : <code>clearAppDataForSmoke</code>, bypass prompt Samsung, navigation « S'inscrire ».</li>
+                  <li>Fix toggle télémétrie : cochée par défaut — ne pas la toggler en smoke (bloquait inscription).</li>
+                  <li><code>smoke-register-adb.js</code> OK · <code>smoke-verify-email-adb.js</code> OK (alias → EmailLog → deep link → login).</li>
+                </ul>
+
+                <h3 style="margin:16px 0 8px;font-size:15px;color:#0f172a;">Mot de passe toujours disponible (<code>8739858a</code>)</h3>
+                <ul style="margin:0 0 16px;padding-left:20px;font-size:14px;">
+                  <li>Formulaire login <strong>toujours visible</strong> même avec compte empreinte enregistré.</li>
+                  <li>Bouton <strong>« Se connecter avec le mot de passe »</strong> ; échec empreinte auto → formulaire affiché.</li>
+                  <li>Flows ADB : <code>unlockWithJobbingTrackPassword</code>, bypass sans intervention empreinte.</li>
+                  <li><code>smoke-login-user-password-adb.js</code> + <code>smoke-login-user-adb.js</code> OK avec <code>TEST_USER_*</code>.</li>
+                </ul>
+
+                <h3 style="margin:16px 0 8px;font-size:15px;color:#0f172a;">Validations porteur du jour</h3>
+                <p style="margin:0;font-size:14px;background:#dcfce7;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;">
+                  ✅ Déconnexion drawer/menu · ✅ Biométrie « carrément OK » · Fallback mot de passe validé agent (sans présence porteur devant Samsung).
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Commits -->
+          <tr>
+            <td style="padding:8px 36px 20px;">
+              <h2 style="margin:0 0 12px;font-size:18px;color:#0f172a;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Commits Git (18–19/06)</h2>
+              <div style="background:#0f172a;border-radius:10px;padding:16px 20px;overflow-x:auto;">
+                <pre style="margin:0;font-family:Consolas,'Courier New',monospace;font-size:12px;color:#e2e8f0;line-height:1.7;white-space:pre-wrap;">8739858a feat(mobile): connexion mot de passe + bypass bio ADB
+b6ab7930 fix(mobile): smokes ADB inscription biométrie Samsung
+2a668a8c feat(mobile): biométrie, logout fiable, audit_logs
+19761c2c docs(pilotage): preuves smoke auth inscription reset
+93a0ef4a feat(mobile): smoke E2E auth reset/vérif email
+e24ffce6 fix(mobile): déconnexion purge locale retour login
+4e4d0741 docs(pilotage): archiver OK analytics retour
+8888c7f6 fix(mobile): clavier formulaire retour emails crash
+b07f9697 fix(mobile): latence activité crash Flutter API 500
+54944267 fix(frontend): Actualiser via provider layout admin
+dc2b145f feat(mobile-analytics): snapshots emails crash refresh
+1ff5d1c5 fix(mobile): statuts auto picker entreprise appel
+e58bfabb fix(mobile): FAB accueil plateforme safe area contact
+4dda9c40 feat(mobile): popup candidature statuts FR édition
+5e8947fb feat(mobile): FAB détail candidature liens croisés
+851442fd fix(analytics): upsert session mobile idempotent
+a995c327 feat(mobile): D7 workflow push offline scaffold
+fd95acfb feat(analytics): recherche utilisateurs pagination
+966ea772 fix(mobile): analytics appareil bannière biométrie
+3840cedf fix(mobile,analytics): userId sessions actives flush
+f478c6c3 feat(mobile,analytics): shell navigation analytics
+6bf2c451 fix(mobile): HTTP 500 safe area téléphone local
+d13b8756 feat(mobile): autocomplete appel smoke parcours</pre>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Smokes -->
+          <tr>
+            <td style="padding:8px 36px 20px;">
+              <h2 style="margin:0 0 12px;font-size:18px;color:#0f172a;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Smokes &amp; tests validés (agent)</h2>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;font-size:13px;">
+                <tr style="background:#f8fafc;">
+                  <th style="padding:9px 12px;text-align:left;border-bottom:1px solid #e2e8f0;">Script / test</th>
+                  <th style="padding:9px 12px;text-align:center;border-bottom:1px solid #e2e8f0;width:60px;">Statut</th>
+                </tr>
+                <tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;"><code>smoke-full-journey-api.js</code></td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center;color:#15803d;font-weight:600;">19/19</td></tr>
+                <tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;"><code>smoke-login-user-adb.js</code> · <code>smoke-login-user-password-adb.js</code></td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center;color:#15803d;font-weight:600;">OK</td></tr>
+                <tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;"><code>smoke-register-adb.js</code> · <code>smoke-verify-email-adb.js</code></td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center;color:#15803d;font-weight:600;">OK</td></tr>
+                <tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;"><code>smoke-auth-password-flows-e2e.js</code></td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center;color:#15803d;font-weight:600;">OK</td></tr>
+                <tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;"><code>smoke-analytics-api.js</code> · batch · workflow · push</td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center;color:#15803d;font-weight:600;">OK</td></tr>
+                <tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;"><code>smoke-mobile-shell-adb.js</code></td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center;color:#15803d;font-weight:600;">OK</td></tr>
+                <tr><td style="padding:8px 12px;"><code>smoke-offline-business-adb.js</code></td><td style="padding:8px 12px;text-align:center;color:#a16207;font-weight:600;">À reprendre</td></tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Prochaines étapes -->
+          <tr>
+            <td style="padding:8px 36px 28px;">
+              <h2 style="margin:0 0 12px;font-size:18px;color:#0f172a;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Prochaines validations porteur (TODOS_A_VALIDER)</h2>
+              <ol style="margin:0;padding-left:22px;font-size:14px;">
+                <li style="margin-bottom:8px;"><strong>Inscription + vérif email</strong> — smokes agent OK, validation manuelle restante.</li>
+                <li style="margin-bottom:8px;"><strong>Navigation retour, admin, relances</strong> — AdminGuard, contact picker, pas de FAB global relances.</li>
+                <li style="margin-bottom:8px;"><strong>Intérim, admin sécurisé</strong> — biométrie déjà OK ; reste mode intérim + cold start sans keepLoggedIn.</li>
+                <li style="margin-bottom:8px;"><strong>Entreprises, contacts, profil</strong> — listes, recherche, édition profil.</li>
+                <li><strong>Lot D7 offline métier ADB</strong> — script prêt, session ADB à stabiliser.</li>
+              </ol>
+            </td>
+          </tr>
+
+          <!-- Pied de page -->
+          <tr>
+            <td style="background:#f8fafc;padding:20px 36px;border-top:1px solid #e2e8f0;">
+              <p style="margin:0 0 6px;font-size:13px;color:#64748b;">
+                Généré automatiquement par l'agent Cursor · JobbingTrack
+              </p>
+              <p style="margin:0;font-size:12px;color:#94a3b8;">
+                Fichier source : <code>scripts/ops/reports/recap-mobile-18-19-juin-2026.html</code><br>
+                Commande d'envoi : <code>node scripts/ops/send-agent-recap-email.cjs --html-file scripts/ops/reports/recap-mobile-18-19-juin-2026.html --subject "[JobbingTrack] Recap mobile 18-19 juin 2026"</code>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
