@@ -704,6 +704,50 @@ class ApiService {
   }
 
   /// Mise à jour candidature avec payload complet (champs autorisés backend).
+  static Future<List<Map<String, dynamic>>> getPlatforms({String? token}) async {
+    try {
+      final response = await _get('/api/v1/applications/platforms', headers: _jsonHeaders(token));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['platforms'] is List) {
+          return List<Map<String, dynamic>>.from(
+            (data['platforms'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+          );
+        }
+      }
+      return [];
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> createPlatform({
+    required String name,
+    String? url,
+    String? token,
+  }) async {
+    const path = '/api/v1/applications/platforms';
+    final body = <String, dynamic>{
+      'name': name,
+      if (url != null && url.isNotEmpty) 'url': url,
+    };
+    return OfflineMutationHelper.execute(
+      method: 'POST',
+      path: path,
+      body: body,
+      entityType: 'platform',
+      token: token,
+      successStatus: 201,
+      send: () => _post(path, headers: _jsonHeaders(token), body: jsonEncode(body)),
+      onSuccess: (response) {
+        final data = jsonDecode(response.body);
+        return Map<String, dynamic>.from(data['platform'] as Map);
+      },
+      onHttpError: (response) => _httpError(response),
+    );
+  }
+
   static Future<Application> updateApplicationFromPayload(String id, Map<String, dynamic> payload, {String? token}) async {
     final path = '/api/v1/applications/$id';
     return OfflineMutationHelper.execute(

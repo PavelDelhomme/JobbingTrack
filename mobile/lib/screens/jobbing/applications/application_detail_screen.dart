@@ -517,10 +517,14 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   Future<void> _linkExistingContact() async {
     final token = Provider.of<AuthProvider>(context, listen: false).token;
     List<Map<String, dynamic>> candidates = [];
-    try {
-      if (app.company.id.isNotEmpty) {
+    if (app.company.id.isNotEmpty) {
+      try {
         candidates = await ApiService.getContactsByCompany(app.company.id, token: token);
+      } catch (_) {
+        // fallback si endpoint entreprise indisponible
       }
+    }
+    try {
       if (candidates.isEmpty) {
         candidates = await ApiService.getContacts(token: token);
       }

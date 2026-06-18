@@ -405,14 +405,18 @@ const getContactsByCompany = async (req, res, next) => {
     const contacts = await prisma.contact.findMany({
       where: {
         userId: req.user.id,
-        contactCompanies: {
+        deletedAt: null,
+        isArchived: false,
+        companies: {
           some: {
             companyId: companyId
           }
         }
       },
       include: {
-        companies: true
+        companies: {
+          include: { company: true }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });

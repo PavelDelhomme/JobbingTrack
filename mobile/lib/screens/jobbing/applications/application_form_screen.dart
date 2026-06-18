@@ -10,6 +10,10 @@ import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/widgets/company_autocomplete_field.dart';
+import 'package:jobbingtrack_mobile/widgets/platform_picker_field.dart';
+import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
+import 'package:jobbingtrack_mobile/utils/shell_layout.dart';
+import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 
 /// Écran formulaire complet pour créer ou modifier une candidature (tous les champs backend).
 class ApplicationFormScreen extends StatefulWidget {
@@ -58,6 +62,8 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   String? _companyId;
   String? _agencyId;
   List<Company> _agencies = [];
+  List<Map<String, dynamic>> _platforms = [];
+  String? _platformId;
   bool _interimMode = false;
   String _companyName = '';
   final _position = TextEditingController();
@@ -89,10 +95,35 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       _companyId = a.company.id;
       _companyName = a.company.name;
       _agencyId = a.agencyId;
-      _applicationDate = a.appliedDate;
+      _platformId = a.platformId;
+      _applicationDate = a.appliedDate.toLocal();
     }
     _loadCompanies();
+    _loadPlatforms();
     _loadInterimPrefs();
+  }
+
+  Future<void> _loadPlatforms() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    try {
+      final list = await ApiService.getPlatforms(token: auth.token);
+      if (mounted) setState(() => _platforms = list);
+    } catch (_) {}
+  }
+
+  DateTime _applicationDateForSave() {
+    if (widget.application != null) {
+      return _applicationDate.toLocal();
+    }
+    final now = DateTime.now();
+    return DateTime(
+      _applicationDate.year,
+      _applicationDate.month,
+      _applicationDate.day,
+      now.hour,
+      now.minute,
+      now.second,
+    );
   }
 
   Future<void> _loadInterimPrefs() async {
@@ -149,7 +180,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       'contractType': _contractType,
       'workMode': _workMode,
       'applicationType': _applicationType,
-      'applicationDate': _applicationDate.toIso8601String(),
+      'applicationDate': _applicationDateForSave().toUtc().toIso8601String(),
       'salaryNegotiable': _salaryNegotiable,
       'notes': _notes.text.trim().isEmpty ? null : _notes.text.trim(),
     };
@@ -165,6 +196,9 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     if (sx != null) payload['salaryMax'] = sx;
     if (_agencyId != null && _agencyId!.isNotEmpty) {
       payload['agencyId'] = _agencyId;
+    }
+    if (_platformId != null && _platformId!.isNotEmpty) {
+      payload['platformId'] = _platformId;
     }
     return payload;
   }
@@ -238,6 +272,13 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         ),
         const SizedBox(height: 12),
       ],
+      PlatformPickerField(
+        selectedPlatformId: _platformId,
+        platforms: _platforms,
+        onChanged: (id) => setState(() => _platformId = id),
+        onPlatformsChanged: _loadPlatforms,
+      ),
+      const SizedBox(height: 12),
       TextFormField(
         controller: _position,
         decoration: const InputDecoration(labelText: 'Poste *', border: OutlineInputBorder()),
@@ -282,15 +323,18 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         onChanged: (v) => setState(() => _applicationType = v ?? 'OFFRE'),
       ),
       const SizedBox(height: 12),
-      ListTile(
-        title: const Text('Date de candidature'),
-        subtitle: Text(_applicationDate.toString().split(' ')[0]),
-        trailing: const Icon(Icons.calendar_today),
-        onTap: () async {
-          final d = await showDatePicker(context: context, initialDate: _applicationDate, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365)));
-          if (d != null) setState(() => _applicationDate = d);
-        },
-      ),
+            ListTile(
+              title: const Text('Date de candidature'),
+              subtitle: Text(formatUserLocalDateTime(_applicationDate.toUtc().toIso8601String(), pattern: 'd MMM y HH:mm')),
+              trailing: const Icon(Icons.calendar_today),
+              onTap: () async {
+                final d = await showDatePicker(context: context, initialDate: _applicationDate, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365)));
+                if (d != null) {
+                  final now = DateTime.now();
+                  setState(() => _applicationDate = DateTime(d.year, d.month, d.day, now.hour, now.minute));
+                }
+              },
+            ),
       const SizedBox(height: 12),
       Row(
         children: [
@@ -336,11 +380,14 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.application != null;
+    final bottomPad = widget.modalMode
+        ? scrollSafePadding(context, top: 0, extraBottom: shellBottomExtra(context) + 24)
+        : scrollSafePadding(context, top: 0);
     final form = Form(
       key: _formKey,
       child: ListView(
         controller: widget.scrollController,
-        padding: const EdgeInsets.all(16),
+        padding: bottomPad,
         children: _buildFormFields(),
       ),
     );

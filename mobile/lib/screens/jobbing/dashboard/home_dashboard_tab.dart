@@ -13,6 +13,8 @@ import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
+import 'package:jobbingtrack_mobile/utils/shell_layout.dart';
 
 /// Contenu onglet Accueil (sans barre de navigation bas — gérée par [MainShellScreen]).
 class HomeDashboardTab extends StatefulWidget {
@@ -81,7 +83,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
         scaffoldKey: _scaffoldKey,
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: scrollSafePadding(context, top: 0),
+            padding: scrollSafePadding(context, top: 0, extraBottom: shellBottomExtra(context) + 72),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
@@ -126,6 +128,18 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
               ),
             ),
           ),
+        ),
+      ),
+      floatingActionButton: shellFabPadding(
+        context,
+        child: FloatingActionButton(
+          tooltip: 'Nouvelle candidature',
+          onPressed: () async {
+            final result = await ApplicationFormScreen.showCreateSheet(context);
+            if (result == true) _loadData();
+          },
+          backgroundColor: Colors.blue[600],
+          child: const Icon(Icons.add),
         ),
       ),
     );

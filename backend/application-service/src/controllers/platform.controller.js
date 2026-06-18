@@ -15,13 +15,16 @@ const createPlatform = async (req, res, next) => {
       });
     }
 
-    const { name, website, description } = req.body;
+    const { name, url, website, icon } = req.body;
+    const platformUrl = url || website || null;
 
     const platform = await prisma.platform.create({
       data: {
-        name,
-        website,
-        description
+        name: name.trim(),
+        url: platformUrl,
+        icon: icon || null,
+        userId: req.user.id,
+        isPredefined: false
       }
     });
 
@@ -41,9 +44,20 @@ const createPlatform = async (req, res, next) => {
 // READ - Lister les plateformes
 const getPlatforms = async (req, res, next) => {
   try {
+    const role = (req.user.role || '').toUpperCase();
+    const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
+    const where = isAdmin
+      ? {}
+      : {
+          OR: [
+            { userId: null },
+            { userId: req.user.id }
+          ]
+        };
+
     const platforms = await prisma.platform.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' }
+      where,
+      orderBy: [{ userId: 'asc' }, { name: 'asc' }]
     });
 
     res.json({
@@ -86,15 +100,24 @@ const getPlatform = async (req, res, next) => {
 const updatePlatform = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, website, description, isActive } = req.body;
+    const { name, url, website, icon } = req.body;
+
+    const existing = await prisma.platform.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Plateforme non trouvée' });
+    }
+    const role = (req.user.role || '').toUpperCase();
+    const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
+    if (existing.userId && existing.userId !== req.user.id && !isAdmin) {
+      return res.status(403).json({ success: false, error: 'Accès refusé à cette plateforme' });
+    }
 
     const platform = await prisma.platform.update({
       where: { id },
       data: {
-        name,
-        website,
-        description,
-        isActive
+        ...(name != null ? { name: name.trim() } : {}),
+        ...(url != null || website != null ? { url: url || website || null } : {}),
+        ...(icon != null ? { icon } : {})
       }
     });
 
@@ -115,6 +138,19 @@ const updatePlatform = async (req, res, next) => {
 const deletePlatform = async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    const existing = await prisma.platform.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Plateforme non trouvée' });
+    }
+    if (existing.userId == null) {
+      return res.status(403).json({ success: false, error: 'Impossible de supprimer une plateforme système' });
+    }
+    const role = (req.user.role || '').toUpperCase();
+    const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
+    if (existing.userId !== req.user.id && !isAdmin) {
+      return res.status(403).json({ success: false, error: 'Accès refusé à cette plateforme' });
+    }
 
     // Vérifier que la plateforme n'est pas utilisée par des candidatures
     const applicationsCount = await prisma.application.count({

@@ -19,6 +19,8 @@ class Application {
   final DateTime updatedAt;
   final String? agencyId;
   final String agencyName;
+  final String? platformId;
+  final String platformName;
 
   const Application({
     required this.id,
@@ -38,6 +40,8 @@ class Application {
     required this.updatedAt,
     this.agencyId,
     this.agencyName = '',
+    this.platformId,
+    this.platformName = '',
   });
 
   bool get isInterim => agencyId != null && agencyId!.isNotEmpty;
@@ -74,6 +78,10 @@ class Application {
     final agencyName = agencyJson is Map
         ? (agencyJson['name']?.toString() ?? '')
         : '';
+    final platformJson = json['platform'];
+    final platformId = json['platformId']?.toString() ??
+        (platformJson is Map ? platformJson['id']?.toString() : null);
+    final platformName = platformJson is Map ? (platformJson['name']?.toString() ?? '') : '';
     return Application(
       id: json['id']?.toString() ?? '',
       position: json['position']?.toString() ?? '',
@@ -94,6 +102,8 @@ class Application {
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
       agencyId: agencyId,
       agencyName: agencyName,
+      platformId: platformId,
+      platformName: platformName,
     );
   }
 
@@ -115,6 +125,7 @@ class Application {
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       if (agencyId != null) 'agencyId': agencyId,
+      if (platformId != null) 'platformId': platformId,
     };
   }
 }

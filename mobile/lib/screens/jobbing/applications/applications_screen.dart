@@ -13,6 +13,7 @@ import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
+import 'package:jobbingtrack_mobile/utils/shell_layout.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/companies/company_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contact_detail_screen.dart';
@@ -152,7 +153,9 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
           ],
         ),
       ),
-      floatingActionButton: _tabController.index == 0 ? _buildFab() : null,
+      floatingActionButton: _tabController.index == 0
+          ? shellFabPadding(context, child: _buildFab()!)
+          : null,
     );
   }
 
@@ -199,6 +202,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
                     onRefresh: _loadApplications,
                     child: ListView.builder(
                       physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsets.only(bottom: shellBottomExtra(context) + 72),
                       itemCount: applications.length + (_statusFilter != null ? 1 : 0),
                       itemBuilder: (context, index) {
                         if (_statusFilter != null && index == 0) {
