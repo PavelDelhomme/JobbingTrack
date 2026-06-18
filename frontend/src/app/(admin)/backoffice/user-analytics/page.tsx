@@ -521,8 +521,15 @@ export default function UserAnalyticsPage() {
                                 {s.platform}
                               </td>
                               <td className="py-2 pr-4 text-gray-600 dark:text-gray-400">
-                                {s.deviceModel || s.deviceId || "—"}
-                                {s.osName ? ` · ${s.osName} ${s.osVersion ?? ""}` : ""}
+                                {s.deviceModel ||
+                                  (s.deviceId
+                                    ? `ID ${s.deviceId.slice(0, 12)}…`
+                                    : "—")}
+                                {s.osName ? (
+                                  <span className="block text-xs text-gray-400">
+                                    {s.osName} {s.osVersion ?? ""}
+                                  </span>
+                                ) : null}
                               </td>
                               <td className="py-2 pr-4 text-gray-600 dark:text-gray-400">
                                 {new Date(s.startTime).toLocaleString("fr-FR")}

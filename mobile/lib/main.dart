@@ -108,11 +108,11 @@ class JobbingTrackMobileApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => FollowUpProvider()),
       ],
-      child: TelemetryDevStatusBanner(
-        child: TelemetryLifecycleBridge(
+      child: TelemetryLifecycleBridge(
         child: MaterialApp(
         title: 'JobbingTrack Mobile',
         debugShowCheckedModeBanner: false,
+        builder: (context, child) => TelemetryDevStatusBanner(child: child),
         navigatorObservers: [MobileAnalyticsRouteObserver()],
         theme: ThemeData(
           primarySwatch: Colors.blue,
@@ -179,7 +179,6 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/biometric-unlock': (context) => const BiometricUnlockScreen(),
           '/admin': (context) => const AdminGuard(child: AdminScreen()),
         },
-        ),
         ),
       ),
     );

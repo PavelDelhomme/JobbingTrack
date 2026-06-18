@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/users/help_feedback_screen.dart';
@@ -358,6 +360,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               obscureText: true,
               decoration: const InputDecoration(labelText: 'Mot de passe actuel'),
             ),
+            if (kDebugMode) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.content_paste, size: 18),
+                label: const Text('Coller depuis le presse-papier'),
+                onPressed: () async {
+                  final data = await Clipboard.getData('text/plain');
+                  if (data?.text != null && data!.text!.isNotEmpty) {
+                    controller.text = data.text!;
+                  }
+                },
+              ),
+            ],
           ],
         ),
         actions: [
@@ -369,9 +384,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (ok != true || !mounted) return;
 
     try {
-      await ApiService.login(auth.user!.email, controller.text);
-      await auth.saveBiometricCredentials(controller.text);
-      if (mounted) setState(() => _biometricUnlock = true);
+      await auth.verifyPasswordForBiometric(controller.text);
+      await auth.saveBiometricCredentials(controller.text.trim());
+      if (mounted) {
+        setState(() => _biometricUnlock = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Déverrouillage biométrique activé')),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

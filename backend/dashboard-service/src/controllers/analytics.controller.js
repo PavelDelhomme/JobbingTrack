@@ -169,9 +169,13 @@ async function persistUserEvent(userId, payload) {
 
   if (sessionId && prisma.userSession && typeof prisma.userSession.update === 'function') {
     try {
+      const sessionPatch = { actions: { increment: 1 } };
+      if (eventName === 'screen_view' || eventType === 'navigation') {
+        sessionPatch.pageViews = { increment: 1 };
+      }
       await prisma.userSession.update({
         where: { sessionId },
-        data: { actions: { increment: 1 } }
+        data: sessionPatch
       });
     } catch (_) {}
   }
@@ -707,6 +711,18 @@ class AnalyticsController {
           totalSessions: 1
         }
       });
+
+      if (userId && deviceId && prisma.userSession && typeof prisma.userSession.updateMany === 'function') {
+        await prisma.userSession.updateMany({
+          where: { userId, deviceId, isActive: true },
+          data: {
+            ...(deviceModel ? { deviceModel } : {}),
+            ...(osName ? { osName } : {}),
+            ...(osVersion ? { osVersion } : {}),
+            ...(platform ? { platform } : {})
+          }
+        }).catch(() => {});
+      }
 
       res.json({
         success: true,

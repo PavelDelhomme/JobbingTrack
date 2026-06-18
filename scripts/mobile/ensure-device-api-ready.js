@@ -47,7 +47,13 @@ function sh(cmd) {
   const health = await fetch(`${GATEWAY_URL}/api/v1/health`);
   console.log('Health:', health.status, health.status === 200 ? 'OK' : await health.text());
 
-  console.log('\nPrêt — relancez l\'app mobile et connectez-vous.');
+  try {
+    require('./copy-test-password-clipboard-adb.js');
+  } catch (e) {
+    console.warn('WARN clipboard:', e.message);
+  }
+
+  console.log('\nPrêt — relancez l\'app mobile (APK debug) et connectez-vous.');
 })().catch((e) => {
   console.error('ensure-device-api-ready KO:', e.message);
   process.exit(1);

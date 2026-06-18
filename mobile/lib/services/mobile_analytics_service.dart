@@ -7,6 +7,7 @@ import 'package:jobbingtrack_mobile/services/analytics_telemetry_queue.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
+import 'package:jobbingtrack_mobile/services/mobile_device_info.dart';
 import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
 
 /// Télémétrie mobile anonyme : performances, traces d'activité, retours utilisateur.
@@ -161,27 +162,31 @@ class MobileAnalyticsService extends ChangeNotifier {
 
   Future<void> _startSession() async {
     if (_sessionStarted || _sessionId == null) return;
+    final deviceInfo = await MobileDeviceInfo.collect();
     final platform = Platform.isAndroid ? 'android' : (Platform.isIOS ? 'ios' : 'mobile');
     await ApiService.postAnalyticsSession(
       sessionId: _sessionId!,
       deviceId: _deviceId,
       platform: platform,
-      osName: Platform.operatingSystem,
-      osVersion: Platform.operatingSystemVersion,
+      deviceModel: deviceInfo['deviceModel'],
+      osName: deviceInfo['osName'] ?? Platform.operatingSystem,
+      osVersion: deviceInfo['osVersion'] ?? Platform.operatingSystemVersion,
       token: _authToken,
     );
-    await _registerDevice();
+    await _registerDevice(deviceInfo);
     _sessionStarted = true;
   }
 
-  Future<void> _registerDevice() async {
+  Future<void> _registerDevice([Map<String, String>? deviceInfo]) async {
     if (_deviceId == null) return;
+    deviceInfo ??= await MobileDeviceInfo.collect();
     final platform = Platform.isAndroid ? 'android' : (Platform.isIOS ? 'ios' : 'mobile');
     await ApiService.postAnalyticsDevice(
       deviceId: _deviceId!,
       platform: platform,
-      osName: Platform.operatingSystem,
-      osVersion: Platform.operatingSystemVersion,
+      deviceModel: deviceInfo['deviceModel'],
+      osName: deviceInfo['osName'] ?? Platform.operatingSystem,
+      osVersion: deviceInfo['osVersion'] ?? Platform.operatingSystemVersion,
       token: _authToken,
     );
   }

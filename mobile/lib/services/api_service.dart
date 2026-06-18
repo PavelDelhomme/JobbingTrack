@@ -283,6 +283,7 @@ class ApiService {
     required String sessionId,
     String? deviceId,
     String platform = 'mobile',
+    String? deviceModel,
     String? osName,
     String? osVersion,
     String? token,
@@ -295,6 +296,7 @@ class ApiService {
         'sessionId': sessionId,
         'deviceId': deviceId,
         'platform': platform,
+        if (deviceModel != null) 'deviceModel': deviceModel,
         if (osName != null) 'osName': osName,
         if (osVersion != null) 'osVersion': osVersion,
         'appVersion': '1.0.0',
@@ -305,6 +307,7 @@ class ApiService {
   static Future<void> postAnalyticsDevice({
     required String deviceId,
     String platform = 'mobile',
+    String? deviceModel,
     String? osName,
     String? osVersion,
     String? appVersion,
@@ -317,6 +320,7 @@ class ApiService {
       body: {
         'deviceId': deviceId,
         'platform': platform,
+        if (deviceModel != null) 'deviceModel': deviceModel,
         if (osName != null) 'osName': osName,
         if (osVersion != null) 'osVersion': osVersion,
         'appVersion': appVersion ?? '1.0.0',
@@ -453,6 +457,9 @@ class ApiService {
           body['message'] ??
               'Trop de tentatives de connexion${retry != null ? ' — réessayez dans ${retry}s' : ''}',
         );
+      }
+      if (response.statusCode == 401) {
+        throw Exception('Mot de passe incorrect');
       }
       throw Exception(body['message'] ?? body['error'] ?? 'Erreur HTTP ${response.statusCode}');
     } catch (e) {

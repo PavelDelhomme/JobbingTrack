@@ -23,6 +23,7 @@ dependencies:
   call_log: ^6.0.1
   flutter_contacts: ^1.1.9+2
   encrypt: ^5.0.3
+  device_info_plus: ^11.3.0
 
 dev_dependencies:
   flutter_test:

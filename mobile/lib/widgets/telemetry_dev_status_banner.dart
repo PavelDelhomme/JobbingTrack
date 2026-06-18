@@ -6,9 +6,16 @@ import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 
 /// Bannière persistante (debug) : état file télémétrie et prochain flush.
 class TelemetryDevStatusBanner extends StatefulWidget {
-  final Widget child;
+  final Widget? child;
 
   const TelemetryDevStatusBanner({super.key, required this.child});
+
+  static bool get isVisible => kDebugMode;
+
+  static double topInset(BuildContext context) {
+    if (!isVisible) return 0;
+    return MediaQuery.paddingOf(context).top + 36;
+  }
 
   @override
   State<TelemetryDevStatusBanner> createState() =>
@@ -22,7 +29,7 @@ class _TelemetryDevStatusBannerState extends State<TelemetryDevStatusBanner> {
   @override
   void initState() {
     super.initState();
-    if (kDebugMode) {
+    if (TelemetryDevStatusBanner.isVisible) {
       _svc.addListener(_onStatusChange);
       _tick = Timer.periodic(const Duration(seconds: 1), (_) {
         if (mounted) setState(() {});
@@ -36,7 +43,7 @@ class _TelemetryDevStatusBannerState extends State<TelemetryDevStatusBanner> {
 
   @override
   void dispose() {
-    if (kDebugMode) {
+    if (TelemetryDevStatusBanner.isVisible) {
       _svc.removeListener(_onStatusChange);
       _tick?.cancel();
     }
@@ -45,20 +52,25 @@ class _TelemetryDevStatusBannerState extends State<TelemetryDevStatusBanner> {
 
   @override
   Widget build(BuildContext context) {
-    if (!kDebugMode) return widget.child;
+    final child = widget.child;
+    if (!TelemetryDevStatusBanner.isVisible || child == null) return child ?? const SizedBox.shrink();
 
     return Stack(
+      clipBehavior: Clip.none,
       children: [
-        widget.child,
+        Padding(
+          padding: EdgeInsets.only(top: TelemetryDevStatusBanner.topInset(context)),
+          child: child,
+        ),
         Positioned(
           left: 0,
           right: 0,
-          bottom: 0,
+          top: 0,
           child: Material(
             elevation: 12,
             color: const Color(0xDD111827),
             child: SafeArea(
-              top: false,
+              bottom: false,
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

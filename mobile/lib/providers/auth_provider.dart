@@ -282,6 +282,26 @@ class AuthProvider with ChangeNotifier {
     await ApiConfigStore.saveKeepLoggedIn(true);
   }
 
+  /// Vérifie le mot de passe courant puis met à jour la session (tokens frais).
+  Future<void> verifyPasswordForBiometric(String password) async {
+    if (_user == null) throw Exception('Non connecté');
+    final trimmed = password.trim();
+    if (trimmed.isEmpty) throw Exception('Mot de passe requis');
+
+    final response = await ApiService.login(_user!.email, trimmed);
+    if (response['success'] != true) {
+      throw Exception(response['message'] ?? 'Mot de passe incorrect');
+    }
+    _token = response['token'];
+    _refreshToken = response['refreshToken'] as String?;
+    _user = User.fromJson(response['user']);
+    _tokenStale = false;
+    CrashReporter.setToken(_token);
+    await MobileAnalyticsService.instance.updateAuthToken(_token);
+    await _persistSession();
+    notifyListeners();
+  }
+
   Future<void> disableBiometricUnlock() async {
     await BiometricCredentialStore.clear();
     await ApiConfigStore.saveBiometricUnlockEnabled(false);
