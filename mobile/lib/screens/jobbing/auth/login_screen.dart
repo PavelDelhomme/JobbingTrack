@@ -88,6 +88,9 @@ class _LoginScreenState extends State<LoginScreen> {
           : 'Confirmez votre identité pour vous connecter',
     );
     if (!bio.success) {
+      if (auto && mounted) {
+        setState(() => _showFullLoginForm = true);
+      }
       if (!auto && bio.errorMessage != null) {
         _showSnackBar(bio.errorMessage!);
       }
@@ -330,7 +333,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextButton(
                           onPressed: _isLoading
                               ? null
-                              : () => setState(() => _showFullLoginForm = true),
+                              : () => setState(() {
+                                    _showFullLoginForm = true;
+                                    if (_savedAccountEmail != null) {
+                                      _emailController.text = _savedAccountEmail!;
+                                    }
+                                  }),
+                          child: const Text('Se connecter avec le mot de passe'),
+                        ),
+                        TextButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () => setState(() {
+                                    _showFullLoginForm = true;
+                                    _emailController.clear();
+                                    _passwordController.clear();
+                                  }),
                           child: const Text('Utiliser un autre compte'),
                         ),
                         TextButton(
@@ -345,8 +363,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
                 ],
 
-                // Formulaire de connexion
-                if (_showFullLoginForm || _savedAccountEmail == null || !_biometricAvailable)
+                // Formulaire de connexion (toujours visible — mot de passe si empreinte indisponible)
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(

@@ -18,7 +18,8 @@ const SHELL_TAB_COUNT = 4;
 
 // ─── Auth ────────────────────────────────────────────────────────
 
-async function dismissBiometricUnlock(adb) {
+async function dismissBiometricUnlock(adb, opts = {}) {
+  const { password } = opts;
   let xml = '';
   try {
     xml = await adb.uiDump();
@@ -42,6 +43,10 @@ async function dismissBiometricUnlock(adb) {
     (await adb.uiContains('Déverrouiller')) ||
     (await adb.uiContains('Confirmez votre identité'))
   ) {
+    if (password && (await adb.uiContains('Mot de passe JobbingTrack'))) {
+      const ok = await unlockWithJobbingTrackPassword(adb, password);
+      if (ok) return true;
+    }
     if (await adb.uiContains('Se déconnecter')) {
       await adb.tap('Se déconnecter');
       await adb.wait(1000);
@@ -56,6 +61,10 @@ async function dismissBiometricUnlock(adb) {
       return true;
     }
     if (await adb.uiContains('Mot de passe JobbingTrack')) {
+      if (password) {
+        const ok = await unlockWithJobbingTrackPassword(adb, password);
+        if (ok) return true;
+      }
       await adb.tap('Mot de passe JobbingTrack');
       await adb.wait(2500);
       return true;
@@ -67,6 +76,29 @@ async function dismissBiometricUnlock(adb) {
     }
   }
   return false;
+}
+
+async function unlockWithJobbingTrackPassword(adb, password) {
+  if (!(await adb.uiContains('Mot de passe JobbingTrack'))) return false;
+  await adb.tap('Mot de passe JobbingTrack');
+  await adb.wait(1500);
+  if (!(await adb.uiContains('Mot de passe'))) {
+    await adb.wait(1500);
+  }
+  try {
+    await adb.typeInField('Mot de passe', password);
+  } catch {
+    await adb.typeInEditTextByIndex(0, password);
+  }
+  await adb.wait(400);
+  try {
+    await adb.tap('Déverrouiller', 1);
+  } catch {
+    await adb.tap('Déverrouiller');
+  }
+  await adb.wait(4000);
+  if (await adb.uiContains('Bonjour')) return true;
+  return !(await adb.uiContains('Mot de passe JobbingTrack'));
 }
 
 async function tapLogout(adb) {
@@ -232,6 +264,7 @@ async function login(adb, email, password) {
   const creds = resolveTestCredentials({ email, password });
   email = creds.email;
   password = creds.password;
+  await ensureFullLoginForm(adb);
   await adb.wait(500);
   await adb.typeInField('Email', email);
   await adb.wait(800);
@@ -245,9 +278,15 @@ async function login(adb, email, password) {
 }
 
 async function loginFresh(adb, email, password) {
+  const creds = resolveTestCredentials({ email, password });
+  email = creds.email;
+  password = creds.password;
   await ensureLoggedOut(adb);
   for (let i = 0; i < 15; i++) {
-    await dismissBiometricUnlock(adb);
+    await dismissBiometricUnlock(adb, { password });
+    if (await adb.uiContains('Bonjour')) {
+      return `Deja connecte (${email})`;
+    }
     if (
       (await adb.uiContains('Email')) ||
       (await adb.uiContains('Mot de passe')) ||
@@ -270,11 +309,13 @@ async function loginFresh(adb, email, password) {
   ) {
     await restartApp(adb);
     for (let i = 0; i < 8; i++) {
-      await dismissBiometricUnlock(adb);
+      await dismissBiometricUnlock(adb, { password });
       if ((await adb.uiContains('Email')) || (await adb.uiContains('Mot de passe'))) break;
+      if (await adb.uiContains('Bonjour')) return `Connecte via unlock (${email})`;
       await adb.wait(2000);
     }
   }
+  await ensureFullLoginForm(adb);
   if (!(await adb.uiContains('Email')) && !(await adb.uiContains('Mot de passe'))) {
     throw new Error('Ecran de connexion introuvable après déconnexion');
   }
@@ -289,17 +330,16 @@ async function ensureFullLoginForm(adb) {
     (await adb.uiContains('Connexion par empreinte')) ||
     (await adb.uiContains('Compte enregistré'))
   ) {
-    try {
-      await adb.tap('Utiliser un autre compte');
-      await adb.wait(1500);
-    } catch {
+    if (await adb.uiContains('Email') || await adb.uiContains('Mot de passe')) {
+      return 'Formulaire login visible';
+    }
+    for (const label of ['Se connecter avec le mot de passe', 'Utiliser un autre compte']) {
       try {
-        await adb.tap('Oublier ce compte');
-        await adb.wait(2000);
-        if (await adb.uiContains('Oublier')) {
-          await adb.tap('Oublier', 1);
-        }
+        await adb.tap(label);
         await adb.wait(1500);
+        if ((await adb.uiContains('Email')) || (await adb.uiContains('Mot de passe'))) {
+          return 'Formulaire login ouvert';
+        }
       } catch {}
     }
   }
@@ -307,6 +347,7 @@ async function ensureFullLoginForm(adb) {
     await adb.scrollDown(800);
     await adb.wait(800);
   }
+  return 'Formulaire login';
 }
 
 async function ensureOnLoginScreen(adb) {
@@ -542,6 +583,8 @@ module.exports = {
   login,
   logout,
   loginFresh,
+  unlockWithJobbingTrackPassword,
+  ensureFullLoginForm,
   restartApp,
   goToRegister,
   register,
