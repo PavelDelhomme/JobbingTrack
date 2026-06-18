@@ -86,32 +86,93 @@ function countForGroupBy(row) {
   return 0;
 }
 
-/** Crée la session si absente (évite 404 sur POST /events après cold start mobile). */
-async function ensureAnalyticsSession({ sessionId, userId, deviceId, platform = 'mobile' }) {
-  if (!sessionId || !prisma.userSession || typeof prisma.userSession.findUnique !== 'function') {
-    return null;
+/** Upsert idempotent d'une session analytics (mobile réutilise le même sessionId). */
+async function upsertAnalyticsSession(payload = {}) {
+  const {
+    sessionId: rawSessionId,
+    userId,
+    deviceId,
+    platform = 'mobile',
+    userAgent,
+    ipAddress,
+    deviceModel,
+    osName,
+    osVersion,
+    browserName,
+    browserVersion,
+    screenWidth,
+    screenHeight,
+    language,
+    timezone,
+  } = payload;
+
+  const sessionId = rawSessionId || randomUUID();
+  if (!prisma.userSession || typeof prisma.userSession.upsert !== 'function') {
+    return { sessionId, message: 'Table UserSession not available' };
   }
-  let session = await prisma.userSession.findUnique({ where: { sessionId } }).catch(() => null);
-  if (session) return session;
-  if (typeof prisma.userSession.create !== 'function') return null;
+
+  const createData = {
+    sessionId,
+    userId: userId || null,
+    deviceId: deviceId || null,
+    platform,
+    userAgent,
+    ipAddress,
+    deviceModel,
+    osName,
+    osVersion,
+    browserName,
+    browserVersion,
+    screenWidth,
+    screenHeight,
+    language,
+    timezone,
+    startTime: new Date(),
+    isActive: true,
+  };
+
+  const updateData = {
+    ...(userId ? { userId } : {}),
+    ...(deviceId ? { deviceId } : {}),
+    ...(platform ? { platform } : {}),
+    ...(userAgent ? { userAgent } : {}),
+    ...(ipAddress ? { ipAddress } : {}),
+    ...(deviceModel ? { deviceModel } : {}),
+    ...(osName ? { osName } : {}),
+    ...(osVersion ? { osVersion } : {}),
+    ...(browserName ? { browserName } : {}),
+    ...(browserVersion ? { browserVersion } : {}),
+    ...(screenWidth != null ? { screenWidth } : {}),
+    ...(screenHeight != null ? { screenHeight } : {}),
+    ...(language ? { language } : {}),
+    ...(timezone ? { timezone } : {}),
+    isActive: true,
+  };
+
   try {
-    session = await prisma.userSession.create({
-      data: {
-        sessionId,
-        userId: userId || null,
-        deviceId: deviceId || null,
-        platform,
-        startTime: new Date(),
-        isActive: true
-      }
+    return await prisma.userSession.upsert({
+      where: { sessionId },
+      create: createData,
+      update: updateData,
     });
-    return session;
   } catch (e) {
     if (e.code === 'P2002') {
-      return prisma.userSession.findUnique({ where: { sessionId } }).catch(() => null);
+      const existing = await prisma.userSession.findUnique({ where: { sessionId } }).catch(() => null);
+      if (existing) return existing;
     }
+    if (e.code === 'P2021' || e.message?.includes('does not exist')) {
+      return { sessionId, message: 'Table UserSession not available' };
+    }
+    throw e;
+  }
+}
+
+/** Crée la session si absente (évite 404 sur POST /events après cold start mobile). */
+async function ensureAnalyticsSession({ sessionId, userId, deviceId, platform = 'mobile' }) {
+  if (!sessionId || !prisma.userSession) {
     return null;
   }
+  return upsertAnalyticsSession({ sessionId, userId, deviceId, platform }).catch(() => null);
 }
 
 /** Persiste un événement analytics (partagé unitaire + batch mobile). */
@@ -189,92 +250,42 @@ class AnalyticsController {
    * POST /api/v1/analytics/sessions
    */
   async createSession(req, res) {
-    try {
-      const userId = req.user?.id;
-      const {
-        sessionId,
-        deviceId,
-        platform = 'web',
-        userAgent,
-        ipAddress,
-        deviceModel,
-        osName,
-        osVersion,
-        browserName,
-        browserVersion,
-        screenWidth,
-        screenHeight,
-        language,
-        timezone
-      } = req.body;
+    const body = req.body || {};
+    const requestedSessionId = body.sessionId;
+    const userId = req.user?.id;
 
-      // ✅ Vérifier que la table existe et gérer gracieusement les erreurs
-      if (!prisma.userSession || typeof prisma.userSession.create !== 'function') {
+    try {
+      if (!prisma.userSession || typeof prisma.userSession.upsert !== 'function') {
         if (process.env.NODE_ENV === 'development') {
           console.warn('[ANALYTICS] Table UserSession not available, development mode');
-          return res.json({
-            success: true,
-            data: { sessionId: sessionId || randomUUID(), message: 'Development mode - table not available' }
-          });
         }
-        // En production, retourner un succès silencieux pour éviter les erreurs
         return res.json({
           success: true,
-          data: { sessionId: sessionId || randomUUID(), message: 'Table not available' }
-        });
-      }
-
-      try {
-        const session = await prisma.userSession.create({
           data: {
-            sessionId: sessionId || randomUUID(),
-            userId: userId || null,
-            deviceId: deviceId || null,
-            platform,
-            userAgent,
-            ipAddress: ipAddress || req.ip,
-            deviceModel,
-            osName,
-            osVersion,
-            browserName,
-            browserVersion,
-            screenWidth,
-            screenHeight,
-            language,
-            timezone,
-            startTime: new Date(),
-            isActive: true
-          }
+            sessionId: requestedSessionId || randomUUID(),
+            message: 'Development mode - table not available',
+          },
         });
-
-        res.json({
-          success: true,
-          data: session
-        });
-      } catch (dbError) {
-        // Gérer l'erreur P2021 (table n'existe pas) gracieusement
-        if (dbError.code === 'P2021' || dbError.message?.includes('does not exist') || dbError.message?.includes('UserSession')) {
-          if (process.env.NODE_ENV === 'development') {
-            console.warn('[ANALYTICS] Table UserSession not available, development mode');
-            return res.json({
-              success: true,
-              data: { sessionId: sessionId || randomUUID(), message: 'Mode développement - table non disponible' }
-            });
-          }
-          // En production, retourner un succès silencieux
-          return res.json({
-            success: true,
-            data: { sessionId: sessionId || randomUUID(), message: 'Table not available' }
-          });
-        }
-        throw dbError; // Relancer si c'est une autre erreur
       }
+
+      const session = await upsertAnalyticsSession({
+        ...body,
+        userId,
+        ipAddress: body.ipAddress || req.ip,
+      });
+
+      return res.json({
+        success: true,
+        data: session,
+      });
     } catch (error) {
       console.error('[ANALYTICS] Erreur création session:', error);
-      // En cas d'erreur, retourner un succès silencieux pour éviter de casser l'application
-      res.json({
+      return res.json({
         success: true,
-        data: { sessionId: sessionId || randomUUID(), message: 'Session créée localement (erreur serveur ignorée)' }
+        data: {
+          sessionId: requestedSessionId || randomUUID(),
+          message: 'Session créée localement (erreur serveur ignorée)',
+        },
       });
     }
   }

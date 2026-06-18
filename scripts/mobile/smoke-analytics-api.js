@@ -95,6 +95,35 @@ async function getJson(path, token) {
   }
   console.log('Errors 7j: HTTP', errors.status);
 
+  const duplicateSessionId = `sess-smoke-dup-${Date.now()}`;
+  const sessionPayload = {
+    sessionId: duplicateSessionId,
+    deviceId: `mob-smoke-${Date.now()}`,
+    platform: 'android',
+    deviceModel: 'SmokeTest',
+    osName: 'Android',
+    osVersion: '14',
+  };
+  for (let i = 0; i < 2; i += 1) {
+    const res = await fetch(`${GATEWAY_URL}/api/v1/analytics/sessions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(sessionPayload),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (res.status !== 200 || !body.success) {
+      throw new Error(`sessions duplicate test HTTP ${res.status}: ${JSON.stringify(body)}`);
+    }
+  }
+  const healthAfterDup = await fetch(`${GATEWAY_URL}/api/v1/health`);
+  if (healthAfterDup.status !== 200) {
+    throw new Error(`gateway unhealthy after duplicate session POST (${healthAfterDup.status})`);
+  }
+  console.log('Duplicate sessionId upsert OK (service stable)');
+
   console.log('\nSmoke analytics API OK');
 })().catch((err) => {
   console.error('Smoke analytics API KO:', err.message);
