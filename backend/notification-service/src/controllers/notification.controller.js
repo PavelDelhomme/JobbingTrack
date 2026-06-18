@@ -871,6 +871,127 @@ const getHealth = async (req, res) => {
   });
 };
 
+const normalizePushDevices = (settings) => {
+  const raw = settings && typeof settings === 'object' ? settings.pushDevices : null;
+  return Array.isArray(raw) ? raw.filter((d) => d && typeof d === 'object') : [];
+};
+
+const registerPushDevice = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { token, platform, provider, deviceId } = req.body;
+
+    if (!token || typeof token !== 'string' || token.trim().length < 8) {
+      return res.status(400).json({ success: false, error: 'token push invalide' });
+    }
+    if (!platform || typeof platform !== 'string') {
+      return res.status(400).json({ success: false, error: 'platform requis (android|ios)' });
+    }
+
+    const entry = {
+      token: token.trim(),
+      platform: String(platform).toLowerCase(),
+      provider: provider ? String(provider).toLowerCase() : 'unknown',
+      deviceId: deviceId ? String(deviceId) : null,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (!prisma.userCustomization || typeof prisma.userCustomization.upsert !== 'function') {
+      if (process.env.NODE_ENV !== 'production') {
+        logger.warn('UserCustomization indisponible — enregistrement push simulé (dev)');
+        return res.status(201).json({
+          success: true,
+          data: { registered: true, device: entry, persisted: false },
+        });
+      }
+      throw new Error('UserCustomization non disponible');
+    }
+
+    let existing = null;
+    try {
+      existing = await prisma.userCustomization.findUnique({ where: { userId } });
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'production') {
+        logger.warn('Lecture UserCustomization push échouée:', error.message?.slice(0, 120));
+        return res.status(201).json({
+          success: true,
+          data: { registered: true, device: entry, persisted: false },
+        });
+      }
+      throw error;
+    }
+
+    const settings = existing?.settings && typeof existing.settings === 'object'
+      ? { ...existing.settings }
+      : {};
+    const devices = normalizePushDevices(settings);
+    const key = entry.deviceId || entry.token;
+    const nextDevices = [
+      entry,
+      ...devices.filter((d) => (d.deviceId || d.token) !== key),
+    ].slice(0, 10);
+    settings.pushDevices = nextDevices;
+
+    await prisma.userCustomization.upsert({
+      where: { userId },
+      create: { userId, settings },
+      update: { settings },
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        registered: true,
+        deviceCount: nextDevices.length,
+        device: entry,
+      },
+    });
+  } catch (error) {
+    logger.error('Erreur enregistrement push device:', error);
+    next(error);
+  }
+};
+
+const unregisterPushDevice = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { token, deviceId } = req.body;
+    if (!token && !deviceId) {
+      return res.status(400).json({ success: false, error: 'token ou deviceId requis' });
+    }
+
+    if (!prisma.userCustomization || typeof prisma.userCustomization.findUnique !== 'function') {
+      return res.json({ success: true, data: { removed: 0 } });
+    }
+
+    const existing = await prisma.userCustomization.findUnique({ where: { userId } });
+    if (!existing?.settings || typeof existing.settings !== 'object') {
+      return res.json({ success: true, data: { removed: 0 } });
+    }
+
+    const settings = { ...existing.settings };
+    const before = normalizePushDevices(settings).length;
+    settings.pushDevices = normalizePushDevices(settings).filter((d) => {
+      if (deviceId && d.deviceId === deviceId) return false;
+      if (token && d.token === token) return false;
+      return true;
+    });
+    const removed = before - settings.pushDevices.length;
+
+    if (removed > 0) {
+      await prisma.userCustomization.update({
+        where: { userId },
+        data: { settings },
+      });
+    }
+
+    res.json({ success: true, data: { removed } });
+  } catch (error) {
+    logger.error('Erreur désenregistrement push device:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   getNotifications,
   getNotification,
@@ -888,5 +1009,7 @@ module.exports = {
   getStats,
   reportCrash,
   getCrashReports,
-  getHealth
+  getHealth,
+  registerPushDevice,
+  unregisterPushDevice,
 };

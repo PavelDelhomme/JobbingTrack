@@ -39,6 +39,12 @@ router.post('/internal/security-alert-email', authenticateInternalSecret, [
 // Routes protégées
 router.use(authenticate);
 
+router.post('/push/register', [
+  body('token').notEmpty().withMessage('token requis'),
+  body('platform').notEmpty().withMessage('platform requis'),
+], controller.registerPushDevice);
+router.post('/push/unregister', controller.unregisterPushDevice);
+
 // Routes notifications
 router.post('/', createValidation, controller.createNotification);
 router.get('/', controller.getNotifications);

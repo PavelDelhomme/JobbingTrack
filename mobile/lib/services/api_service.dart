@@ -935,6 +935,49 @@ class ApiService {
     }
   }
 
+  /// Enregistre un token push FCM/APNs (ou dev) côté notification-service.
+  static Future<void> registerPushDevice({
+    required String token,
+    required String platform,
+    required String provider,
+    String? deviceId,
+    String? authToken,
+  }) async {
+    final response = await _post(
+      '/api/v1/notifications/push/register',
+      headers: _jsonHeaders(authToken),
+      body: jsonEncode({
+        'token': token,
+        'platform': platform,
+        'provider': provider,
+        if (deviceId != null) 'deviceId': deviceId,
+      }),
+    );
+    if (response.statusCode != 201 && response.statusCode != 200) {
+      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
+    }
+  }
+
+  static Future<void> unregisterPushDevice({
+    String? token,
+    String? deviceId,
+    String? authToken,
+  }) async {
+    final response = await _post(
+      '/api/v1/notifications/push/unregister',
+      headers: _jsonHeaders(authToken),
+      body: jsonEncode({
+        if (token != null) 'token': token,
+        if (deviceId != null) 'deviceId': deviceId,
+      }),
+    );
+    if (response.statusCode != 200) {
+      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
+    }
+  }
+
   static Future<List<User>> getUsers({String? token}) async {
     try {
       final response = await _get('/api/v1/auth/users', headers: _jsonHeaders(token));

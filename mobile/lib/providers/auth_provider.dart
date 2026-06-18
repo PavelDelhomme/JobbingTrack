@@ -9,6 +9,7 @@ import 'package:jobbingtrack_mobile/services/biometric_credential_store.dart';
 import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
+import 'package:jobbingtrack_mobile/services/push_notification_service.dart';
 import 'package:jobbingtrack_mobile/models/user.dart';
 import 'package:jobbingtrack_mobile/utils/admin_access.dart';
 
@@ -195,6 +196,7 @@ class AuthProvider with ChangeNotifier {
         }
         CrashReporter.trackAction('login:${_user?.email ?? "unknown"}');
         CrashReporter.flushPendingReports();
+        unawaited(PushNotificationService.instance.registerAfterLogin(authToken: _token));
         _isLoading = false;
         notifyListeners();
       } else {

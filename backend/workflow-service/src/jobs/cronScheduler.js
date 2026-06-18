@@ -571,6 +571,20 @@ class CronScheduler {
     }
   }
 
+  /** Exécution manuelle (dev/smoke) des jobs cron. */
+  getJobHandlers() {
+    return {
+      pendingExecutions: () => this.processPendingExecutions(),
+      autoFollowup: () => this.checkApplicationsForAutoFollowup(),
+      autoCleanTrash: () => this.autoCleanTrash(),
+      interviewReminders: () => this.sendInterviewReminders(),
+      interviewFeedbackReminders: () => this.sendInterviewFeedbackReminders(),
+      followupReminders: () => this.sendFollowupReminders(),
+      applicationReminders: () => this.sendApplicationReminders(),
+      followUpNoResponseReminders: () => this.sendFollowUpNoResponseReminders(),
+    };
+  }
+
 }
 
 module.exports = new CronScheduler();
