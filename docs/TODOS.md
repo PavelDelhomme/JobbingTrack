@@ -217,6 +217,7 @@ Backlog détaillé : **Lot D — Mobile & observabilité** plus bas dans ce fich
   - [ ] **`/backoffice/services`** + **`/backoffice/services/[serviceName]`** (liste vs détail — référence socle graphes **A1**).
   - [ ] **`/backoffice/analytics/**`** (hub + application ; redirects conteneurs/réseau déjà faits).
   - [ ] **`/backoffice/user-stats`**, **`/backoffice/user-analytics`** (sources et libellés).
+  - [x] **`/backoffice/user-analytics`** — sélecteur utilisateur avec **recherche serveur** + pagination (`search`, `limit`, `offset` API auth) — **18/06**.
   - [ ] **`/backoffice/security`** (vue d’ensemble — hors sous-pages déjà paginées **18/05**).
   - [ ] **`/backoffice/data-management`**, **`/backoffice/test-reports`**, **`/backoffice/tests-*`** (smoke après changements infra).
   - [ ] Inventaire complet : **73** routes sous `frontend/src/app/(admin)/backoffice/**/page.tsx` — cocher au fil des reprises dans le tableau **§ Lot A — inventaire Recharts** ci-dessous.

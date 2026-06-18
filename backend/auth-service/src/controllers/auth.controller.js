@@ -639,32 +639,60 @@ const logout = async (req, res, next) => {
 const getAllUsers = async (req, res, next) => {
   try {
     let users = [];
+    let totalCount = 0;
     
     try {
       // Récupérer les utilisateurs (filtre optionnel isTestData: true | false)
       const isTestFilter = req.query.isTestData;
+      const searchRaw = String(req.query.search || req.query.q || '').trim();
+      const limitRaw = parseInt(String(req.query.limit ?? '50'), 10);
+      const offsetRaw = parseInt(String(req.query.offset ?? '0'), 10);
+      const limit = Number.isNaN(limitRaw) ? 50 : Math.min(Math.max(limitRaw, 1), 200);
+      const offset = Number.isNaN(offsetRaw) ? 0 : Math.max(offsetRaw, 0);
+
       const where = { deletedAt: null };
       if (isTestFilter === 'true') where.isTestData = true;
       else if (isTestFilter === 'false') where.isTestData = false;
 
-      users = await prisma.user.findMany({
-        where,
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          phone: true,
-          role: true,
-          isActive: true,
-          isTestData: true,
-          createdAt: true,
-          updatedAt: true,
-          emailVerified: true,
-          lastLoginAt: true
-        },
-        orderBy: { createdAt: 'desc' }
-      });
+      if (searchRaw) {
+        where.OR = [
+          { email: { contains: searchRaw, mode: 'insensitive' } },
+          { firstName: { contains: searchRaw, mode: 'insensitive' } },
+          { lastName: { contains: searchRaw, mode: 'insensitive' } }
+        ];
+        const roleGuess = searchRaw.toUpperCase().replace(/\s+/g, '_');
+        if (['USER', 'ADMIN', 'SUPER_ADMIN'].includes(roleGuess)) {
+          where.OR.push({ role: roleGuess });
+        }
+      }
+
+      const selectFields = {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        role: true,
+        isActive: true,
+        isTestData: true,
+        createdAt: true,
+        updatedAt: true,
+        emailVerified: true,
+        lastLoginAt: true
+      };
+
+      const [foundUsers, count] = await Promise.all([
+        prisma.user.findMany({
+          where,
+          select: selectFields,
+          orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { email: 'asc' }],
+          take: limit,
+          skip: offset
+        }),
+        prisma.user.count({ where })
+      ]);
+      users = foundUsers;
+      totalCount = count;
     } catch (dbError) {
       // Vérifier si l'erreur est liée à une table manquante (P2021 ou message contenant "does not exist")
       const isTableMissing = dbError.code === 'P2021' || 
@@ -705,6 +733,7 @@ const getAllUsers = async (req, res, next) => {
             lastLoginAt: new Date()
           }];
         }
+        totalCount = users.length;
       } else {
         throw dbError;
       }
@@ -727,13 +756,26 @@ const getAllUsers = async (req, res, next) => {
         lastLoginAt: new Date()
       }];
     }
+    if (totalCount === 0 && users.length > 0) {
+      totalCount = users.length;
+    }
 
-    logger.info(`[getAllUsers] ${users.length} utilisateurs trouvés`);
+    logger.info(`[getAllUsers] ${users.length} utilisateurs trouvés (total=${totalCount})`);
+
+    const total = totalCount || users.length;
+    const limit = Math.min(parseInt(String(req.query.limit ?? '50'), 10) || 50, 200);
+    const offset = Math.max(parseInt(String(req.query.offset ?? '0'), 10) || 0, 0);
 
     res.json({
       success: true,
       users,
-      total: users.length
+      total,
+      pagination: {
+        total,
+        limit,
+        offset,
+        pages: Math.ceil(total / limit) || 1
+      }
     });
   } catch (error) {
     logger.error('Erreur récupération utilisateurs:', error);

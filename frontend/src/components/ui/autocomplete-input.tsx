@@ -22,6 +22,7 @@ interface AutocompleteInputProps {
   disabled?: boolean;
   required?: boolean;
   variant?: "search" | "plain";
+  maxSuggestions?: number;
 }
 
 function normalizeSuggestions(suggestions: AutocompleteSuggestion[]) {
@@ -46,6 +47,7 @@ export function AutocompleteInput({
   disabled = false,
   required = false,
   variant = "search",
+  maxSuggestions = 10,
 }: AutocompleteInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -61,7 +63,7 @@ export function AutocompleteInput({
         suggestion.label.toLowerCase().includes(query)
       );
     })
-    .slice(0, 10);
+    .slice(0, maxSuggestions);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

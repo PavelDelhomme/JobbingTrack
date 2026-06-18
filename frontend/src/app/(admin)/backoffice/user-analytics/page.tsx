@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/auth";
 import AdminLayout from "@/components/features/AdminLayout";
@@ -27,6 +27,14 @@ import {
   type EventSourceFilter,
 } from "@/lib/analytics/eventSource";
 import { formatAnalyticsPageLabel } from "@/lib/analytics/pageLabels";
+import {
+  analyticsUserSuggestions,
+  formatAnalyticsUserLabel,
+  type AnalyticsUserListItem,
+} from "@/lib/analytics/userPicker";
+import { fetchAnalyticsUsers } from "@/lib/analytics/fetchAnalyticsUsers";
+import { AutocompleteInput } from "@/components/ui/autocomplete-input";
+import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 
 interface UserStats {
   totalSessions: number;
@@ -54,13 +62,7 @@ interface ActiveSession {
   errors: number;
 }
 
-interface UserListItem {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-}
+interface UserListItem extends AnalyticsUserListItem {}
 
 interface UserEvent {
   id: string;
@@ -132,6 +134,13 @@ export default function UserAnalyticsPage() {
   const [errors, setErrors] = useState<UserError[]>([]);
   const [usersList, setUsersList] = useState<UserListItem[]>([]);
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
+  const [userPickerQuery, setUserPickerQuery] = useState("");
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [usersOffset, setUsersOffset] = useState(0);
+  const usersPageSize = 50;
+  const debouncedUserSearch = useDebouncedValue(userPickerQuery, 300);
+  const skipUserSearchRef = useRef(false);
   const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   const [selectedDays, setSelectedDays] = useState(7);
   const [rangeMode, setRangeMode] = useState<"preset" | "custom">("preset");
@@ -206,27 +215,106 @@ export default function UserAnalyticsPage() {
   useEffect(() => {
     if (!user) return;
     const fromUrl = searchParams.get("userId");
-    if (fromUrl) {
-      setTargetUserId(fromUrl);
-      return;
+    const id = fromUrl || user.id;
+    setTargetUserId(id);
+    skipUserSearchRef.current = true;
+    if (fromUrl && fromUrl !== user.id) {
+      const token = localStorage.getItem("token");
+      if (token) {
+        axios
+          .get(`${FRONTEND_URLS.api}/api/v1/auth/users/${fromUrl}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          .then((res) => {
+            const raw = res.data?.user ?? res.data?.data ?? res.data;
+            if (raw?.id) {
+              setUserPickerQuery(
+                formatAnalyticsUserLabel({
+                  id: raw.id,
+                  email: raw.email,
+                  firstName: raw.firstName ?? "",
+                  lastName: raw.lastName ?? "",
+                  role: raw.role ?? "USER",
+                }),
+              );
+            }
+          })
+          .catch(() => setUserPickerQuery(fromUrl));
+      }
+    } else {
+      setUserPickerQuery(
+        formatAnalyticsUserLabel({
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        }),
+      );
     }
-    setTargetUserId(user.id);
   }, [user, searchParams]);
+
+  const loadUsersPage = useCallback(
+    async (search: string, offset: number, append: boolean) => {
+      if (!isAdmin) return;
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      setUsersLoading(true);
+      try {
+        const result = await fetchAnalyticsUsers({
+          token,
+          search,
+          limit: usersPageSize,
+          offset,
+        });
+        setUsersTotal(result.total);
+        setUsersOffset(offset + result.users.length);
+        setUsersList((prev) =>
+          append ? [...prev, ...result.users] : result.users,
+        );
+      } catch {
+        if (!append) setUsersList([]);
+        setUsersTotal(0);
+      } finally {
+        setUsersLoading(false);
+      }
+    },
+    [isAdmin, usersPageSize],
+  );
 
   useEffect(() => {
     if (!isAdmin) return;
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    axios
-      .get(`${FRONTEND_URLS.api}/api/v1/auth/users?limit=200`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        const list = res.data?.users ?? res.data?.data?.users ?? [];
-        setUsersList(Array.isArray(list) ? list : []);
-      })
-      .catch(() => setUsersList([]));
-  }, [isAdmin]);
+    if (skipUserSearchRef.current) {
+      skipUserSearchRef.current = false;
+      return;
+    }
+    void loadUsersPage(debouncedUserSearch, 0, false);
+  }, [isAdmin, debouncedUserSearch, loadUsersPage]);
+
+  const resolveUserLabel = useCallback(
+    (userId: string) => {
+      const fromList = usersList.find((u) => u.id === userId);
+      if (fromList) return formatAnalyticsUserLabel(fromList);
+      if (user?.id === userId) {
+        return formatAnalyticsUserLabel({
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        });
+      }
+      return userId;
+    },
+    [usersList, user],
+  );
+
+  const userSuggestions = useMemo(
+    () => analyticsUserSuggestions(usersList),
+    [usersList],
+  );
+
+  const hasMoreUsers = usersList.length < usersTotal;
 
   const handleTargetUserChange = (nextUserId: string) => {
     setTargetUserId(nextUserId);
@@ -337,24 +425,38 @@ export default function UserAnalyticsPage() {
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:items-end">
-            {isAdmin && usersList.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="text-xs text-gray-500 dark:text-gray-400">
-                  Utilisateur
-                </label>
-                <select
-                  value={analyticsUserId ?? ""}
-                  onChange={(e) => handleTargetUserChange(e.target.value)}
-                  className="max-w-xs rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                >
-                  {usersList.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {[u.firstName, u.lastName].filter(Boolean).join(" ") ||
-                        u.email}{" "}
-                      ({u.role})
-                    </option>
-                  ))}
-                </select>
+            {isAdmin && (
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="min-w-[16rem] max-w-md flex-1">
+                  <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
+                    Utilisateur (recherche serveur — nom, email, rôle)
+                  </label>
+                  <AutocompleteInput
+                    value={userPickerQuery}
+                    onChange={setUserPickerQuery}
+                    onSelect={(userId) => {
+                      skipUserSearchRef.current = true;
+                      handleTargetUserChange(userId);
+                      setUserPickerQuery(resolveUserLabel(userId));
+                    }}
+                    placeholder="Rechercher un utilisateur…"
+                    suggestions={userSuggestions}
+                    loading={usersLoading}
+                    maxSuggestions={20}
+                    className="w-full"
+                  />
+                  {hasMoreUsers && !usersLoading && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void loadUsersPage(debouncedUserSearch, usersOffset, true)
+                      }
+                      className="mt-1 text-xs text-blue-600 underline hover:no-underline dark:text-blue-400"
+                    >
+                      Charger plus ({usersList.length}/{usersTotal})
+                    </button>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={() => void loadData()}
