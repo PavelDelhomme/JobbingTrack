@@ -4,6 +4,7 @@ import { PageLoader } from "@/lib/ui";
 import { useAuth } from "@/lib/hooks/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BackofficePageRefreshProvider } from "@/contexts/BackofficePageRefreshContext";
 
 export default function AdminLayout({
   children,
@@ -38,5 +39,7 @@ export default function AdminLayout({
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <BackofficePageRefreshProvider>{children}</BackofficePageRefreshProvider>
+  );
 }

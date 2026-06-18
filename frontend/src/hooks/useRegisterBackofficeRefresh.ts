@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useBackofficePageRefresh } from "@/contexts/BackofficePageRefreshContext";
 
 type RefreshHandler = () => void | Promise<void>;
@@ -11,9 +11,14 @@ export function useRegisterBackofficeRefresh(
   enabled = true,
 ) {
   const ctx = useBackofficePageRefresh();
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
 
   useEffect(() => {
     if (!ctx || !enabled) return;
-    return ctx.register(handler);
-  }, [ctx, handler, enabled]);
+    return ctx.register(() => {
+      const result = handlerRef.current();
+      return result instanceof Promise ? result : undefined;
+    });
+  }, [ctx, enabled]);
 }

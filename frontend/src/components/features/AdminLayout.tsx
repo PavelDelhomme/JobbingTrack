@@ -15,7 +15,6 @@ import { FRONTEND_URLS } from "@/config/ports.config";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { TrendingUp, Database, Activity, Server } from "@/lib/icons";
 import { FlaskConical, Eraser } from "lucide-react";
-import { BackofficePageRefreshProvider } from "@/contexts/BackofficePageRefreshContext";
 import { BackofficeRefreshControls } from "./BackofficeRefreshControls";
 
 const BACKOFFICE_API_URL = FRONTEND_URLS.api;
@@ -599,7 +598,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   ];
 
   return (
-    <BackofficePageRefreshProvider>
     <div className="min-h-screen overflow-x-hidden">
       <style jsx>{`
         /* Effet de survol amélioré */
@@ -1304,6 +1302,5 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         onSelectSettings={() => setIsSettingsOpen(true)}
       />
     </div>
-    </BackofficePageRefreshProvider>
   );
 }
