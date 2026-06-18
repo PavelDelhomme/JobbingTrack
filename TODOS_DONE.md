@@ -1,6 +1,6 @@
 # TODOs validés par le porteur
 
-Dernière mise à jour : 17 juin 2026
+Dernière mise à jour : 18 juin 2026
 
 ## Rôle
 
@@ -10,6 +10,7 @@ Ce fichier archive ce que le porteur a réellement validé. Les validations tech
 
 | Date | Élément validé | Environnement | Preuve / remarque |
 |------|----------------|---------------|-------------------|
+| 18/06/2026 | Mobile/Backoffice — analytics app (perf live, retours, erreurs) | Samsung R5CT7263YJL + local | Validation porteur explicite : OK clavier formulaire bug. Formulaire « Signaler un bug » : clavier reste ouvert, saisie description OK, Envoyer via AppBar. Emails retour/crash enrichis (capture inline, diagnostic, stack contexte). Commit `8888c7f6`. |
 | 17/06/2026 | Statistics — graphes disponibilité / erreur (vue d'ensemble) | local | Validation porteur explicite : « OK Statistics vue d'ensemble même si partiel ». Graphes infra avec marqueurs sparse, ChartPeriodCaption, retrait panneau P1B doublon Performances. Candidatures/utilisateurs → App data. |
 | 17/06/2026 | Statistics — onglet Données applicatives (`app-data`) | local | Validation porteur explicite : « ouais ca me vas ». Pills période 7/14/30 j, toggle séries métier, `ChartPeriodCaption`, snapshot explicite si un seul point API. |
 | 17/06/2026 | Statistics — onglet Logs (`log-stats`) | local | Validation porteur explicite : « okay valide ». Filtres pills période, chips niveau sémantiques, autocomplete services, graphe **Volume de logs dans le temps** avec `ChartPeriodCaption`. Libs `logStatsTimeSeries`, `logLevelChipTone`. |
