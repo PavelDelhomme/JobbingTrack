@@ -13,7 +13,7 @@ const adbLib = require('../../tools/adb-lib');
   console.log('Devices:', devices.map((d) => d.id).join(', ') || '(aucun)');
 
   const email = `mob-smoke-${Date.now()}@example.com`;
-  await adbLib.flows.ensureLoggedOut(phone);
+  await adbLib.flows.clearAppDataForSmoke(phone);
   await adbLib.flows.goToRegister(phone);
   await adbLib.flows.register(phone, {
     firstName: 'Smoke',
@@ -22,11 +22,23 @@ const adbLib = require('../../tools/adb-lib');
     password: 'Test123!',
   });
 
-  await phone.wait(2000);
-  const ok =
-    (await phone.uiContains('Vérifiez votre email')) ||
-    (await phone.uiContains('Vérification requise')) ||
-    (await phone.uiContains('lien de vérification'));
+  const markers = [
+    'Vérifiez votre email',
+    'Vérification requise',
+    'lien de vérification',
+    'Un lien de vérification',
+  ];
+  let ok = false;
+  for (let i = 0; i < 10; i++) {
+    await phone.wait(2000);
+    for (const m of markers) {
+      if (await phone.uiContains(m)) {
+        ok = true;
+        break;
+      }
+    }
+    if (ok) break;
+  }
   if (!ok) {
     throw new Error('Écran post-inscription introuvable (Vérifiez votre email / Vérification requise)');
   }

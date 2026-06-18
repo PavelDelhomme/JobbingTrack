@@ -19,6 +19,25 @@ const SHELL_TAB_COUNT = 4;
 // ─── Auth ────────────────────────────────────────────────────────
 
 async function dismissBiometricUnlock(adb) {
+  let xml = '';
+  try {
+    xml = await adb.uiDump();
+  } catch {
+    xml = '';
+  }
+  if (!xml || xml.length < 50 || xml.includes('biometrics.app.setting')) {
+    for (let i = 0; i < 3; i++) {
+      await adb.back();
+      await adb.wait(800);
+      try {
+        xml = await adb.uiDump();
+      } catch {
+        xml = '';
+      }
+      if (xml && !xml.includes('biometrics.app.setting') && xml.length > 100) break;
+    }
+  }
+
   if (
     (await adb.uiContains('Déverrouiller')) ||
     (await adb.uiContains('Confirmez votre identité'))
@@ -65,6 +84,29 @@ async function tapLogout(adb) {
     return true;
   }
   return false;
+}
+
+async function clearAppDataForSmoke(adb) {
+  await adb.shellCommand('pm clear com.example.jobbingtrack_mobile');
+  await adb.wait(2000);
+  await adb.shellCommand(
+    'monkey -p com.example.jobbingtrack_mobile -c android.intent.category.LAUNCHER 1',
+  );
+  await adb.wait(5000);
+  await dismissBiometricUnlock(adb);
+  for (let i = 0; i < 12; i++) {
+    if (
+      (await adb.uiContains('Email')) ||
+      (await adb.uiContains('Se connecter')) ||
+      (await adb.uiContains('Connexion par empreinte')) ||
+      (await adb.uiContains('Créer un compte'))
+    ) {
+      return 'App reset OK';
+    }
+    await dismissBiometricUnlock(adb);
+    await adb.wait(1500);
+  }
+  throw new Error('Ecran login introuvable après pm clear');
 }
 
 async function restartApp(adb) {
@@ -241,20 +283,93 @@ async function loginFresh(adb, email, password) {
 
 // ─── Registration ────────────────────────────────────────────────
 
+async function ensureFullLoginForm(adb) {
+  await dismissBiometricUnlock(adb);
+  if (
+    (await adb.uiContains('Connexion par empreinte')) ||
+    (await adb.uiContains('Compte enregistré'))
+  ) {
+    try {
+      await adb.tap('Utiliser un autre compte');
+      await adb.wait(1500);
+    } catch {
+      try {
+        await adb.tap('Oublier ce compte');
+        await adb.wait(2000);
+        if (await adb.uiContains('Oublier')) {
+          await adb.tap('Oublier', 1);
+        }
+        await adb.wait(1500);
+      } catch {}
+    }
+  }
+  if (!(await adb.uiContains('Email')) && !(await adb.uiContains('Mot de passe'))) {
+    await adb.scrollDown(800);
+    await adb.wait(800);
+  }
+}
+
+async function ensureOnLoginScreen(adb) {
+  await dismissBiometricUnlock(adb);
+  if (
+    (await adb.uiContains('Email')) ||
+    (await adb.uiContains('Mot de passe')) ||
+    (await adb.uiContains('Connexion par empreinte')) ||
+    ((await adb.uiContains('Connexion')) && (await adb.uiContains('Se connecter')))
+  ) {
+    return true;
+  }
+  if (await adb.uiContains('Bonjour')) {
+    await logout(adb);
+    await adb.wait(2000);
+    await dismissBiometricUnlock(adb);
+    return ensureOnLoginScreen(adb);
+  }
+  await restartApp(adb);
+  await adb.wait(2000);
+  await dismissBiometricUnlock(adb);
+  return (
+    (await adb.uiContains('Email')) ||
+    (await adb.uiContains('Connexion par empreinte')) ||
+    (await adb.uiContains('Se connecter'))
+  );
+}
+
+async function tapRegisterLink(adb) {
+  const labels = ["S'inscrire", 'inscrire', 'Pas encore de compte'];
+  for (const label of labels) {
+    if (!(await adb.uiContains(label.split(' ')[0]))) continue;
+    try {
+      await adb.tap(label);
+      await adb.wait(2500);
+      return 'Ecran inscription';
+    } catch {}
+  }
+  for (let i = 0; i < 3; i++) {
+    await adb.scrollDown(900);
+    await adb.wait(700);
+    for (const label of labels) {
+      try {
+        await adb.tap(label);
+        await adb.wait(2500);
+        return 'Ecran inscription';
+      } catch {}
+    }
+  }
+  throw new Error('Lien inscription introuvable (S\'inscrire)');
+}
+
 async function goToRegister(adb) {
+  const onLogin = await ensureOnLoginScreen(adb);
+  if (!onLogin) {
+    throw new Error('Ecran de connexion introuvable avant inscription');
+  }
+  await ensureFullLoginForm(adb);
   if (await adb.uiContains('Créer un compte') || (await adb.uiContains('Inscription'))) {
     await adb.wait(1000);
     return 'Ecran inscription';
   }
-  try {
-    await adb.tap('inscrire');
-  } catch {
-    await adb.scrollDown(1200);
-    await adb.wait(1000);
-    await adb.tap('inscrire');
-  }
-  await adb.wait(2500);
-  return 'Ecran inscription';
+  return tapRegisterLink(adb);
 }
 
 async function register(adb, opts = {}) {
@@ -279,16 +394,11 @@ async function register(adb, opts = {}) {
     try { await adb.tap("J'accepte les conditions"); } catch {}
   }
   await adb.wait(400);
-  try { await adb.tap('données anonymes'); } catch {
-    try { await adb.tap('donnees anonymes'); } catch {
-      try { await adb.tap('techniques'); } catch {}
-    }
-  }
-  await adb.wait(500);
+  // Télémétrie cochée par défaut à l'inscription — ne pas toggler (décocher bloque la création).
   await adb.scrollDown(800);
   await adb.wait(800);
   try { await adb.tap('inscrire'); } catch { await adb.tap("S'inscrire"); }
-  await adb.wait(5000);
+  await adb.wait(8000);
   return { message: `Inscrit: ${finalEmail}`, email: finalEmail, password };
 }
 
@@ -426,6 +536,7 @@ async function sequence(adb, steps) {
 }
 
 module.exports = {
+  clearAppDataForSmoke,
   dismissBiometricUnlock,
   ensureLoggedOut,
   login,
