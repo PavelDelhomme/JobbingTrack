@@ -143,6 +143,18 @@ const getContact = async (req, res, next) => {
         userId: req.user.id,
         deletedAt: null,
         isArchived: false
+      },
+      include: {
+        companies: {
+          include: { company: true }
+        },
+        applications: {
+          include: {
+            application: {
+              include: { company: true }
+            }
+          }
+        }
       }
     });
 

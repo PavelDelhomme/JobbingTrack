@@ -7,6 +7,7 @@ import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/companies/company_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contact_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_screen.dart';
@@ -146,7 +147,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _sectionHeader('Contacts', actionLabel: 'Ajouter', onAction: () => _showAddContact(context)),
+                  _sectionHeader('Contacts'),
                   if (_contacts.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -162,7 +163,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                           ),
                         )),
                   const SizedBox(height: 16),
-                  _sectionHeader('Relances', actionLabel: 'Ajouter', onAction: () => _showAddRelance(context)),
+                  _sectionHeader('Relances'),
                   if (_followUps.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -178,7 +179,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                           ),
                         )),
                   const SizedBox(height: 16),
-                  _sectionHeader('Entretiens', actionLabel: 'Ajouter', onAction: () => _showAddEntretien(context)),
+                  _sectionHeader('Entretiens'),
                   if (_interviews.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -194,7 +195,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                           ),
                         )),
                   const SizedBox(height: 16),
-                  _sectionHeader('Appels', actionLabel: 'Ajouter', onAction: () => _showAddAppel(context)),
+                  _sectionHeader('Appels'),
                   if (_calls.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -205,12 +206,64 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                           icon: c.isCompanyOnly ? Icons.business_outlined : Icons.phone_outlined,
                           title: c.subject,
                           subtitle: '${c.isCompanyOnly ? 'Entreprise' : 'Contact · ${c.targetLabel}'} · ${formatSmartEventDate(c.callDate)}',
-                          onTap: null,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => CallDetailScreen(call: c)),
+                          ),
                         )),
                 ],
               ),
             ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showQuickAddMenu(context),
+        icon: const Icon(Icons.add),
+        label: const Text('Ajouter'),
+      ),
     );
+  }
+
+  Future<void> _showQuickAddMenu(BuildContext context) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person_add_outlined),
+              title: const Text('Contact'),
+              onTap: () => Navigator.pop(ctx, 'contact'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.schedule_send_outlined),
+              title: const Text('Relance'),
+              onTap: () => Navigator.pop(ctx, 'relance'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.event_outlined),
+              title: const Text('Entretien'),
+              onTap: () => Navigator.pop(ctx, 'entretien'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.phone_outlined),
+              title: const Text('Appel'),
+              onTap: () => Navigator.pop(ctx, 'appel'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+    switch (choice) {
+      case 'contact':
+        await _showAddContact(context);
+      case 'relance':
+        await _showAddRelance(context);
+      case 'entretien':
+        await _showAddEntretien(context);
+      case 'appel':
+        await _showAddAppel(context);
+    }
   }
 
   Widget _headerCard(Color statusColor) {

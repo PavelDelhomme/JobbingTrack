@@ -1170,32 +1170,44 @@ class ApiService {
 
   static Future<FollowUp> getFollowUp(String id, {String? token}) async {
     try {
-      final response = await _get('/api/v1/followups/$id', headers: _jsonHeaders(token));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final raw = data['followup'];
-        if (raw != null) return FollowUp.fromJson(Map<String, dynamic>.from(raw));
-      }
-      throw Exception('Erreur HTTP ${response.statusCode}');
+      final raw = await getFollowUpDetail(id, token: token);
+      return FollowUp.fromJson(raw);
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('Erreur réseau: $e');
     }
   }
 
+  static Future<Map<String, dynamic>> getFollowUpDetail(String id, {String? token}) async {
+    final response = await _get('/api/v1/followups/$id', headers: _jsonHeaders(token));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['followup'] != null) {
+        return Map<String, dynamic>.from(data['followup'] as Map);
+      }
+    }
+    throw Exception('Erreur HTTP ${response.statusCode}');
+  }
+
   static Future<Interview> getInterview(String id, {String? token}) async {
     try {
-      final response = await _get('/api/v1/interviews/$id', headers: _jsonHeaders(token));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final raw = data['interview'];
-        if (raw != null) return Interview.fromJson(Map<String, dynamic>.from(raw));
-      }
-      throw Exception('Erreur HTTP ${response.statusCode}');
+      final raw = await getInterviewDetail(id, token: token);
+      return Interview.fromJson(raw);
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('Erreur réseau: $e');
     }
+  }
+
+  static Future<Map<String, dynamic>> getInterviewDetail(String id, {String? token}) async {
+    final response = await _get('/api/v1/interviews/$id', headers: _jsonHeaders(token));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['interview'] != null) {
+        return Map<String, dynamic>.from(data['interview'] as Map);
+      }
+    }
+    throw Exception('Erreur HTTP ${response.statusCode}');
   }
 
   /// Relances : liste (optionnel applicationId) et création
@@ -1372,6 +1384,22 @@ class ApiService {
     } catch (e) {
       return [];
     }
+  }
+
+  static Future<Map<String, dynamic>> getCallDetail(String id, {String? token}) async {
+    final response = await _get('/api/v1/calls/$id', headers: _jsonHeaders(token));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['call'] != null) {
+        return Map<String, dynamic>.from(data['call'] as Map);
+      }
+    }
+    throw Exception('Erreur HTTP ${response.statusCode}');
+  }
+
+  static Future<Call> getCall(String id, {String? token}) async {
+    final raw = await getCallDetail(id, token: token);
+    return Call.fromJson(raw);
   }
 
   static Future<Call> createCall({
