@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobbingTrack — Récap session 19 juin 2026 (suite)</title>
+</head>
+<body style="margin:0;padding:0;background:#eef2f7;font-family:'Segoe UI',Roboto,Arial,sans-serif;color:#1e293b;line-height:1.55;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef2f7;padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="680" cellpadding="0" cellspacing="0" style="max-width:680px;width:100%;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(15,23,42,0.10);">
+
+        <tr><td style="background:linear-gradient(135deg,#0f766e,#14b8a6);padding:32px 36px;color:#fff;">
+          <div style="font-size:13px;opacity:0.9;text-transform:uppercase;letter-spacing:0.08em;">JobbingTrack · Session agent</div>
+          <h1 style="margin:12px 0 8px;font-size:24px;">Récapitulatif — 19 juin 2026 (suite)</h1>
+          <p style="margin:0;font-size:14px;opacity:0.92;">Merge Lot D7 → dev · Navigation admin · Smokes ADB</p>
+        </td></tr>
+
+        <tr><td style="padding:28px 36px;">
+          <h2 style="margin:0 0 14px;font-size:18px;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Git &amp; branches</h2>
+          <ul style="margin:0 0 20px;padding-left:20px;font-size:14px;">
+            <li><strong>Merge</strong> : <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;">feat/mobile-d7-workflow-push-offline</code> → <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;">dev</code> (fast-forward, 132 fichiers, +7963/−1293 lignes).</li>
+            <li><strong>dev poussée</strong> sur <code>origin/dev</code> (HEAD <code>c2bf4c17</code>).</li>
+            <li><strong>Nouvelle branche</strong> : <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;">feat/mobile-d-navigation-admin</code> pour la suite Lot D (navigation retour / admin / relances).</li>
+          </ul>
+
+          <h2 style="margin:0 0 14px;font-size:18px;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Travail réalisé cette session</h2>
+
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px 20px;margin-bottom:16px;">
+            <h3 style="margin:0 0 10px;font-size:15px;color:#15803d;">Mot de passe toujours disponible (<code>8739858a</code>)</h3>
+            <ul style="margin:0;padding-left:18px;font-size:14px;">
+              <li>Formulaire login visible même avec compte empreinte enregistré.</li>
+              <li>Bouton « Se connecter avec le mot de passe » + ouverture auto du formulaire si empreinte refusée.</li>
+              <li>Smokes <code>TEST_USER_*</code> sans intervention biométrique Samsung.</li>
+            </ul>
+          </div>
+
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px 20px;margin-bottom:16px;">
+            <h3 style="margin:0 0 10px;font-size:15px;color:#1d4ed8;">Smoke navigation Lot D (<code>feat/mobile-d-navigation-admin</code>)</h3>
+            <ul style="margin:0;padding-left:18px;font-size:14px;">
+              <li>Nouveau script <code>smoke-mobile-navigation-adb.js</code>.</li>
+              <li>✅ Retour <strong>Paramètres → Profil</strong> (pas d’accueil forcé).</li>
+              <li>✅ Section <strong>admin absente</strong> du drawer pour compte USER (<code>TEST_USER_EMAIL</code>).</li>
+              <li>✅ Écran <strong>Relances</strong> sans FAB global « Ajouter ».</li>
+              <li>Bypass biométrique intégré (pas besoin d’être devant le téléphone).</li>
+            </ul>
+          </div>
+
+          <h2 style="margin:0 0 14px;font-size:18px;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Contenu mergé dans dev (Lot D7 complet)</h2>
+          <p style="margin:0 0 10px;font-size:14px;">Résumé du fast-forward depuis le 18/06 :</p>
+          <ul style="margin:0 0 20px;padding-left:20px;font-size:13px;color:#475569;">
+            <li>Auth biométrique, logout fiable, audit_logs Postgres, unification TEST_USER_*</li>
+            <li>Smokes inscription / vérif email / login mot de passe</li>
+            <li>Shell 4 onglets, offline gzip, workflow D7 API, push register scaffold</li>
+            <li>Analytics backoffice (perf live, retours, latence API, refresh global)</li>
+            <li>Fix HTTP 500 candidatures/contacts, safe area, FAB, statuts FR</li>
+            <li>Rapport HTML 18–19/06 : <code>scripts/ops/reports/recap-mobile-18-19-juin-2026.html</code></li>
+          </ul>
+
+          <h2 style="margin:0 0 14px;font-size:18px;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Prochaines validations porteur</h2>
+          <ol style="margin:0;padding-left:22px;font-size:14px;">
+            <li style="margin-bottom:6px;"><strong>Inscription + vérif email</strong> — smokes agent OK</li>
+            <li style="margin-bottom:6px;"><strong>Navigation retour / admin / relances</strong> — smoke agent OK, validation manuelle restante (appels/entretiens depuis candidature)</li>
+            <li style="margin-bottom:6px;"><strong>Intérim + cold start sans keepLoggedIn</strong></li>
+            <li><strong>Lot D7 offline métier ADB</strong> — script prêt, à reprendre</li>
+          </ol>
+        </td></tr>
+
+        <tr><td style="background:#f8fafc;padding:18px 36px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b;">
+          Généré par l'agent Cursor · JobbingTrack · Branche active : <code>feat/mobile-d-navigation-admin</code>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
