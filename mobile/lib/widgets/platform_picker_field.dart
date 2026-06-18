@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 
-/// Sélection d'une plateforme de candidature (liste système + perso utilisateur).
-class PlatformPickerField extends StatefulWidget {
+/// Sélection d'une plateforme (liste système + perso) via bottom sheet.
+class PlatformPickerField extends StatelessWidget {
   final String? selectedPlatformId;
   final ValueChanged<String?> onChanged;
   final List<Map<String, dynamic>> platforms;
@@ -18,14 +19,15 @@ class PlatformPickerField extends StatefulWidget {
     this.onPlatformsChanged,
   });
 
-  @override
-  State<PlatformPickerField> createState() => _PlatformPickerFieldState();
-}
+  String _labelFor(String? id) {
+    if (id == null || id.isEmpty) return '— Aucune / non renseignée';
+    final match = platforms.where((p) => p['id']?.toString() == id).toList();
+    if (match.isEmpty) return 'Plateforme sélectionnée';
+    final name = match.first['name']?.toString() ?? 'Plateforme';
+    return match.first['userId'] != null ? '$name (perso)' : name;
+  }
 
-class _PlatformPickerFieldState extends State<PlatformPickerField> {
-  static const _createNewValue = '__create_platform__';
-
-  Future<void> _createPlatform() async {
+  Future<void> _createPlatform(BuildContext context) async {
     final nameController = TextEditingController();
     final urlController = TextEditingController();
     final ok = await showDialog<bool>(
@@ -38,7 +40,6 @@ class _PlatformPickerFieldState extends State<PlatformPickerField> {
             TextField(
               controller: nameController,
               decoration: const InputDecoration(labelText: 'Nom *', border: OutlineInputBorder()),
-              textCapitalization: TextCapitalization.sentences,
             ),
             const SizedBox(height: 8),
             TextField(
@@ -54,7 +55,7 @@ class _PlatformPickerFieldState extends State<PlatformPickerField> {
         ],
       ),
     );
-    if (ok != true || nameController.text.trim().isEmpty || !mounted) return;
+    if (ok != true || nameController.text.trim().isEmpty) return;
     try {
       final token = Provider.of<AuthProvider>(context, listen: false).token;
       final created = await ApiService.createPlatform(
@@ -62,52 +63,97 @@ class _PlatformPickerFieldState extends State<PlatformPickerField> {
         url: urlController.text.trim().isEmpty ? null : urlController.text.trim(),
         token: token,
       );
-      widget.onPlatformsChanged?.call();
-      widget.onChanged(created['id']?.toString());
-      if (mounted) {
+      onPlatformsChanged?.call();
+      onChanged(created['id']?.toString());
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Plateforme « ${nameController.text.trim()} » créée')),
         );
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      final msg = e.toString();
+      if (msg.contains('Unique') || msg.contains('unique') || msg.contains('409')) {
+        final existing = platforms.firstWhere(
+          (p) => (p['name']?.toString().toLowerCase() ?? '') == nameController.text.trim().toLowerCase(),
+          orElse: () => {},
+        );
+        if (existing.isNotEmpty) {
+          onChanged(existing['id']?.toString());
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Plateforme « ${nameController.text.trim()} » déjà existante — sélectionnée')),
+            );
+          }
+          return;
+        }
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      }
     }
+  }
+
+  Future<void> _openPicker(BuildContext context) async {
+    final picked = await showModalBottomSheet<String?>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: scrollSafePadding(ctx, top: 0),
+          children: [
+            ListTile(
+              leading: const Icon(Icons.clear),
+              title: const Text('Aucune / non renseignée'),
+              onTap: () => Navigator.pop(ctx, '__none__'),
+            ),
+            ...platforms.map((p) {
+              final id = p['id']?.toString() ?? '';
+              final name = p['name']?.toString() ?? 'Plateforme';
+              return ListTile(
+                leading: const Icon(Icons.public),
+                title: Text(p['userId'] != null ? '$name (perso)' : name),
+                trailing: selectedPlatformId == id ? const Icon(Icons.check_circle, color: Colors.green) : null,
+                onTap: () => Navigator.pop(ctx, id),
+              );
+            }),
+            ListTile(
+              leading: Icon(Icons.add, color: Colors.green.shade700),
+              title: const Text('Ajouter une plateforme…'),
+              onTap: () => Navigator.pop(ctx, '__create__'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted || picked == null) return;
+    if (picked == '__create__') {
+      await _createPlatform(context);
+      return;
+    }
+    onChanged(picked == '__none__' ? null : picked);
   }
 
   @override
   Widget build(BuildContext context) {
-    final items = <DropdownMenuItem<String?>>[
-      const DropdownMenuItem<String?>(value: null, child: Text('— Aucune / non renseignée')),
-      ...widget.platforms.map((p) {
-        final id = p['id']?.toString() ?? '';
-        final name = p['name']?.toString() ?? 'Plateforme';
-        final isMine = p['userId'] != null;
-        return DropdownMenuItem<String?>(
-          value: id,
-          child: Text(isMine ? '$name (perso)' : name),
-        );
-      }),
-      const DropdownMenuItem<String?>(
-        value: _createNewValue,
-        child: Text('+ Ajouter une plateforme…'),
+    return InkWell(
+      onTap: () => _openPicker(context),
+      borderRadius: BorderRadius.circular(4),
+      child: InputDecorator(
+        decoration: const InputDecoration(
+          labelText: 'Plateforme utilisée',
+          border: OutlineInputBorder(),
+          helperText: 'LinkedIn, Indeed… ou une plateforme que vous créez',
+          suffixIcon: Icon(Icons.public),
+        ),
+        child: Text(
+          _labelFor(selectedPlatformId),
+          style: TextStyle(
+            fontWeight: selectedPlatformId != null ? FontWeight.w600 : FontWeight.normal,
+            color: selectedPlatformId != null ? null : Colors.grey.shade600,
+          ),
+        ),
       ),
-    ];
-
-    return DropdownButtonFormField<String?>(
-      value: widget.selectedPlatformId,
-      decoration: const InputDecoration(
-        labelText: 'Plateforme utilisée',
-        border: OutlineInputBorder(),
-        helperText: 'LinkedIn, Indeed… ou une plateforme que vous créez',
-      ),
-      items: items,
-      onChanged: (v) {
-        if (v == _createNewValue) {
-          _createPlatform();
-          return;
-        }
-        widget.onChanged(v);
-      },
     );
   }
 }

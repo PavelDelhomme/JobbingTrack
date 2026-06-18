@@ -9,7 +9,7 @@ import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
-import 'package:jobbingtrack_mobile/widgets/company_autocomplete_field.dart';
+import 'package:jobbingtrack_mobile/widgets/company_picker_field.dart';
 import 'package:jobbingtrack_mobile/widgets/platform_picker_field.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/utils/shell_layout.dart';
@@ -245,11 +245,11 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
 
   List<Widget> _buildFormFields() {
     return [
-      CompanyAutocompleteField(
+      CompanyPickerField(
         companies: _companies,
         selectedCompanyId: _companyId,
-        initialName: _companyName,
-        validator: (v) => (v == null || v.trim().isEmpty) ? 'Saisir ou choisir une entreprise' : null,
+        companyName: _companyName,
+        validator: (v) => (v == null || v.trim().isEmpty) ? 'Choisir ou saisir une entreprise' : null,
         onChanged: (sel) => setState(() {
           _companyId = sel.companyId;
           _companyName = sel.name;

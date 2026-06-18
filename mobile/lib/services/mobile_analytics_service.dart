@@ -202,7 +202,7 @@ class MobileAnalyticsService extends ChangeNotifier {
     final sanitized = sanitizeEndpoint(path);
     CrashReporter.trackApiCall(sanitized, statusCode, durationMs);
 
-    if (statusCode >= 400) {
+    if (statusCode >= 400 || statusCode == 0) {
       unawaited(_reportApiError(sanitized, statusCode, durationMs));
     }
 
@@ -224,16 +224,18 @@ class MobileAnalyticsService extends ChangeNotifier {
 
   Future<void> _reportApiError(String endpoint, int statusCode, int durationMs) async {
     if (!_consent) return;
-    final message = 'HTTP $statusCode sur $endpoint (${durationMs}ms)';
+    final message = statusCode == 0
+        ? 'Connexion refusée ou réseau indisponible sur $endpoint (${durationMs}ms)'
+        : 'HTTP $statusCode sur $endpoint (${durationMs}ms)';
     await ApiService.postAnalyticsError(
       sessionId: _sessionId,
       deviceId: _deviceId,
-      errorType: 'api',
-      errorName: 'api_error',
+      errorType: statusCode == 0 ? 'network' : 'api',
+      errorName: statusCode == 0 ? 'connection_refused' : 'api_error',
       errorMessage: message,
       page: CrashReporter.currentScreenName,
       platform: _platform,
-      severity: statusCode >= 500 ? 'critical' : 'warning',
+      severity: statusCode == 0 || statusCode >= 500 ? 'critical' : 'warning',
       properties: {
         'endpoint': endpoint,
         'statusCode': statusCode,

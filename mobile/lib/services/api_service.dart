@@ -1250,20 +1250,17 @@ class ApiService {
     required String applicationId,
     String? token,
   }) async {
-    try {
-      final response = await _post(
-        '/api/v1/contacts/$contactId/link-application',
-        headers: _jsonHeaders(token),
-        body: jsonEncode({'applicationId': applicationId}),
-      );
-      if (response.statusCode != 200) {
-        final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
-        throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
-      }
-    } catch (e) {
-      if (e is Exception) rethrow;
-      throw Exception('Erreur réseau: $e');
-    }
+    final path = '/api/v1/contacts/$contactId/link-application';
+    final body = {'applicationId': applicationId};
+    await OfflineMutationHelper.executeVoid(
+      method: 'POST',
+      path: path,
+      body: body,
+      entityType: 'contact',
+      token: token,
+      successStatus: 200,
+      send: () => _post(path, headers: _jsonHeaders(token), body: jsonEncode(body)),
+    );
   }
 
   static Future<FollowUp> getFollowUp(String id, {String? token}) async {

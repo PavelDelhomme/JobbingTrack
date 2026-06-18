@@ -4,6 +4,52 @@ const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
 
+async function isAutoStatusEnabled(userId) {
+  try {
+    if (!userId) return true;
+    const customization = await prisma.userCustomization.findUnique({ where: { userId } });
+    if (!customization?.settings) return true;
+    return customization.settings.statusEngine?.autoStatusEnabled !== false;
+  } catch {
+    return true;
+  }
+}
+
+async function updateApplicationStatus(applicationId, statusCode, comment, userId) {
+  try {
+    if (userId) {
+      const autoEnabled = await isAutoStatusEnabled(userId);
+      if (!autoEnabled) {
+        logger.info(`Auto-statut désactivé pour user ${userId}, cascade ignorée (${statusCode})`);
+        return;
+      }
+    }
+    const statusRow = await prisma.applicationStatus.findFirst({ where: { code: statusCode } });
+    if (!statusRow) return;
+    const app = await prisma.application.findUnique({
+      where: { id: applicationId },
+      select: { statusId: true, userId: true, statusEngineOptOut: true }
+    });
+    if (!app || app.statusId === statusRow.id) return;
+    if (app.statusEngineOptOut === true) {
+      logger.info(`Cascade ignorée pour candidature ${applicationId} (statusEngineOptOut=true)`);
+      return;
+    }
+    await prisma.applicationStatusHistory.create({
+      data: {
+        applicationId,
+        previousStatusId: app.statusId || null,
+        newStatusId: statusRow.id,
+        comment: comment || null
+      }
+    });
+    await prisma.application.update({ where: { id: applicationId }, data: { statusId: statusRow.id } });
+    logger.info(`Statut candidature ${applicationId} mis à jour → ${statusCode}`);
+  } catch (e) {
+    logger.warn(`Cascade statut candidature échouée (${statusCode}):`, e.message);
+  }
+}
+
 async function createAutoEvent(userId, data) {
   try {
     const eventType = await prisma.eventType.findFirst({ where: { code: data.typeCode || 'FOLLOWUP' } })
@@ -277,6 +323,8 @@ const createFollowup = async (req, res, next) => {
       reminderMinutes: 60,
       color: '#F59E0B'
     });
+
+    await updateApplicationStatus(applicationId, 'RELANCED_PENDING', 'Relance planifiée', userId);
 
     res.status(201).json({ success: true, followup: mapFollowup(followup) });
   } catch (error) {

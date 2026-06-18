@@ -44,6 +44,9 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   }
 
   Future<void> _load() async {
+    if (!await ApiService.isReachable()) {
+      await ApiService.prepareForLogin();
+    }
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final token = auth.token;
     setState(() => _loading = true);
@@ -110,7 +113,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Statut : ${applicationStatusLabel(picked)} (automatismes désactivés)')),
+          SnackBar(content: Text('Statut : ${applicationStatusLabel(picked)} (suivi manuel)')),
         );
         _load();
       }
@@ -171,7 +174,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(app.position),
+        title: Text(app.company.name.isNotEmpty ? app.company.name : app.position),
         actions: [
           IconButton(
             tooltip: 'Modifier',
@@ -332,9 +335,12 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(app.company.name, style: TextStyle(fontSize: 14, color: Colors.purple.shade700, fontWeight: FontWeight.w600)),
+            Text(
+              app.company.name.isNotEmpty ? app.company.name : 'Entreprise',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 6),
-            Text(app.position, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+            Text(app.position, style: TextStyle(fontSize: 14, color: Colors.purple.shade700, fontWeight: FontWeight.w600)),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -348,7 +354,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                 ),
                 ActionChip(
                   avatar: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('Changer statut'),
+                  label: const Text('Résultat / statut'),
                   onPressed: _changeStatus,
                 ),
                 Chip(
@@ -515,6 +521,9 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   }
 
   Future<void> _linkExistingContact() async {
+    if (!await ApiService.isReachable()) {
+      await ApiService.prepareForLogin();
+    }
     final token = Provider.of<AuthProvider>(context, listen: false).token;
     List<Map<String, dynamic>> candidates = [];
     if (app.company.id.isNotEmpty) {
@@ -812,55 +821,15 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   }
 
   Future<void> _showAddAppel(BuildContext context) async {
-    final token = Provider.of<AuthProvider>(context, listen: false).token;
-    final candidates = <Map<String, dynamic>>[..._contacts];
-    try {
-      if (app.company.id.isNotEmpty) {
-        final byCompany = await ApiService.getContactsByCompany(app.company.id, token: token);
-        for (final c in byCompany) {
-          if (!candidates.any((x) => x['id'] == c['id'])) candidates.add(c);
-        }
-      }
-      final all = await ApiService.getContacts(token: token);
-      for (final c in all) {
-        if (!candidates.any((x) => x['id'] == c['id'])) candidates.add(c);
-      }
-    } catch (_) {}
-
-    if (!mounted) return;
-    final contact = await showContactPickerSheet(
-      context,
-      allowWithoutContact: true,
-      withoutContactLabel: app.company.name.isNotEmpty
-          ? 'Appel sans contact · ${app.company.name}'
-          : 'Appel sans contact',
-      candidates: candidates,
-      onCreateContact: ({required String firstName, required String lastName, String? email, String? phone, String? notes}) async {
-        final created = await ApiService.createContact(
-          firstName: firstName,
-          lastName: lastName,
-          email: email ?? '',
-          phone: phone ?? '',
-          notes: notes,
-          companyId: app.company.id.isNotEmpty ? app.company.id : null,
-          token: token,
-        );
-        await ApiService.linkContactToApplication(
-          contactId: created['id'].toString(),
-          applicationId: app.id,
-          token: token,
-        );
-        return created;
-      },
-    );
-    if (contact == null || !mounted) return;
-
-    final withoutContact = contact[kCallWithoutContactFlag] == true;
     DateTime date = DateTime.now();
-    final defaultSubject = withoutContact
-        ? 'Appel · ${app.company.name.isNotEmpty ? app.company.name : app.position}'
-        : 'Appel · ${contactDisplayName(contact)}';
-    final subjectController = TextEditingController(text: defaultSubject);
+    final notesController = TextEditingController();
+    final subjectController = TextEditingController(
+      text: 'Appel · ${app.company.name.isNotEmpty ? app.company.name : app.position}',
+    );
+    Map<String, dynamic>? selectedContact;
+    var withoutContact = false;
+    final token = Provider.of<AuthProvider>(context, listen: false).token;
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -869,21 +838,12 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (!withoutContact)
-                  Text('Contact : ${contactDisplayName(contact)}', style: TextStyle(color: Colors.grey.shade700))
-                else
-                  Text(
-                    'Sans contact — entreprise : ${app.company.name.isNotEmpty ? app.company.name : "—"}',
-                    style: TextStyle(color: Colors.grey.shade700),
-                  ),
-                const SizedBox(height: 12),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.calendar_today),
                   title: Text(formatSmartEventDate(date)),
-                  subtitle: const Text('Date'),
+                  subtitle: const Text('Date de l\'appel'),
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: ctx,
@@ -897,34 +857,109 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: subjectController,
-                  decoration: const InputDecoration(labelText: 'Sujet', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: 'Objet *', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    withoutContact
+                        ? 'Appel sans contact'
+                        : selectedContact == null
+                            ? 'Contact (optionnel)'
+                            : contactDisplayName(selectedContact!),
+                  ),
+                  subtitle: Text(
+                    withoutContact
+                        ? 'Lié à ${app.company.name.isNotEmpty ? app.company.name : "l\'entreprise"}'
+                        : selectedContact == null
+                            ? 'Choisir un contact ou appeler sans contact'
+                            : 'Appuyer pour changer',
+                  ),
+                  trailing: (selectedContact != null || withoutContact)
+                      ? IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => setDialogState(() {
+                            selectedContact = null;
+                            withoutContact = false;
+                          }),
+                        )
+                      : const Icon(Icons.person_search),
+                  onTap: () async {
+                    final candidates = await _loadContactCandidates(token);
+                    final picked = await showContactPickerSheet(
+                      ctx,
+                      allowWithoutContact: true,
+                      withoutContactLabel: app.company.name.isNotEmpty
+                          ? 'Appel sans contact · ${app.company.name}'
+                          : 'Appel sans contact',
+                      candidates: candidates,
+                      onCreateContact: ({required String firstName, required String lastName, String? email, String? phone, String? notes}) async {
+                        final created = await ApiService.createContact(
+                          firstName: firstName,
+                          lastName: lastName,
+                          email: email ?? '',
+                          phone: phone ?? '',
+                          notes: notes,
+                          companyId: app.company.id.isNotEmpty ? app.company.id : null,
+                          token: token,
+                        );
+                        await ApiService.linkContactToApplication(
+                          contactId: created['id'].toString(),
+                          applicationId: app.id,
+                          token: token,
+                        );
+                        return created;
+                      },
+                    );
+                    if (picked == null) return;
+                    setDialogState(() {
+                      if (picked[kCallWithoutContactFlag] == true) {
+                        withoutContact = true;
+                        selectedContact = null;
+                      } else {
+                        withoutContact = false;
+                        selectedContact = picked;
+                        subjectController.text = 'Appel · ${contactDisplayName(picked)}';
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: notesController,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes',
+                    hintText: 'Compte-rendu, prochaines étapes…',
+                    border: OutlineInputBorder(),
+                    alignLabelWithHint: true,
+                  ),
+                  maxLines: 5,
+                  minLines: 3,
                 ),
               ],
             ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-            ElevatedButton(
-              onPressed: () {
-                if (subjectController.text.trim().isEmpty) return;
-                Navigator.pop(ctx, true);
-              },
-              child: const Text('Créer'),
-            ),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Créer')),
           ],
         ),
       ),
     );
     if (ok != true || !mounted) return;
-    final subject = subjectController.text.trim();
-    if (subject.isEmpty) return;
+    if (subjectController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Objet requis')));
+      return;
+    }
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       await ApiService.createCall(
         applicationId: app.id,
         callDate: date,
-        subject: subject,
-        contactId: withoutContact ? null : contact['id']?.toString(),
+        subject: subjectController.text.trim(),
+        notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+        contactId: withoutContact ? null : selectedContact?['id']?.toString(),
         token: auth.token,
       );
       if (mounted) {
@@ -934,5 +969,24 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadContactCandidates(String? token) async {
+    final candidates = <Map<String, dynamic>>[..._contacts];
+    try {
+      if (app.company.id.isNotEmpty) {
+        try {
+          final byCompany = await ApiService.getContactsByCompany(app.company.id, token: token);
+          for (final c in byCompany) {
+            if (!candidates.any((x) => x['id'] == c['id'])) candidates.add(c);
+          }
+        } catch (_) {}
+      }
+      final all = await ApiService.getContacts(token: token);
+      for (final c in all) {
+        if (!candidates.any((x) => x['id'] == c['id'])) candidates.add(c);
+      }
+    } catch (_) {}
+    return candidates;
   }
 }

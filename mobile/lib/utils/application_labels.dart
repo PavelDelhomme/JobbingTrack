@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
 
-/// Codes statuts candidature (réf. docs/database/STRUCTURE_ACTUELLE.md).
+/// Statuts modifiables manuellement par l'utilisateur (pas les statuts calculés par relances/délais).
+const kManualApplicationStatusCodes = [
+  'REJECTED_WITHOUT_INTERVIEW',
+  'REJECTED_AFTER_INTERVIEW',
+  'REJECTED',
+  'WITHDRAWN',
+  'ACCEPTED_AFTER_INTERVIEW',
+  'OFFER_RECEIVED',
+];
+
+/// Codes statuts candidature (réf. docs/database/STRUCTURE_ACTUELLE.md + seed-status-tables.sql).
 const kApplicationStatusCodes = [
   'CANDIDATE_PENDING',
   'NO_RESPONSE',
+  'RELANCED_PENDING',
+  'AWAITING_INTERVIEW',
+  'INTERVIEW_SOON',
   'NO_RESPONSE_AFTER_FIRST_FOLLOWUP',
   'NO_RESPONSE_AFTER_SECOND_FOLLOWUP',
   'FIRST_INTERVIEW_PENDING',
@@ -19,20 +32,23 @@ const kApplicationStatusCodes = [
 String applicationStatusLabel(String status) {
   switch (status) {
     case 'CANDIDATE_PENDING':
-      return 'Candidaté';
+      return 'Candidaté et en attente';
     case 'NO_RESPONSE':
-      return 'Aucune réponse';
+      return 'À relancer';
     case 'NO_RESPONSE_AFTER_FIRST_FOLLOWUP':
-      return 'Pas de réponse (1 relance)';
     case 'NO_RESPONSE_AFTER_SECOND_FOLLOWUP':
-      return 'Pas de réponse (2 relances)';
+    case 'NO_RESPONSE_AFTER_FOLLOWUP':
+      return 'Pas de réponse après relance';
+    case 'RELANCED_PENDING':
+      return 'Relancée — à relancer';
     case 'FIRST_INTERVIEW_PENDING':
     case 'INTERVIEW_PENDING':
     case 'AWAITING_INTERVIEW':
-      return '1er entretien en attente';
+      return 'Entretien à venir';
     case 'OTHER_INTERVIEW_PENDING':
-    case 'INTERVIEW_SOON':
       return 'Autre entretien en attente';
+    case 'INTERVIEW_SOON':
+      return 'Entretien imminent';
     case 'TECHNICAL_TEST_PENDING':
       return 'Test technique en cours';
     case 'OFFER_RECEIVED':
@@ -45,16 +61,12 @@ String applicationStatusLabel(String status) {
       return 'Non retenue (sans entretien)';
     case 'REJECTED_AFTER_INTERVIEW':
     case 'REJECTED':
-      return 'Non retenue (après entretien)';
+      return 'Refusée';
     case 'WITHDRAWN':
       return 'Candidature retirée';
-    case 'RELANCED_PENDING':
-      return 'Relancé — en attente';
     case 'INTERVIEW_DONE':
     case 'POST_INTERVIEW_FEEDBACK':
       return 'Entretien passé — retour en attente';
-    case 'NO_RESPONSE_AFTER_FOLLOWUP':
-      return 'Pas de réponse après relance';
     case 'INTERVIEW_SCHEDULED':
     case 'INTERVIEW':
       return 'Entretien programmé';
@@ -78,7 +90,8 @@ Color applicationStatusColor(String status) {
   return Colors.grey;
 }
 
-Future<String?> showApplicationStatusPicker(BuildContext context, {String? current}) {
+Future<String?> showApplicationStatusPicker(BuildContext context, {String? current, bool manualOnly = true}) {
+  final codes = manualOnly ? kManualApplicationStatusCodes : kApplicationStatusCodes;
   return showModalBottomSheet<String>(
     context: context,
     showDragHandle: true,
@@ -88,8 +101,19 @@ Future<String?> showApplicationStatusPicker(BuildContext context, {String? curre
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text('Changer le statut', style: Theme.of(ctx).textTheme.titleMedium),
+            child: Text(
+              manualOnly ? 'Indiquer le résultat' : 'Changer le statut',
+              style: Theme.of(ctx).textTheme.titleMedium,
+            ),
           ),
+          if (manualOnly)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Text(
+                'Les statuts « à relancer » ou « entretien » se mettent à jour automatiquement quand vous ajoutez une relance ou un entretien.',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+              ),
+            ),
           if (current != null && current.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -98,7 +122,7 @@ Future<String?> showApplicationStatusPicker(BuildContext context, {String? curre
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               ),
             ),
-          ...kApplicationStatusCodes.map((code) {
+          ...codes.map((code) {
             final selected = code == current;
             return ListTile(
               leading: Icon(

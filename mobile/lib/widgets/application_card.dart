@@ -80,18 +80,18 @@ class ApplicationCard extends StatelessWidget {
                                 ? application.company.name
                                 : 'Entreprise non renseignée',
                             style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.purple.shade800,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.grey.shade900,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             application.position,
                             style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.grey.shade900,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.purple.shade800,
                             ),
                           ),
                         ],

@@ -161,9 +161,11 @@ const createInterview = async (req, res, next) => {
 
     logger.info(`Entretien ${interview.id} créé pour l'utilisateur ${userId}`);
 
-    await updateApplicationStatus(applicationId, 'INTERVIEW_PENDING', 'Entretien programmé automatiquement', userId);
-
     const interviewDateObj = new Date(interviewDate);
+    const daysUntil = Math.ceil((interviewDateObj.getTime() - Date.now()) / 86400000);
+    const appStatus = daysUntil <= 1 ? 'INTERVIEW_SOON' : 'AWAITING_INTERVIEW';
+    await updateApplicationStatus(applicationId, appStatus, 'Entretien programmé automatiquement', userId);
+
     const companyName = interview.application?.company?.name || interview.company?.name || 'Entreprise';
     await createAutoEvent(userId, {
       title: `Entretien – ${companyName}`,
