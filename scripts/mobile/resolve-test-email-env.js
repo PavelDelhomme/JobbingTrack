@@ -1,6 +1,6 @@
 /**
  * Résout email/mot de passe pour les smokes inscription + vérif email mobile.
- * Priorité mot de passe : TEST_VERIFICATION_PASSWORD → MOBILE_TEST_USER_PASSWORD → TEST_REAL_EMAIL_PASSWORD
+ * Priorité mot de passe : TEST_VERIFICATION_PASSWORD → TEST_USER_PASSWORD → TEST_REAL_EMAIL_PASSWORD
  * Email unique : alias +mob{timestamp} sur TEST_REAL_EMAIL (ex. dev+mob…@delhomme.ovh)
  */
 
@@ -23,9 +23,8 @@ function resolveVerificationPassword() {
   loadRootEnv();
   const candidates = [
     ['TEST_VERIFICATION_PASSWORD', process.env.TEST_VERIFICATION_PASSWORD],
-    ['MOBILE_TEST_USER_PASSWORD', process.env.MOBILE_TEST_USER_PASSWORD],
-    ['TEST_REAL_EMAIL_PASSWORD', process.env.TEST_REAL_EMAIL_PASSWORD],
     ['TEST_USER_PASSWORD', process.env.TEST_USER_PASSWORD],
+    ['TEST_REAL_EMAIL_PASSWORD', process.env.TEST_REAL_EMAIL_PASSWORD],
   ];
   for (const [source, value] of candidates) {
     if (value && String(value).trim()) {
@@ -33,7 +32,7 @@ function resolveVerificationPassword() {
     }
   }
   throw new Error(
-    'Mot de passe test manquant : définir TEST_VERIFICATION_PASSWORD, MOBILE_TEST_USER_PASSWORD ou TEST_REAL_EMAIL_PASSWORD dans .env',
+    'Mot de passe test manquant : définir TEST_VERIFICATION_PASSWORD, TEST_USER_PASSWORD ou TEST_REAL_EMAIL_PASSWORD dans .env',
   );
 }
 
@@ -60,7 +59,7 @@ function compareEnvDiagnostics() {
     lines.push('TEST_ADMIN_PASSWORD ≠ ADMIN_PASSWORD (même email admin)');
   }
   if (!process.env.TEST_VERIFICATION_PASSWORD?.trim()) {
-    lines.push('TEST_VERIFICATION_PASSWORD absent (repli MOBILE_TEST_USER_PASSWORD / TEST_REAL_EMAIL_PASSWORD)');
+    lines.push('TEST_VERIFICATION_PASSWORD absent (repli TEST_USER_PASSWORD / TEST_REAL_EMAIL_PASSWORD)');
   }
   if (!process.env.TEST_REAL_EMAIL?.trim()) {
     lines.push('TEST_REAL_EMAIL absent');

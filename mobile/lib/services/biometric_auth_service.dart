@@ -1,11 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 
-/// Déverrouillage biométrique (empreinte / Face ID).
-///
-/// **MVP actuel** : barrière UI avant d'ouvrir une session JWT déjà en SharedPreferences.
-/// **Backlog D6** : stockage chiffré email/mot de passe (Keystore/Keychain) après login réussi —
-/// voir `docs/mobile/BIOMETRIC_SECURE_CREDENTIALS.md`.
+/// Déverrouillage biométrique (empreinte / Face ID / code appareil).
 class BiometricAuthService {
   static final LocalAuthentication _auth = LocalAuthentication();
 
@@ -18,6 +14,15 @@ class BiometricAuthService {
     }
   }
 
+  static Future<List<BiometricType>> getEnrolledBiometrics() async {
+    try {
+      return await _auth.getAvailableBiometrics();
+    } catch (e) {
+      debugPrint('[BIO] getAvailableBiometrics: $e');
+      return const [];
+    }
+  }
+
   static Future<bool> canCheckBiometrics() async {
     try {
       return await _auth.canCheckBiometrics;
@@ -27,21 +32,73 @@ class BiometricAuthService {
     }
   }
 
+  /// Afficher l’option « Déverrouiller avec la biométrie » (login / paramètres).
+  /// Sur Android, [isAvailable] peut être false alors que empreinte ou code appareil fonctionnent.
+  static Future<bool> canOfferUnlockOption() async {
+    return isDeviceSupported();
+  }
+
+  /// Capable de proposer un déverrouillage local (empreinte, Face ID ou code/PIN appareil).
   static Future<bool> isAvailable() async {
     if (!await isDeviceSupported()) return false;
+    final enrolled = await getEnrolledBiometrics();
+    if (enrolled.isNotEmpty) return true;
     return canCheckBiometrics();
   }
 
-  static Future<bool> authenticate({String reason = 'Déverrouillez JobbingTrack'}) async {
+  static String describeBiometrics(List<BiometricType> types) {
+    if (types.contains(BiometricType.face)) return 'Face ID';
+    if (types.contains(BiometricType.fingerprint)) return 'Empreinte digitale';
+    if (types.contains(BiometricType.strong) || types.contains(BiometricType.weak)) {
+      return 'Biométrie';
+    }
+    return 'Code ou empreinte de l\'appareil';
+  }
+
+  static String userMessageForException(LocalAuthException e) {
+    switch (e.code) {
+      case LocalAuthExceptionCode.userCanceled:
+      case LocalAuthExceptionCode.systemCanceled:
+        return 'Déverrouillage annulé';
+      case LocalAuthExceptionCode.timeout:
+        return 'Délai dépassé — réessayez';
+      case LocalAuthExceptionCode.noBiometricsEnrolled:
+        return 'Aucune empreinte enregistrée — utilisez votre mot de passe JobbingTrack';
+      case LocalAuthExceptionCode.noCredentialsSet:
+        return 'Configurez un code ou une empreinte dans les paramètres Android';
+      case LocalAuthExceptionCode.temporaryLockout:
+      case LocalAuthExceptionCode.biometricLockout:
+        return 'Trop de tentatives — réessayez dans quelques instants';
+      case LocalAuthExceptionCode.uiUnavailable:
+        return 'Interface biométrique indisponible — réessayez';
+      case LocalAuthExceptionCode.userRequestedFallback:
+        return 'Utilisez votre mot de passe JobbingTrack ci-dessous';
+      default:
+        return e.description ?? 'Authentification impossible (${e.code.name})';
+    }
+  }
+
+  static Future<({bool success, String? errorMessage})> authenticate({
+    String reason = 'Déverrouillez JobbingTrack',
+    bool biometricOnly = false,
+  }) async {
+    if (!await isDeviceSupported()) {
+      return (success: false, errorMessage: 'Authentification locale non disponible sur cet appareil');
+    }
     try {
-      return await _auth.authenticate(
+      final ok = await _auth.authenticate(
         localizedReason: reason,
-        biometricOnly: false,
+        biometricOnly: biometricOnly,
+        sensitiveTransaction: false,
         persistAcrossBackgrounding: true,
       );
+      return (success: ok, errorMessage: ok ? null : 'Déverrouillage annulé');
+    } on LocalAuthException catch (e) {
+      debugPrint('[BIO] authenticate: $e');
+      return (success: false, errorMessage: userMessageForException(e));
     } catch (e) {
       debugPrint('[BIO] authenticate failed: $e');
-      return false;
+      return (success: false, errorMessage: 'Erreur biométrique — réessayez');
     }
   }
 }

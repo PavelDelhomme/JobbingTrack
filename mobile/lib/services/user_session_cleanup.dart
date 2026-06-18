@@ -1,6 +1,5 @@
 import 'package:jobbingtrack_mobile/services/analytics_telemetry_queue.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
-import 'package:jobbingtrack_mobile/services/biometric_credential_store.dart';
 import 'package:jobbingtrack_mobile/services/local_phone_integrations_service.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
@@ -15,8 +14,8 @@ class UserSessionCleanup {
     await PushNotificationService.instance.unregister(authToken: authToken);
     await ApiConfigStore.clearAuthSession();
     await ApiConfigStore.saveKeepLoggedIn(false);
-    await ApiConfigStore.saveBiometricUnlockEnabled(false);
-    await BiometricCredentialStore.clear();
+    // Identifiants empreinte conservés : reconnexion rapide après déconnexion volontaire.
+    // Suppression via Paramètres ou « Oublier ce compte » sur l'écran login.
     await ApiConfigStore.clearAnalyticsSessionId();
     await AnalyticsTelemetryQueue.instance.clearAll();
     await OfflineBusinessSyncQueue.instance.clearAll();

@@ -55,7 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final interim = await ApiConfigStore.loadInterimModeEnabled();
     final bio = await ApiConfigStore.loadBiometricUnlockEnabled();
     final keep = await ApiConfigStore.loadKeepLoggedIn();
-    final bioAvail = await BiometricAuthService.isAvailable();
+    final bioAvail = await BiometricAuthService.canOfferUnlockOption();
     final callCount = await LocalPhoneIntegrationsService.getLocalCallLogCount();
     final phoneContactsCount = await LocalPhoneIntegrationsService.getLocalPhoneContactsCount();
     final callSynced = await LocalPhoneIntegrationsService.getCallLogSyncedAt();
@@ -386,12 +386,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await auth.verifyPasswordForBiometric(controller.text);
       await auth.saveBiometricCredentials(controller.text.trim());
-      if (mounted) {
-        setState(() => _biometricUnlock = true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Déverrouillage biométrique activé')),
-        );
-      }
+      final bio = await BiometricAuthService.authenticate(
+        reason: 'Confirmez votre identité pour activer le déverrouillage',
+      );
+      if (!mounted) return;
+      setState(() => _biometricUnlock = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            bio.success
+                ? 'Déverrouillage biométrique activé'
+                : 'Biométrie enregistrée — empreinte ou code appareil au prochain lancement',
+          ),
+        ),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

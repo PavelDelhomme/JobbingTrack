@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Copie TEST_USER_PASSWORD (ou MOBILE_TEST_USER_PASSWORD) dans le presse-papier Android via ADB.
+ * Copie TEST_USER_PASSWORD dans le presse-papier Android via ADB.
  *
  *   node scripts/mobile/copy-test-password-clipboard-adb.js
  */
@@ -11,7 +11,6 @@ const { loadRootEnv } = require('./resolve-admin-credentials');
 function resolvePassword() {
   return (
     process.env.TEST_USER_PASSWORD?.trim() ||
-    process.env.MOBILE_TEST_USER_PASSWORD?.trim() ||
     process.env.TEST_VERIFICATION_PASSWORD?.trim() ||
     ''
   );

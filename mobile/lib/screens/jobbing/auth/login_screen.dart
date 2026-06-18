@@ -6,6 +6,7 @@ import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
+import 'package:jobbingtrack_mobile/services/biometric_credential_store.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,6 +23,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _keepLoggedIn = true;
   bool _enableBiometric = false;
   bool _biometricAvailable = false;
+  String? _savedAccountEmail;
+  bool _showFullLoginForm = false;
 
   @override
   void initState() {
@@ -32,13 +35,25 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _initOptions() async {
     final keep = await ApiConfigStore.loadKeepLoggedIn();
     final bio = await ApiConfigStore.loadBiometricUnlockEnabled();
-    final available = await BiometricAuthService.isAvailable();
+    final supported = await BiometricAuthService.canOfferUnlockOption();
+    final creds = await BiometricCredentialStore.load();
     if (mounted) {
       setState(() {
         _keepLoggedIn = keep;
-        _enableBiometric = bio && available;
-        _biometricAvailable = available;
+        _biometricAvailable = supported;
+        _enableBiometric = bio && supported;
+        _savedAccountEmail = creds?.email;
+        _showFullLoginForm = _savedAccountEmail == null || !supported;
+        if (_savedAccountEmail != null && !_showFullLoginForm) {
+          _emailController.text = _savedAccountEmail!;
+        }
       });
+      if (_savedAccountEmail != null && supported && !_showFullLoginForm) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          await Future<void>.delayed(const Duration(milliseconds: 400));
+          if (mounted) await _loginWithBiometric(auto: true);
+        });
+      }
     }
   }
 
@@ -47,6 +62,86 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _navigateAfterLogin({
+    required bool biometricEnabled,
+    bool skipUnlockScreen = false,
+  }) async {
+    if (!mounted) return;
+    final showUnlock = !skipUnlockScreen && _keepLoggedIn && biometricEnabled;
+    final route = showUnlock ? '/biometric-unlock' : '/home';
+    debugPrint('[LOGIN] Succès, navigation vers $route');
+    Navigator.of(context).pushReplacementNamed(route);
+  }
+
+  Future<void> _loginWithBiometric({bool auto = false}) async {
+    final creds = await BiometricCredentialStore.load();
+    if (creds == null) {
+      if (!auto) _showSnackBar('Aucun compte enregistré sur cet appareil');
+      return;
+    }
+
+    final bio = await BiometricAuthService.authenticate(
+      reason: auto
+          ? 'Connectez-vous à JobbingTrack'
+          : 'Confirmez votre identité pour vous connecter',
+    );
+    if (!bio.success) {
+      if (!auto && bio.errorMessage != null) {
+        _showSnackBar(bio.errorMessage!);
+      }
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final bioEnabled = await ApiConfigStore.loadBiometricUnlockEnabled();
+      await authProvider.login(
+        creds.email,
+        creds.password,
+        keepLoggedIn: true,
+        enableBiometric: bioEnabled || _enableBiometric,
+      );
+      await MobileAnalyticsService.instance.initialize(authToken: authProvider.token);
+      await _navigateAfterLogin(biometricEnabled: true, skipUnlockScreen: true);
+    } catch (e) {
+      debugPrint('[LOGIN] Erreur empreinte: $e');
+      _showSnackBar('Erreur: ${e.toString().replaceAll('Exception: ', '')}');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _forgetSavedAccount() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Oublier ce compte ?'),
+        content: const Text(
+          'Les identifiants enregistrés pour la connexion par empreinte seront effacés de cet appareil.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Oublier'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    await BiometricCredentialStore.clear();
+    await ApiConfigStore.saveBiometricUnlockEnabled(false);
+    setState(() {
+      _savedAccountEmail = null;
+      _showFullLoginForm = true;
+      _enableBiometric = false;
+      _emailController.clear();
+      _passwordController.clear();
+    });
   }
 
   Future<void> _login() async {
@@ -67,10 +162,10 @@ class _LoginScreenState extends State<LoginScreen> {
         enableBiometric: _keepLoggedIn && _enableBiometric,
       );
       await MobileAnalyticsService.instance.initialize(authToken: authProvider.token);
-      debugPrint('[LOGIN] Succès, navigation vers /home');
-
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/home');
+        await _navigateAfterLogin(
+          biometricEnabled: _keepLoggedIn && _enableBiometric,
+        );
       }
     } catch (e) {
       debugPrint('[LOGIN] Erreur: $e');
@@ -186,7 +281,72 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 48),
 
+                if (_savedAccountEmail != null && _biometricAvailable && !_showFullLoginForm) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.blue.shade100),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: Colors.blue.shade100,
+                              child: Icon(Icons.person, color: Colors.blue.shade800),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _savedAccountEmail!,
+                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  Text(
+                                    'Compte enregistré sur cet appareil',
+                                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 50,
+                          child: FilledButton.icon(
+                            onPressed: _isLoading ? null : () => _loginWithBiometric(),
+                            icon: const Icon(Icons.fingerprint),
+                            label: const Text('Connexion par empreinte'),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () => setState(() => _showFullLoginForm = true),
+                          child: const Text('Utiliser un autre compte'),
+                        ),
+                        TextButton(
+                          onPressed: _isLoading ? null : _forgetSavedAccount,
+                          child: Text('Oublier ce compte', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text('Ou connexion manuelle', style: TextStyle(color: Colors.grey.shade600)),
+                  const SizedBox(height: 16),
+                ],
+
                 // Formulaire de connexion
+                if (_showFullLoginForm || _savedAccountEmail == null || !_biometricAvailable)
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -275,7 +435,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           contentPadding: EdgeInsets.zero,
                           title: const Text('Déverrouiller avec la biométrie'),
                           subtitle: const Text(
-                            'Identifiants chiffrés (Keychain/Keystore) · empreinte au lancement',
+                            'Empreinte ou code appareil au prochain lancement (identifiants chiffrés)',
                           ),
                           value: _enableBiometric,
                           onChanged: _keepLoggedIn

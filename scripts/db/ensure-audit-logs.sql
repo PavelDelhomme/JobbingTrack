@@ -1,4 +1,5 @@
 -- Table audit_logs (B7 security-service) — migration ciblée non destructive
+-- Garder aligné avec backend/security-service/src/config/ensureAuditLogsTable.js
 CREATE TABLE IF NOT EXISTS "audit_logs" (
   "id" TEXT NOT NULL,
   "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

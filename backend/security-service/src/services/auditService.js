@@ -1,4 +1,5 @@
 const { prisma } = require('../config/database');
+const { ensureAuditLogsTable } = require('../config/ensureAuditLogsTable');
 const { logger } = require('../utils/logger');
 const { redactSensitiveMetadata } = require('./securityAlertEmailNotifier');
 
@@ -39,29 +40,36 @@ async function recordAuditEvent(payload = {}) {
 
   const safeMetadata = redactSensitiveMetadata(metadata || {});
 
+  const data = {
+    actorUserId,
+    actorEmail,
+    actorRole,
+    action: String(action).slice(0, 100),
+    resource: String(resource).slice(0, 100),
+    resourceId: resourceId ? String(resourceId).slice(0, 200) : null,
+    outcome: normalizeOutcome(outcome),
+    clientIp: clientIp ? String(clientIp).slice(0, 45) : null,
+    userAgent: userAgent ? String(userAgent).slice(0, 2000) : null,
+    requestId: requestId ? String(requestId).slice(0, 128) : null,
+    metadata: safeMetadata,
+  };
+
   try {
-    const row = await prisma.auditLog.create({
-      data: {
-        actorUserId,
-        actorEmail,
-        actorRole,
-        action: String(action).slice(0, 100),
-        resource: String(resource).slice(0, 100),
-        resourceId: resourceId ? String(resourceId).slice(0, 200) : null,
-        outcome: normalizeOutcome(outcome),
-        clientIp: clientIp ? String(clientIp).slice(0, 45) : null,
-        userAgent: userAgent ? String(userAgent).slice(0, 2000) : null,
-        requestId: requestId ? String(requestId).slice(0, 128) : null,
-        metadata: safeMetadata,
-      },
-    });
+    const row = await prisma.auditLog.create({ data });
     return row;
   } catch (error) {
     if (error.code === 'P2021' || error.message?.includes('does not exist')) {
-      if (process.env.NODE_ENV === 'development') {
-        logger.warn('[AUDIT] Table audit_logs absente — événement ignoré en dev');
-        return null;
+      const ensured = await ensureAuditLogsTable(prisma, true);
+      if (ensured) {
+        try {
+          return await prisma.auditLog.create({ data });
+        } catch (retryError) {
+          logger.warn('[AUDIT] Insert audit_logs échoué après ensure:', retryError.message);
+          return null;
+        }
       }
+      logger.warn('[AUDIT] Table audit_logs absente — événement ignoré');
+      return null;
     }
     logger.error('[AUDIT] Impossible d’enregistrer l’événement:', error.message);
     throw error;

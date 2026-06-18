@@ -207,10 +207,8 @@ class _AppDrawerState extends State<AppDrawer> {
               ),
             ),
             onTap: () async {
-              Navigator.of(context).pop();
-              if (context.mounted) {
-                await AuthLogout.confirmAndPerform(context);
-              }
+              await AuthLogout.confirmAndPerform(context);
+              if (context.mounted) Navigator.of(context).pop();
             },
           ),
 

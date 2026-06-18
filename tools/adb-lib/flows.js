@@ -23,6 +23,24 @@ async function dismissBiometricUnlock(adb) {
     (await adb.uiContains('Déverrouiller')) ||
     (await adb.uiContains('Confirmez votre identité'))
   ) {
+    if (await adb.uiContains('Se déconnecter')) {
+      await adb.tap('Se déconnecter');
+      await adb.wait(1000);
+      if (await adb.uiContains('Déconnexion')) {
+        try {
+          await adb.tap('Déconnexion', 1);
+        } catch {
+          await adb.tap('Déconnexion');
+        }
+      }
+      await adb.wait(3500);
+      return true;
+    }
+    if (await adb.uiContains('Mot de passe JobbingTrack')) {
+      await adb.tap('Mot de passe JobbingTrack');
+      await adb.wait(2500);
+      return true;
+    }
     if (await adb.uiContains('Se connecter avec le mot de passe')) {
       await adb.tap('Se connecter avec le mot de passe');
       await adb.wait(2500);

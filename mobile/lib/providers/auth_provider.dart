@@ -186,12 +186,13 @@ class AuthProvider with ChangeNotifier {
           await ApiConfigStore.saveBiometricUnlockEnabled(true);
         } else if (keepLoggedIn) {
           await _persistSession();
-          await BiometricCredentialStore.clear();
-          await ApiConfigStore.saveBiometricUnlockEnabled(false);
+          if (!enableBiometric) {
+            await BiometricCredentialStore.clear();
+            await ApiConfigStore.saveBiometricUnlockEnabled(false);
+          }
         } else {
           await ApiConfigStore.clearAuthSession();
-          await BiometricCredentialStore.clear();
-          await ApiConfigStore.saveBiometricUnlockEnabled(false);
+          // Pas de session persistante — identifiants empreinte conservés pour reconnexion rapide.
         }
         CrashReporter.trackAction('login:${_user?.email ?? "unknown"}');
         CrashReporter.flushPendingReports();
@@ -325,7 +326,7 @@ class AuthProvider with ChangeNotifier {
     _token = null;
     _refreshToken = null;
     _tokenStale = false;
-    _sessionRestored = true;
+    _sessionRestored = false;
     CrashReporter.setToken(null);
     MobileAnalyticsService.instance.updateAuthToken(null);
     notifyListeners();

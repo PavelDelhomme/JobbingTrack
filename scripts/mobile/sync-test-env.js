@@ -54,15 +54,12 @@ function main() {
   }
 
   const verifyPass =
-    process.env.MOBILE_TEST_USER_PASSWORD?.trim() ||
-    process.env.TEST_REAL_EMAIL_PASSWORD?.trim() ||
-    process.env.TEST_USER_PASSWORD?.trim();
+    process.env.TEST_USER_PASSWORD?.trim() ||
+    process.env.TEST_REAL_EMAIL_PASSWORD?.trim();
   if (!process.env.TEST_VERIFICATION_PASSWORD?.trim() && verifyPass) {
-    const src = process.env.MOBILE_TEST_USER_PASSWORD?.trim()
-      ? 'MOBILE_TEST_USER_PASSWORD'
-      : process.env.TEST_REAL_EMAIL_PASSWORD?.trim()
-        ? 'TEST_REAL_EMAIL_PASSWORD'
-        : 'TEST_USER_PASSWORD';
+    const src = process.env.TEST_USER_PASSWORD?.trim()
+      ? 'TEST_USER_PASSWORD'
+      : 'TEST_REAL_EMAIL_PASSWORD';
     changes.push(`TEST_VERIFICATION_PASSWORD ← ${src}`);
     if (WRITE) lines = setEnvKey(lines, 'TEST_VERIFICATION_PASSWORD', verifyPass);
   }

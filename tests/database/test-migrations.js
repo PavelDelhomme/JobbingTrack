@@ -69,7 +69,8 @@ async function applyDbPushAllCompatibilityFixes() {
     'scripts/db/fix-application-isarchived.sql',
     'scripts/db/fix-application-isTestData.sql',
     'scripts/db/fix-application-thankyou-sent.sql',
-    'scripts/db/init-key-tables.sql'
+    'scripts/db/init-key-tables.sql',
+    'scripts/db/ensure-audit-logs.sql',
   ];
 
   await withClient(databaseUrlFor(TEST_DATABASE), async (client) => {

@@ -25,7 +25,8 @@ export function getMobileTestCredentials(): {
 } {
   return {
     email: requireRuntimeValue(
-      envValue("NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL"),
+      envValue("NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL") ||
+        envValue("TEST_USER_EMAIL"),
       "Email utilisateur mobile de test",
     ),
     password: requireRuntimeValue(
@@ -41,7 +42,7 @@ function getMobileTestPassword(): string {
       window.sessionStorage.getItem("jobbingtrack:mobile-test-password") || ""
     );
   }
-  const password = envValue("MOBILE_TEST_USER_PASSWORD");
+  const password = envValue("TEST_USER_PASSWORD");
   if (password) return password;
   return "";
 }
@@ -390,7 +391,7 @@ export async function executeStep(
       const { email, password } = getMobileTestCredentials();
       if (!password)
         throw new Error(
-          "Mot de passe mobile absent: définir sessionStorage jobbingtrack:mobile-test-password ou MOBILE_TEST_USER_PASSWORD côté runner.",
+          "Mot de passe mobile absent: définir sessionStorage jobbingtrack:mobile-test-password ou TEST_USER_PASSWORD côté runner.",
         );
       await typeInFieldWithHints(adb, REGISTER_FIRST_NAME_HINTS, "Test");
       await adb.wait(600);
@@ -635,7 +636,7 @@ export async function executeStep(
       const { email, password } = getMobileTestCredentials();
       if (!password)
         throw new Error(
-          "Mot de passe mobile absent: définir sessionStorage jobbingtrack:mobile-test-password ou MOBILE_TEST_USER_PASSWORD côté runner.",
+          "Mot de passe mobile absent: définir sessionStorage jobbingtrack:mobile-test-password ou TEST_USER_PASSWORD côté runner.",
         );
       await adb.wait(500);
       await adb.typeInField("Email", email);

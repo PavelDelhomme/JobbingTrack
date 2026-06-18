@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { logger } = require('../utils/logger');
+const { ensureAuditLogsTable } = require('./ensureAuditLogsTable');
 
 // Configuration Prisma : désactiver complètement les logs en développement pour éviter le spam P2021
 // Les erreurs P2021 (table non trouvée) sont gérées gracieusement dans le code
@@ -136,6 +137,9 @@ async function initializeDatabase() {
     // Test de connexion à la base de données
     await prisma.$connect();
     logger.info('Connexion à la base de données de sécurité établie');
+
+    await ensureAuditLogsTable(prisma);
+    clearTableExistsCache('audit_logs');
 
     // Vérifier si les tables critiques existent
     const criticalTables = ['security_logs', 'security_metrics', 'vulnerabilities'];

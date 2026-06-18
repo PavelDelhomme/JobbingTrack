@@ -1,5 +1,6 @@
 package com.example.jobbingtrack_mobile
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+/// FragmentActivity requis par local_auth (empreinte / code appareil) sur Android.
+class MainActivity : FlutterFragmentActivity()

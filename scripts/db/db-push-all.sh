@@ -199,6 +199,17 @@ if [ -f "${ROOT_DIR}/scripts/db/seed-email-templates.sql" ]; then
   echo ""
 fi
 
+# Garantir audit_logs (B7 — auth login, investigation, déblocage IP)
+if [ -f "${ROOT_DIR}/scripts/db/ensure-audit-logs.sql" ]; then
+  echo "[DB-PUSH-ALL] Ensure – Table audit_logs (journal audit B7)"
+  if psql_in_postgres -U jobbingtrack -d jobbingtrack -f - < "${ROOT_DIR}/scripts/db/ensure-audit-logs.sql"; then
+    echo "  ✅ audit_logs OK"
+  else
+    echo "  ⚠️  ensure-audit-logs a échoué (vérifiez Postgres)"
+  fi
+  echo ""
+fi
+
 # Garantir aggregated_logs (corrélation performances / central logger)
 if [ -f "${ROOT_DIR}/scripts/db/ensure-aggregated-logs-tables.sql" ]; then
   echo "[DB-PUSH-ALL] Ensure – Table aggregated_logs (logs centralisés WARN/ERROR)"
@@ -248,7 +259,8 @@ WITH required(name) AS (
     ('container_metrics_snapshots'),
     ('service_availability_history'),
     ('log_collector_logs'),
-    ('aggregated_logs')
+    ('aggregated_logs'),
+    ('audit_logs')
 )
 SELECT r.name
 FROM required r

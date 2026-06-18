@@ -1,6 +1,6 @@
 # TODOs validés par le porteur
 
-Dernière mise à jour : 18 juin 2026
+Dernière mise à jour : 19 juin 2026
 
 ## Rôle
 
@@ -10,6 +10,8 @@ Ce fichier archive ce que le porteur a réellement validé. Les validations tech
 
 | Date | Élément validé | Environnement | Preuve / remarque |
 |------|----------------|---------------|-------------------|
+| 19/06/2026 | Mobile — biométrie (login, déverrouillage, reconnexion empreinte) | Samsung R5CT7263YJL | Validation porteur explicite : « biométrie carrément OK ». Parcours : case login + déverrouillage immédiat post-connexion ; cold start empreinte ; après déconnexion compte enregistré + **Connexion par empreinte** (identifiants conservés chiffrés) ; Paramètres activation ; `FlutterFragmentActivity` ; `canOfferUnlockOption`. |
+| 19/06/2026 | Mobile — déconnexion drawer/menu (régression) | Samsung R5CT7263YJL | Validation porteur : logout OK. Drawer/menu ⋮ → Connexion ; `appNavigatorKey` ; purge session sans effacer empreinte. |
 | 18/06/2026 | Mobile — auth + parcours candidatures | Samsung R5CT7263YJL + local | Validation porteur : OK auth candidatures (liste non vide). Clarification déconnexion volontaire vs hors-ligne : logout purge données locales et renvoie login sans fermer l’app. Fix `UserSessionCleanup` + `AuthLogout`. |
 | 18/06/2026 | Mobile — Paramètres télémétrie + Aide/retours | Samsung R5CT7263YJL | Validation porteur : OK paramètres télémétrie aide retours (toggles + formulaire bug clavier OK, déjà validé). |
 | 18/06/2026 | Mobile/Backoffice — analytics app (perf live, retours, erreurs) | Samsung R5CT7263YJL + local | Validation porteur explicite : OK clavier formulaire bug. Formulaire « Signaler un bug » : clavier reste ouvert, saisie description OK, Envoyer via AppBar. Emails retour/crash enrichis (capture inline, diagnostic, stack contexte). Commit `8888c7f6`. |

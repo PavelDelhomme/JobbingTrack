@@ -39,7 +39,6 @@ const SECRET_KEYS = [
   'METRICS_API_KEY',
   'TEST_ADMIN_PASSWORD',
   'TEST_USER_PASSWORD',
-  'MOBILE_TEST_USER_PASSWORD',
 ];
 
 function randomSecret(bytes = 48) {
