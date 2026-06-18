@@ -45,29 +45,38 @@ class ShellAppBarMenu extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'search',
-          child: ListTile(
-            leading: Icon(Icons.search),
-            title: Text('Recherche globale'),
-            contentPadding: EdgeInsets.zero,
+          child: Material(
+            color: Colors.transparent,
+            child: ListTile(
+              leading: const Icon(Icons.search),
+              title: const Text('Recherche globale'),
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'settings',
-          child: ListTile(
-            leading: Icon(Icons.settings_outlined),
-            title: Text('Paramètres'),
-            contentPadding: EdgeInsets.zero,
+          child: Material(
+            color: Colors.transparent,
+            child: ListTile(
+              leading: const Icon(Icons.settings_outlined),
+              title: const Text('Paramètres'),
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
         ),
         const PopupMenuDivider(),
         PopupMenuItem(
           value: 'logout',
-          child: ListTile(
-            leading: Icon(Icons.logout, color: Colors.red.shade700),
-            title: Text('Déconnexion', style: TextStyle(color: Colors.red.shade700)),
-            contentPadding: EdgeInsets.zero,
+          child: Material(
+            color: Colors.transparent,
+            child: ListTile(
+              leading: Icon(Icons.logout, color: Colors.red.shade700),
+              title: Text('Déconnexion', style: TextStyle(color: Colors.red.shade700)),
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
         ),
       ],

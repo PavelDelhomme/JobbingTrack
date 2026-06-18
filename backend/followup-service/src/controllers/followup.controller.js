@@ -211,19 +211,28 @@ const getFollowup = async (req, res, next) => {
     const userId = req.user.id;
     const { id } = req.params;
 
+    const include = {
+      application: { include: { company: true } },
+      company: true,
+      status: true,
+      contacts: { include: { contact: true } }
+    };
+
     let followup;
     try {
       followup = await prisma.followUp.findFirst({
         where: { id, userId, deletedAt: null, isArchived: false },
-        include: {
-          application: { include: { company: true } },
-          company: true,
-          contact: true
-        }
+        include
       });
     } catch (err) {
       if (err.message?.includes('does not exist') || err.code === 'P2021' || err.code === 'P2022') {
-        followup = await prisma.followUp.findFirst({ where: { id, userId } }).catch(() => null);
+        followup = await prisma.followUp.findFirst({
+          where: { id, userId },
+          include: {
+            application: { include: { company: true } },
+            company: true
+          }
+        }).catch(() => null);
       } else {
         throw err;
       }
@@ -359,7 +368,7 @@ const updateFollowup = async (req, res, next) => {
       companyId = newApplication.companyId;
     }
 
-    if (req.body.contactId && req.body.contactId !== existingFollowup.contactId) {
+    if (req.body.contactId) {
       const contact = await prisma.contact.findFirst({ where: { id: req.body.contactId, userId } });
       if (!contact) {
         return res.status(404).json({ success: false, error: 'Contact non trouvé' });
@@ -395,6 +404,13 @@ const updateFollowup = async (req, res, next) => {
         status: true
       }
     });
+
+    if (req.body.contactId) {
+      await prisma.followUpContact.deleteMany({ where: { followUpId: id } });
+      await prisma.followUpContact.create({
+        data: { followUpId: id, contactId: req.body.contactId }
+      });
+    }
 
     logger.info(`Relance ${id} mise à jour par ${userId}`);
 

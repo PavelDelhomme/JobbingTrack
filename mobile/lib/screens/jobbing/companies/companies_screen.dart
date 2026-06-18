@@ -158,6 +158,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
         actions: const [MobileNotificationCenter()],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_companies_list',
         onPressed: _createCompany,
         child: const Icon(Icons.add_business_outlined),
       ),

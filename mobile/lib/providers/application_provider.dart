@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/models/company.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
@@ -12,19 +13,31 @@ class ApplicationProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
 
+  void _notifySafely() {
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.idle ||
+        phase == SchedulerPhase.postFrameCallbacks) {
+      notifyListeners();
+      return;
+    }
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (hasListeners) notifyListeners();
+    });
+  }
+
   Future<void> loadApplications({String? token}) async {
     _isLoading = true;
     _lastError = null;
-    notifyListeners();
+    _notifySafely();
 
     try {
       _applications = await ApiService.getApplications(token: token);
       _isLoading = false;
-      notifyListeners();
+      _notifySafely();
     } catch (e) {
       _lastError = e.toString().replaceAll('Exception: ', '');
       _isLoading = false;
-      notifyListeners();
+      _notifySafely();
     }
   }
 
@@ -74,7 +87,7 @@ class ApplicationProvider with ChangeNotifier {
         agencyName: app.agencyName,
       );
     }).toList();
-    if (changed) notifyListeners();
+    if (changed) _notifySafely();
   }
 
   Future<void> createApplication(Application application, {String? token}) async {

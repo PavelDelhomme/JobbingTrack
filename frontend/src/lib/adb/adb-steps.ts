@@ -1303,11 +1303,11 @@ export async function executeStep(
     // ═══════════════════════════════════════════════════════════════
 
     case "go_to_profil": {
-      if (!(await adb.uiContains("Tab 5 of"))) {
+      if (!(await adb.uiContains("Tab 4 of"))) {
         await adb.back();
         await adb.wait(1500);
       }
-      await adb.tapTab(5);
+      await adb.tapTab(4);
       await adb.wait(2500);
       return "Page Profil";
     }

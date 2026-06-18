@@ -56,13 +56,16 @@ class _MainShellScreenState extends State<MainShellScreen> {
         body: IndexedStack(
           index: _selectedIndex,
           children: [
-            HomeDashboardTab(onOpenApplications: ({required applicationsTabIndex, statusFilter}) {
+            HomeDashboardTab(
+              isShellVisible: _selectedIndex == 0,
+              onOpenApplications: ({required applicationsTabIndex, statusFilter}) {
               _openApplications(tabIndex: applicationsTabIndex, statusFilter: statusFilter);
             }),
             ApplicationsScreen(
               key: ValueKey('apps-$_applicationsTabIndex-${_applicationStatusFilter ?? ''}'),
               initialTabIndex: _applicationsTabIndex,
               statusFilter: _applicationStatusFilter,
+              isShellVisible: _selectedIndex == 1,
             ),
             const EventsScreen(),
             const ProfileScreen(),

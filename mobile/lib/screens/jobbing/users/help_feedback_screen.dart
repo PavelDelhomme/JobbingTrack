@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/diagnostic_payload_codec.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
-import 'package:jobbingtrack_mobile/utils/shell_layout.dart';
 
 enum HelpFeedbackType {
   bug,
@@ -131,67 +130,74 @@ class _HelpFeedbackScreenState extends State<HelpFeedbackScreen> {
         key: _captureKey,
         child: SafeArea(
           child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            16,
-            16,
-            16 + bottomInset + safeBottom + shellBottomExtra(context) * 0.25,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Votre message est transmis de façon sécurisée. Aucun mot de passe ni contenu de candidature n\'est inclus automatiquement.',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _messageCtrl,
-                minLines: 5,
-                maxLines: 12,
-                textInputAction: TextInputAction.newline,
-                decoration: InputDecoration(
-                  hintText: widget.type.hint,
-                  border: const OutlineInputBorder(),
-                  alignLabelWithHint: true,
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              24 + bottomInset + safeBottom,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Votre message est transmis de façon sécurisée. Aucun mot de passe ni contenu de candidature n\'est inclus automatiquement.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
                 ),
-              ),
-              const SizedBox(height: 12),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Joindre une capture d\'écran'),
-                subtitle: const Text(
-                  'Capture compressée de cet écran (sans contenu saisi sensible)',
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _messageCtrl,
+                  minLines: 5,
+                  maxLines: 12,
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    hintText: widget.type.hint,
+                    border: const OutlineInputBorder(),
+                    alignLabelWithHint: true,
+                  ),
                 ),
-                value: _includeScreenshot,
-                onChanged: _sending ? null : (v) => setState(() => _includeScreenshot = v ?? true),
-              ),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Joindre un diagnostic technique anonyme'),
-                subtitle: const Text(
-                  'Mémoire, écrans visités, erreurs récentes, version Android — aide à corriger plus vite',
+                const SizedBox(height: 12),
+                Material(
+                  color: Colors.transparent,
+                  child: CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Joindre une capture d\'écran'),
+                    subtitle: const Text(
+                      'Capture compressée de cet écran (sans contenu saisi sensible)',
+                    ),
+                    value: _includeScreenshot,
+                    onChanged: _sending ? null : (v) => setState(() => _includeScreenshot = v ?? true),
+                  ),
                 ),
-                value: _includeDiagnostics,
-                onChanged: _sending ? null : (v) => setState(() => _includeDiagnostics = v ?? true),
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: _sending ? null : _submit,
-                icon: _sending
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.send),
-                label: Text(_sending ? 'Envoi…' : 'Envoyer'),
-              ),
-            ],
+                Material(
+                  color: Colors.transparent,
+                  child: CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Joindre un diagnostic technique anonyme'),
+                    subtitle: const Text(
+                      'Mémoire, écrans visités, erreurs récentes, version Android — aide à corriger plus vite',
+                    ),
+                    value: _includeDiagnostics,
+                    onChanged: _sending ? null : (v) => setState(() => _includeDiagnostics = v ?? true),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: _sending ? null : _submit,
+                  icon: _sending
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.send),
+                  label: Text(_sending ? 'Envoi…' : 'Envoyer'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
     );
   }
 }

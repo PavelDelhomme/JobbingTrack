@@ -51,9 +51,9 @@ class AdbClient {
     return r.message;
   }
 
-  /** Tap un onglet de la bottom bar (1-based) */
-  async tapTab(n) {
-    return this.tap(`Tab ${n} of`);
+  /** Tap un onglet de la bottom bar shell (1-based, 4 onglets). */
+  async tapTab(n, totalTabs = 4) {
+    return this.tap(`Tab ${n} of ${totalTabs}`);
   }
 
   /** Tap a des coordonnees brutes */

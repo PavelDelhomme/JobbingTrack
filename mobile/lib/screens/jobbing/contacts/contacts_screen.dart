@@ -138,6 +138,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         actions: const [MobileNotificationCenter()],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_contacts_list',
         onPressed: _createContact,
         child: const Icon(Icons.person_add_outlined),
       ),

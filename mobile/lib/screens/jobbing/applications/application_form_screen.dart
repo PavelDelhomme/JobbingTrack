@@ -98,9 +98,11 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       _platformId = a.platformId;
       _applicationDate = a.appliedDate.toLocal();
     }
-    _loadCompanies();
-    _loadPlatforms();
-    _loadInterimPrefs();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCompanies();
+      _loadPlatforms();
+      _loadInterimPrefs();
+    });
   }
 
   Future<void> _loadPlatforms() async {
@@ -137,11 +139,19 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     try {
       final list = await ApiService.getCompanies(token: auth.token, companyType: 'TEMP_AGENCY');
+      final deduped = <String, Company>{};
+      for (final company in list) {
+        deduped.putIfAbsent(company.id, () => company);
+      }
+      final agencies = deduped.values.toList();
       if (mounted) {
         setState(() {
-          _agencies = list;
-          if (widget.application?.agencyId != null) {
-            _agencyId = widget.application!.agencyId;
+          _agencies = agencies;
+          final preferred = widget.application?.agencyId ?? _agencyId;
+          if (preferred != null && agencies.any((a) => a.id == preferred)) {
+            _agencyId = preferred;
+          } else if (_agencyId != null && !agencies.any((a) => a.id == _agencyId)) {
+            _agencyId = null;
           }
         });
       }
@@ -258,7 +268,9 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       const SizedBox(height: 12),
       if (_interimMode) ...[
         DropdownButtonFormField<String?>(
-          value: _agencyId,
+          value: _agencyId != null && _agencies.any((a) => a.id == _agencyId)
+              ? _agencyId
+              : null,
           decoration: const InputDecoration(
             labelText: 'Boîte d\'intérim (optionnel)',
             border: OutlineInputBorder(),
@@ -323,18 +335,21 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         onChanged: (v) => setState(() => _applicationType = v ?? 'OFFRE'),
       ),
       const SizedBox(height: 12),
-            ListTile(
-              title: const Text('Date de candidature'),
-              subtitle: Text(formatUserLocalDateTime(_applicationDate.toUtc().toIso8601String(), pattern: 'd MMM y HH:mm')),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: () async {
-                final d = await showDatePicker(context: context, initialDate: _applicationDate, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365)));
-                if (d != null) {
-                  final now = DateTime.now();
-                  setState(() => _applicationDate = DateTime(d.year, d.month, d.day, now.hour, now.minute));
-                }
-              },
-            ),
+      Material(
+        color: Colors.transparent,
+        child: ListTile(
+          title: const Text('Date de candidature'),
+          subtitle: Text(formatUserLocalDateTime(_applicationDate.toUtc().toIso8601String(), pattern: 'd MMM y HH:mm')),
+          trailing: const Icon(Icons.calendar_today),
+          onTap: () async {
+            final d = await showDatePicker(context: context, initialDate: _applicationDate, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365)));
+            if (d != null) {
+              final now = DateTime.now();
+              setState(() => _applicationDate = DateTime(d.year, d.month, d.day, now.hour, now.minute));
+            }
+          },
+        ),
+      ),
       const SizedBox(height: 12),
       Row(
         children: [

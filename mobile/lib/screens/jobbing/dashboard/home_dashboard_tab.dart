@@ -18,9 +18,14 @@ import 'package:jobbingtrack_mobile/utils/shell_layout.dart';
 
 /// Contenu onglet Accueil (sans barre de navigation bas — gérée par [MainShellScreen]).
 class HomeDashboardTab extends StatefulWidget {
+  final bool isShellVisible;
   final void Function({required int applicationsTabIndex, String? statusFilter})? onOpenApplications;
 
-  const HomeDashboardTab({super.key, this.onOpenApplications});
+  const HomeDashboardTab({
+    super.key,
+    this.isShellVisible = true,
+    this.onOpenApplications,
+  });
 
   @override
   State<HomeDashboardTab> createState() => _HomeDashboardTabState();
@@ -130,18 +135,21 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
           ),
         ),
       ),
-      floatingActionButton: shellFabPadding(
-        context,
-        child: FloatingActionButton(
-          tooltip: 'Nouvelle candidature',
-          onPressed: () async {
-            final result = await ApplicationFormScreen.showCreateSheet(context);
-            if (result == true) _loadData();
-          },
-          backgroundColor: Colors.blue[600],
-          child: const Icon(Icons.add),
-        ),
-      ),
+      floatingActionButton: widget.isShellVisible
+          ? shellFabPadding(
+              context,
+              child: FloatingActionButton(
+                heroTag: 'fab_home_dashboard',
+                tooltip: 'Nouvelle candidature',
+                onPressed: () async {
+                  final result = await ApplicationFormScreen.showCreateSheet(context);
+                  if (result == true) _loadData();
+                },
+                backgroundColor: Colors.blue[600],
+                child: const Icon(Icons.add),
+              ),
+            )
+          : null,
     );
   }
 

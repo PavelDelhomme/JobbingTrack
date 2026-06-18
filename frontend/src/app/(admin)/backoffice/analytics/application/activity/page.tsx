@@ -55,6 +55,9 @@ export default function ApplicationActivityPage() {
   const [performances, setPerformances] = useState<ApplicationPerformanceMetric[]>([]);
   const [perfTotal, setPerfTotal] = useState(0);
   const [perfPage, setPerfPage] = useState(1);
+  const [latencySamples, setLatencySamples] = useState<ApplicationPerformanceMetric[]>(
+    [],
+  );
   const [error, setError] = useState<string | null>(null);
   const [detailTitle, setDetailTitle] = useState("");
   const [detailRecord, setDetailRecord] = useState<Record<string, unknown> | null>(null);
@@ -74,6 +77,7 @@ export default function ApplicationActivityPage() {
         setError("Session admin requise pour consulter les traces mobile.");
         setEvents([]);
         setPerformances([]);
+        setLatencySamples([]);
         setEventsTotal(0);
         setPerfTotal(0);
         return;
@@ -82,7 +86,7 @@ export default function ApplicationActivityPage() {
       const eventsOffset = (eventsPage - 1) * PAGE_SIZE;
       const perfOffset = (perfPage - 1) * PAGE_SIZE;
 
-      const [eventsRes, perfRes] = await Promise.all([
+      const [eventsRes, perfRes, latencyRes] = await Promise.all([
         fetchApplicationEvents(token, rangeQuery, {
           limit: PAGE_SIZE,
           offset: eventsOffset,
@@ -93,12 +97,17 @@ export default function ApplicationActivityPage() {
           limit: PAGE_SIZE,
           offset: perfOffset,
         }),
+        fetchApplicationPerformance(token, rangeQuery, {
+          metricType: "api_latency",
+          limit: 500,
+        }),
       ]);
 
       setEvents(eventsRes.data);
       setEventsTotal(eventsRes.pagination.total);
       setPerformances(perfRes.data);
       setPerfTotal(perfRes.pagination.total);
+      setLatencySamples(latencyRes.data);
     } catch (e) {
       console.error(e);
       setError("Impossible de charger les traces mobile (API analytics).");
@@ -132,11 +141,14 @@ export default function ApplicationActivityPage() {
       events.map((e) => e.deviceId).filter(Boolean) as string[],
     );
     const traceBatches = events.filter((e) => e.eventType === "trace").length;
+    const latencies = latencySamples.filter(
+      (p) => p.metricType === "api_latency" && p.duration != null,
+    );
     const avgLatency =
-      performances
-        .filter((p) => p.metricType === "api_latency" && p.duration != null)
-        .reduce((sum, p, _, arr) => sum + (p.duration || 0) / arr.length, 0) ||
-      null;
+      latencies.length > 0
+        ? latencies.reduce((sum, p) => sum + (p.duration || 0), 0) /
+          latencies.length
+        : null;
     return {
       screenViews: events.filter(
         (e) => e.eventType === "navigation" && e.eventName === "screen_view",
@@ -147,7 +159,7 @@ export default function ApplicationActivityPage() {
       perfSamples: perfTotal,
       avgLatency,
     };
-  }, [events, performances, perfTotal]);
+  }, [events, perfTotal, latencySamples]);
 
   const openDetail = (title: string, record: Record<string, unknown>) => {
     setDetailTitle(title);

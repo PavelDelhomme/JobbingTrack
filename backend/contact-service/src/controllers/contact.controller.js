@@ -419,6 +419,23 @@ const getContactsByCompany = async (req, res, next) => {
         }
       },
       orderBy: { createdAt: 'desc' }
+    }).catch(async (queryError) => {
+      logger.warn('Fallback contacts par entreprise:', queryError.message);
+      const links = await prisma.contactCompany.findMany({
+        where: { companyId },
+        select: { contactId: true }
+      });
+      const contactIds = links.map((l) => l.contactId);
+      if (contactIds.length === 0) return [];
+      return prisma.contact.findMany({
+        where: {
+          id: { in: contactIds },
+          userId: req.user.id,
+          deletedAt: null,
+          isArchived: false
+        },
+        orderBy: { createdAt: 'desc' }
+      });
     });
 
     res.json({

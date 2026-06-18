@@ -13,6 +13,9 @@
  *   await flows.openDrawerItem(adb, 'Relances');
  */
 
+/** Shell mobile : Accueil, Candidatures, Calendrier, Profil (4 onglets). */
+const SHELL_TAB_COUNT = 4;
+
 // ─── Auth ────────────────────────────────────────────────────────
 
 async function dismissBiometricUnlock(adb) {
@@ -80,7 +83,7 @@ async function ensureLoggedOut(adb) {
   if (await adb.uiContains('Bonjour')) {
     if (await tapLogout(adb)) return 'Deconnexion effectuee (app bar)';
     try {
-      await adb.tapTab(5);
+      await adb.tapTab(4);
       await adb.wait(2000);
     } catch {}
     if (await tapLogout(adb)) return 'Deconnexion effectuee (profil)';
@@ -126,6 +129,11 @@ async function logout(adb) {
   if (await adb.uiContains('Bonjour') || (await adb.uiContains('Déconnexion'))) {
     if (await tapLogout(adb)) return 'Deconnecte';
   }
+  try {
+    await adb.tapTab(SHELL_TAB_COUNT);
+    await adb.wait(2000);
+    if (await tapLogout(adb)) return 'Deconnecte';
+  } catch {}
   if (await adb.uiContains('connexion')) {
     await adb.tap('connexion');
     await adb.wait(4000);
@@ -288,22 +296,32 @@ async function ensureOnDashboard(adb) {
   return 'Tentative retour Accueil';
 }
 
-async function goToTab(adb, tabNumber) {
-  if (!(await adb.uiContains(`Tab ${tabNumber} of`))) {
-    await adb.back();
-    await adb.wait(1500);
+async function goToTab(adb, tabNumber, { shell = false } = {}) {
+  const tabLabel = shell
+    ? `Tab ${tabNumber} of ${SHELL_TAB_COUNT}`
+    : `Tab ${tabNumber} of`;
+  if (!(await adb.uiContains(tabLabel))) {
+    if (shell) {
+      await ensureOnDashboard(adb);
+    } else {
+      await adb.back();
+      await adb.wait(1500);
+    }
   }
-  await adb.tapTab(tabNumber);
+  if (!(await adb.uiContains(tabLabel))) {
+    throw new Error(`Onglet introuvable: ${tabLabel}`);
+  }
+  await adb.tap(tabLabel);
   await adb.wait(2500);
-  return `Onglet ${tabNumber}`;
+  return shell ? `Shell onglet ${tabNumber}` : `Onglet ${tabNumber}`;
 }
 
-async function navigateAllTabs(adb, tabCount = 5) {
+async function navigateAllTabs(adb, tabCount = SHELL_TAB_COUNT) {
   const results = [];
   for (let i = 1; i <= tabCount; i++) {
-    results.push(await goToTab(adb, i));
+    results.push(await goToTab(adb, i, { shell: true }));
   }
-  await goToTab(adb, 1);
+  await goToTab(adb, 1, { shell: true });
   return results;
 }
 
@@ -390,6 +408,7 @@ async function sequence(adb, steps) {
 }
 
 module.exports = {
+  dismissBiometricUnlock,
   ensureLoggedOut,
   login,
   logout,

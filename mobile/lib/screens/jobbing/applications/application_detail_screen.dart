@@ -276,6 +276,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
               ),
             ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_application_detail',
         onPressed: () => _showQuickAddMenu(context),
         icon: const Icon(Icons.add),
         label: const Text('Ajouter'),

@@ -26,8 +26,14 @@ import 'package:jobbingtrack_mobile/widgets/application_card.dart';
 class ApplicationsScreen extends StatefulWidget {
   final int initialTabIndex;
   final String? statusFilter;
+  final bool isShellVisible;
 
-  const ApplicationsScreen({super.key, this.initialTabIndex = 0, this.statusFilter});
+  const ApplicationsScreen({
+    super.key,
+    this.initialTabIndex = 0,
+    this.statusFilter,
+    this.isShellVisible = true,
+  });
 
   @override
   State<ApplicationsScreen> createState() => _ApplicationsScreenState();
@@ -153,7 +159,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
           ],
         ),
       ),
-      floatingActionButton: _tabController.index == 0
+      floatingActionButton: widget.isShellVisible && _tabController.index == 0
           ? shellFabPadding(context, child: _buildFab()!)
           : null,
     );
@@ -161,6 +167,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
 
   Widget? _buildFab() {
     return FloatingActionButton(
+      heroTag: 'fab_applications_list',
       onPressed: () async {
         final result = await ApplicationFormScreen.showCreateSheet(context);
         if (result == true) _loadAll();
