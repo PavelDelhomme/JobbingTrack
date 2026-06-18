@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:jobbingtrack_mobile/services/secure_auth_session_store.dart';
 
 /// Persistance locale de l'URL API choisie sur l'appareil (hors dart-define).
 class ApiConfigStore {
@@ -17,39 +18,34 @@ class ApiConfigStore {
   }
 
   static const _keyDeviceId = 'security_device_id';
-  static const _keyAuthToken = 'auth_token';
-  static const _keyAuthUserJson = 'auth_user_json';
   static const _keyKeepLoggedIn = 'auth_keep_logged_in';
   static const _keyBiometricUnlock = 'auth_biometric_unlock';
   static const _keyInterimMode = 'interim_mode_enabled';
 
-  /// Session auth locale (token JWT + profil utilisateur sérialisé).
+  /// Session auth locale (token JWT + profil — stockage chiffré OS).
   static Future<void> saveAuthSession({
     required String token,
     required String userJson,
+    String? refreshToken,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyAuthToken, token);
-    await prefs.setString(_keyAuthUserJson, userJson);
+    await SecureAuthSessionStore.saveSession(
+      token: token,
+      userJson: userJson,
+      refreshToken: refreshToken,
+    );
   }
 
-  static Future<({String token, String userJson})?> loadAuthSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_keyAuthToken);
-    final userJson = prefs.getString(_keyAuthUserJson);
-    if (token == null ||
-        token.trim().isEmpty ||
-        userJson == null ||
-        userJson.trim().isEmpty) {
-      return null;
-    }
-    return (token: token.trim(), userJson: userJson);
+  static Future<({String token, String userJson, String? refreshToken})?> loadAuthSession() async {
+    return SecureAuthSessionStore.loadSession();
   }
+
+  static Future<String?> loadRefreshToken() => SecureAuthSessionStore.loadRefreshToken();
+
+  static Future<void> saveRefreshToken(String refreshToken) =>
+      SecureAuthSessionStore.saveRefreshToken(refreshToken);
 
   static Future<void> clearAuthSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyAuthToken);
-    await prefs.remove(_keyAuthUserJson);
+    await SecureAuthSessionStore.clearSession();
   }
 
   static Future<bool> loadKeepLoggedIn() async {

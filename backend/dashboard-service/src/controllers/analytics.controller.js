@@ -47,6 +47,45 @@ function applyPlatformFilter(where, platform) {
   }
 }
 
+function isAnalyticsAdmin(role) {
+  return role === 'ADMIN' || role === 'SUPER_ADMIN';
+}
+
+/** Utilisateur cible pour GET analytics (admin + userId query/param, sinon utilisateur courant). */
+function resolveAnalyticsTargetUserId(req) {
+  const requesterId = req.user?.id;
+  const role = req.user?.role;
+  const isAdmin = isAnalyticsAdmin(role);
+  const queryUserId = req.query.userId;
+  const paramUserId = req.params.userId;
+
+  if (isAdmin && queryUserId) return String(queryUserId);
+  if (isAdmin && paramUserId) return String(paramUserId);
+  return requesterId || undefined;
+}
+
+function assertAnalyticsTargetAccess(req, res, targetUserId) {
+  const requesterId = req.user?.id;
+  if (!targetUserId || targetUserId === requesterId) return true;
+  if (!isAnalyticsAdmin(req.user?.role)) {
+    res.status(403).json({ success: false, error: 'Accès analytics refusé pour cet utilisateur' });
+    return false;
+  }
+  return true;
+}
+
+/** Compte agrégé Prisma groupBy (_count peut être number ou { _all: n }). */
+function countForGroupBy(row) {
+  const c = row && row._count;
+  if (typeof c === 'number') return c;
+  if (c && typeof c._all === 'number') return c._all;
+  if (c && typeof c === 'object') {
+    const vals = Object.values(c).filter((v) => typeof v === 'number');
+    if (vals.length) return vals[0];
+  }
+  return 0;
+}
+
 /** Crée la session si absente (évite 404 sur POST /events après cold start mobile). */
 async function ensureAnalyticsSession({ sessionId, userId, deviceId, platform = 'mobile' }) {
   if (!sessionId || !prisma.userSession || typeof prisma.userSession.findUnique !== 'function') {
@@ -73,6 +112,71 @@ async function ensureAnalyticsSession({ sessionId, userId, deviceId, platform = 
     }
     return null;
   }
+}
+
+/** Persiste un événement analytics (partagé unitaire + batch mobile). */
+async function persistUserEvent(userId, payload) {
+  if (!prisma.userEvent || typeof prisma.userEvent.create !== 'function') {
+    if (process.env.NODE_ENV === 'development') {
+      return { id: 'dev', message: 'Development mode - table not available' };
+    }
+    throw new Error('Table UserEvent not available');
+  }
+
+  const {
+    sessionId,
+    deviceId,
+    eventType,
+    eventName,
+    category,
+    elementId,
+    elementType,
+    elementText,
+    page,
+    properties,
+    platform = 'web',
+    appVersion
+  } = payload || {};
+
+  let session = null;
+  if (sessionId) {
+    session = await ensureAnalyticsSession({
+      sessionId,
+      userId,
+      deviceId,
+      platform: platform || 'mobile'
+    });
+  }
+
+  const event = await prisma.userEvent.create({
+    data: {
+      userId: userId || null,
+      sessionId,
+      deviceId: deviceId || session?.deviceId,
+      eventType,
+      eventName,
+      category,
+      elementId,
+      elementType,
+      elementText,
+      page,
+      properties: properties || {},
+      platform,
+      appVersion,
+      timestamp: new Date()
+    }
+  });
+
+  if (sessionId && prisma.userSession && typeof prisma.userSession.update === 'function') {
+    try {
+      await prisma.userSession.update({
+        where: { sessionId },
+        data: { actions: { increment: 1 } }
+      });
+    } catch (_) {}
+  }
+
+  return event;
 }
 
 class AnalyticsController {
@@ -262,49 +366,20 @@ class AnalyticsController {
         appVersion
       } = req.body;
 
-      // Vérifier / créer la session (mobile envoie sessionId avant ack serveur)
-      let session = null;
-      if (sessionId) {
-        session = await ensureAnalyticsSession({
-          sessionId,
-          userId,
-          deviceId,
-          platform: platform || 'mobile'
-        });
-      }
-
-      const event = await prisma.userEvent.create({
-        data: {
-          userId: userId || null,
-          sessionId,
-          deviceId: deviceId || session?.deviceId,
-          eventType,
-          eventName,
-          category,
-          elementId,
-          elementType,
-          elementText,
-          page,
-          properties: properties || {},
-          platform,
-          appVersion,
-          timestamp: new Date()
-        }
+      const event = await persistUserEvent(userId, {
+        sessionId,
+        deviceId,
+        eventType,
+        eventName,
+        category,
+        elementId,
+        elementType,
+        elementText,
+        page,
+        properties,
+        platform,
+        appVersion
       });
-
-      // Mettre à jour le compteur d'actions de la session (si la table existe)
-      if (sessionId && prisma.userSession && typeof prisma.userSession.update === 'function') {
-        try {
-          await prisma.userSession.update({
-            where: { sessionId },
-            data: {
-              actions: { increment: 1 }
-            }
-          });
-        } catch (e) {
-          // Session peut ne pas exister, ignorer l'erreur
-        }
-      }
 
       res.json({
         success: true,
@@ -325,6 +400,56 @@ class AnalyticsController {
       res.status(500).json({
         success: false,
         error: 'Erreur lors de l\'enregistrement de l\'événement',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  /**
+   * Enregistrer plusieurs événements (flush offline mobile compressé)
+   * POST /api/v1/analytics/events/batch
+   */
+  async trackEventsBatch(req, res) {
+    try {
+      const userId = req.user?.id;
+      const events = req.body?.events;
+      if (!Array.isArray(events) || events.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Le corps doit contenir un tableau events non vide'
+        });
+      }
+      if (events.length > 50) {
+        return res.status(400).json({
+          success: false,
+          error: 'Maximum 50 événements par batch'
+        });
+      }
+
+      const created = [];
+      for (const payload of events) {
+        if (!payload || typeof payload !== 'object') continue;
+        const event = await persistUserEvent(userId, payload);
+        created.push(event);
+      }
+
+      res.json({
+        success: true,
+        data: { count: created.length, events: created }
+      });
+    } catch (error) {
+      if (error.code === 'P2021' || error.message?.includes('does not exist') || error.message?.includes('UserEvent')) {
+        if (process.env.NODE_ENV === 'development') {
+          return res.json({
+            success: true,
+            data: { count: 0, message: 'Development mode - table not available' }
+          });
+        }
+      }
+      console.error('[ANALYTICS] Erreur batch événements:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erreur lors de l\'enregistrement batch des événements',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
@@ -613,7 +738,8 @@ class AnalyticsController {
    */
   async getUserStats(req, res) {
     try {
-      const userId = req.params.userId || req.user?.id;
+      const userId = resolveAnalyticsTargetUserId(req);
+      if (!assertAnalyticsTargetAccess(req, res, userId)) return;
       const tw = resolveUserAnalyticsTimeWindow(req.query, 7, 366);
       if (tw.error) {
         return res.status(400).json({ success: false, error: tw.message || tw.error });
@@ -626,6 +752,7 @@ class AnalyticsController {
         const [
           totalSessions,
           activeSessions,
+          activeSessionsList,
           totalEvents,
           totalErrors,
           eventsByType,
@@ -645,6 +772,27 @@ class AnalyticsController {
               isActive: true
             }
           }).catch(() => 0),
+          prisma.userSession.findMany({
+            where: {
+              userId,
+              isActive: true
+            },
+            orderBy: { startTime: 'desc' },
+            take: 25,
+            select: {
+              sessionId: true,
+              platform: true,
+              deviceId: true,
+              deviceModel: true,
+              osName: true,
+              osVersion: true,
+              browserName: true,
+              startTime: true,
+              pageViews: true,
+              actions: true,
+              errors: true
+            }
+          }).catch(() => []),
           prisma.userEvent.count({
             where: {
               userId,
@@ -680,9 +828,7 @@ class AnalyticsController {
               timestamp: timeWhere,
               page: { not: null }
             },
-            _count: true,
-            orderBy: { _count: { page: 'desc' } },
-            take: 10
+            _count: true
           }).catch(() => []),
           prisma.userEvent.groupBy({
             by: ['eventName'],
@@ -690,35 +836,37 @@ class AnalyticsController {
               userId,
               timestamp: timeWhere
             },
-            _count: true,
-            orderBy: { _count: { eventName: 'desc' } },
-            take: 10
+            _count: true
           }).catch(() => [])
         ]);
+
+        const topPagesSorted = (Array.isArray(topPages) ? topPages : [])
+          .map((p) => ({ page: p.page, count: countForGroupBy(p) }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
+        const topActionsSorted = (Array.isArray(topActions) ? topActions : [])
+          .map((a) => ({ action: a.eventName, count: countForGroupBy(a) }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
 
         res.json({
           success: true,
           data: {
             totalSessions,
             activeSessions,
+            activeSessionsList: Array.isArray(activeSessionsList) ? activeSessionsList : [],
             totalEvents,
             totalErrors,
             eventsByType: Array.isArray(eventsByType) ? eventsByType.map(e => ({
               type: e.eventType,
-              count: e._count
+              count: countForGroupBy(e)
             })) : [],
             errorsByType: Array.isArray(errorsByType) ? errorsByType.map(e => ({
               type: e.errorType,
-              count: e._count
+              count: countForGroupBy(e)
             })) : [],
-            topPages: Array.isArray(topPages) ? topPages.map(p => ({
-              page: p.page,
-              count: p._count
-            })) : [],
-            topActions: Array.isArray(topActions) ? topActions.map(a => ({
-              action: a.eventName,
-              count: a._count
-            })) : []
+            topPages: topPagesSorted,
+            topActions: topActionsSorted
           }
         });
       } catch (dbError) {
@@ -730,6 +878,7 @@ class AnalyticsController {
             data: {
               totalSessions: 0,
               activeSessions: 0,
+              activeSessionsList: [],
               totalEvents: 0,
               totalErrors: 0,
               eventsByType: [],
@@ -758,7 +907,8 @@ class AnalyticsController {
    */
   async getUserVersionsAndDevices(req, res) {
     try {
-      const userId = req.params.userId || req.user?.id;
+      const userId = resolveAnalyticsTargetUserId(req);
+      if (!assertAnalyticsTargetAccess(req, res, userId)) return;
       const tw = resolveUserAnalyticsTimeWindow(req.query, 90, 366);
       if (tw.error) {
         return res.status(400).json({ success: false, error: tw.message || tw.error });
@@ -873,19 +1023,24 @@ class AnalyticsController {
    */
   async getEvents(req, res) {
     try {
-      const userId = req.user?.id;
+      const targetUserId = resolveAnalyticsTargetUserId(req);
+      if (!assertAnalyticsTargetAccess(req, res, targetUserId)) return;
       const role = req.user?.role;
-      const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
+      const isAdmin = isAnalyticsAdmin(role);
       const { 
         limit = 100, 
         offset = 0,
         eventType,
         eventName,
-        startDate,
-        endDate,
         scope,
         platform
       } = req.query;
+
+      const tw = resolveUserAnalyticsTimeWindow(req.query, 7, 366);
+      if (tw.error) {
+        return res.status(400).json({ success: false, error: tw.message || tw.error });
+      }
+      const { startDate, endDate } = tw;
 
       // ✅ CORRECTION : Gérer le cas où les tables n'existent pas
       try {
@@ -895,16 +1050,12 @@ class AnalyticsController {
           if (platform) applyPlatformFilter(where, platform);
           if (req.query.userId) where.userId = req.query.userId;
         } else {
-          where.userId = userId || undefined;
+          where.userId = targetUserId || undefined;
         }
 
         if (eventType) where.eventType = eventType;
         if (eventName) where.eventName = eventName;
-        if (startDate || endDate) {
-          where.timestamp = {};
-          if (startDate) where.timestamp.gte = new Date(startDate);
-          if (endDate) where.timestamp.lte = new Date(endDate);
-        }
+        where.timestamp = { gte: startDate, lte: endDate };
 
         const [events, total] = await Promise.all([
           prisma.userEvent.findMany({
@@ -969,18 +1120,23 @@ class AnalyticsController {
    */
   async getPerformance(req, res) {
     try {
-      const userId = req.user?.id;
+      const targetUserId = resolveAnalyticsTargetUserId(req);
+      if (!assertAnalyticsTargetAccess(req, res, targetUserId)) return;
       const role = req.user?.role;
-      const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
+      const isAdmin = isAnalyticsAdmin(role);
       const {
         limit = 100,
         offset = 0,
         metricType,
-        startDate,
-        endDate,
         scope,
         platform
       } = req.query;
+
+      const tw = resolveUserAnalyticsTimeWindow(req.query, 7, 366);
+      if (tw.error) {
+        return res.status(400).json({ success: false, error: tw.message || tw.error });
+      }
+      const { startDate, endDate } = tw;
 
       try {
         if (!prisma.userPerformance || typeof prisma.userPerformance.findMany !== 'function') {
@@ -996,14 +1152,10 @@ class AnalyticsController {
           if (platform) applyPlatformFilter(where, platform);
           if (req.query.userId) where.userId = req.query.userId;
         } else {
-          where.userId = userId || undefined;
+          where.userId = targetUserId || undefined;
         }
         if (metricType) where.metricType = metricType;
-        if (startDate || endDate) {
-          where.timestamp = {};
-          if (startDate) where.timestamp.gte = new Date(startDate);
-          if (endDate) where.timestamp.lte = new Date(endDate);
-        }
+        where.timestamp = { gte: startDate, lte: endDate };
 
         const [rows, total] = await Promise.all([
           prisma.userPerformance.findMany({
@@ -1057,38 +1209,50 @@ class AnalyticsController {
    */
   async getErrors(req, res) {
     try {
-      const userId = req.user?.id;
+      const targetUserId = resolveAnalyticsTargetUserId(req);
+      if (!assertAnalyticsTargetAccess(req, res, targetUserId)) return;
       const { 
         limit = 100, 
         offset = 0,
         errorType,
         severity,
-        resolved,
-        startDate,
-        endDate
+        resolved
       } = req.query;
+
+      const tw = resolveUserAnalyticsTimeWindow(req.query, 7, 366);
+      if (tw.error) {
+        return res.status(400).json({ success: false, error: tw.message || tw.error });
+      }
+      const { startDate, endDate } = tw;
 
       // ✅ CORRECTION : Gérer le cas où les tables n'existent pas
       try {
         const where = {
-          userId: userId || undefined
+          userId: targetUserId || undefined
         };
 
         if (errorType) where.errorType = errorType;
         if (severity) where.severity = severity;
         if (resolved !== undefined) where.resolved = resolved === 'true';
-        if (startDate || endDate) {
-          where.timestamp = {};
-          if (startDate) where.timestamp.gte = new Date(startDate);
-          if (endDate) where.timestamp.lte = new Date(endDate);
-        }
+        where.timestamp = { gte: startDate, lte: endDate };
 
         const [errors, total] = await Promise.all([
           prisma.userError.findMany({
             where,
             take: parseInt(limit),
             skip: parseInt(offset),
-            orderBy: { timestamp: 'desc' }
+            orderBy: { timestamp: 'desc' },
+            include: {
+              session: {
+                select: {
+                  sessionId: true,
+                  platform: true,
+                  deviceModel: true,
+                  osName: true,
+                  osVersion: true
+                }
+              }
+            }
           }).catch(() => []),
           prisma.userError.count({ where }).catch(() => 0)
         ]);

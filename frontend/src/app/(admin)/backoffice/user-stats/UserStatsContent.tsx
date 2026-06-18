@@ -250,31 +250,41 @@ export default function UserStatsContent() {
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
                         </div>
                       ) : userStatsCache[u.id] ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                          <StatTile
-                            label="Sessions"
-                            value={userStatsCache[u.id].totalSessions ?? 0}
-                            color="blue"
-                            small
-                          />
-                          <StatTile
-                            label="Actives"
-                            value={userStatsCache[u.id].activeSessions ?? 0}
-                            color="green"
-                            small
-                          />
-                          <StatTile
-                            label="Événements"
-                            value={userStatsCache[u.id].totalEvents ?? 0}
-                            color="purple"
-                            small
-                          />
-                          <StatTile
-                            label="Erreurs"
-                            value={userStatsCache[u.id].totalErrors ?? 0}
-                            color="red"
-                            small
-                          />
+                        <div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <StatTile
+                              label="Sessions"
+                              value={userStatsCache[u.id].totalSessions ?? 0}
+                              color="blue"
+                              small
+                            />
+                            <StatTile
+                              label="Actives"
+                              value={userStatsCache[u.id].activeSessions ?? 0}
+                              color="green"
+                              small
+                            />
+                            <StatTile
+                              label="Événements"
+                              value={userStatsCache[u.id].totalEvents ?? 0}
+                              color="purple"
+                              small
+                            />
+                            <StatTile
+                              label="Erreurs"
+                              value={userStatsCache[u.id].totalErrors ?? 0}
+                              color="red"
+                              small
+                            />
+                          </div>
+                          <p className="mt-3 text-sm">
+                            <Link
+                              href={`/backoffice/user-analytics?userId=${encodeURIComponent(u.id)}`}
+                              className="text-blue-600 dark:text-blue-400 underline hover:no-underline"
+                            >
+                              Voir analytics détaillées →
+                            </Link>
+                          </p>
                         </div>
                       ) : null}
                     </div>

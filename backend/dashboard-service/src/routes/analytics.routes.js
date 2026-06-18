@@ -57,6 +57,7 @@ router.post('/sessions', optionalAuth, analyticsController.createSession);
 router.put('/sessions/:sessionId', optionalAuth, analyticsController.updateSession);
 
 // Événements
+router.post('/events/batch', optionalAuth, analyticsController.trackEventsBatch);
 router.post('/events', optionalAuth, analyticsController.trackEvent);
 router.get('/events', authenticate, analyticsController.getEvents);
 

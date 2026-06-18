@@ -402,7 +402,12 @@ const login = async (req, res, next) => {
       success: true,
       message: 'Connexion réussie',
       user: userWithoutPassword,
-      token
+      token,
+      refreshToken: jwt.sign(
+        { userId: user.id, type: 'refresh' },
+        process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+        { expiresIn: '30d' }
+      )
     });
 
     logger.info(`Connexion utilisateur: ${user.email}`);

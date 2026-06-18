@@ -33,6 +33,8 @@ import 'package:jobbingtrack_mobile/screens/jobbing/auth/biometric_unlock_screen
 import 'package:jobbingtrack_mobile/screens/jobbing/interim/interim_screen.dart';
 import 'package:jobbingtrack_mobile/screens/admin/admin_screen.dart';
 import 'package:jobbingtrack_mobile/widgets/admin_guard.dart';
+import 'package:jobbingtrack_mobile/widgets/telemetry_lifecycle_bridge.dart';
+import 'package:jobbingtrack_mobile/widgets/telemetry_dev_status_banner.dart';
 import 'package:jobbingtrack_mobile/utils/locale_init.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
@@ -106,7 +108,9 @@ class JobbingTrackMobileApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => FollowUpProvider()),
       ],
-      child: MaterialApp(
+      child: TelemetryDevStatusBanner(
+        child: TelemetryLifecycleBridge(
+        child: MaterialApp(
         title: 'JobbingTrack Mobile',
         debugShowCheckedModeBanner: false,
         navigatorObservers: [MobileAnalyticsRouteObserver()],
@@ -175,6 +179,8 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/biometric-unlock': (context) => const BiometricUnlockScreen(),
           '/admin': (context) => const AdminGuard(child: AdminScreen()),
         },
+        ),
+        ),
       ),
     );
   }
@@ -206,6 +212,8 @@ class _SplashScreenState extends State<_SplashScreen> {
     if (!mounted) return;
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final restored = await auth.restoreSession();
+    MobileAnalyticsService.instance.sessionRefreshBeforeFlush = auth.refreshSessionIfOnline;
+    await MobileAnalyticsService.instance.updateAuthToken(auth.token);
     await MobileAnalyticsService.instance.initialize(authToken: auth.token);
     if (!mounted) return;
     if (restored) {

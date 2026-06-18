@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/auth";
 import AdminLayout from "@/components/features/AdminLayout";
 import { FRONTEND_URLS } from "@/config/ports.config";
@@ -25,16 +26,40 @@ import {
   uniqueEventTypes,
   type EventSourceFilter,
 } from "@/lib/analytics/eventSource";
+import { formatAnalyticsPageLabel } from "@/lib/analytics/pageLabels";
 
 interface UserStats {
   totalSessions: number;
   activeSessions: number;
+  activeSessionsList?: ActiveSession[];
   totalEvents: number;
   totalErrors: number;
   eventsByType: Array<{ type: string; count: number }>;
   errorsByType: Array<{ type: string; count: number }>;
   topPages: Array<{ page: string; count: number }>;
   topActions: Array<{ action: string; count: number }>;
+}
+
+interface ActiveSession {
+  sessionId: string;
+  platform: string;
+  deviceId?: string | null;
+  deviceModel?: string | null;
+  osName?: string | null;
+  osVersion?: string | null;
+  browserName?: string | null;
+  startTime: string;
+  pageViews: number;
+  actions: number;
+  errors: number;
+}
+
+interface UserListItem {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
 }
 
 interface UserEvent {
@@ -56,6 +81,9 @@ interface UserError {
   errorMessage: string;
   severity: string;
   page: string;
+  platform?: string | null;
+  deviceId?: string | null;
+  appVersion?: string | null;
   timestamp: string;
   resolved: boolean;
 }
@@ -95,11 +123,16 @@ interface VersionsData {
 }
 
 export default function UserAnalyticsPage() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [events, setEvents] = useState<UserEvent[]>([]);
   const [errors, setErrors] = useState<UserError[]>([]);
+  const [usersList, setUsersList] = useState<UserListItem[]>([]);
+  const [targetUserId, setTargetUserId] = useState<string | null>(null);
+  const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
   const [selectedDays, setSelectedDays] = useState(7);
   const [rangeMode, setRangeMode] = useState<"preset" | "custom">("preset");
   const [customStart, setCustomStart] = useState(() => {
@@ -154,8 +187,57 @@ export default function UserAnalyticsPage() {
     return labels[selectedDays] || `Derniers ${selectedDays} jours`;
   }, [rangeMode, customStart, customEnd, selectedDays]);
 
-  const loadData = useCallback(async () => {
+  const analyticsUserId = targetUserId || user?.id || null;
+
+  const selectedUserLabel = useMemo(() => {
+    if (!analyticsUserId) return "—";
+    const fromList = usersList.find((u) => u.id === analyticsUserId);
+    if (fromList) {
+      const name = [fromList.firstName, fromList.lastName].filter(Boolean).join(" ");
+      return name || fromList.email;
+    }
+    if (user?.id === analyticsUserId) {
+      const name = [user.firstName, user.lastName].filter(Boolean).join(" ");
+      return name || user.email;
+    }
+    return analyticsUserId;
+  }, [analyticsUserId, usersList, user]);
+
+  useEffect(() => {
     if (!user) return;
+    const fromUrl = searchParams.get("userId");
+    if (fromUrl) {
+      setTargetUserId(fromUrl);
+      return;
+    }
+    setTargetUserId(user.id);
+  }, [user, searchParams]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    axios
+      .get(`${FRONTEND_URLS.api}/api/v1/auth/users?limit=200`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        const list = res.data?.users ?? res.data?.data?.users ?? [];
+        setUsersList(Array.isArray(list) ? list : []);
+      })
+      .catch(() => setUsersList([]));
+  }, [isAdmin]);
+
+  const handleTargetUserChange = (nextUserId: string) => {
+    setTargetUserId(nextUserId);
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextUserId) params.set("userId", nextUserId);
+    else params.delete("userId");
+    router.replace(`/backoffice/user-analytics?${params.toString()}`);
+  };
+
+  const loadData = useCallback(async () => {
+    if (!user || !analyticsUserId) return;
 
     setLoading(true);
     try {
@@ -164,19 +246,20 @@ export default function UserAnalyticsPage() {
 
       const apiUrl = FRONTEND_URLS.api;
       const q = rangeQuery;
+      const userQ = `userId=${encodeURIComponent(analyticsUserId)}`;
       // Promise.allSettled pour ne pas faire échouer tout le chargement si une requête est bloquée (ex. uBlock sur /analytics/events)
       const results = await Promise.allSettled([
-        axios.get(`${apiUrl}/api/v1/analytics/stats/${user.id}?${q}`, {
+        axios.get(`${apiUrl}/api/v1/analytics/stats/${analyticsUserId}?${q}`, {
           headers,
         }),
-        axios.get(`${apiUrl}/api/v1/analytics/events?limit=100&${q}`, {
+        axios.get(`${apiUrl}/api/v1/analytics/events?limit=100&${userQ}&${q}`, {
           headers,
         }),
-        axios.get(`${apiUrl}/api/v1/analytics/errors?limit=100&${q}`, {
+        axios.get(`${apiUrl}/api/v1/analytics/errors?limit=100&${userQ}&${q}`, {
           headers,
         }),
         axios
-          .get(`${apiUrl}/api/v1/analytics/stats/${user.id}/versions?${q}`, {
+          .get(`${apiUrl}/api/v1/analytics/stats/${analyticsUserId}/versions?${q}`, {
             headers,
           })
           .catch(() => ({ data: { success: false } })),
@@ -208,16 +291,25 @@ export default function UserAnalyticsPage() {
       } else {
         setVersionsData(null);
       }
+      setLastRefreshAt(new Date());
     } catch (error) {
       console.error("[ANALYTICS] Erreur chargement données:", error);
     } finally {
       setLoading(false);
     }
-  }, [user, rangeQuery]);
+  }, [user, analyticsUserId, rangeQuery]);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (!analyticsUserId) return;
+    const timer = setInterval(() => {
+      void loadData();
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [analyticsUserId, loadData]);
 
   useEffect(() => {
     eventsPagination.resetPage();
@@ -232,13 +324,46 @@ export default function UserAnalyticsPage() {
               📊 Analytics Utilisateur
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Analyse des actions et comportements des utilisateurs
+              Analyse des actions et comportements —{" "}
+              <span className="font-medium text-gray-800 dark:text-gray-200">
+                {selectedUserLabel}
+              </span>
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               {rangeDescription}
+              {lastRefreshAt
+                ? ` · MAJ ${lastRefreshAt.toLocaleTimeString("fr-FR")} (auto 30 s)`
+                : ""}
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:items-end">
+            {isAdmin && usersList.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="text-xs text-gray-500 dark:text-gray-400">
+                  Utilisateur
+                </label>
+                <select
+                  value={analyticsUserId ?? ""}
+                  onChange={(e) => handleTargetUserChange(e.target.value)}
+                  className="max-w-xs rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                >
+                  {usersList.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {[u.firstName, u.lastName].filter(Boolean).join(" ") ||
+                        u.email}{" "}
+                      ({u.role})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => void loadData()}
+                  className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                >
+                  Rafraîchir
+                </button>
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <label className="text-xs text-gray-500 dark:text-gray-400">
                 Mode
@@ -370,6 +495,49 @@ export default function UserAnalyticsPage() {
                   />
                 </div>
 
+                {/* Sessions actives (temps réel — refresh 30 s) */}
+                {(stats.activeSessionsList?.length ?? 0) > 0 && (
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-green-500" />
+                      Sessions actives ({stats.activeSessions})
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
+                          <tr>
+                            <th className="pb-2 pr-4">Plateforme</th>
+                            <th className="pb-2 pr-4">Appareil / OS</th>
+                            <th className="pb-2 pr-4">Démarrée</th>
+                            <th className="pb-2 pr-4">Pages</th>
+                            <th className="pb-2 pr-4">Actions</th>
+                            <th className="pb-2">Erreurs</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {stats.activeSessionsList!.map((s) => (
+                            <tr key={s.sessionId}>
+                              <td className="py-2 pr-4 font-medium text-gray-900 dark:text-white">
+                                {s.platform}
+                              </td>
+                              <td className="py-2 pr-4 text-gray-600 dark:text-gray-400">
+                                {s.deviceModel || s.deviceId || "—"}
+                                {s.osName ? ` · ${s.osName} ${s.osVersion ?? ""}` : ""}
+                              </td>
+                              <td className="py-2 pr-4 text-gray-600 dark:text-gray-400">
+                                {new Date(s.startTime).toLocaleString("fr-FR")}
+                              </td>
+                              <td className="py-2 pr-4">{s.pageViews}</td>
+                              <td className="py-2 pr-4">{s.actions}</td>
+                              <td className="py-2">{s.errors}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
                 {/* Graphiques */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Événements par type */}
@@ -391,7 +559,7 @@ export default function UserAnalyticsPage() {
                               <div
                                 className="bg-blue-600 h-2 rounded-full"
                                 style={{
-                                  width: `${(item.count / stats.totalEvents) * 100}%`,
+                                  width: `${stats.totalEvents > 0 ? (item.count / stats.totalEvents) * 100 : 0}%`,
                                 }}
                               ></div>
                             </div>
@@ -410,13 +578,13 @@ export default function UserAnalyticsPage() {
                       Pages les plus visitées
                     </h3>
                     <div className="space-y-3">
-                      {stats.topPages.slice(0, 10).map((item, index) => (
+                      {(stats.topPages ?? []).slice(0, 10).map((item, index) => (
                         <div
                           key={index}
                           className="flex items-center justify-between"
                         >
-                          <span className="text-gray-600 dark:text-gray-400 truncate flex-1">
-                            {item.page || "N/A"}
+                          <span className="text-gray-600 dark:text-gray-400 truncate flex-1" title={item.page || ""}>
+                            {formatAnalyticsPageLabel(item.page)}
                           </span>
                           <span className="text-gray-900 dark:text-white font-medium ml-4">
                             {item.count}
@@ -433,7 +601,7 @@ export default function UserAnalyticsPage() {
                     Actions les plus fréquentes
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {stats.topActions.map((item, index) => (
+                      {(stats.topActions ?? []).slice(0, 10).map((item, index) => (
                       <div
                         key={index}
                         className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
@@ -639,6 +807,9 @@ export default function UserAnalyticsPage() {
                           Sévérité
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                          Appareil
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                           Page
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
@@ -676,6 +847,19 @@ export default function UserAnalyticsPage() {
                             >
                               {error.severity}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                            <span>{error.platform || "—"}</span>
+                            {error.deviceId ? (
+                              <span className="block text-xs text-gray-400 truncate max-w-[140px]">
+                                {error.deviceId}
+                              </span>
+                            ) : null}
+                            {error.appVersion ? (
+                              <span className="block text-xs text-gray-400">
+                                v{error.appVersion}
+                              </span>
+                            ) : null}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                             {error.page || "N/A"}

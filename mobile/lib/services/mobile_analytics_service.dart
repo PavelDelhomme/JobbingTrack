@@ -1,16 +1,21 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:jobbingtrack_mobile/services/analytics_telemetry_queue.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
+import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
 
 /// Télémétrie mobile anonyme : performances, traces d'activité, retours utilisateur.
 /// Respecte le consentement stocké dans [ApiConfigStore].
-class MobileAnalyticsService {
+class MobileAnalyticsService extends ChangeNotifier {
   MobileAnalyticsService._();
   static final MobileAnalyticsService instance = MobileAnalyticsService._();
+
+  static const Duration flushInterval = Duration(minutes: 5);
 
   bool _consent = false;
   bool _performanceEnabled = true;
@@ -18,8 +23,32 @@ class MobileAnalyticsService {
   String? _sessionId;
   String? _deviceId;
   String? _authToken;
+  Future<void> Function()? sessionRefreshBeforeFlush;
   Timer? _syncTimer;
   bool _sessionStarted = false;
+  DateTime? _lastFlushAt;
+  DateTime? _nextFlushAt;
+  String _lastFlushMessage = 'En attente';
+  bool _flushInProgress = false;
+
+  void bindAuthTokenResolver() {
+    AnalyticsTelemetryQueue.instance.resolveAuthToken = () => _authToken;
+    OfflineBusinessSyncQueue.instance.resolveAuthToken = () => _authToken;
+  }
+
+  Future<void> updateAuthToken(String? authToken) async {
+    _authToken = authToken;
+    if (authToken != null) {
+      CrashReporter.setToken(authToken);
+      if (_consent) {
+        await _registerDevice();
+        await AnalyticsTelemetryQueue.instance.flush(authTokenOverride: authToken);
+      }
+    } else {
+      CrashReporter.setToken(null);
+    }
+    bindAuthTokenResolver();
+  }
 
   String get _platform =>
       Platform.isAndroid ? 'android' : (Platform.isIOS ? 'ios' : 'mobile');
@@ -27,8 +56,59 @@ class MobileAnalyticsService {
   bool get isEnabled => _consent;
   bool get performanceEnabled => _consent && _performanceEnabled;
   bool get activityTraceEnabled => _consent && _activityTraceEnabled;
+  int get telemetryPendingCount => AnalyticsTelemetryQueue.instance.pendingCount;
+  int get offlineSyncPendingCount => OfflineBusinessSyncQueue.instance.pendingCount;
+  DateTime? get lastFlushAt => _lastFlushAt;
+  DateTime? get nextFlushAt => _nextFlushAt;
+  String get lastFlushMessage => _lastFlushMessage;
+  bool get flushInProgress => _flushInProgress;
+
+  Duration? get timeUntilNextFlush {
+    if (_nextFlushAt == null) return null;
+    final diff = _nextFlushAt!.difference(DateTime.now());
+    if (diff.isNegative) return Duration.zero;
+    return diff;
+  }
+
+  String get devTelemetryStatusLine {
+    if (!_consent) {
+      return 'Analytics OFF — consentement désactivé (Paramètres)';
+    }
+    final pending = telemetryPendingCount;
+    final offline = offlineSyncPendingCount;
+    final next = timeUntilNextFlush;
+    final nextLabel = next == null
+        ? '—'
+        : next.inSeconds <= 0
+            ? 'maintenant'
+            : '${next.inMinutes}m ${next.inSeconds % 60}s';
+    final last = _lastFlushAt == null
+        ? 'jamais'
+        : '${_lastFlushAt!.hour.toString().padLeft(2, '0')}:${_lastFlushAt!.minute.toString().padLeft(2, '0')}:${_lastFlushAt!.second.toString().padLeft(2, '0')}';
+    final state = _flushInProgress ? 'envoi…' : _lastFlushMessage;
+    return 'Télémétrie ON · file $pending · offline $offline · prochain flush $nextLabel · dernier $last · $state';
+  }
+
+  void _schedulePeriodicFlush() {
+    _syncTimer?.cancel();
+    _nextFlushAt = DateTime.now().add(flushInterval);
+    _syncTimer = Timer.periodic(flushInterval, (_) {
+      _nextFlushAt = DateTime.now().add(flushInterval);
+      unawaited(flushTelemetry());
+    });
+    notifyListeners();
+  }
+
+  void _notifyDevStatus([String? message]) {
+    if (message != null) _lastFlushMessage = message;
+    notifyListeners();
+  }
 
   Future<void> initialize({String? authToken}) async {
+    await AnalyticsTelemetryQueue.instance.initialize();
+    bindAuthTokenResolver();
+    OfflineBusinessSyncQueue.instance.initialize();
+
     _consent = await ApiConfigStore.loadAnalyticsConsent();
     _performanceEnabled = await ApiConfigStore.loadPerformanceTelemetryEnabled();
     _activityTraceEnabled = await ApiConfigStore.loadActivityTraceEnabled();
@@ -43,8 +123,9 @@ class MobileAnalyticsService {
 
     if (_consent) {
       await _startSession();
-      _syncTimer?.cancel();
-      _syncTimer = Timer.periodic(const Duration(minutes: 5), (_) => flushTelemetry());
+      _schedulePeriodicFlush();
+      await AnalyticsTelemetryQueue.instance.flush(authTokenOverride: _authToken);
+      await OfflineBusinessSyncQueue.instance.flush(authTokenOverride: _authToken);
     }
   }
 
@@ -57,13 +138,14 @@ class MobileAnalyticsService {
         CrashReporter.setToken(authToken);
       }
       await _startSession();
-      _syncTimer?.cancel();
-      _syncTimer = Timer.periodic(const Duration(minutes: 5), (_) => flushTelemetry());
+      _schedulePeriodicFlush();
       await flushTelemetry();
     } else {
       _syncTimer?.cancel();
       _syncTimer = null;
+      _nextFlushAt = null;
       _sessionStarted = false;
+      _notifyDevStatus('Consentement désactivé');
     }
   }
 
@@ -75,14 +157,6 @@ class MobileAnalyticsService {
   Future<void> setActivityTraceEnabled(bool enabled) async {
     _activityTraceEnabled = enabled;
     await ApiConfigStore.saveActivityTraceEnabled(enabled);
-  }
-
-  Future<void> updateAuthToken(String? authToken) async {
-    _authToken = authToken;
-    if (authToken != null) {
-      CrashReporter.setToken(authToken);
-      if (_consent) await _registerDevice();
-    }
   }
 
   Future<void> _startSession() async {
@@ -225,8 +299,26 @@ class MobileAnalyticsService {
 
   Future<void> flushTelemetry() async {
     if (!_consent) return;
-    if (performanceEnabled) await _flushPerformanceSnapshot();
-    if (activityTraceEnabled) await _flushActivityTrace();
+    _flushInProgress = true;
+    _notifyDevStatus('Envoi analytics…');
+    try {
+      if (sessionRefreshBeforeFlush != null) {
+        await sessionRefreshBeforeFlush!();
+      }
+      await AnalyticsTelemetryQueue.instance.flush(authTokenOverride: _authToken);
+      await OfflineBusinessSyncQueue.instance.flush(authTokenOverride: _authToken);
+      if (performanceEnabled) await _flushPerformanceSnapshot();
+      if (activityTraceEnabled) await _flushActivityTrace();
+      _lastFlushAt = DateTime.now();
+      _notifyDevStatus(
+        'OK · reste file ${AnalyticsTelemetryQueue.instance.pendingCount}',
+      );
+    } catch (e) {
+      _notifyDevStatus('Erreur flush: $e');
+    } finally {
+      _flushInProgress = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _flushPerformanceSnapshot() async {
@@ -328,12 +420,15 @@ class MobileAnalyticsService {
       'activityTrace': _activityTraceEnabled,
       'sessionId': _sessionId,
       'deviceId': _deviceId,
+      'telemetryQueuePending': AnalyticsTelemetryQueue.instance.pendingCount,
+      'offlineSyncPending': OfflineBusinessSyncQueue.instance.pendingCount,
       ...CrashReporter.getAnalyticsSummary(),
     };
   }
 
   void dispose() {
     _syncTimer?.cancel();
+    super.dispose();
   }
 }
 

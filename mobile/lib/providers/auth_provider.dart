@@ -1,19 +1,26 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:jobbingtrack_mobile/models/user.dart';
-import 'package:jobbingtrack_mobile/utils/admin_access.dart';
+import 'package:jobbingtrack_mobile/services/analytics_telemetry_queue.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/biometric_credential_store.dart';
 import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
+import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
+import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
+import 'package:jobbingtrack_mobile/models/user.dart';
+import 'package:jobbingtrack_mobile/utils/admin_access.dart';
 
 class AuthProvider with ChangeNotifier {
   User? _user;
   String? _token;
+  String? _refreshToken;
   bool _isLoading = false;
   bool _handlingSessionRevoke = false;
   bool _sessionRestored = false;
+  bool _restoringSession = false;
+  bool _tokenStale = false;
 
   AuthProvider() {
     _wireSecurityCallbacks();
@@ -23,8 +30,10 @@ class AuthProvider with ChangeNotifier {
   String? get token => _token;
   bool get isLoading => _isLoading;
   bool get sessionRestored => _sessionRestored;
+  bool get tokenStale => _tokenStale;
 
-  /// Restaure la session depuis le stockage local (splash / cold start).
+  /// Restaure la session depuis le stockage chiffré (splash / cold start).
+  /// Mode offline-first : pas de déconnexion si le réseau est absent.
   Future<bool> restoreSession() async {
     if (_sessionRestored) return isAuthenticated;
     _sessionRestored = true;
@@ -32,42 +41,113 @@ class AuthProvider with ChangeNotifier {
     if (!keepLoggedIn) return false;
     final stored = await ApiConfigStore.loadAuthSession();
     if (stored == null) return false;
+
+    _restoringSession = true;
     try {
       final userMap = jsonDecode(stored.userJson) as Map<String, dynamic>;
       _token = stored.token;
+      _refreshToken = stored.refreshToken;
       _user = User.fromJson(userMap);
+      _tokenStale = false;
       CrashReporter.setToken(_token);
-      await _refreshProfileFromServer();
+      MobileAnalyticsService.instance.updateAuthToken(_token);
       notifyListeners();
+
+      if (await ApiService.isReachable()) {
+        final refreshed = await trySilentTokenRefresh();
+        if (refreshed) {
+          unawaited(_refreshProfileFromServer());
+        } else {
+          unawaited(_refreshProfileFromServer());
+        }
+      }
       return isAuthenticated;
     } catch (e) {
       debugPrint('[AUTH] restoreSession invalid: $e');
       await ApiConfigStore.clearAuthSession();
       _token = null;
       _user = null;
+      _refreshToken = null;
       return false;
+    } finally {
+      _restoringSession = false;
     }
   }
 
-  /// Rafraîchit le profil (rôle, email) depuis l'API pour éviter un JWT obsolète côté UI admin.
+  /// Rafraîchit silencieusement le JWT (refresh token chiffré ou reconnexion biométrique).
+  Future<bool> trySilentTokenRefresh() async {
+    if (_user == null) return false;
+
+    final storedRefresh = _refreshToken ?? await ApiConfigStore.loadRefreshToken();
+    if (storedRefresh != null && storedRefresh.isNotEmpty) {
+      final result = await ApiService.refreshAccessToken(storedRefresh);
+      if (result != null) {
+        _token = result.token;
+        _refreshToken = result.refreshToken ?? storedRefresh;
+        _tokenStale = false;
+        CrashReporter.setToken(_token);
+        await _persistSession();
+        MobileAnalyticsService.instance.updateAuthToken(_token);
+        notifyListeners();
+        debugPrint('[AUTH] JWT renouvelé via refresh token');
+        return true;
+      }
+    }
+
+    final creds = await BiometricCredentialStore.load();
+    if (creds != null) {
+      try {
+        final response = await ApiService.login(creds.email, creds.password);
+        if (response['success'] == true) {
+          _token = response['token'] as String?;
+          _refreshToken = response['refreshToken'] as String?;
+          _user = User.fromJson(response['user']);
+          _tokenStale = false;
+          CrashReporter.setToken(_token);
+          await _persistSession();
+          MobileAnalyticsService.instance.updateAuthToken(_token);
+          notifyListeners();
+          debugPrint('[AUTH] JWT renouvelé via identifiants sécurisés');
+          return true;
+        }
+      } catch (e) {
+        debugPrint('[AUTH] trySilentTokenRefresh login: $e');
+      }
+    }
+    return false;
+  }
+
+  /// Au retour réseau : renouvelle le JWT de façon sécurisée (sans déconnexion).
+  Future<void> refreshSessionIfOnline() async {
+    if (_token == null || _user == null) return;
+    if (!await ApiService.isReachable()) return;
+    await trySilentTokenRefresh();
+  }
+
   Future<void> _refreshProfileFromServer() async {
     if (_token == null) return;
     try {
       final profile = await ApiService.getProfile(token: _token);
       if (profile != null) {
         _user = profile;
+        _tokenStale = false;
         await _persistSession();
+        notifyListeners();
+      } else if (await ApiService.isReachable()) {
+        _tokenStale = true;
       }
     } catch (e) {
       debugPrint('[AUTH] refreshProfile: $e');
     }
   }
 
-  /// Vide la session en mémoire sans effacer les préférences utilisateur (ex. après échec biométrie).
   Future<void> clearLocalSession() async {
     _user = null;
     _token = null;
+    _refreshToken = null;
+    _tokenStale = false;
     CrashReporter.setToken(null);
+    MobileAnalyticsService.instance.updateAuthToken(null);
     notifyListeners();
   }
 
@@ -76,6 +156,7 @@ class AuthProvider with ChangeNotifier {
     await ApiConfigStore.saveAuthSession(
       token: _token!,
       userJson: jsonEncode(_user!.toJson()),
+      refreshToken: _refreshToken,
     );
   }
 
@@ -93,8 +174,11 @@ class AuthProvider with ChangeNotifier {
 
       if (response['success'] == true) {
         _token = response['token'];
+        _refreshToken = response['refreshToken'] as String?;
         _user = User.fromJson(response['user']);
+        _tokenStale = false;
         CrashReporter.setToken(_token);
+        MobileAnalyticsService.instance.updateAuthToken(_token);
         await ApiConfigStore.saveKeepLoggedIn(keepLoggedIn);
         if (keepLoggedIn && enableBiometric) {
           await _persistSession();
@@ -147,7 +231,6 @@ class AuthProvider with ChangeNotifier {
       );
 
       if (response['success'] == true) {
-        // On ne connecte pas automatiquement, l'utilisateur doit vérifier son email
         _isLoading = false;
         notifyListeners();
       } else {
@@ -160,13 +243,14 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Après biométrie : rafraîchit la session JWT ou reconnecte via identifiants sécurisés (D6).
   Future<bool> ensureSessionAfterBiometric() async {
     if (_token != null && _user != null) {
-      try {
-        await _refreshProfileFromServer();
-        if (isAuthenticated) return true;
-      } catch (_) {}
+      if (await ApiService.isReachable()) {
+        final refreshed = await trySilentTokenRefresh();
+        if (refreshed || !_tokenStale) return true;
+      } else {
+        return true;
+      }
     }
     final creds = await BiometricCredentialStore.load();
     if (creds == null) return false;
@@ -174,8 +258,11 @@ class AuthProvider with ChangeNotifier {
       final response = await ApiService.login(creds.email, creds.password);
       if (response['success'] == true) {
         _token = response['token'];
+        _refreshToken = response['refreshToken'] as String?;
         _user = User.fromJson(response['user']);
+        _tokenStale = false;
         CrashReporter.setToken(_token);
+        MobileAnalyticsService.instance.updateAuthToken(_token);
         await _persistSession();
         notifyListeners();
         return true;
@@ -218,10 +305,12 @@ class AuthProvider with ChangeNotifier {
     await ApiConfigStore.saveBiometricUnlockEnabled(false);
     _user = null;
     _token = null;
+    _refreshToken = null;
+    _tokenStale = false;
+    MobileAnalyticsService.instance.updateAuthToken(null);
     notifyListeners();
   }
 
-  /// Demande d'envoi d'un email de réinitialisation du mot de passe.
   Future<void> forgotPassword(String email) async {
     _isLoading = true;
     notifyListeners();
@@ -236,7 +325,6 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Réinitialise le mot de passe avec le token reçu par email.
   Future<void> resetPassword(String token, String password) async {
     _isLoading = true;
     notifyListeners();
@@ -251,7 +339,6 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Met à jour le profil (prénom, nom, téléphone) et persiste la session locale.
   Future<void> updateProfile({
     required String firstName,
     required String lastName,
@@ -281,7 +368,6 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Vérifie l'email avec le token reçu par email (lien de vérification).
   Future<void> verifyEmail(String token) async {
     _isLoading = true;
     notifyListeners();
@@ -304,28 +390,29 @@ class AuthProvider with ChangeNotifier {
 
   void _wireSecurityCallbacks() {
     ApiService.onSessionRevoked = (path, statusCode) async {
-      if (_handlingSessionRevoke || _token == null) return;
-      _handlingSessionRevoke = true;
-      try {
-        final deviceId = await ApiConfigStore.getOrCreateDeviceId();
-        await ApiService.postSecurityEvent(
-          eventType: 'session_revoked',
-          message: 'Session invalidée (HTTP $statusCode) sur $path',
-          deviceId: deviceId,
-          userId: _user?.id,
-          token: _token,
-        );
-        CrashReporter.setToken(null);
-        await ApiConfigStore.clearAuthSession();
-        await BiometricCredentialStore.clear();
-        await ApiConfigStore.saveBiometricUnlockEnabled(false);
-        _user = null;
-        _token = null;
-        notifyListeners();
-      } finally {
-        _handlingSessionRevoke = false;
-      }
+      await handleUnauthorized(path, statusCode);
     };
+  }
+
+  /// 401/403 : refresh silencieux si online ; sinon conserver la session locale (offline-first).
+  Future<void> handleUnauthorized(String path, int statusCode) async {
+    if (_handlingSessionRevoke || _restoringSession || _token == null) return;
+    if (ApiService.lastRequestWasNetworkFailure) return;
+
+    _handlingSessionRevoke = true;
+    try {
+      if (!await ApiService.isReachable()) {
+        debugPrint('[AUTH] 401 ignoré (hors ligne) — session conservée');
+        return;
+      }
+      final refreshed = await trySilentTokenRefresh();
+      if (refreshed) return;
+
+      _tokenStale = true;
+      debugPrint('[AUTH] Token expiré (HTTP $statusCode sur $path) — session locale conservée');
+    } finally {
+      _handlingSessionRevoke = false;
+    }
   }
 
   bool get isAuthenticated => _token != null && _user != null;
