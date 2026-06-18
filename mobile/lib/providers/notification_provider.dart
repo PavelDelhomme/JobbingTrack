@@ -68,4 +68,11 @@ class NotificationProvider with ChangeNotifier {
         .toList();
     notifyListeners();
   }
+
+  void clearUserCache() {
+    _notifications = [];
+    _isLoading = false;
+    _lastError = null;
+    notifyListeners();
+  }
 }

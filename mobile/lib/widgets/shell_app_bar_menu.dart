@@ -1,34 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/global_search.dart';
+import 'package:jobbingtrack_mobile/utils/auth_logout.dart';
 
 /// Menu ⋮ : recherche, paramètres, déconnexion (logout retiré de l'app bar accueil).
 class ShellAppBarMenu extends StatelessWidget {
   const ShellAppBarMenu({super.key});
-
-  Future<void> _confirmLogout(BuildContext context) async {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Déconnexion'),
-        content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Déconnexion'),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true || !context.mounted) return;
-    await auth.logout();
-    if (!context.mounted) return;
-    Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +17,7 @@ class ShellAppBarMenu extends StatelessWidget {
           case 'settings':
             Navigator.of(context).pushNamed('/settings');
           case 'logout':
-            await _confirmLogout(context);
+            await AuthLogout.confirmAndPerform(context);
         }
       },
       itemBuilder: (context) => [

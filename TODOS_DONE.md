@@ -10,6 +10,8 @@ Ce fichier archive ce que le porteur a réellement validé. Les validations tech
 
 | Date | Élément validé | Environnement | Preuve / remarque |
 |------|----------------|---------------|-------------------|
+| 18/06/2026 | Mobile — auth + parcours candidatures | Samsung R5CT7263YJL + local | Validation porteur : OK auth candidatures (liste non vide). Clarification déconnexion volontaire vs hors-ligne : logout purge données locales et renvoie login sans fermer l’app. Fix `UserSessionCleanup` + `AuthLogout`. |
+| 18/06/2026 | Mobile — Paramètres télémétrie + Aide/retours | Samsung R5CT7263YJL | Validation porteur : OK paramètres télémétrie aide retours (toggles + formulaire bug clavier OK, déjà validé). |
 | 18/06/2026 | Mobile/Backoffice — analytics app (perf live, retours, erreurs) | Samsung R5CT7263YJL + local | Validation porteur explicite : OK clavier formulaire bug. Formulaire « Signaler un bug » : clavier reste ouvert, saisie description OK, Envoyer via AppBar. Emails retour/crash enrichis (capture inline, diagnostic, stack contexte). Commit `8888c7f6`. |
 | 17/06/2026 | Statistics — graphes disponibilité / erreur (vue d'ensemble) | local | Validation porteur explicite : « OK Statistics vue d'ensemble même si partiel ». Graphes infra avec marqueurs sparse, ChartPeriodCaption, retrait panneau P1B doublon Performances. Candidatures/utilisateurs → App data. |
 | 17/06/2026 | Statistics — onglet Données applicatives (`app-data`) | local | Validation porteur explicite : « ouais ca me vas ». Pills période 7/14/30 j, toggle séries métier, `ChartPeriodCaption`, snapshot explicite si un seul point API. |

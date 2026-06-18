@@ -138,4 +138,11 @@ class ApplicationProvider with ChangeNotifier {
       rethrow;
     }
   }
+
+  void clearUserCache() {
+    _applications = [];
+    _isLoading = false;
+    _lastError = null;
+    _notifySafely();
+  }
 }

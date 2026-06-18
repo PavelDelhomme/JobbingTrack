@@ -116,4 +116,13 @@ class LocalPhoneIntegrationsService {
     if (raw == null) return null;
     return DateTime.tryParse(raw);
   }
+
+  /// Supprime les caches téléphone importés localement (déconnexion).
+  static Future<void> clearLocalCaches() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_callLogKey);
+    await prefs.remove(_contactsKey);
+    await prefs.remove(_callLogSyncedAtKey);
+    await prefs.remove(_contactsSyncedAtKey);
+  }
 }

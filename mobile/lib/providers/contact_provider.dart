@@ -22,4 +22,10 @@ class ContactProvider with ChangeNotifier {
       rethrow;
     }
   }
+
+  void clearUserCache() {
+    _contacts = [];
+    _isLoading = false;
+    notifyListeners();
+  }
 }

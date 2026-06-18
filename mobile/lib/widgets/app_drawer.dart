@@ -4,6 +4,7 @@ import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/utils/admin_access.dart';
+import 'package:jobbingtrack_mobile/utils/auth_logout.dart';
 
 class AppDrawer extends StatefulWidget {
   const AppDrawer({super.key});
@@ -206,38 +207,9 @@ class _AppDrawerState extends State<AppDrawer> {
               ),
             ),
             onTap: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Déconnexion'),
-                  content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('Annuler'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.red,
-                      ),
-                      child: const Text('Déconnexion'),
-                    ),
-                  ],
-                ),
-              );
-
-              if (confirm == true && context.mounted) {
-                Navigator.of(context).pop(); // Fermer le drawer d'abord
-                if (context.mounted) {
-                  await authProvider.logout();
-                  if (context.mounted) {
-                    Navigator.of(context).pushNamedAndRemoveUntil(
-                      '/login',
-                      (Route<dynamic> route) => false,
-                    );
-                  }
-                }
+              Navigator.of(context).pop();
+              if (context.mounted) {
+                await AuthLogout.confirmAndPerform(context);
               }
             },
           ),

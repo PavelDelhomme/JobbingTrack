@@ -28,6 +28,12 @@ class AnalyticsTelemetryQueue {
 
   int get pendingCount => _pending.length;
 
+  Future<void> clearAll() async {
+    _pending.clear();
+    _loaded = true;
+    await _persistToDisk();
+  }
+
   Future<void> initialize() async {
     if (_loaded) return;
     await _loadFromDisk();

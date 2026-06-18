@@ -47,6 +47,12 @@ class OfflineBusinessSyncQueue {
 
   int get pendingCount => _pending.length;
 
+  Future<void> clearAll() async {
+    _pending.clear();
+    _loaded = true;
+    await _persistToDisk();
+  }
+
   static bool isSyncablePath(String path) {
     final normalized = path.split('?').first;
     return _syncablePrefixes.any(

@@ -49,6 +49,11 @@ class ApiConfigStore {
     await SecureAuthSessionStore.clearSession();
   }
 
+  static Future<void> clearAnalyticsSessionId() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyAnalyticsSessionId);
+  }
+
   static Future<bool> loadKeepLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_keyKeepLoggedIn) ?? true;

@@ -24,4 +24,10 @@ class InterviewProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  void clearUserCache() {
+    _interviews = [];
+    _isLoading = false;
+    notifyListeners();
+  }
 }

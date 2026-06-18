@@ -2,14 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:jobbingtrack_mobile/services/analytics_telemetry_queue.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/biometric_credential_store.dart';
 import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
-import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
 import 'package:jobbingtrack_mobile/services/push_notification_service.dart';
+import 'package:jobbingtrack_mobile/services/user_session_cleanup.dart';
 import 'package:jobbingtrack_mobile/models/user.dart';
 import 'package:jobbingtrack_mobile/utils/admin_access.dart';
 
@@ -321,14 +320,13 @@ class AuthProvider with ChangeNotifier {
       token: token,
     );
     CrashReporter.trackAction('logout');
-    CrashReporter.setToken(null);
-    await ApiConfigStore.clearAuthSession();
-    await BiometricCredentialStore.clear();
-    await ApiConfigStore.saveBiometricUnlockEnabled(false);
+    await UserSessionCleanup.onLogout(authToken: token);
     _user = null;
     _token = null;
     _refreshToken = null;
     _tokenStale = false;
+    _sessionRestored = true;
+    CrashReporter.setToken(null);
     MobileAnalyticsService.instance.updateAuthToken(null);
     notifyListeners();
   }

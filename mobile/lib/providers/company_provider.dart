@@ -58,4 +58,10 @@ class CompanyProvider with ChangeNotifier {
     notifyListeners();
     return created;
   }
+
+  void clearUserCache() {
+    _companies = [];
+    _isLoading = false;
+    _notifySafely();
+  }
 }

@@ -431,6 +431,22 @@ class MobileAnalyticsService extends ChangeNotifier {
     }
   }
 
+  /// Fin de session utilisateur : purge files et état mémoire (déconnexion volontaire).
+  Future<void> onUserLogout() async {
+    _syncTimer?.cancel();
+    _syncTimer = null;
+    _sessionStarted = false;
+    _authToken = null;
+    _nextFlushAt = null;
+    _lastFlushAt = null;
+    _lastFlushMessage = 'Déconnecté';
+    _flushInProgress = false;
+    CrashReporter.setToken(null);
+    bindAuthTokenResolver();
+    _sessionId = await ApiConfigStore.getOrCreateAnalyticsSessionId();
+    notifyListeners();
+  }
+
   Map<String, dynamic> localDiagnosticsPreview() {
     return {
       'consent': _consent,

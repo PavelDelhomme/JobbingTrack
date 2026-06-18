@@ -70,5 +70,11 @@ class FollowUpProvider with ChangeNotifier {
     _followUps.removeWhere((f) => f.id == id);
     notifyListeners();
   }
+
+  void clearUserCache() {
+    _followUps = [];
+    _isLoading = false;
+    notifyListeners();
+  }
 }
 
