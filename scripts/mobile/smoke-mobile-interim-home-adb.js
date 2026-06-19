@@ -55,25 +55,21 @@ async function openDrawerItemWithScroll(phone, label) {
   await phone.wait(2500);
 }
 
-async function openDrawerItemWithScroll(phone, label) {
-  for (const label of ['Notifications', '2', '1', '9+']) {
-    if (!(await phone.uiContains(label))) continue;
-    try {
-      await phone.tap(label);
-      if (await phone.waitFor('Notifications', 8000, 1000)) return;
-    } catch {}
-  }
+async function tapNotificationBell(phone) {
   const nodes = await phone.uiNodes();
   const menu = nodes.find((n) => n.contentDesc === 'Menu');
   if (menu) {
     const menuLeft = +menu.bounds.match(/\[(\d+),/)[1];
     const bell = nodes.find((n) => {
-      if (!n.clickable || n.contentDesc === 'Menu' || n.contentDesc === 'Open navigation menu') {
-        return false;
-      }
+      if (!n.clickable) return false;
+      const desc = n.contentDesc || '';
+      if (desc === 'Menu' || desc === 'Open navigation menu') return false;
       const m = n.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
       if (!m) return false;
-      return +m[3] <= menuLeft + 5 && +m[2] > 250 && +m[2] < 500;
+      const y1 = +m[2];
+      const y2 = +m[4];
+      const x2 = +m[3];
+      return x2 <= menuLeft + 5 && y1 > 250 && y2 < 500;
     });
     if (bell) {
       const m = bell.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
@@ -81,14 +77,39 @@ async function openDrawerItemWithScroll(phone, label) {
       if (await phone.waitFor('Notifications', 8000, 1000)) return;
     }
   }
+  if (await phone.uiContains('Notifications')) {
+    await phone.tap('Notifications');
+    if (await phone.waitFor('Notifications', 8000, 1000)) return;
+  }
   throw new Error('Icône notifications introuvable');
 }
 
-async function enableInterimMode(phone) {
+async function enableInterimMode(phone, email, password) {
   await adbLib.flows.setInterimModeForSmoke(phone, true);
   await adbLib.flows.restartApp(phone);
   await phone.wait(3000);
-  await adbLib.flows.dismissBiometricUnlock(phone);
+  if (
+    (await phone.uiContains('Déverrouiller')) ||
+    (await phone.uiContains('Mot de passe JobbingTrack')) ||
+    (await phone.uiContains('Connexion par empreinte'))
+  ) {
+    await adbLib.flows.dismissBiometricUnlock(phone, { password });
+  }
+  if (!(await phone.uiContains('Tab 1 of 4'))) {
+    if (
+      (await phone.uiContains('Email')) ||
+      (await phone.uiContains('Mot de passe')) ||
+      (await phone.uiContains('Se connecter'))
+    ) {
+      await adbLib.flows.login(phone, email, password);
+    } else if (!(await phone.uiContains('Bonjour'))) {
+      await adbLib.flows.loginFresh(phone, email, password);
+    }
+    await adbLib.flows.dismissBiometricUnlock(phone, { password });
+  }
+  if (!(await phone.uiContains('Tab 1 of 4'))) {
+    throw new Error('Shell introuvable après activation mode intérim');
+  }
   if (!(await drawerHasInterimFromProfile(phone))) {
     throw new Error('Menu Intérim introuvable après activation du mode intérim');
   }
@@ -184,7 +205,7 @@ async function drawerHasInterimFromProfile(phone) {
   await phone.wait(1500);
 
   // ── Mode intérim : pref (switch Material non fiable ADB) → drawer → formulaire
-  await enableInterimMode(phone);
+  await enableInterimMode(phone, email, password);
 
   await openDrawerItemWithScroll(phone, 'Intérim');
   await phone.assertVisible('Suivi intérim');
