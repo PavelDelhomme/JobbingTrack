@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:jobbingtrack_mobile/models/app_notification.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/utils/in_app_notification_types.dart';
 
 class NotificationProvider with ChangeNotifier {
   List<AppNotification> _notifications = [];
@@ -18,7 +19,8 @@ class NotificationProvider with ChangeNotifier {
     _lastError = null;
     notifyListeners();
     try {
-      _notifications = await ApiService.getNotifications(token: token);
+      final raw = await ApiService.getNotifications(token: token, scope: 'in_app');
+      _notifications = filterInAppNotifications(raw, (n) => n.type);
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -66,6 +68,12 @@ class NotificationProvider with ChangeNotifier {
           ),
         )
         .toList();
+    notifyListeners();
+  }
+
+  Future<void> deleteNotification(String id, {String? token}) async {
+    await ApiService.deleteNotification(id, token: token);
+    _notifications = _notifications.where((n) => n.id != id).toList();
     notifyListeners();
   }
 

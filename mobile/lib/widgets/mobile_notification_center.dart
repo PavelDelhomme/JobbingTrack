@@ -84,7 +84,7 @@ class _NotificationSheet extends StatelessWidget {
                   : provider.notifications.isEmpty
                       ? Center(
                           child: Text(
-                            'Aucune notification',
+                            'Aucune notification candidature',
                             style: TextStyle(color: Colors.grey.shade600),
                           ),
                         )
@@ -108,35 +108,67 @@ class _NotificationTile extends StatelessWidget {
 
   const _NotificationTile({required this.n});
 
+  Future<void> _delete(BuildContext context) async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final provider = Provider.of<NotificationProvider>(context, listen: false);
+    try {
+      await provider.deleteNotification(n.id, token: auth.token);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Impossible de supprimer la notification')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final provider = Provider.of<NotificationProvider>(context, listen: false);
 
-    return ListTile(
-      leading: Icon(
-        n.read ? Icons.notifications_none : Icons.notifications_active,
-        color: n.read ? Colors.grey : Colors.blue.shade700,
+    return Dismissible(
+      key: ValueKey(n.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        color: Colors.red.shade400,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Icon(Icons.delete_outline, color: Colors.white),
       ),
-      title: Text(n.title, style: TextStyle(fontWeight: n.read ? FontWeight.normal : FontWeight.w600)),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (n.message.isNotEmpty) Text(n.message, maxLines: 2, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 4),
-          Text(
-            formatUserLocalDateTime(n.createdAt.toIso8601String()),
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-          ),
-        ],
-      ),
-      onTap: () async {
-        if (!n.read) {
-          try {
-            await provider.markAsRead(n.id, token: auth.token);
-          } catch (_) {}
-        }
+      onDismissed: (_) {
+        provider.deleteNotification(n.id, token: auth.token).catchError((_) {});
       },
+      child: ListTile(
+        leading: Icon(
+          n.read ? Icons.notifications_none : Icons.notifications_active,
+          color: n.read ? Colors.grey : Colors.blue.shade700,
+        ),
+        title: Text(n.title, style: TextStyle(fontWeight: n.read ? FontWeight.normal : FontWeight.w600)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (n.message.isNotEmpty) Text(n.message, maxLines: 2, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 4),
+            Text(
+              formatUserLocalDateTime(n.createdAt.toIso8601String()),
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.close, size: 20),
+          tooltip: 'Supprimer',
+          onPressed: () => _delete(context),
+        ),
+        onTap: () async {
+          if (!n.read) {
+            try {
+              await provider.markAsRead(n.id, token: auth.token);
+            } catch (_) {}
+          }
+        },
+      ),
     );
   }
 }

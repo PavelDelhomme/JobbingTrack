@@ -15,6 +15,7 @@ const NODE = process.execPath;
 
 const apiTests = [
   'scripts/mobile/smoke-full-journey-api.js',
+  'scripts/mobile/smoke-notifications-in-app-scope-api.js',
   'scripts/mobile/smoke-analytics-api.js',
   'scripts/mobile/smoke-workflow-api.js',
   'scripts/mobile/smoke-push-register-api.js',

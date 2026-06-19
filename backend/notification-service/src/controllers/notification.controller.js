@@ -4,6 +4,10 @@ const emailService = require('../services/emailService');
 const { buildCrashReportEmailHtml } = require('../templates/crashReportEmailHtml');
 const { compressHtml, maybeDecompressEmailContent } = require('../utils/emailContentCodec');
 const { normalizeCrashReport } = require('../utils/normalizeCrashReport');
+const {
+  resolveNotificationScope,
+  buildInAppTypeFilter,
+} = require('../constants/inAppNotificationTypes');
 
 const prisma = new PrismaClient();
 
@@ -12,6 +16,7 @@ const getNotifications = async (req, res, next) => {
   try {
     const { page = 1, limit = 20, type, isRead } = req.query;
     const userId = req.user.id;
+    const scope = resolveNotificationScope(req.query);
 
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
@@ -19,6 +24,7 @@ const getNotifications = async (req, res, next) => {
 
     const where = {
       userId,
+      ...buildInAppTypeFilter(scope),
       ...(type && { type }),
       ...(isRead !== undefined && { read: isRead === 'true' })
     };
@@ -214,6 +220,7 @@ const markAsRead = async (req, res, next) => {
 const markAllAsRead = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    const scope = resolveNotificationScope(req.query);
 
     // Vérifier si la table existe
     if (!prisma.notification || typeof prisma.notification.updateMany !== 'function') {
@@ -229,9 +236,10 @@ const markAllAsRead = async (req, res, next) => {
       result = await prisma.notification.updateMany({
         where: {
           userId,
-          read: false
+          read: false,
+          ...buildInAppTypeFilter(scope),
         },
-        data: { read: true }
+        data: { read: true, readAt: new Date() }
       });
     } catch (error) {
       // Fallback si table Notification n'existe pas (P2021) - Mode développement
@@ -625,6 +633,8 @@ const deleteAutomatedReminder = async (req, res, next) => {
 const getStats = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    const scope = resolveNotificationScope(req.query);
+    const inAppWhere = { userId, ...buildInAppTypeFilter(scope) };
 
     const [
       totalNotifications,
@@ -634,12 +644,14 @@ const getStats = async (req, res, next) => {
       failedEmails,
       activeReminders
     ] = await Promise.all([
-      prisma.notification.count({ where: { userId } }),
-      prisma.notification.count({ where: { userId, read: false } }),
+      prisma.notification.count({ where: inAppWhere }),
+      prisma.notification.count({ where: { ...inAppWhere, read: false } }),
       prisma.emailLog.count({ where: { userId } }),
       prisma.emailLog.count({ where: { userId, status: 'SENT' } }),
       prisma.emailLog.count({ where: { userId, status: 'FAILED' } }),
-      prisma.automatedReminder.count({ where: { userId, isActive: true } })
+      prisma.automatedReminder && typeof prisma.automatedReminder.count === 'function'
+        ? prisma.automatedReminder.count({ where: { userId, isActive: true } })
+        : Promise.resolve(0),
     ]);
 
     res.json({

@@ -152,7 +152,7 @@ async function main() {
   } else fail('Calendrier', `${events.status}`);
 
   // 8. Notifications in-app
-  const notifs = await api('GET', '/api/v1/notifications?limit=10');
+  const notifs = await api('GET', '/api/v1/notifications?limit=10&scope=in_app');
   if (notifs.status === 200) pass('Notifications in-app', `${notifs.data.notifications?.length ?? 0} notif(s)`);
   else fail('Notifications', `${notifs.status}`);
 

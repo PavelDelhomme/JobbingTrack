@@ -964,9 +964,10 @@ class ApiService {
     String? token,
     int limit = 50,
     bool? isRead,
+    String scope = 'in_app',
   }) async {
     try {
-      var path = '/api/v1/notifications?limit=$limit';
+      var path = '/api/v1/notifications?limit=$limit&scope=$scope';
       if (isRead != null) path += '&isRead=$isRead';
       final response = await _get(path, headers: _jsonHeaders(token));
       if (response.statusCode == 200) {
@@ -998,7 +999,18 @@ class ApiService {
 
   static Future<void> markAllNotificationsRead({String? token}) async {
     final response = await _put(
-      '/api/v1/notifications/mark-all-read',
+      '/api/v1/notifications/mark-all-read?scope=in_app',
+      headers: _jsonHeaders(token),
+    );
+    if (response.statusCode != 200) {
+      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
+    }
+  }
+
+  static Future<void> deleteNotification(String id, {String? token}) async {
+    final response = await _delete(
+      '/api/v1/notifications/${Uri.encodeComponent(id)}',
       headers: _jsonHeaders(token),
     );
     if (response.statusCode != 200) {
