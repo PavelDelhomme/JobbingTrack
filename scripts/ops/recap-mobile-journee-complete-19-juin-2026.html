@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>JobbingTrack — récap journée mobile 19 juin 2026</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.55; max-width: 820px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+    h1 { font-size: 1.45rem; color: #0d47a1; border-bottom: 2px solid #e3f2fd; padding-bottom: 0.5rem; }
+    h2 { font-size: 1.15rem; color: #1565c0; margin-top: 2rem; }
+    h3 { font-size: 1rem; color: #37474f; margin-top: 1.25rem; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.92rem; }
+    th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    .ok { color: #2e7d32; font-weight: 600; }
+    .warn { color: #e65100; }
+    code, pre { background: #f5f5f5; border-radius: 4px; font-size: 0.88rem; }
+    code { padding: 2px 6px; }
+    pre { padding: 12px; overflow-x: auto; }
+    ul { margin: 0.4rem 0; }
+    .meta { color: #546e7a; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+
+<h1>JobbingTrack — récap journée mobile complète</h1>
+<p class="meta">
+  <strong>Date :</strong> 19 juin 2026 &nbsp;|&nbsp;
+  <strong>Branche :</strong> <code>dev</code> (commits <code>a06bd77b</code> → <code>8192b81b</code> + suite) &nbsp;|&nbsp;
+  <strong>Appareil :</strong> Samsung R5CT7263YJL (SM_G990B2) &nbsp;|&nbsp;
+  <strong>Gateway :</strong> <code>127.0.0.1:5002</code> via <code>adb reverse</code>
+</p>
+
+<h2>1. Objectif de la journée</h2>
+<p>Avancer le <strong>Lot D mobile</strong> sans intervention porteur sur la biométrie Samsung : smokes ADB automatisés, batterie de validation, merge <code>dev</code>, emails récap. Focus session : <strong>intérim</strong>, <strong>notifications</strong>, <strong>cold start sans keepLoggedIn</strong>, puis <strong>création entreprise</strong>.</p>
+
+<h2>2. Bypass biométrique (tous les smokes ADB)</h2>
+<ul>
+  <li><code>dismissBiometricUnlock</code> + mot de passe <code>TEST_USER_PASSWORD</code> (<code>unlockWithJobbingTrackPassword</code>)</li>
+  <li>Prompt Samsung BiometricPrompt : séquence <code>BACK</code> si UI dump bloqué</li>
+  <li>Login : formulaire mot de passe toujours visible + <code>loginFresh</code> / <code>login</code> selon écran</li>
+  <li>Pas de toggle empreinte à l'inscription ; <code>clearAppDataForSmoke</code> pour flows inscription</li>
+  <li>Node : <code>/usr/bin/node</code> (évite lazynvm) ; Flutter : <code>~/flutter-sdk/bin/flutter</code></li>
+  <li>Préparation appareil : <code>./scripts/mobile/ensure-device-api-ready.sh</code> (adb reverse, purge rate-limit Redis, health API)</li>
+</ul>
+
+<h2>3. Commits principaux</h2>
+<table>
+  <tr><th>Commit</th><th>Contenu</th></tr>
+  <tr><td><code>a06bd77b</code></td><td>Batterie 12/12 + offline métier ADB</td></tr>
+  <tr><td><code>541330bc</code></td><td>Smokes intérim, notifications, cold-start ; drawer refresh ; <code>setFlutterPrefBool</code></td></tr>
+  <tr><td><code>8192b81b</code></td><td>Fix <code>tapNotificationBell</code> + re-login après restart intérim</td></tr>
+  <tr><td><code>feat/mobile-d-company-create-smoke</code></td><td>FAB entreprise, <code>company_create_dialog.dart</code>, smoke création entreprise</td></tr>
+</table>
+
+<h2>4. Nouveaux scripts ADB</h2>
+<table>
+  <tr><th>Script</th><th>Rôle</th><th>Statut</th></tr>
+  <tr>
+    <td><code>smoke-mobile-interim-home-adb.js</code></td>
+    <td>Accueil, cloche notifications (+ « Tout marquer lu »), entretiens/relances shell, mode intérim (drawer + champ agence candidature)</td>
+    <td class="ok">OK</td>
+  </tr>
+  <tr>
+    <td><code>smoke-mobile-cold-start-login-adb.js</code></td>
+    <td><code>pm clear</code>, login sans « Garder la connexion », kill app → écran login</td>
+    <td class="ok">OK</td>
+  </tr>
+  <tr>
+    <td><code>smoke-mobile-company-create-adb.js</code></td>
+    <td>FAB « Nouvelle entreprise », option boîte d'intérim, création <code>SmokeCo-*</code></td>
+    <td class="ok">OK</td>
+  </tr>
+  <tr>
+    <td><code>smoke-run-mobile-validation.js</code></td>
+    <td>Orchestrateur : 4 API + 9 ADB + register + verify-email + cold-start (15 tests)</td>
+    <td class="warn">Batterie complète lancée 19/06 soir</td>
+  </tr>
+</table>
+
+<h2>5. Correctifs produit / infra ADB</h2>
+<ul>
+  <li><strong>AppDrawer</strong> : rechargement mode intérim à l'ouverture (<code>postFrameCallback</code>)</li>
+  <li><strong>Switch intérim Material</strong> : non fiable en ADB → <code>setInterimModeForSmoke</code> via SharedPreferences (<code>adb push</code> + <code>run-as cp</code>)</li>
+  <li><strong>Cloche notifications</strong> : content-desc = compteur badge (<code>2</code>) → tap par position AppBar (gauche du menu ⋮)</li>
+  <li><strong>Menu drawer</strong> : <code>Open navigation menu</code> (hamburger) plutôt que swipe sur onglet Profil</li>
+  <li><strong>FAB entreprise</strong> : onglet Entreprises (Candidatures → Entreprises) + widget <code>company_create_dialog.dart</code></li>
+  <li><strong>flows.js</strong> : <code>loginWithoutKeepLoggedIn</code>, <code>setInterimModeForSmoke</code>, <code>isShellVisible</code></li>
+</ul>
+
+<h2>6. Batterie validation</h2>
+<h3>Mode rapide <code>--skip-slow</code> (12 tests)</h3>
+<p class="ok"><strong>12/12 OK</strong> — 4 API + 8 ADB (dont interim-home + cold-start en dernier).</p>
+<h3>Mode complet (15 tests)</h3>
+<p class="ok"><strong>15/15 OK</strong> — Samsung R5CT7263YJL, ~29 min.</p>
+<table>
+  <tr><th>Test</th><th>Durée</th></tr>
+  <tr><td>smoke-full-journey-api</td><td>0.6s</td></tr>
+  <tr><td>smoke-analytics-api</td><td>0.3s</td></tr>
+  <tr><td>smoke-workflow-api</td><td>0.1s</td></tr>
+  <tr><td>smoke-push-register-api</td><td>0.2s</td></tr>
+  <tr><td>smoke-login-user-password-adb</td><td>180s</td></tr>
+  <tr><td>smoke-mobile-shell-adb</td><td>150s</td></tr>
+  <tr><td>smoke-mobile-navigation-adb</td><td>73s</td></tr>
+  <tr><td>smoke-mobile-entities-adb</td><td>68s</td></tr>
+  <tr><td>smoke-mobile-accounts-adb</td><td>290s</td></tr>
+  <tr><td>smoke-mobile-interim-home-adb</td><td>226s</td></tr>
+  <tr><td>smoke-mobile-company-create-adb</td><td>115s</td></tr>
+  <tr><td>smoke-offline-business-adb</td><td>133s</td></tr>
+  <tr><td>smoke-register-adb</td><td>137s</td></tr>
+  <tr><td>smoke-verify-email-adb</td><td>154s</td></tr>
+  <tr><td>smoke-mobile-cold-start-login-adb</td><td>189s</td></tr>
+</table>
+
+<h2>7. Validations porteur restantes (<code>TODOS_A_VALIDER.md</code>)</h2>
+<ul>
+  <li><strong>Ligne 319</strong> : toggle UI « Mode intérim » Paramètres, calendrier ambre intérim (smokes agent OK sur drawer + champ agence)</li>
+  <li><strong>Ligne 321</strong> : bloc « À venir » accueil si données réelles, calendrier ambre</li>
+  <li>Inscription / vérif email, navigation, entités, parcours live, télémétrie offline appareil, etc. (preuves agent déjà partielles)</li>
+</ul>
+
+<h2>8. Commandes de reproduction</h2>
+<pre>./scripts/mobile/ensure-device-api-ready.sh
+node scripts/mobile/smoke-mobile-interim-home-adb.js
+node scripts/mobile/smoke-mobile-cold-start-login-adb.js
+node scripts/mobile/smoke-mobile-company-create-adb.js
+node scripts/mobile/smoke-run-mobile-validation.js          # complet 15 tests
+node scripts/mobile/smoke-run-mobile-validation.js --skip-slow  # rapide 12 tests</pre>
+
+<h2>9. Emails envoyés (session)</h2>
+<ul>
+  <li>Récap intérim/notifications (HTML)</li>
+  <li>Récap batterie 12/12 + fix smoke intérim</li>
+  <li>Ce récap journée complète (HTML détaillé)</li>
+</ul>
+
+<p class="meta">Généré par agent Cursor — JobbingTrack Lot D mobile — 19/06/2026</p>
+</body>
+</html>

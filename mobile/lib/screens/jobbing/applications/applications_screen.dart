@@ -22,6 +22,7 @@ import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/widgets/application_card.dart';
+import 'package:jobbingtrack_mobile/widgets/company_create_dialog.dart';
 
 class ApplicationsScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -159,13 +160,29 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
           ],
         ),
       ),
-      floatingActionButton: widget.isShellVisible && _tabController.index == 0
+      floatingActionButton: widget.isShellVisible && (_tabController.index == 0 || _tabController.index == 1)
           ? shellFabPadding(context, child: _buildFab()!)
           : null,
     );
   }
 
   Widget? _buildFab() {
+    if (_tabController.index == 1) {
+      return FloatingActionButton(
+        heroTag: 'fab_companies_tab',
+        tooltip: 'Nouvelle entreprise',
+        onPressed: () async {
+          final created = await showCreateCompanyDialog(context);
+          if (!mounted || created == null) return;
+          final auth = Provider.of<AuthProvider>(context, listen: false);
+          await Provider.of<CompanyProvider>(context, listen: false)
+              .loadCompanies(token: auth.token);
+          if (mounted) setState(() {});
+        },
+        backgroundColor: Colors.purple[600],
+        child: const Icon(Icons.add_business_outlined),
+      );
+    }
     return FloatingActionButton(
       heroTag: 'fab_applications_list',
       onPressed: () async {
