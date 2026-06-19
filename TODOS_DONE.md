@@ -10,6 +10,7 @@ Ce fichier archive ce que le porteur a réellement validé. Les validations tech
 
 | Date | Élément validé | Environnement | Preuve / remarque |
 |------|----------------|---------------|-------------------|
+| 19/06/2026 | Mobile — centre notifications métier (ligne 321 partiel) | Samsung R5CT7263YJL | Validation porteur : OK ligne 321 — connexion OK, cloche sans crash/erreurs techniques, notifs candidature uniquement. Navigation au tap corrigée ensuite (`notification_navigation.dart`). |
 | 19/06/2026 | Mobile — biométrie (login, déverrouillage, reconnexion empreinte) | Samsung R5CT7263YJL | Validation porteur explicite : « biométrie carrément OK ». Parcours : case login + déverrouillage immédiat post-connexion ; cold start empreinte ; après déconnexion compte enregistré + **Connexion par empreinte** (identifiants conservés chiffrés) ; Paramètres activation ; `FlutterFragmentActivity` ; `canOfferUnlockOption`. |
 | 19/06/2026 | Mobile — déconnexion drawer/menu (régression) | Samsung R5CT7263YJL | Validation porteur : logout OK. Drawer/menu ⋮ → Connexion ; `appNavigatorKey` ; purge session sans effacer empreinte. |
 | 18/06/2026 | Mobile — auth + parcours candidatures | Samsung R5CT7263YJL + local | Validation porteur : OK auth candidatures (liste non vide). Clarification déconnexion volontaire vs hors-ligne : logout purge données locales et renvoie login sans fermer l’app. Fix `UserSessionCleanup` + `AuthLogout`. |

@@ -4,6 +4,7 @@ import 'package:jobbingtrack_mobile/models/app_notification.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/providers/notification_provider.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
+import 'package:jobbingtrack_mobile/utils/notification_navigation.dart';
 
 class MobileNotificationCenter extends StatelessWidget {
   const MobileNotificationCenter({super.key});
@@ -167,6 +168,9 @@ class _NotificationTile extends StatelessWidget {
               await provider.markAsRead(n.id, token: auth.token);
             } catch (_) {}
           }
+          if (!context.mounted) return;
+          Navigator.of(context).pop();
+          await openNotificationTarget(n, token: auth.token);
         },
       ),
     );
