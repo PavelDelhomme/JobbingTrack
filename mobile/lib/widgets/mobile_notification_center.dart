@@ -140,38 +140,44 @@ class _NotificationTile extends StatelessWidget {
       onDismissed: (_) {
         provider.deleteNotification(n.id, token: auth.token).catchError((_) {});
       },
-      child: ListTile(
-        leading: Icon(
-          n.read ? Icons.notifications_none : Icons.notifications_active,
-          color: n.read ? Colors.grey : Colors.blue.shade700,
+      child: Semantics(
+        button: true,
+        label: n.title,
+        hint: n.message.isNotEmpty ? n.message : 'Ouvrir la notification',
+        child: ListTile(
+          leading: Icon(
+            n.read ? Icons.notifications_none : Icons.notifications_active,
+            color: n.read ? Colors.grey : Colors.blue.shade700,
+          ),
+          title: Text(n.title, style: TextStyle(fontWeight: n.read ? FontWeight.normal : FontWeight.w600)),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (n.message.isNotEmpty) Text(n.message, maxLines: 2, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 4),
+              Text(
+                formatUserLocalDateTime(n.createdAt.toIso8601String()),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+          trailing: IconButton(
+            icon: const Icon(Icons.close, size: 20),
+            tooltip: 'Supprimer',
+            onPressed: () => _delete(context),
+          ),
+          onTap: () async {
+            if (!n.read) {
+              try {
+                await provider.markAsRead(n.id, token: auth.token);
+              } catch (_) {}
+            }
+            if (!context.mounted) return;
+            Navigator.of(context).pop();
+            await Future<void>.delayed(const Duration(milliseconds: 350));
+            await openNotificationTarget(n, token: auth.token);
+          },
         ),
-        title: Text(n.title, style: TextStyle(fontWeight: n.read ? FontWeight.normal : FontWeight.w600)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (n.message.isNotEmpty) Text(n.message, maxLines: 2, overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 4),
-            Text(
-              formatUserLocalDateTime(n.createdAt.toIso8601String()),
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-            ),
-          ],
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.close, size: 20),
-          tooltip: 'Supprimer',
-          onPressed: () => _delete(context),
-        ),
-        onTap: () async {
-          if (!n.read) {
-            try {
-              await provider.markAsRead(n.id, token: auth.token);
-            } catch (_) {}
-          }
-          if (!context.mounted) return;
-          Navigator.of(context).pop();
-          await openNotificationTarget(n, token: auth.token);
-        },
       ),
     );
   }

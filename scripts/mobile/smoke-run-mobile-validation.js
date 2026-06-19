@@ -28,6 +28,8 @@ const adbTests = [
   'scripts/mobile/smoke-mobile-entities-adb.js',
   'scripts/mobile/smoke-mobile-accounts-adb.js',
   'scripts/mobile/smoke-mobile-interim-home-adb.js',
+  'scripts/mobile/smoke-mobile-notification-nav-adb.js',
+  'scripts/mobile/smoke-mobile-notification-nav-adb.js',
   'scripts/mobile/smoke-mobile-company-create-adb.js',
   'scripts/mobile/smoke-offline-business-adb.js',
 ];

@@ -299,7 +299,20 @@ async function login(adb, email, password) {
   await adb.wait(500);
   await adb.typeInField('Email', email);
   await adb.wait(800);
-  await adb.typeInField('Mot de passe', password);
+  if (!(await adb.uiContains('Mot de passe'))) {
+    await adb.scrollDown(500);
+    await adb.wait(500);
+  }
+  try {
+    await adb.typeInField('Mot de passe', password);
+  } catch {
+    const edits = await adb.listEditTexts();
+    if (edits.length >= 2) {
+      await adb.typeInEditTextByIndex(1, password);
+    } else {
+      throw new Error('Champ mot de passe introuvable');
+    }
+  }
   await adb.wait(500);
   await adb.closeKeyboard();
   await adb.wait(800);
