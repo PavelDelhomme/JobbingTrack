@@ -117,12 +117,26 @@ async function enableInterimMode(phone, email, password) {
 
 async function drawerHasInterimFromProfile(phone) {
   await adbLib.flows.goToTab(phone, 1, { shell: true });
-  await phone.wait(1200);
-  await openAppDrawer(phone);
-  const found = await phone.uiContains('Intérim');
-  await phone.back();
-  await phone.wait(800);
-  return found;
+  await phone.wait(2000);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await openAppDrawer(phone);
+    await phone.wait(1500);
+    if (await phone.uiContains('Intérim')) {
+      await phone.back();
+      await phone.wait(500);
+      return true;
+    }
+    await phone.drawerScrollDown();
+    await phone.wait(800);
+    if (await phone.uiContains('Intérim')) {
+      await phone.back();
+      await phone.wait(500);
+      return true;
+    }
+    await phone.back();
+    await phone.wait(600);
+  }
+  return false;
 }
 
 (async () => {
