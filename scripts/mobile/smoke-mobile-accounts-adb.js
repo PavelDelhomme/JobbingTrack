@@ -11,20 +11,22 @@ const adbLib = require('../../tools/adb-lib');
 
 async function drawerHasAdminSection(phone) {
   await phone.openDrawer();
-  await phone.wait(1500);
-  await phone.drawerScrollDown();
-  await phone.wait(800);
-  const nodes = await phone.uiNodes();
-  const texts = nodes.flatMap((n) => [n.text, n.contentDesc].filter(Boolean));
-  const found = texts.some(
-    (t) =>
-      /ADMINISTRATION/i.test(t) ||
-      /Hub administration/i.test(t) ||
-      (t === 'Utilisateurs' && texts.some((x) => /ADMINISTRATION/i.test(x))),
-  );
+  await phone.wait(2000);
+  for (let i = 0; i < 5; i++) {
+    if (
+      (await phone.uiContains('Hub administration')) ||
+      (await phone.uiContains('ADMINISTRATION'))
+    ) {
+      await phone.back();
+      await phone.wait(800);
+      return true;
+    }
+    await phone.drawerScrollDown();
+    await phone.wait(700);
+  }
   await phone.back();
-  await phone.wait(1200);
-  return found;
+  await phone.wait(800);
+  return false;
 }
 
 (async () => {
@@ -40,7 +42,9 @@ async function drawerHasAdminSection(phone) {
 
   console.log('\n=== Compte ADMIN ===');
   console.log(`Source: ${admin.source} (${admin.email})`);
-  await adbLib.flows.loginFresh(phone, admin.email, admin.password);
+  await adbLib.flows.clearAppDataForSmoke(phone);
+  await adbLib.flows.login(phone, admin.email, admin.password);
+  await phone.wait(3000);
   await phone.assertVisible('Bonjour');
   const adminMenu = await drawerHasAdminSection(phone);
   if (!adminMenu) {
@@ -48,12 +52,12 @@ async function drawerHasAdminSection(phone) {
   }
   console.log('OK: menu ADMINISTRATION visible');
   await adbLib.flows.ensureLoggedOut(phone);
-  await adbLib.flows.restartApp(phone);
-  console.log('OK: déconnexion admin');
 
   console.log('\n=== Compte UTILISATEUR TEST ===');
   console.log(`Source: ${user.source} (${user.email})`);
-  await adbLib.flows.loginFresh(phone, user.email, user.password);
+  await adbLib.flows.clearAppDataForSmoke(phone);
+  await adbLib.flows.login(phone, user.email, user.password);
+  await phone.wait(3000);
   await phone.assertVisible('Bonjour');
   const userAdminMenu = await drawerHasAdminSection(phone);
   if (userAdminMenu) {

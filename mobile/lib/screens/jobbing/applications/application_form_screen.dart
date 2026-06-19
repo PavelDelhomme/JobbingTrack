@@ -7,6 +7,7 @@ import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/models/company.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/widgets/company_picker_field.dart';
@@ -245,6 +246,13 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         }
       }
     } catch (e) {
+      if (e is OfflineMutationQueued) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+          Navigator.of(context).pop(true);
+        }
+        return;
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
       }
