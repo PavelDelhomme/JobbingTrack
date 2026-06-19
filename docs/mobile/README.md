@@ -10,7 +10,12 @@ Application mobile cross-platform avec Flutter, synchronisation temps réel et m
 
 **📋 [Application mobile – À faire et récapitulatif](APPLICATION_MOBILE_A_FAIRE.md)** : liste des écrans, fonctionnalités, émulateur, user journey, analytics ; alignement avec `docs/api/api-reference/README.md` et structure données. Checklist de validation dans **STATUS.md** (§ « Application mobile – À faire et à valider »).
 
+**Guides Lot D (19/06)** :
+
+- [Centre de notifications mobile](NOTIFICATION_CENTER.md) — filtre métier, navigation au tap, smokes
+- [Inscription et vérification email](INSCRIPTION_VERIFICATION_EMAIL.md) — télémétrie obligatoire, deep link, smokes ADB
+
 ---
 
 **Version**: 4.1 - Guide mobile
-**Dernière mise à jour**: Octobre 2025
+**Dernière mise à jour**: 19 juin 2026

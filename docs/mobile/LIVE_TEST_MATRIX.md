@@ -34,7 +34,9 @@ Prérequis : `TEST_USER_EMAIL` / `TEST_USER_PASSWORD` dans `.env`, gateway `http
 | 5 | Appel **avec** contact | smoke-full-journey | À valider | Agent API ✅ |
 | 6 | Appel **sans** contact (entreprise) | smoke-full-journey | À valider | Code ✅ / API ✅ |
 | 7 | Calendrier `/events` | smoke-full-journey | À valider | Agent API ✅ |
-| 8 | Notifications **in-app** (cloche) | smoke-full-journey | À valider | Agent API ✅ |
+| 8 | Notifications **in-app** (cloche, filtre métier, tap → détail) | `smoke-notifications-in-app-scope-api.js` | `smoke-mobile-notification-nav-adb.js` | Agent **19/06 ✅** |
+| 8b | Inscription + télémétrie obligatoire | — | `smoke-register-adb.js` | Agent **19/06 ✅** |
+| 8c | Vérif email deep link + login | — | `smoke-verify-email-adb.js` | Agent **19/06 ✅** |
 | 9 | Télémétrie session/event/perf | smoke-full-journey | Paramètres | Agent API ✅ |
 | 10 | Retours bug/suggestion/signalement | `/api/v1/crashes` | Paramètres → Aide | Agent API ✅ |
 | 11 | Time-travel `ENABLE_TIME_TRAVEL=true` | smoke-full-journey | Backoffice / API | Si `.env` actif |
