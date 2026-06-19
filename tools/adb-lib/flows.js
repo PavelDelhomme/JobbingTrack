@@ -16,7 +16,38 @@
 /** Shell mobile : Accueil, Candidatures, Calendrier, Profil (4 onglets). */
 const SHELL_TAB_COUNT = 4;
 
-// ─── Auth ────────────────────────────────────────────────────────
+/** Shell mobile connecté (pas écran biométrique/login). */
+async function isShellVisible(adb) {
+  return adb.uiContains(`Tab 1 of ${SHELL_TAB_COUNT}`);
+}
+
+async function ensureAuthenticatedShell(adb, email, password) {
+  const creds = resolveTestCredentials({ email, password });
+  email = creds.email;
+  password = creds.password;
+  await dismissBiometricUnlock(adb, { password });
+  if (await isShellVisible(adb)) return 'Shell OK';
+  if (
+    (await adb.uiContains('Déverrouiller')) ||
+    (await adb.uiContains('Connexion par empreinte')) ||
+    (await adb.uiContains('Mot de passe JobbingTrack'))
+  ) {
+    await dismissBiometricUnlock(adb, { password });
+    if (await isShellVisible(adb)) return 'Shell après unlock';
+  }
+  await loginFresh(adb, email, password);
+  await dismissBiometricUnlock(adb, { password });
+  if (!(await isShellVisible(adb))) {
+    throw new Error('Shell mobile introuvable après connexion');
+  }
+  return `Connecté (${email})`;
+}
+
+
+async function setInterimModeForSmoke(adb, enabled = true) {
+  await adb.setFlutterPrefBool('interim_mode_enabled', enabled);
+  return `interim_mode_enabled=${enabled}`;
+}
 
 async function dismissBiometricUnlock(adb, opts = {}) {
   const { password } = opts;
@@ -322,6 +353,20 @@ async function loginFresh(adb, email, password) {
   return login(adb, email, password);
 }
 
+async function loginWithoutKeepLoggedIn(adb, email, password) {
+  const creds = resolveTestCredentials({ email, password });
+  email = creds.email;
+  password = creds.password;
+  await ensureFullLoginForm(adb);
+  if (await adb.uiContains('Garder la connexion')) {
+    try {
+      await adb.tap('Garder la connexion');
+      await adb.wait(600);
+    } catch {}
+  }
+  return login(adb, email, password);
+}
+
 // ─── Registration ────────────────────────────────────────────────
 
 async function ensureFullLoginForm(adb) {
@@ -577,12 +622,16 @@ async function sequence(adb, steps) {
 }
 
 module.exports = {
+  setInterimModeForSmoke,
+  ensureAuthenticatedShell,
+  isShellVisible,
   clearAppDataForSmoke,
   dismissBiometricUnlock,
   ensureLoggedOut,
   login,
   logout,
   loginFresh,
+  loginWithoutKeepLoggedIn,
   unlockWithJobbingTrackPassword,
   ensureFullLoginForm,
   restartApp,

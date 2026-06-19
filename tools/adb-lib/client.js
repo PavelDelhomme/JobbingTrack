@@ -11,6 +11,10 @@
  */
 
 const CONTROLLER_URL = process.env.EMULATOR_CONTROLLER_URL || 'http://localhost:5055';
+const { execSync } = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 class AdbClient {
   /**
@@ -211,6 +215,43 @@ class AdbClient {
     if (!r.success) throw new Error(r.error || 'Shell command failed');
     this._log(`shell: ${command.substring(0, 60)}`);
     return r.stdout || '';
+  }
+
+  /** Écrit un booléen dans FlutterSharedPreferences (smokes ADB uniquement). */
+  async setFlutterPrefBool(key, value) {
+    const prefsPath = 'shared_prefs/FlutterSharedPreferences.xml';
+    const fullKey = key.startsWith('flutter.') ? key : `flutter.${key}`;
+    const pkg = 'com.example.jobbingtrack_mobile';
+    let xml = '';
+    try {
+      xml = await this.shellCommand(`run-as ${pkg} cat ${prefsPath}`);
+    } catch {
+      xml = "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map>\n</map>";
+    }
+    const boolTag = `<boolean name="${fullKey}" value="${value ? 'true' : 'false'}" />`;
+    if (xml.includes(`name="${fullKey}"`)) {
+      xml = xml.replace(
+        new RegExp(`<boolean name="${fullKey}" value="(?:true|false)" */?>`, 'g'),
+        boolTag,
+      );
+    } else {
+      xml = xml.replace('</map>', `    ${boolTag}\n</map>`);
+    }
+    const tmpFile = path.join(os.tmpdir(), `jbt-prefs-${Date.now()}.xml`);
+    fs.writeFileSync(tmpFile, xml, 'utf8');
+    try {
+      execSync(`adb -s ${this.deviceId} push ${JSON.stringify(tmpFile)} /data/local/tmp/flutter_prefs.xml`, {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      await this.shellCommand(
+        `run-as ${pkg} cp /data/local/tmp/flutter_prefs.xml ${prefsPath}`,
+      );
+    } finally {
+      try {
+        fs.unlinkSync(tmpFile);
+      } catch {}
+    }
+    this._log(`pref ${fullKey}=${value}`);
   }
 
   async tapByIndex(index) {

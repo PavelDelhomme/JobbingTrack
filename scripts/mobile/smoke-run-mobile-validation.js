@@ -26,7 +26,12 @@ const adbTests = [
   'scripts/mobile/smoke-mobile-navigation-adb.js',
   'scripts/mobile/smoke-mobile-entities-adb.js',
   'scripts/mobile/smoke-mobile-accounts-adb.js',
+  'scripts/mobile/smoke-mobile-interim-home-adb.js',
   'scripts/mobile/smoke-offline-business-adb.js',
+];
+
+const adbTestsLast = [
+  'scripts/mobile/smoke-mobile-cold-start-login-adb.js',
 ];
 
 const slowAdbTests = [
@@ -71,6 +76,10 @@ function runScript(relPath, label) {
     for (const rel of slowAdbTests) {
       results.push(runScript(rel, `ADB slow · ${path.basename(rel, '.js')}`));
     }
+  }
+
+  for (const rel of adbTestsLast) {
+    results.push(runScript(rel, `ADB · ${path.basename(rel, '.js')}`));
   }
 
   const passed = results.filter((r) => r.ok);

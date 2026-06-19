@@ -24,11 +24,13 @@ class _AppDrawerState extends State<AppDrawer> {
 
   Future<void> _loadInterimMode() async {
     final enabled = await ApiConfigStore.loadInterimModeEnabled();
-    if (mounted) setState(() => _interimMode = enabled);
+    if (!mounted || enabled == _interimMode) return;
+    setState(() => _interimMode = enabled);
   }
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadInterimMode());
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;
     final isAdmin = AdminAccess.canAccessAdmin(user);
