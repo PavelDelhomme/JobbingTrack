@@ -19,6 +19,12 @@
 
 Les fichiers **`PLAN.md`**, **`TODOS.md`**, **`BACKLOG.md`**, **`RESOLUTIONS.md`**, **`ERRORS.md`** à la racine de `docs/` sont des **redirects** (compatibilité liens) vers les chemins ci-dessus.
 
+## 22 juin 2026 — Backoffice Vue d’ensemble : carte « Sessions actives » incohérente
+
+- **Symptôme porteur** : carte **2 Sessions actives (10 utilisateurs)** ; clic → **`/backoffice/users?status=active`** → **~100** résultats (majorité comptes E2E/test).
+- **Cause** : (1) valeur = sessions 30 min (`GET /auth/sessions/active`) ; (2) sous-titre = **`users.length`** sur requête `limit=10` ; (3) lien = filtre **`isActive`** compte, pas sessions récentes.
+- **Gate préprod** : ligne ajoutée dans **`production/A_VALIDER_AVANT_PRODUCTION.md`** ; tâche **`pilotage/TODOS.md`** § Vue d’ensemble Sessions actives ; **`troubleshooting/ERRORS.md`** + **`project/BACKLOG.md`**.
+
 ## 22 juin 2026 — Mobile émulateur, télémétrie analytics, batterie smokes
 
 - **Stack locale** : profil `full` relancé — gateway `127.0.0.1:5002` **200**, 21 conteneurs healthy (+ mailhog).

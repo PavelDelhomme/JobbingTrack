@@ -1,6 +1,6 @@
 # Déploiement préproduction / production
 
-Dernière mise à jour : 21 mai 2026
+Dernière mise à jour : 22 juin 2026
 
 ## Rôle
 
@@ -17,6 +17,7 @@ Ce fichier suit ce qui est préparé ou déployé en préprod/prod, mais pas enc
 | Registry Docker / images | preprod/prod | [ ] Non démarré | Images construites, taguées, scannées, rollback possible. | |
 | Security Audit images prod | GitHub | [ ] À lancer avant déploiement | Artefact `trivy-prod-image-reports` classé. | |
 | Stack production réelle | prod | [ ] Non démarré | À renseigner seulement quand un serveur prod existe. | |
+| Backoffice KPI hub (Sessions actives) | preprod | Carte hub cohérente avec destination ; comptes test exclus ou séparés. Voir `A_VALIDER_AVANT_PRODUCTION.md`. | [ ] | Retour porteur 22/06 — écart 2 vs ~100 au clic. |
 
 ## Règle
 

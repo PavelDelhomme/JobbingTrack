@@ -37,7 +37,12 @@
 - [ ] Garder **`.env`** aligné avec **`.env.example`** (mêmes clés, valeurs réelles hors dépôt) — revue à chaque ajout de variable.
 - [ ] Avant merge vers prod : appliquer le gate **lot H** (`RELEASE_PREPROD_PRODUCTION_PLAN.md`) : branche tests complets, préprod validée, scans sécurité P0, licences, RGPD, sauvegarde/restauration, monitoring/alerting, rollback.
 
-## F. Courriel (SMTP) et rapports de crash
+## F. Backoffice — KPI hub avant ouverture
+
+- [ ] **Vue d’ensemble `/backoffice`** : vérifier que chaque carte KPI (sessions, sécurité, santé, latence, CPU/RAM) affiche une valeur cohérente avec la page de destination — en particulier **Sessions actives** (retour porteur 22/06 : écart 2 vs ~100, comptes E2E). Gate détaillé : **`../production/A_VALIDER_AVANT_PRODUCTION.md`** ; correctif : **`../pilotage/TODOS.md`** § Sessions actives.
+- [ ] Purge ou exclusion documentée des **comptes/données de test** en préprod (ne pas porter la pollution E2E locale en prod) — voir aussi **`../pilotage/TODOS.md`** § nettoyage données test.
+
+## G. Courriel (SMTP) et rapports de crash
 
 - [ ] **MailHog absent du chemin préprod/prod** : `SMTP_HOST` ne vaut pas `mailhog`, `localhost`, `127.0.0.1` ou un service Docker de test ; `NOTIFICATION_SMTP_HOST` ne force pas MailHog ; MailHog n’est pas exposé publiquement.
 - [ ] **`SMTP_USER`** et **`SMTP_PASS`** : renseigner les **identifiants réels** du fournisseur (OVH, SendGrid, etc.) — **jamais** de placeholders en prod ; le **`.env`** reste hors Git.
@@ -49,4 +54,4 @@
 
 ---
 
-*Dernière mise à jour : 21 mai 2026 — ajout gate GitHub Actions Security Audit avec `scan_prod_images=true` pour Trivy images prod ; historique avril/mai 2026 : F SMTP / crash report + note B11 alertes critiques ; E Jest gateway conteneur + perf scripts gateway.*
+*Dernière mise à jour : 22 juin 2026 — section F backoffice KPI (Sessions actives) ; historique : gate Security Audit Trivy ; F/G SMTP / crash report ; E Jest gateway + perf scripts.*

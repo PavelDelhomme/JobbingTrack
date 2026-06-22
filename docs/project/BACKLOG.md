@@ -6,6 +6,8 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **Méta (11/05/2026)** : la racine ne garde que `README.md`; les fichiers de pilotage sont sous `docs/`. Revue **BDD** avant campagne de tests, interprétation des **logs gateway sécurité** et suite sécurité — voir **`docs/TODOS.md`** et **`docs/STATUS.md`**.
 
+**Vue d’ensemble backoffice — carte Sessions actives (22/06/2026, gate préprod)** : retour porteur — KPI **2** sur la carte vs **~100** après clic ; sous-titre **« 10 utilisateurs »** incohérent ; destination **`/users?status=active`** mélange **sessions 30 min** (auth) et **comptes activés** (dont E2E). À traiter **avant prod** avec exclusion/filtre comptes test et alignement sémantique titre/lien. Détail technique : **`docs/pilotage/TODOS.md`** § Vue d’ensemble Sessions actives ; gate : **`docs/production/A_VALIDER_AVANT_PRODUCTION.md`**.
+
 **Statistics & monitoring global (18/05/2026)** : KPI services et graphes erreur/disponibilité sur **`/backoffice/statistics`** + vue d’ensemble **`/backoffice`** — chantier planifié **`PLAN.md` A1h** et cases détaillées **`TODOS.md`** § **Chantier Statistiques & backoffice** (ne pas dupliquer ici).
 
 **Statistics log-stats / persistance (20/05/2026)** : `aggregated_logs`, `log_collector_logs`, `container_logs`, métriques système/conteneurs, disponibilité, sécurité, `system_events` et `service_network_history` sont alimentés/visibles dans `/backoffice/statistics/log-stats`. Suite backlog : tests API/UI sur `/api/v1/persistence/stats`, smoke navigateur après login et contrôle granularité erreurs.
