@@ -6,12 +6,13 @@ Dernière mise à jour : 22 juin 2026
 
 ## Réponse courte
 
-**Non** — le système qui permet à **n’importe quel utilisateur** de relier son Gmail ou une boîte IMAP/SMTP à son compte JobbingTrack **n’est pas encore implémenté** en produit.
+**Partiellement implémenté (22/06/2026)** — socle produit multi-utilisateur en place ; digest 18h SMTP, Google Tasks/Calendar et liaison auto email↔candidature restent à finaliser.
 
 Ce qui existe aujourd’hui :
 
-- **Documentation** et **scripts dev** pour le **compte porteur** uniquement (`.env` machine, pas par utilisateur).
-- **Socle de tests** (`tests/email-triage/`) : règles métier, politique d’accès, consentement **simulés en Jest** — pas d’API ni d’UI utilisateur.
+- **Backend auth-service** : modèles BDD `UserMailbox`, `UserAgentConsent`, `EmailTriageMessage` ; flag `jobSearchAgentEnabled` ; API `/api/v1/email-agent/*` ; chiffrement AES-256-GCM ; OAuth Gmail + IMAP ; worker cron workflow (30 min).
+- **UI espace utilisateur** : `/agent` — consentements RGPD, Gmail/IMAP, sync, file à traiter.
+- **Scripts dev porteur** (`.env`) et **socle tests** `tests/email-triage/` — complémentaires, inchangés.
 
 ---
 
@@ -22,14 +23,14 @@ Ce qui existe aujourd’hui :
 | Envoi emails applicatifs (vérif, reset) | **OK** | auth-service + MailHog/SMTP |
 | Lecture IMAP dev (scripts) | **OK local** | `fetch-imap-verification.js`, `resolve-email-triage-env.js` — lit **`.env` porteur** |
 | Gmail sur émulateur AVD | **OK partiel** | `configure-emulator-gmail.js` — compte **`EMAIL_GMAIL_PRO_*`** porteur |
-| Politique accès agent (tests) | **OK unitaire** | `tests/email-triage/lib/agent-access-policy.js` — flag `JOB_SEARCH_AGENT_ENABLED` |
+| Politique accès agent (tests + API) | **OK** | `jobSearchAgentEnabled` en BDD + `auth-service/src/lib/agentAccessPolicy.js` |
 | Politique connexion Gmail/IMAP (tests) | **OK unitaire** | `mail-connection-policy.js` — OAuth / IMAP placeholder |
-| Classification emails, digest, Calendar | **OK unitaire** | moteur déterministe testé, pas de worker prod |
-| **OAuth Google par utilisateur** | **Non** | pas de flux login Google lié au profil JobbingTrack |
-| **UI « Connecter ma boîte »** | **Non** | pas d’écran mobile/web pour ajouter Gmail/IMAP |
-| **Table BDD comptes mail / tokens** | **Non** | pas de modèle Prisma `UserMailbox` / tokens chiffrés |
-| **Consentement RGPD mail (UI)** | **Non** | règles décrites en doc + tests, pas d’écran consentement |
-| **Relier email → candidature (auto)** | **Non** | cadrage produit seulement |
+| Classification emails, digest, Calendar | **OK unitaire** | moteur déterministe testé ; worker prod sync + tri partiel |
+| **OAuth Google par utilisateur** | **Partiel** | flux `/api/v1/email-agent/oauth/google/*` ; requiert `GOOGLE_OAUTH_*` |
+| **UI « Connecter ma boîte »** | **OK** | `/agent` — Gmail OAuth + formulaire IMAP |
+| **Table BDD comptes mail / tokens** | **OK** | `UserMailbox`, tokens chiffrés `credentialsEnc` |
+| **Consentement RGPD mail (UI)** | **OK** | 6 consentements versionnés ; audit BDD |
+| **Relier email → candidature (auto)** | **Partiel** | classification + file « à traiter » ; pas encore écriture candidature |
 
 > Les variables `EMAIL_GMAIL_PRO_*` et `EMAIL_TRIAGE_*` dans `.env` servent au **développement et aux tests du porteur**. Elles **ne remplacent pas** un connecteur multi-utilisateur en production.
 

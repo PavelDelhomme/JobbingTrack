@@ -50,6 +50,9 @@ model User {
   timezone          String?   @default("Europe/Paris")
   notificationsEnabled Boolean @default(true)
 
+  // Agent email recherche d'emploi (activation admin explicite)
+  jobSearchAgentEnabled Boolean @default(false)
+
   // Données de test (filtre données test cohérent)
   isTestData Boolean @default(false)
   
@@ -71,6 +74,9 @@ model User {
   documents         Document[]
   syncQueue         SyncQueue[]
   emailLogs         EmailLog[]          // Logs des emails envoyés
+  mailboxes         UserMailbox[]
+  agentConsents     UserAgentConsent[]
+  triageMessages    EmailTriageMessage[]
   
   // Relations Analytics & Tracking
   sessions          UserSession[]
@@ -1016,6 +1022,130 @@ model EmailTemplate {
   
   @@index([type])
   @@index([isActive])
+}
+
+// ============================================
+// 📬 AGENT EMAIL — BOÎTES, CONSENTEMENTS, TRI
+// ============================================
+
+model UserMailbox {
+  id             String            @id @default(cuid())
+  userId         String
+  emailAddress   String
+  displayName    String?
+  provider       MailboxProvider
+  credentialsEnc String            @db.Text
+  imapHost       String?
+  imapPort       Int?
+  imapUseTls     Boolean           @default(true)
+  smtpHost       String?
+  smtpPort       Int?
+  smtpUseTls     Boolean           @default(true)
+  oauthScopes    String[]          @default([])
+  syncEnabled    Boolean           @default(true)
+  lastSyncAt     DateTime?
+  lastSyncError  String?
+  lastSyncStatus MailboxSyncStatus @default(IDLE)
+  status         MailboxStatus     @default(ACTIVE)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  revokedAt      DateTime?
+
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  triageMessages EmailTriageMessage[]
+
+  @@unique([userId, emailAddress])
+  @@index([userId])
+  @@index([status])
+  @@map("user_mailboxes")
+}
+
+enum MailboxProvider {
+  GMAIL_OAUTH
+  IMAP_GENERIC
+}
+
+enum MailboxStatus {
+  ACTIVE
+  REVOKED
+  ERROR
+}
+
+enum MailboxSyncStatus {
+  IDLE
+  SYNCING
+  OK
+  ERROR
+}
+
+model UserAgentConsent {
+  id          String           @id @default(cuid())
+  userId      String
+  consentType AgentConsentType
+  granted     Boolean          @default(false)
+  version     String
+  grantedAt   DateTime?
+  revokedAt   DateTime?
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, consentType, version])
+  @@index([userId])
+  @@map("user_agent_consents")
+}
+
+enum AgentConsentType {
+  MAILBOX_ACCESS
+  CONTENT_CLASSIFICATION
+  DIGEST_NOTIFICATIONS
+  GOOGLE_CALENDAR
+  GOOGLE_TASKS
+  AI_PROCESSING
+}
+
+model EmailTriageMessage {
+  id              String             @id @default(cuid())
+  userId          String
+  mailboxId       String
+  externalId      String
+  fromAddress     String
+  subject         String
+  snippet         String?            @db.Text
+  receivedAt      DateTime
+  classification  String?
+  confidence      String?
+  suggestedStatus String?
+  labels          String[]           @default([])
+  proposedActions Json?
+  reviewStatus    TriageReviewStatus @default(PENDING)
+  applicationId   String?
+  companyId       String?
+  contactId       String?
+  rawHeaders      Json?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mailbox UserMailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+
+  @@unique([mailboxId, externalId])
+  @@index([userId])
+  @@index([mailboxId])
+  @@index([reviewStatus])
+  @@index([receivedAt])
+  @@map("email_triage_messages")
+}
+
+enum TriageReviewStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  DEFERRED
 }
 
 // ============================================

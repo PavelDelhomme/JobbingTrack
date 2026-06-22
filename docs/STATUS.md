@@ -19,9 +19,11 @@
 
 Les fichiers **`PLAN.md`**, **`TODOS.md`**, **`BACKLOG.md`**, **`RESOLUTIONS.md`**, **`ERRORS.md`** à la racine de `docs/` sont des **redirects** (compatibilité liens) vers les chemins ci-dessus.
 
-## 22 juin 2026 — Agent email : pas encore de connexion multi-utilisateur
+## 22 juin 2026 — Agent email : socle produit multi-utilisateur (phase 1)
 
-- **`docs/emails/AGENT_EMAIL_ETAT_ET_ROADMAP.md`** : clarifie que OAuth Gmail / IMAP par utilisateur + consentement RGPD **restent à construire** ; aujourd'hui = scripts `.env` porteur + tests Jest seulement.
+- **Implémenté** : modèles Prisma (`UserMailbox`, `UserAgentConsent`, `EmailTriageMessage`), flag `jobSearchAgentEnabled`, API `/api/v1/email-agent/*`, OAuth Gmail, IMAP self-service, consentements RGPD, chiffrement tokens, worker sync 30 min, UI **`/agent`**.
+- **Reste** : digest 18h (notification-service), Google Tasks/Calendar, liaison auto email↔candidature, mobile, validation porteur.
+- Détail : **`docs/emails/AGENT_EMAIL_ETAT_ET_ROADMAP.md`**.
 
 ## 22 juin 2026 — Doc comptes email dev (Gmail, pm.me, politique porteur)
 

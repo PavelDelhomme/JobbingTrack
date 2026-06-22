@@ -56,7 +56,14 @@ class CronScheduler {
       await this.sendInterviewFeedbackReminders();
     });
 
-    logger.info('⏰ Cron scheduler started with 8 jobs');
+    // Agent email — sync boîtes utilisateurs autorisés (toutes les 30 min)
+    cron.schedule('*/30 * * * *', async () => {
+      logger.info('📬 Running email agent mailbox sync...');
+      const { runEmailAgentSyncJob } = require('./emailAgentSyncJob');
+      await runEmailAgentSyncJob();
+    });
+
+    logger.info('⏰ Cron scheduler started with 9 jobs');
     logger.info('   - Pending workflow executions: every hour');
     logger.info('   - Auto-followup check: daily at 9:00');
     logger.info('   - Trash auto-clean: daily at 2:00');

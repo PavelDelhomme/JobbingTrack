@@ -25,6 +25,7 @@ const getUserById = async (req, res) => {
           isActive: true,
           emailVerified: true,
           emailVerifiedAt: true,
+          jobSearchAgentEnabled: true,
           lastLoginAt: true,
           // ✅ loginCount n'existe pas dans le schéma Prisma, retiré
           createdAt: true,
@@ -114,7 +115,7 @@ const getUserById = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, email, phone, password } = req.body;
+    const { firstName, lastName, email, phone, password, jobSearchAgentEnabled } = req.body;
 
     // Vérifier que l'utilisateur existe
     const existingUser = await prisma.user.findUnique({ where: { id } });
@@ -156,6 +157,14 @@ const updateUser = async (req, res) => {
       updateData.password = await bcrypt.hash(password, 12);
     }
 
+    const requesterRole = String(req.user?.role || '').toUpperCase();
+    if (
+      typeof jobSearchAgentEnabled === 'boolean' &&
+      ['ADMIN', 'SUPER_ADMIN'].includes(requesterRole)
+    ) {
+      updateData.jobSearchAgentEnabled = jobSearchAgentEnabled;
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id },
       data: updateData,
@@ -168,6 +177,7 @@ const updateUser = async (req, res) => {
         role: true,
         isActive: true,
         emailVerified: true,
+        jobSearchAgentEnabled: true,
         lastLoginAt: true,
         createdAt: true,
         updatedAt: true

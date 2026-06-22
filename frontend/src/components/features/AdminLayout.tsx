@@ -399,6 +399,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       ],
     },
     {
+      id: "jobsearch",
+      label: "Recherche emploi",
+      icon: "📬",
+      isCollapsible: false,
+      items: [{ name: "Agent email", href: "/agent", icon: "📬" }],
+    },
+    {
       id: "admin",
       label: "Administration",
       icon: "⚙️",

@@ -18,6 +18,7 @@ const authRoutes = require('./routes/auth.routes');
 const preferencesRoutes = require('./routes/preferences.routes');
 const usersRoutes = require('./routes/users.routes');
 const emailRoutes = require('./routes/email.routes');
+const emailAgentRoutes = require('./routes/emailAgent.routes');
 const templateRoutes = require('./routes/template.routes');
 const errorHandler = require('./middlewares/errorHandler');
 const notFound = require('./middlewares/notFound');
@@ -126,7 +127,10 @@ app.use('/api/v1/auth/preferences', preferencesRoutes); // alias pour tests et c
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/auth/users', usersRoutes); // ✅ Dupliquer pour compatibilité avec /api/v1/auth/users
 app.use('/api/v1/emails', emailRoutes);
+app.use('/api/v1/email-agent', emailAgentRoutes);
 app.use('/api/v1/emails/templates', templateRoutes);
+
+logger.info('✅ Route /api/v1/email-agent enregistrée');
 
 logger.info('✅ Route /api/v1/emails enregistrée');
 logger.info('✅ Route /api/v1/emails/templates enregistrée');
