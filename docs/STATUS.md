@@ -2,7 +2,22 @@
 
 **Dernière mise à jour** : 22 juin 2026 — **Branche** `dev` (mobile Lot D + analytics utilisateur).
 
-**Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+**Chantier structuré (backoffice + API + doc)** : voir **[`project/PLAN.md`](project/PLAN.md)** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **[`pilotage/TODOS.md`](pilotage/TODOS.md)** (cases à cocher + règles PR / tests).
+
+## Navigation documentation (structure juin 2026)
+
+| Fichier | Rôle |
+|---------|------|
+| **[STATUS.md](STATUS.md)** (ce document) | **État courant** — priorités, faits récents, où on en est |
+| **[pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)** | Flux porteur/agent — lire avant toute tâche |
+| **[pilotage/TODOS.md](pilotage/TODOS.md)** | Backlog technique ordonné (cases `[ ]` / lots A–H) |
+| **[project/PLAN.md](project/PLAN.md)** | Plan global par lots, validation porteur |
+| **[project/BACKLOG.md](project/BACKLOG.md)** | Sujets reportés, dettes, idées (agile) |
+| **[project/RESOLUTIONS.md](project/RESOLUTIONS.md)** | Correctifs et décisions déjà actées |
+| **[troubleshooting/ERRORS.md](troubleshooting/ERRORS.md)** | Erreurs connues non résolues, pièges |
+| **[INDEX.md](INDEX.md)** · **[navigation.md](navigation.md)** | Index thématique et liens partagés |
+
+Les fichiers **`PLAN.md`**, **`TODOS.md`**, **`BACKLOG.md`**, **`RESOLUTIONS.md`**, **`ERRORS.md`** à la racine de `docs/` sont des **redirects** (compatibilité liens) vers les chemins ci-dessus.
 
 ## 22 juin 2026 — Mobile émulateur, télémétrie analytics, batterie smokes
 
@@ -1688,12 +1703,16 @@ Après `make up-full` et `make seed-auth`, tu peux te connecter au backoffice av
 
 ## Documentation
 
-**Fichiers Markdown de pilotage** : la racine du projet conserve uniquement `README.md`. La racine de `docs/` conserve `README.md`, `INDEX.md`, `navigation.md`, `PLAN.md`, `STATUS.md`, `TODOS.md`, `ERRORS.md`, `BACKLOG.md` et `RESOLUTIONS.md`. Les documents de contenu sont rangés par domaine (`project/`, `security/`, `getting-started/`, etc.).
+**Hub `docs/`** : **`README.md`**, **`STATUS.md`** (état courant), **`INDEX.md`**, **`navigation.md`**. Pilotage : **`pilotage/`** (`PILOTAGE.md`, `TODOS.md`, `TODOS_A_*`). Vision projet : **`project/`** (`PLAN.md`, `BACKLOG.md`, `RESOLUTIONS.md`). Dépannage : **`troubleshooting/ERRORS.md`**. Outils PDF : **`_meta/generate-pdfs.js`**.
 
 | Sujet | Fichier |
 |-------|---------|
-| **Plan chantier backoffice + API + doc (lots A–H)** | **`PLAN.md`** |
-| **Liste de tâches opérationnelles (cases à cocher)** | **`TODOS.md`** |
+| **État courant (priorités)** | **`STATUS.md`** (ce document) |
+| **Plan chantier backoffice + API + doc (lots A–H)** | **`project/PLAN.md`** |
+| **Liste de tâches opérationnelles (cases à cocher)** | **`pilotage/TODOS.md`** |
+| **Backlog reporté (agile)** | **`project/BACKLOG.md`** |
+| **Correctifs actés** | **`project/RESOLUTIONS.md`** |
+| **Erreurs actives** | **`troubleshooting/ERRORS.md`** |
 | **CVE / dépendances / inventaire scans (à compléter)** | **`docs/security/STATS.md`** |
 | **Index chantier dans docs/** | **`docs/project/CHANTIER_SECURITE_DATA_DOCS.md`** |
 | **Migrations Prisma et bases (principale vs test)** | `docs/database/MIGRATIONS_ET_BASES.md` |
@@ -1701,7 +1720,7 @@ Après `make up-full` et `make seed-auth`, tu peux te connecter au backoffice av
 | **À faire maintenant (priorité)** | Voir section « À faire maintenant » en tête de ce fichier |
 | Prochaines étapes mobile (vérif email + Flutter) | `docs/mobile/PROCHAINES_ETAPES.md` |
 | Fonctionnalites completes | `docs/project/FONCTIONNALITES.md` |
-| Backlog complet | `docs/BACKLOG.md` |
+| Backlog complet | `project/BACKLOG.md` |
 | Demarrage complet | `docs/getting-started/DEMARRAGE.md` |
 | Parcours metier | `docs/user-journey/PARCOURS_METIER.md` |
 | Configuration / ports | `docs/configuration/CONFIGURATION_PORTS.md`, `docs/configuration/PORTS.md` |
@@ -1713,8 +1732,8 @@ Après `make up-full` et `make seed-auth`, tu peux te connecter au backoffice av
 | Accès réseau local | `docs/getting-started/ACCES_RESEAU_LOCAL.md` |
 | Quick Start - Tests mobile (E2E Playwright) | `docs/tests/QUICK_START_MOBILE_TESTS.md` |
 | Optimisation performance frontend (guide + rapports) | `docs/frontend/PERFORMANCE_OPTIMIZATION.md` ; rapports générés : `frontend/performance-reports/` |
-| Ce qui est resolu | `RESOLUTIONS.md` |
-| Erreurs connues | `ERRORS.md` |
+| Ce qui est resolu | `project/RESOLUTIONS.md` |
+| Erreurs connues | `troubleshooting/ERRORS.md` |
 | Performance (TODO) | `docs/todo/TODO_PERFORMANCE.md` |
 | Tests couverture E2E | `docs/tests/BACKOFFICE_TESTS_COVERAGE.md` |
 | Checklist tests fin de projet | `docs/tests/TESTS_END.md` |

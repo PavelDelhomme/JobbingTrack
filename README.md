@@ -22,14 +22,15 @@
 | **[docs/pilotage/PILOTAGE.md](docs/pilotage/PILOTAGE.md)** | Point d’entrée obligatoire — flux porteur / agent |
 | **[docs/pilotage/TODOS_A_VALIDER.md](docs/pilotage/TODOS_A_VALIDER.md)** | Validations porteur bloquantes |
 | **[docs/pilotage/TODOS_A_VERIFIER.md](docs/pilotage/TODOS_A_VERIFIER.md)** | Preuves techniques agent |
-| **[docs/STATUS.md](docs/STATUS.md)** | **À faire maintenant**, état détaillé, priorités produit |
-| **[docs/ERRORS.md](docs/ERRORS.md)** | Erreurs connues non résolues |
+| **[docs/STATUS.md](docs/STATUS.md)** | **État courant** — priorités, journal, hub doc |
+| **[docs/pilotage/TODOS.md](docs/pilotage/TODOS.md)** | Backlog technique (cases à cocher) |
+| **[docs/project/PLAN.md](docs/project/PLAN.md)** | Plan lots A–H |
+| **[docs/project/BACKLOG.md](docs/project/BACKLOG.md)** | Backlog agile (reporté, dettes) |
 | **[docs/project/FONCTIONNALITES.md](docs/project/FONCTIONNALITES.md)** | Liste complète des fonctionnalités |
-| **[docs/RESOLUTIONS.md](docs/RESOLUTIONS.md)** | Erreurs résolues et correctifs |
-| **[docs/PLAN.md](docs/PLAN.md)** | Chantier backoffice + API + sécurité + documentation |
-| **[docs/TODOS.md](docs/TODOS.md)** | Cases à cocher alignées sur le plan |
+| **[docs/project/RESOLUTIONS.md](docs/project/RESOLUTIONS.md)** | Correctifs actés |
+| **[docs/troubleshooting/ERRORS.md](docs/troubleshooting/ERRORS.md)** | Erreurs connues actives |
 
-Pour savoir **ce qu’il faut faire** → **[docs/STATUS.md](docs/STATUS.md)** et **[docs/mobile/PROCHAINES_ETAPES.md](docs/mobile/PROCHAINES_ETAPES.md)**. Pour le **chantier structuré** (lot **A** monitoring + logs, lot **B** sécurité, documentation) → **[docs/PLAN.md](docs/PLAN.md)** et **[docs/TODOS.md](docs/TODOS.md)**.
+Pour savoir **ce qu’il faut faire** → **[docs/STATUS.md](docs/STATUS.md)** et **[docs/mobile/PROCHAINES_ETAPES.md](docs/mobile/PROCHAINES_ETAPES.md)**. Chantier structuré → **[docs/project/PLAN.md](docs/project/PLAN.md)** et **[docs/pilotage/TODOS.md](docs/pilotage/TODOS.md)**.
 
 ### 📚 Documentation détaillée
 

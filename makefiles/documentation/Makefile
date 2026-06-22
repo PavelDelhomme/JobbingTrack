@@ -39,8 +39,8 @@ docs-pdf-check: ## Vérifier les dépendances pour la génération PDF
 	else \
 		echo "$(GREEN)✅ node_modules présent$(RESET)"; \
 	fi
-	@if [ ! -f "docs/generate-pdfs.js" ]; then \
-		echo "$(RED)❌ Script generate-pdfs.js manquant$(RESET)"; \
+	@if [ ! -f "docs/_meta/generate-pdfs.js" ]; then \
+		echo "$(RED)❌ Script docs/_meta/generate-pdfs.js manquant$(RESET)"; \
 		exit 1; \
 	fi
 	@echo "$(GREEN)✅ Script de génération PDF trouvé$(RESET)"
@@ -48,7 +48,7 @@ docs-pdf-check: ## Vérifier les dépendances pour la génération PDF
 docs-pdf-all: docs-pdf-check ## Générer tous les PDFs (unitaires + global)
 	@echo "$(CYAN)📄 Génération de tous les PDFs...$(RESET)"
 	@echo "$(YELLOW)⏳ Cela peut prendre quelques minutes...$(RESET)"
-	@cd docs && node generate-pdfs.js
+	@node docs/_meta/generate-pdfs.js
 	@echo "$(GREEN)✅ Tous les PDFs générés avec succès !$(RESET)"
 	@echo "$(CYAN)📁 PDFs disponibles dans : docs/pdfs/$(RESET)"
 	@ls -lh docs/pdfs/*.pdf 2>/dev/null || true
@@ -66,7 +66,7 @@ docs-pdf: docs-pdf-check ## Générer un PDF spécifique (usage: make docs-pdf p
 		exit 1; \
 	fi
 	@echo "$(CYAN)📄 Génération PDF pour : $(path)$(RESET)"
-	@cd docs && node generate-pdfs.js "$(path)"
+	@node docs/_meta/generate-pdfs.js "$(path)"
 	@echo "$(GREEN)✅ PDF généré avec succès !$(RESET)"
 
 docs-pdf-clean: ## Nettoyer tous les PDFs générés

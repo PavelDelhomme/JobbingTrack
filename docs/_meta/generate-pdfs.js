@@ -2,7 +2,7 @@ const { mdToPdf } = require('md-to-pdf');
 const fs = require('fs');
 const path = require('path');
 
-const docsDir = __dirname;
+const docsDir = path.join(__dirname, '..');
 const pdfsDir = path.join(docsDir, 'pdfs');
 
 // Créer le dossier pdfs s'il n'existe pas
@@ -15,7 +15,7 @@ if (!fs.existsSync(pdfsDir)) {
  * Scanne récursivement le dossier docs/ pour trouver tous les fichiers .md
  * @returns {Array} - Liste des fichiers .md trouvés
  */
-function scanMarkdownFiles(directory = docsDir, excludeDirs = ['node_modules', 'pdfs', 'temp']) {
+function scanMarkdownFiles(directory = docsDir, excludeDirs = ['node_modules', 'pdfs', 'temp', '_meta']) {
   const files = [];
   
   function scan(dir) {
@@ -373,7 +373,7 @@ async function generateCompleteDocumentationPDF() {
             </div>
           `
         },
-        stylesheet: [path.join(docsDir, 'pdf-style.css')],
+        stylesheet: [path.join(docsDir, '_meta/pdf-style.css')],
         body_class: 'markdown-body',
         css: `
           .markdown-body {
@@ -528,7 +528,7 @@ async function generateIndividualPDF(markdownPath, pdfPath) {
           headerTemplate: '<div style="font-size: 9px; text-align: center; width: 100%; color: #666;">JobbingTrack Documentation</div>',
           footerTemplate: '<div style="font-size: 8px; text-align: center; width: 100%; color: #666;"><span class="pageNumber"></span> / <span class="totalPages"></span></div>'
         },
-        stylesheet: [path.join(docsDir, 'pdf-style.css')],
+        stylesheet: [path.join(docsDir, '_meta/pdf-style.css')],
         body_class: 'markdown-body'
       }
     );

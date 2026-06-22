@@ -22,6 +22,7 @@ Solutions aux problèmes courants et diagnostic pour JobbingTrack.
 
 ## 📚 Documents dédiés
 
+- **[ERRORS.md](ERRORS.md)** — Registre des erreurs actives et pièges connus (non résolus).
 - **[PostgreSQL & monitoring](POSTGRES_MONITORING.md)** – Diagnostic BDD et monitoring.
 - **[Dépannage login](TROUBLESHOOTING_LOGIN.md)** – Problèmes de connexion (admin, token, email).
 

@@ -13,9 +13,9 @@ Dernière mise à jour : 21 mai 2026.
 | 1 | **`PILOTAGE.md`** | Source de vérité du flux et règle bloquante |
 | 2 | **`TODOS_A_VALIDER.md`** | Ce que le **porteur** doit valider manuellement |
 | 3 | **`TODOS_A_VERIFIER.md`** | Ce que l’agent doit vérifier techniquement |
-| 4 | **`docs/TODOS.md`** | Backlog technique ordonné |
-| 5 | **`docs/PLAN.md`** / **`docs/STATUS.md`** | Phases, état et journal |
-| 6 | **`docs/ERRORS.md`** | Erreurs connues et résolutions |
+| 4 | **[`TODOS.md`](TODOS.md)** | Backlog technique ordonné |
+| 5 | **[`../project/PLAN.md`](../project/PLAN.md)** / **[`../STATUS.md`](../STATUS.md)** | Phases, état et journal |
+| 6 | **[`../troubleshooting/ERRORS.md`](../troubleshooting/ERRORS.md)** | Erreurs connues et pièges |
 | 7 | **`docs/development/BRANCHES.md`** | Conventions Git |
 
 Thèmes détaillés : `docs/operations/DEV_HTTPS.md`, `docs/configuration/STRICT_ENV.md`, `docs/security/README.md`, `docs/security/STATS.md`.
@@ -33,7 +33,7 @@ Cocher mentalement (ou dans la réponse si utile) :
 - [ ] **Make** : ne pas exécuter `make …` sauf demande explicite — utiliser scripts / `docker compose` / `npm` / `cargo` (règle workspace).
 - [ ] **Frontend** : si touché → `npm run type-check` et `npm run lint` dans `frontend/`.
 - [ ] **Sécurité** : pas de bypass WAF/TLS en prod ; dev HTTPS = `https://jobbingtrack.localhost:5443` + `https://api.jobbingtrack.localhost:5443`.
-- [ ] **Fin de tâche** : mettre à jour `TODOS_A_VERIFIER.md`, `TODOS_A_VALIDER.md`, `TODOS_DONE.md` ou `docs/TODOS.md` selon le cas.
+- [ ] **Fin de tâche** : mettre à jour `TODOS_A_VERIFIER.md`, `TODOS_A_VALIDER.md`, `TODOS_DONE.md` ou [`TODOS.md`](TODOS.md) selon le cas.
 
 ---
 
@@ -125,7 +125,7 @@ Workflow recommandé :
 
 Si l’agent « perd » le contexte :
 
-1. Lire `PILOTAGE.md`, `TODOS_A_VALIDER.md`, `TODOS_A_VERIFIER.md`, puis `docs/TODOS.md`.
+1. Lire `PILOTAGE.md`, `TODOS_A_VALIDER.md`, `TODOS_A_VERIFIER.md`, puis [`TODOS.md`](TODOS.md).
 2. `git status` et branche courante.
 3. Reprendre uniquement la première validation bloquante ouverte.
 

@@ -48,7 +48,7 @@ Avant toute nouvelle tâche, lire dans cet ordre :
 1. `PILOTAGE.md`
 2. `TODOS_A_VALIDER.md`
 3. `TODOS_A_VERIFIER.md`
-4. `docs/TODOS.md`
+4. `pilotage/TODOS.md` (ex-`docs/TODOS.md`)
 5. `BRANCHES.md`
 
 Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non résolue, ne pas avancer sur une nouvelle fonctionnalité **sauf demande explicite du porteur de valider en lot plus tard**. Mode actuel (11/06) : le porteur autorise l’agent à **préparer plusieurs lignes P1** (preuves dans `TODOS_A_VERIFIER.md`) sans archiver dans `TODOS_DONE.md` tant que le OK explicite n’est pas donné. L’ordre de `TODOS_A_VALIDER.md` reste la file de validation ; l’agent peut implémenter/corriger en parallèle les sujets déjà ouverts (P1A tests offensifs, P1B temps de réponse, P1C menu Tests/Rapports, responsive).
@@ -61,12 +61,10 @@ Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non rés
 | `TODOS_A_VALIDER.md` | Validations porteur locales/visuelles/fonctionnelles à faire avant la suite. |
 | `TODOS_A_VERIFIER.md` | Vérifications techniques agent avant de demander une validation porteur. |
 | `TODOS_DONE.md` | Éléments validés par le porteur, archivés proprement. |
-| `docs/TODOS.md` | Backlog technique ordonné, pas une preuve de validation produit. |
-| `docs/production/A_VALIDER_AVANT_PRODUCTION.md` | Gate préprod/prod à exécuter après validations locales. |
-| `docs/production/DEPLOIEMENT_PRODUCTION.md` | Éléments préparés/déployés en préprod/prod mais pas encore validés production. |
-| `docs/production/VALIDATION_PRODUCTION.md` | Éléments validés en préprod/prod réelle. |
-| `docs/STATUS.md` | Journal de ce qui a été fait et validé techniquement. |
-| `docs/BACKLOG.md` | Idées, dettes et sujets reportés hors file courte. |
+| `pilotage/TODOS.md` | Backlog technique ordonné, pas une preuve de validation produit. |
+| `../project/PLAN.md` | Plan global lots A–H. |
+| `../project/BACKLOG.md` | Idées, dettes et sujets reportés hors file courte. |
+| `../STATUS.md` | Journal de ce qui a été fait et validé techniquement. |
 | `docs/development/BRANCHES.md` | Conventions branches/commits. |
 
 ## État actuel
@@ -79,10 +77,10 @@ Exception porteur 15/06 : lot **P1D CI/PR/déploiement** clôturé le 15/06 — 
 
 Priorité immédiate stricte (17/06 — réorientation porteur) :
 
-1. **Lot D — Mobile & analytics utilisateur** : app Flutter `mobile/`, API auth/métier, interactions BDD, déploiements, remontée analytics/événements, interface complète. Voir `docs/TODOS.md` § « Priorités mobile ».
+1. **Lot D — Mobile & analytics utilisateur** : app Flutter `mobile/`, API auth/métier, interactions BDD, déploiements, remontée analytics/événements, interface complète. Voir [`TODOS.md`](TODOS.md) § « Priorités mobile ».
 2. Validations backoffice restantes dans `TODOS_A_VALIDER.md` **après** incréments mobile significatifs, sauf correctif bloquant signalé par le porteur.
 3. Déplacer les lignes validées vers `TODOS_DONE.md`.
-4. Reprendre `docs/TODOS.md` backlog backoffice en file secondaire.
+4. Reprendre [`TODOS.md`](TODOS.md) backlog backoffice en file secondaire.
 
 Ancienne priorité Lot A graphes (15/06) — **reportée** tant que le mobile n’est pas stabilisé.
 
@@ -94,7 +92,7 @@ Ancienne priorité Lot A graphes (15/06) — **reportée** tant que le mobile n�
 4. **Fin de lot obligatoire** : vérifier si les workflows GitHub doivent évoluer avec le lot, lancer/contrôler les checks adaptés, créer/mettre à jour une PR seulement pour les changements significatifs, puis envoyer le récap email des modifications via `notification-service` aux destinataires habituels. Ne pas avancer au lot suivant si la CI/PR du lot est cassée ou si le récap email n’est pas tracé clairement dans `TODOS_A_VERIFIER.md`.
 5. Le porteur valide ou signale un problème.
 6. Si validé : déplacer vers `TODOS_DONE.md`.
-7. Si problème : créer ou remonter une tâche dans `docs/TODOS.md`, puis corriger avant d’avancer.
+7. Si problème : créer ou remonter une tâche dans [`TODOS.md`](TODOS.md), puis corriger avant d’avancer.
 8. Pour préprod/prod : passer ensuite par `docs/production/A_VALIDER_AVANT_PRODUCTION.md`, `docs/production/DEPLOIEMENT_PRODUCTION.md`, puis `docs/production/VALIDATION_PRODUCTION.md`.
 9. **Fin de journée / avant push majeur** : gate suite complète documenté dans `TODOS_A_VALIDER.md` § « Gate technique fin de journée / avant push majeur » (`scripts/run-all-tests-with-reports.sh` + lecture `tests/results/<horodatage>/`). Ne pas le lancer au milieu d’un P0/P1 sauf demande explicite du porteur. Checklist longue : `docs/tests/TESTS_END.md`.
 

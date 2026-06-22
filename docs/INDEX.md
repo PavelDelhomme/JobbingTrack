@@ -8,8 +8,9 @@
 
 | Thème | Emplacement |
 |-------|-------------|
-| **Pilotage immédiat** | **[pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)** — point d’entrée obligatoire ; **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)** — validation porteur bloquante ; **[pilotage/TODOS_A_VERIFIER.md](pilotage/TODOS_A_VERIFIER.md)** — preuves agent |
-| **Chantier monitoring / sécurité / data / doc (lots A–H)** | Docs : **[PLAN.md](PLAN.md)** (lot **A** monitoring + logs, lot **B** sécurité, lot **H** release/préprod/conformité), **[TODOS.md](TODOS.md)**, **[security/STATS.md](security/STATS.md)** (CVE / dépendances) ; index **[project/CHANTIER_SECURITE_DATA_DOCS.md](project/CHANTIER_SECURITE_DATA_DOCS.md)** |
+| **Pilotage immédiat** | **[pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)** · **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)** · **[pilotage/TODOS_A_VERIFIER.md](pilotage/TODOS_A_VERIFIER.md)** |
+| **État courant du projet** | **[STATUS.md](STATUS.md)** — hub principal |
+| **Chantier lots A–H** | **[project/PLAN.md](project/PLAN.md)** · **[pilotage/TODOS.md](pilotage/TODOS.md)** · **[security/STATS.md](security/STATS.md)** |
 | **Préprod / production / release** | **[deployment/VPS_PORTAINER_NPM_OVH.md](deployment/VPS_PORTAINER_NPM_OVH.md)** — runbook VPS/Portainer/NPM/OVH ; **[operations/PREPROD_PRODUCTION_CHECKLIST.md](operations/PREPROD_PRODUCTION_CHECKLIST.md)** — checklist manuelle ; **[operations/RELEASE_PREPROD_PRODUCTION_PLAN.md](operations/RELEASE_PREPROD_PRODUCTION_PLAN.md)** — branche tests complets, préprod, bêta mobile, licences, RGPD, déploiements, mono-repo vs multi-repo |
 | **Audit / restructuration documentation** | **[operations/DOCUMENTATION_AUDIT_PLAN.md](operations/DOCUMENTATION_AUDIT_PLAN.md)** — périmètre complet demandé, règles de tri, ordre de fusion/déplacement, validation liens |
 | **Configuration / ports** | [configuration/](configuration/) — CONFIGURATION_PORTS.md, PORTS.md |
@@ -24,7 +25,7 @@
 | **Quick Start - Tests mobile** | [tests/QUICK_START_MOBILE_TESTS.md](tests/QUICK_START_MOBILE_TESTS.md) |
 | **Optimisation perf. frontend** | [frontend/PERFORMANCE_OPTIMIZATION.md](frontend/PERFORMANCE_OPTIMIZATION.md) ; rapports : [performance/FRONTEND_REPORTS_SUMMARY.md](performance/FRONTEND_REPORTS_SUMMARY.md), [performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md](performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md) |
 
-Pour **quoi faire maintenant** : lire d’abord **[pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)**, puis **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)**. Pour le **chantier backoffice / API / doc** : **[PLAN.md](PLAN.md)**, **[TODOS.md](TODOS.md)**, **[security/STATS.md](security/STATS.md)** (audits CVE à compléter).
+Pour **quoi faire maintenant** : **[STATUS.md](STATUS.md)** → **[pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)** → **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)**. Chantier structuré : **[project/PLAN.md](project/PLAN.md)**, **[pilotage/TODOS.md](pilotage/TODOS.md)**.
 
 ---
 
@@ -33,12 +34,12 @@ Pour **quoi faire maintenant** : lire d’abord **[pilotage/PILOTAGE.md](pilotag
 ### Ce qu’il reste à faire (priorité)
 - **[pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)** — source de vérité du flux.
 - **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)** — validations porteur à vider avant nouvelles features.
-- **[STATUS.md](STATUS.md)** — état courant, priorités et validations techniques.
-- **[PLAN.md](PLAN.md)** / **[TODOS.md](TODOS.md)** / **[security/STATS.md](security/STATS.md)** — Lots A–H (lot **A** monitoring + logs, lot **B** sécurité, lot **H** release/préprod/conformité, **STATS** = CVE).
+- **[STATUS.md](STATUS.md)** — **état courant**, priorités (hub principal)
+- **[project/PLAN.md](project/PLAN.md)** / **[pilotage/TODOS.md](pilotage/TODOS.md)** / **[security/STATS.md](security/STATS.md)** — Lots A–H
 - **[mobile/PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)** — Étapes manuelles vérification email puis suite développement Flutter.
 
 ### Fichiers .md à la racine
-La racine du projet ne garde que **`README.md`**. Pilotage porteur : **`docs/pilotage/`** (`PILOTAGE.md`, `TODOS_A_*`, `TRAITER_IMMEDIATEMENT.md`). Production : **`docs/production/`**. Git / logs : **`docs/development/`**. La racine de `docs/` garde les fichiers de suivi technique : `README.md`, `INDEX.md`, `navigation.md`, `PLAN.md`, `STATUS.md`, `TODOS.md`, `ERRORS.md`, `BACKLOG.md`, `RESOLUTIONS.md`. Les documents de contenu sont rangés par dossier (`project/`, `security/`, `getting-started/`, etc.).
+La racine de `docs/` garde les **hubs** : `README.md`, **`STATUS.md`**, `INDEX.md`, `navigation.md`, plus des **redirects** (`PLAN.md`, `TODOS.md`, …). Pilotage : **`pilotage/`**. Vision projet : **`project/`**. Dépannage : **`troubleshooting/`**.
 
 ### Démarrer le projet
 - **[getting-started/README.md](getting-started/README.md)** — Guide de démarrage

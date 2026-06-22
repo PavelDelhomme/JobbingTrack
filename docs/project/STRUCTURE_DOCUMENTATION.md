@@ -11,7 +11,7 @@ Ce fichier reste un brouillon de travail. Il contient d’abord la structure act
 - Les `README.md` dans les services doivent rester proches du code quand ils expliquent le service.
 - Les rapports générés ou datés doivent aller dans `reports/` ou `tests/results/`, pas dans `docs/` durable.
 - Les archives doivent être explicites sous `docs/archive/` avec une raison de conservation.
-- Avant suppression : vérifier si un fichier est référencé depuis `README.md`, `docs/PLAN.md`, `docs/STATUS.md`, `docs/TODOS.md`, scripts ou Makefiles.
+- Avant suppression : vérifier si un fichier est référencé depuis `README.md`, `docs/STATUS.md`, `docs/pilotage/TODOS.md`, `docs/project/PLAN.md`, scripts ou Makefiles.
 
 ## Audit documentaire en cours
 

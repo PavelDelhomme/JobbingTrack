@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 22 juin 2026 (Gmail AVD + alignement env)
+Dernière mise à jour : 22 juin 2026 (restructuration docs + Gmail AVD)
 
 ## Rôle
 
@@ -10,6 +10,7 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 
 | Priorité | Vérification agent | Preuve attendue | Statut |
 |----------|--------------------|-----------------|--------|
+| Doc | Restructuration `docs/` — hubs + sous-dossiers | **22/06** : `TODOS.md` → `pilotage/` ; `PLAN`/`BACKLOG`/`RESOLUTIONS` → `project/` ; `ERRORS` → `troubleshooting/` ; PDF → `_meta/` ; stubs redirects racine ; `STATUS.md`/`README.md`/`INDEX.md`/`navigation.md`/`PILOTAGE.md`/`TRAITER_IMMEDIATEMENT.md`/`Makefile` docs-pdf alignés ; `project/README.md` + `_meta/README.md` ajoutés. Branche `feat/docs-structure-reorg`. | [x] |
 | Env/Mobile | Gmail pro AVD + alignement `.env.example` | **22/06** : clés `EMAIL_GMAIL_PRO_*` + `CONFIGURE_EMULATOR_GMAIL` dans `.env.example` ; script `configure-emulator-gmail.js` ; IMAP `fetch-imap-verification.js` + `resolve-email-triage-env.js`. **22/06 suite** : `smoke-verify-email-adb.js` **OK** émulateur (token EmailLog + deep link + login `test+mob@delhomme.ovh`) ; fix multi-device `adb -s` ; Gmail IMAP login OK ; Gmail AVD auto-login partiel (2FA/post-login manuel). API **19/19** ; Jest email-triage **44/44** ; `tsc` frontend OK. | [x] |
 | Mobile | Auth + parcours candidatures — audit et correctifs | **18/06** : logout volontaire purge session chiffrée, files offline/télémétrie, caches providers (`UserSessionCleanup`, `AuthLogout`) ; `keepLoggedIn=false` ; navigation `/login` sans fermer l’app. Hors-ligne (sans internet) : session conservée. Smokes **19/19** + shell ADB **OK** Samsung. Validation porteur **OK auth candidatures**. | [x] |
 | Mobile | Déconnexion — purge locale vs mode hors-ligne | **18/06** : `UserSessionCleanup.onLogout` — JWT/refresh, biométrie, files gzip, caches téléphone local, reset providers mémoire. Distinct du 401 hors-ligne (session conservée). `flutter analyze` ciblé **0 erreur** ; APK Samsung reinstallé **Success**. | [x] |

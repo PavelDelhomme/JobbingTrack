@@ -66,13 +66,12 @@ Nouveau fichier : `docs/troubleshooting/README.md`
 
 ### 4. 📄 **PDFs de Documentation**
 
-**Script disponible** : `docs/generate-pdfs.js`
+**Script disponible** : `docs/_meta/generate-pdfs.js`
 
 Pour générer les PDFs (après avoir installé les dépendances) :
 ```bash
-cd docs
 npm install md-to-pdf
-node generate-pdfs.js
+node docs/_meta/generate-pdfs.js
 ```
 
 **PDFs générés** :

@@ -3,8 +3,14 @@
 ## 🎯 Navigation principale
 
 ### 📖 **Documentation du Projet**
-- **[🏠 README Principal](../README.md)** | **[📚 Documentation Centralisée](README.md)**
-- **[📁 Structure Documentation](project/STRUCTURE_DOCUMENTATION.md)** | **[🧭 Audit Documentation](operations/DOCUMENTATION_AUDIT_PLAN.md)** - Structure actuelle, audit et restructuration par domaine
+- **[🏠 README Principal](../README.md)** | **[📊 STATUS — état courant](STATUS.md)** | **[📚 Documentation Centralisée](README.md)**
+- **[📁 Structure Documentation](project/STRUCTURE_DOCUMENTATION.md)** | **[🧭 Audit Documentation](operations/DOCUMENTATION_AUDIT_PLAN.md)**
+
+### 📋 **Suivi projet (lots, tâches, erreurs)**
+- **[📊 STATUS.md](STATUS.md)** — **état courant** (lire en premier)
+- **[📋 pilotage/TODOS.md](pilotage/TODOS.md)** — tâches ordonnées · **[📐 project/PLAN.md](project/PLAN.md)** — plan lots A–H
+- **[📦 project/BACKLOG.md](project/BACKLOG.md)** · **[✅ project/RESOLUTIONS.md](project/RESOLUTIONS.md)** · **[⚠️ troubleshooting/ERRORS.md](troubleshooting/ERRORS.md)**
+- **[🧭 pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)** · **[INDEX.md](INDEX.md)**
 
 ### 🚀 **Démarrage Rapide**
 - **[⚡ Guide de Démarrage](getting-started/README.md)** - ⭐ Commencez ici !

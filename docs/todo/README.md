@@ -1,6 +1,6 @@
 # TODO et suivi historique
 
-Le suivi opérationnel principal est **[`../TODOS.md`](../TODOS.md)**. Ce dossier ne doit contenir que des notes historiques ou spécialisées qui ne remplacent pas la checklist principale.
+Le suivi opérationnel principal est **[`../pilotage/TODOS.md`](../pilotage/TODOS.md)**. Ce dossier ne doit contenir que des notes historiques ou spécialisées qui ne remplacent pas la checklist principale.
 
 ## 📄 Fichiers
 
@@ -10,7 +10,7 @@ Le suivi opérationnel principal est **[`../TODOS.md`](../TODOS.md)**. Ce dossie
 
 ## Règle
 
-Les nouvelles tâches doivent aller dans **[`../TODOS.md`](../TODOS.md)** ou **[`../BACKLOG.md`](../BACKLOG.md)**. Ne pas recréer de fichiers `TODO_CORRECTIONS.md` / `CORRECTIONS_EN_COURS.md` sans décision de restructuration.
+Les nouvelles tâches doivent aller dans **[`../pilotage/TODOS.md`](../pilotage/TODOS.md)** ou **[`../project/BACKLOG.md`](../project/BACKLOG.md)**. Ne pas recréer de fichiers `TODO_CORRECTIONS.md` / `CORRECTIONS_EN_COURS.md` sans décision de restructuration.
 
 ---
 

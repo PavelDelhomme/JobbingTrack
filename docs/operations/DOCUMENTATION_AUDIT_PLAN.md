@@ -4,8 +4,8 @@ Objectif : vérifier toute la documentation avant de continuer les gros chantier
 
 ## Règles de tri
 
-- Ne pas déplacer/supprimer un document sans vérifier ses liens depuis `README.md`, `docs/README.md`, `docs/INDEX.md`, `docs/navigation.md`, `PLAN.md`, `STATUS.md`, `TODOS.md`, scripts et Makefiles.
-- Garder à la racine de `docs/` les fichiers de pilotage : `README.md`, `INDEX.md`, `navigation.md`, `PLAN.md`, `STATUS.md`, `TODOS.md`, `ERRORS.md`, `BACKLOG.md`, `RESOLUTIONS.md`.
+- Ne pas déplacer/supprimer un document sans vérifier ses liens depuis `README.md`, `docs/README.md`, `docs/INDEX.md`, `docs/navigation.md`, `docs/STATUS.md`, `docs/pilotage/TODOS.md`, `docs/project/PLAN.md`, scripts et Makefiles.
+- Garder à la racine de `docs/` les **hubs** : `README.md`, `INDEX.md`, `navigation.md`, **`STATUS.md`**. Contenu déplacé (juin 2026) : `pilotage/TODOS.md`, `project/PLAN.md`, `project/BACKLOG.md`, `project/RESOLUTIONS.md`, `troubleshooting/ERRORS.md`. Les stubs `PLAN.md`, `TODOS.md`, etc. à la racine restent pour compatibilité liens.
 - Garder les documents durables par domaine ; déplacer les rapports datés ou générés vers `reports/` ou `tests/results/`.
 - Marquer explicitement les archives sous `docs/archive/` avec la raison de conservation.
 - Fusionner les doublons par sujet avant suppression : ports/config, déploiement, monitoring, performance frontend, tests mobile, base de données.
@@ -30,18 +30,20 @@ Objectif : vérifier toute la documentation avant de continuer les gros chantier
 | `docs/scripts/` | Vérifier que les scripts réels correspondent à la doc et aux Makefiles. |
 | `docs/security/` | Conserver matrice B15, STATS, CVE, WAF, hardening ; éviter doublons avec ERRORS/TODOS. |
 | `docs/tests/` | Unifier stratégie tests, commandes, rapports, mobile, Playwright et gate préprod. |
-| `docs/todo/` | Fusionner avec `docs/TODOS.md` si contenu historique ou déplacer en archive. |
+| `docs/todo/` | Fusionner avec `docs/pilotage/TODOS.md` si contenu historique ou déplacer en archive. |
 | `docs/troubleshooting/` | Garder les runbooks actifs ; déplacer résolutions historiques vers `RESOLUTIONS.md` si besoin. |
 | `docs/user-journey/` | Aligner parcours métier, tests de parcours et retours utilisateurs. |
 | `monitoring/MIGRATION_RUST.md` | Vérifier s'il doit rester près du code ou être répliqué/indexé depuis `docs/monitoring/`. |
 
 ## Fichiers racine docs à auditer
 
-- `docs/BACKLOG.md` : garder seulement backlog large, pas duplicats fins de `TODOS.md`.
-- `docs/ERRORS.md` : erreurs actives uniquement ; déplacer les résolues vers `RESOLUTIONS.md`.
-- `docs/INDEX.md` / `docs/navigation.md` / `docs/README.md` : aligner après chaque déplacement.
-- `docs/PLAN.md` / `docs/STATUS.md` / `docs/TODOS.md` : source de vérité lots A-H, éviter doublons divergents.
-- `docs/generate-pdfs.js`, `docs/pdf-style.css`, `docs/pdfs/` : vérifier pipeline PDF et statut généré.
+- **`docs/STATUS.md`** : hub état courant ; liens vers pilotage, project, troubleshooting.
+- **`docs/pilotage/TODOS.md`** : backlog technique ordonné ; pas de doublons fins avec `project/BACKLOG.md`.
+- **`docs/project/PLAN.md`**, **`BACKLOG.md`**, **`RESOLUTIONS.md`** : vision lots, reporté, correctifs actés.
+- **`docs/troubleshooting/ERRORS.md`** : erreurs actives ; résolues → `project/RESOLUTIONS.md`.
+- **`docs/INDEX.md`** / **`navigation.md`** / **`README.md`** : aligner après chaque déplacement.
+- Stubs racine (`PLAN.md`, `TODOS.md`, …) : redirects uniquement, pas de contenu divergent.
+- **`docs/_meta/generate-pdfs.js`**, **`pdf-style.css`**, **`docs/pdfs/`** : pipeline PDF et statut généré.
 
 ## Ordre de travail proposé
 
