@@ -16,17 +16,17 @@ const { resolveWorkingUserCredentials, GATEWAY_URL } = require('./resolve-user-c
 
 const GATEWAY_PORT = process.env.API_GATEWAY_PORT || '5002';
 
-function adbReverseRemove(port = GATEWAY_PORT) {
+function adbReverseRemove(deviceId, port = GATEWAY_PORT) {
   try {
-    execSync(`adb reverse --remove tcp:${port}`, { stdio: 'pipe' });
+    execSync(`adb ${deviceId ? `-s ${deviceId} ` : ''}reverse --remove tcp:${port}`, { stdio: 'pipe' });
   } catch {
     /* déjà absent */
   }
 }
 
-function adbReverseRestore(port = GATEWAY_PORT) {
+function adbReverseRestore(deviceId, port = GATEWAY_PORT) {
   try {
-    execSync(`adb reverse tcp:${port} tcp:${port}`, { stdio: 'pipe' });
+    execSync(`adb ${deviceId ? `-s ${deviceId} ` : ''}reverse tcp:${port} tcp:${port}`, { stdio: 'pipe' });
   } catch {
     /* appareil déconnecté */
   }
@@ -45,14 +45,15 @@ async function readBusinessPending(phone) {
 }
 
 async function setNetworkOffline(phone, offline) {
+  const deviceId = phone.deviceId;
   if (offline) {
-    adbReverseRemove();
+    adbReverseRemove(deviceId);
     await phone.shellCommand('svc wifi disable');
     await phone.shellCommand('svc data disable');
   } else {
     await phone.shellCommand('svc wifi enable');
     await phone.shellCommand('svc data enable');
-    adbReverseRestore();
+    adbReverseRestore(deviceId);
   }
   await phone.wait(offline ? 2500 : 6000);
 }
@@ -160,7 +161,9 @@ async function fillApplicationForm(phone, companyName, position) {
     `Créer « ${companyName} »`,
     `Créer "${companyName}"`,
     `Créer «${companyName}»`,
+    `Créer ${companyName}`,
     'Créer une nouvelle entreprise',
+    'Créer une entreprise',
   ];
   let picked = false;
   for (const label of createLabels) {
@@ -191,10 +194,28 @@ async function fillApplicationForm(phone, companyName, position) {
         picked = true;
       }
     }
+    if (!picked) {
+      const genericCreate = nodes.find(
+        (n) =>
+          n.clickable &&
+          /^Créer\b/i.test(String(n.text || n.contentDesc || '').trim()) &&
+          !/candidature|contact|compte/i.test(`${n.text || ''}${n.contentDesc || ''}`),
+      );
+      if (genericCreate?.bounds) {
+        const m = genericCreate.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+        if (m) {
+          await phone.tapXY(
+            Math.round((+m[1] + +m[3]) / 2),
+            Math.round((+m[2] + +m[4]) / 2),
+          );
+          picked = true;
+        }
+      }
+    }
   }
   if (!picked) {
     try {
-      await phone.tap('Créer');
+      await phone.tap('Créer', 0);
       picked = true;
     } catch {
       throw new Error(`Option créer entreprise « ${companyName} » introuvable`);

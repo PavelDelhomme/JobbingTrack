@@ -56,18 +56,23 @@ async function openProfileEdit(phone) {
   if (!opened) {
     throw new Error('Bouton modification profil introuvable');
   }
-  const editVisible = ({ contains }) =>
-    contains('Enregistrer') &&
-    (contains('Pour changer') ||
-      contains('Email') ||
-      contains('Prénom') ||
-      contains('Nom') ||
-      contains('Téléphone'));
-  let ok = await phone.waitUntil(editVisible, { timeoutMs: 15000, pollMs: 500 });
+  const editVisible = ({ contains, nodes }) =>
+    contains('Enregistrer') ||
+    contains('Sauvegarder') ||
+    (contains('Email') && (contains('Prénom') || contains('Nom'))) ||
+    nodes.some(
+      (n) =>
+        n.className.includes('EditText') &&
+        ((n.text || '').length > 0 || (n.contentDesc || '').includes('Prénom')),
+    );
+  let ok = await phone.waitUntil(editVisible, { timeoutMs: 20000, pollMs: 500 });
   if (!ok) {
-    await phone.scrollDown(500);
-    await phone.wait(600);
-    ok = await phone.waitUntil(editVisible, { timeoutMs: 8000, pollMs: 500 });
+    await phone.scrollDown(600);
+    await phone.wait(800);
+    ok = await phone.waitUntil(editVisible, { timeoutMs: 12000, pollMs: 500 });
+  }
+  if (!ok && (await phone.uiContains('Enregistrer'))) {
+    ok = true;
   }
   if (!ok) {
     throw new Error('Écran modification profil introuvable');

@@ -54,12 +54,15 @@ async function ensureLoggedInShell(phone, email, password) {
   await phone.wait(2000);
   await phone.assertVisible('Nouvelle entreprise');
 
-  for (let i = 0; i < 4 && !(await phone.uiContains('intérim')); i++) {
-    await phone.scrollDown(350);
-    await phone.wait(400);
+  for (let i = 0; i < 6 && !(await phone.uiContains('intérim')); i++) {
+    await phone.scrollDown(400);
+    await phone.wait(450);
   }
+  const nodes = await phone.uiNodes();
   const interimOption =
-    (await phone.uiContains("Boîte d'intérim")) || (await phone.uiContains('intérim'));
+    (await phone.uiContains("Boîte d'intérim")) ||
+    (await phone.uiContains('intérim')) ||
+    nodes.some((n) => /int[eé]rim/i.test(`${n.text || ''}${n.contentDesc || ''}`));
   if (!interimOption) {
     throw new Error('Option boîte d\'intérim absente (mode intérim activé)');
   }

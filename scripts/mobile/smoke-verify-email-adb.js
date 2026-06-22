@@ -18,8 +18,14 @@ const { GATEWAY_URL } = require('./resolve-admin-credentials');
 
 const PACKAGE = 'com.example.jobbingtrack_mobile';
 
+function adbDeviceArgs(deviceId) {
+  return deviceId ? ['-s', deviceId] : [];
+}
+
 (async () => {
   const adbLib = require('../../tools/adb-lib');
+  const phone = await adbLib.connect();
+  const deviceId = phone.deviceId;
 
   const diag = compareEnvDiagnostics();
   if (diag.length) {
@@ -41,8 +47,9 @@ const PACKAGE = 'com.example.jobbingtrack_mobile';
   const { token, source: tokenSource } = await resolveVerificationToken(email);
   console.log(`Token extrait via ${tokenSource} (${token.slice(0, 8)}…)`);
 
-  execFileSync('adb', ['shell', 'am', 'force-stop', PACKAGE]);
+  execFileSync('adb', [...adbDeviceArgs(deviceId), 'shell', 'am', 'force-stop', PACKAGE]);
   execFileSync('adb', [
+    ...adbDeviceArgs(deviceId),
     'shell',
     'am',
     'start',
@@ -54,7 +61,6 @@ const PACKAGE = 'com.example.jobbingtrack_mobile';
     `${PACKAGE}/.MainActivity`,
   ]);
 
-  const phone = await adbLib.connect();
   await phone.wait(8000);
   const verified =
     (await phone.uiContains('Email vérifié')) ||

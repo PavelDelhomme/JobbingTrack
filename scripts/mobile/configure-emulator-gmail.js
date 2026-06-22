@@ -203,8 +203,21 @@ async function tapIfVisible(phone, labels, timeoutMs = 12000) {
     process.exit(3);
   }
 
-  console.warn('Connexion Google non confirmée automatiquement.');
-  console.warn('Vérifiez l’émulateur ou relancez : node scripts/mobile/configure-emulator-gmail.js');
+  const wrongPassword =
+    (await phone.uiContains('Wrong password')) ||
+    (await phone.uiContains('Mot de passe incorrect')) ||
+    (await phone.uiContains("Couldn't sign you in"));
+  if (wrongPassword) {
+    console.error('');
+    console.error('Mot de passe Google refusé sur l’émulateur.');
+    console.error('Vérifiez EMAIL_GMAIL_PRO_PASSWORD (= mot de passe compte, pas le mot de passe d’application).');
+    process.exit(5);
+  }
+
+  console.warn('');
+  console.warn('Connexion Google non confirmée automatiquement (écran post-login ou captcha).');
+  console.warn('La vérification email mobile fonctionne sans Gmail sur l’AVD via MailHog/IMAP/EmailLog.');
+  console.warn('Pour le compte Android : terminez manuellement sur l’émulateur, puis --check-only.');
   process.exit(4);
 })().catch((err) => {
   console.error('Configuration Gmail AVD KO:', err.message);
