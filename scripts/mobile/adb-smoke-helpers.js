@@ -16,10 +16,19 @@ async function ensureUserShell(phone, email, password) {
 async function openProfileEdit(phone) {
   await adbLib.flows.goToTab(phone, 4, { shell: true });
   await phone.wait(600);
-  if (await phone.uiContains('Modifier le profil')) {
-    await phone.tap('Modifier le profil');
-  } else {
-    await phone.tap('Modifier');
+  let opened = false;
+  for (const label of ['Modifier le profil', 'Modifier', 'Edit profile']) {
+    if (!(await phone.uiContains(label))) continue;
+    try {
+      await phone.tapReliable(label);
+      opened = true;
+      break;
+    } catch {
+      /* label suivant */
+    }
+  }
+  if (!opened) {
+    throw new Error('Bouton modification profil introuvable');
   }
   const ok = await phone.waitUntil(
     ({ contains }) =>
@@ -29,6 +38,22 @@ async function openProfileEdit(phone) {
   if (!ok) {
     throw new Error('Écran modification profil introuvable');
   }
+}
+
+async function openAppDrawer(phone) {
+  const onShell =
+    (await phone.uiContains('Bonjour')) ||
+    (await adbLib.flows.isShellVisible(phone));
+  if (onShell) {
+    try {
+      await adbLib.flows.goToTab(phone, 1, { shell: true });
+      await phone.wait(800);
+    } catch {
+      /* déjà sur accueil ou onglets absents du dump émulateur */
+    }
+  }
+  await phone.openNavigationDrawer();
+  await phone.wait(1000);
 }
 
 async function typeInLabeledField(phone, label, value, opts = {}) {
@@ -95,6 +120,7 @@ module.exports = {
   nodeLabel,
   ensureUserShell,
   openProfileEdit,
+  openAppDrawer,
   typeInLabeledField,
   ensureApplicationsListTab,
   waitApplicationsTabReady,

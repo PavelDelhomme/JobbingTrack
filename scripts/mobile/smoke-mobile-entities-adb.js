@@ -7,7 +7,7 @@
  */
 
 const adbLib = require('../../tools/adb-lib');
-const { ensureUserShell, typeInLabeledField, openProfileEdit } = require('./adb-smoke-helpers');
+const { ensureUserShell, typeInLabeledField, openProfileEdit, openAppDrawer } = require('./adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const { loadRootEnv } = require('./resolve-admin-credentials');
 
@@ -22,21 +22,12 @@ async function ensureLoggedIn(phone, email, password) {
 }
 
 async function openDrawerItemWithScroll(phone, label) {
-  if (await phone.uiContains('Tab 1 of 4')) {
-    await adbLib.flows.goToTab(phone, 1, { shell: true });
-    await phone.wait(1200);
-  }
-  if (await phone.uiContains('Open navigation menu')) {
-    await phone.tap('Open navigation menu');
-  } else {
-    await phone.openDrawer();
-  }
-  await phone.wait(1200);
+  await openAppDrawer(phone);
   if (!(await phone.uiContains(label))) {
     await phone.drawerScrollDown();
     await phone.wait(700);
   }
-  await phone.tap(label);
+  await phone.tapReliable(label);
   await phone.wait(2500);
 }
 

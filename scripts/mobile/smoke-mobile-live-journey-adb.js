@@ -47,13 +47,15 @@ async function openSettings(phone) {
     await phone.tapXY((info.width || 1080) - 56, (info.height || 2340) - 170);
   }
   await phone.wait(900);
-  const formSnap = await phone.uiSnapshot();
-  const formOk =
-    formSnap.contains('Nouvelle candidature') &&
-    (formSnap.contains('Choisir ou créer une entreprise') ||
-      formSnap.contains('Entreprise') ||
-      formSnap.contains('Poste'));
-  if (!formOk) {
+  const formReady = await phone.waitUntil(
+    ({ contains }) =>
+      contains('Nouvelle candidature') &&
+      (contains('Choisir ou créer une entreprise') ||
+        contains('Entreprise') ||
+        contains('Poste')),
+    { timeoutMs: 10000, pollMs: 400 },
+  );
+  if (!formReady) {
     throw new Error('Sheet nouvelle candidature / champ entreprise introuvable');
   }
   console.log('✅ Parcours : popup candidature + entreprise OK');

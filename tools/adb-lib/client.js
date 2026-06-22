@@ -95,6 +95,37 @@ class AdbClient {
     return r.message;
   }
 
+  /** Tap avec repli sur findElement + coordonnées si le contrôleur ADB échoue. */
+  async tapReliable(text, index = 0) {
+    try {
+      return await this.tap(text, index);
+    } catch {
+      const el = await this.findElement(text);
+      if (!el?.bounds) throw new Error(`Element not found: text="${text}" contentDesc="undefined"`);
+      const c = this._boundsCenter(el.bounds);
+      if (!c) throw new Error(`Bounds invalides pour "${text}"`);
+      await this.tapXY(c.cx, c.cy);
+      this._log(`tapReliable "${text}" -> (${c.cx},${c.cy})`);
+      return `${text}@${c.cx},${c.cy}`;
+    }
+  }
+
+  /** Ouvre le drawer (hamburger Flutter ou swipe edge). */
+  async openNavigationDrawer() {
+    const labels = ['Open navigation menu', 'Ouvrir le menu de navigation', 'Menu'];
+    for (const label of labels) {
+      if (!(await this.uiContains(label))) continue;
+      try {
+        await this.tapReliable(label);
+        await this.wait(600);
+        return;
+      } catch {
+        /* essai label suivant */
+      }
+    }
+    await this.openDrawer();
+  }
+
   /** Tap un onglet de la bottom bar shell (1-based, 4 onglets). */
   async tapTab(n, totalTabs = 4) {
     return this.tap(`Tab ${n} of ${totalTabs}`);

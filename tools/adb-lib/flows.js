@@ -20,7 +20,11 @@ const SHELL_TAB_COUNT = 4;
 
 /** Shell mobile connecté (pas écran biométrique/login). */
 async function isShellVisible(adb) {
-  return adb.uiContains(`Tab 1 of ${SHELL_TAB_COUNT}`);
+  if (await adb.uiContains('Bonjour')) return true;
+  for (let i = 1; i <= SHELL_TAB_COUNT; i++) {
+    if (await adb.uiContains(`Tab ${i} of ${SHELL_TAB_COUNT}`)) return true;
+  }
+  return false;
 }
 
 async function ensureAuthenticatedShell(adb, email, password) {
@@ -29,6 +33,14 @@ async function ensureAuthenticatedShell(adb, email, password) {
   password = creds.password;
   await dismissBiometricUnlock(adb, { password });
   if (await isShellVisible(adb)) return 'Shell OK';
+  if (await adb.uiContains('Bonjour')) {
+    try {
+      await goToTab(adb, 1, { shell: true });
+      if (await isShellVisible(adb)) return 'Shell OK (Bonjour)';
+    } catch {
+      /* login ci-dessous */
+    }
+  }
   if (
     (await adb.uiContains('Déverrouiller')) ||
     (await adb.uiContains('Connexion par empreinte')) ||
@@ -174,11 +186,32 @@ async function clearAppDataForSmoke(adb) {
   throw new Error('Ecran login introuvable après pm clear');
 }
 
+async function isOnAndroidLauncher(adb) {
+  const snap = await adb.uiSnapshot(true);
+  return (
+    snap.contains('Home') &&
+    !snap.contains('JobbingTrack') &&
+    !snap.contains('Bonjour') &&
+    !snap.contains('Se connecter') &&
+    !snap.contains('Connexion')
+  );
+}
+
 async function restartApp(adb) {
   await adb.shellCommand('am force-stop com.example.jobbingtrack_mobile');
   await adb.wait(ADB_FAST ? 500 : 1500);
-  await adb.shellCommand('monkey -p com.example.jobbingtrack_mobile -c android.intent.category.LAUNCHER 1');
-  await adb.wait(ADB_FAST ? 1800 : 4000);
+  try {
+    await adb.returnToApp();
+  } catch {
+    await adb.shellCommand(
+      'monkey -p com.example.jobbingtrack_mobile -c android.intent.category.LAUNCHER 1',
+    );
+  }
+  await adb.wait(ADB_FAST ? 2500 : 5000);
+  if (await isOnAndroidLauncher(adb)) {
+    await adb.returnToApp();
+    await adb.wait(ADB_FAST ? 2000 : 4000);
+  }
   await dismissBiometricUnlock(adb);
 }
 
@@ -641,13 +674,13 @@ async function navigateAllTabs(adb, tabCount = SHELL_TAB_COUNT) {
 }
 
 async function openDrawerItem(adb, text, { scroll = false } = {}) {
-  await adb.openDrawer();
+  await adb.openNavigationDrawer();
   await adb.wait(1500);
   if (scroll) {
     await adb.drawerScrollDown();
     await adb.wait(800);
   }
-  await adb.tap(text);
+  await adb.tapReliable(text);
   await adb.wait(2500);
   return `Drawer -> ${text}`;
 }

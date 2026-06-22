@@ -26,7 +26,7 @@ async function loginAdminViaApi(email, password) {
 
 async function drawerHasAdminSection(phone) {
   await adbLib.flows.goToTab(phone, 1, { shell: true });
-  await phone.openDrawer();
+  await phone.openNavigationDrawer();
   await phone.wait(1000);
   for (let i = 0; i < 8; i++) {
     if (
@@ -69,12 +69,12 @@ async function drawerHasAdminSection(phone) {
   }
   console.log('OK: menu ADMINISTRATION visible');
 
-  await phone.openDrawer();
+  await phone.openNavigationDrawer();
   await phone.wait(1500);
   let hubOpened = false;
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 8; i++) {
     if (await phone.uiContains('Hub administration')) {
-      await phone.tap('Hub administration');
+      await phone.tapReliable('Hub administration');
       hubOpened = true;
       break;
     }
