@@ -98,3 +98,26 @@ Le service découvre automatiquement tous les conteneurs Docker correspondant au
 ### Métriques réseau
 - Octets reçus/émis
 - Connexions actives
+
+## Tests et dossier `coverage/` (rapport Jest HTML)
+
+Le répertoire **`coverage/`** à la racine de ce service **n’est pas du code métier** : c’est un **artefact généré localement** par Jest quand les tests tournent avec couverture de code.
+
+| Élément | Détail |
+|---------|--------|
+| **Origine** | `npm test` exécute `jest --coverage` (`package.json`) |
+| **Config** | `jest.config.js` → `coverageDirectory: 'coverage'`, reporters `text`, `lcov`, **`html`** |
+| **Contenu** | `index.html` (vue globale), `lcov.info`, sous-dossier `lcov-report/` et miroir `src/**/*.html` (une page par fichier source, lignes vert/rouge) |
+| **Git** | Ignoré par `.gitignore` (`coverage/`) — **ne pas committer** |
+| **Taille typique** | ~3–4 Mo, des dizaines de fichiers `.html` |
+| **Suppression** | Sans risque : `rm -rf coverage` ; régénéré au prochain `npm test` |
+
+Pour consulter le rapport après un run de tests :
+
+```bash
+cd backend/metrics-aggregator-service
+npm test
+# puis ouvrir coverage/index.html dans le navigateur
+```
+
+Documentation transverse : **[../../docs/tests/README.md](../../docs/tests/README.md)** (section « Coverage par service backend »).

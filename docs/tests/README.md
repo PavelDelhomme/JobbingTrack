@@ -250,6 +250,29 @@ tests/coverage/
 └── coverage-summary.json   # JSON summary
 ```
 
+### Coverage par service backend (Jest local)
+
+Certains services backend génèrent aussi un dossier **`coverage/`** **à côté de leur `package.json`**, pas seulement sous `tests/coverage/` à la racine du dépôt.
+
+Exemple : **`backend/metrics-aggregator-service/coverage/`** (~3 Mo, ~66 fichiers `.html`) apparaît après :
+
+```bash
+cd backend/metrics-aggregator-service && npm test
+```
+
+| Fichier / dossier | Rôle |
+|-------------------|------|
+| `coverage/index.html` | Tableau de bord (% statements/branches/lines) |
+| `coverage/lcov.info` | Format LCOV pour CI (Codecov, Sonar, etc.) |
+| `coverage/lcov-report/` | Rapport HTML alternatif (Istanbul) |
+| `coverage/src/.../*.html` | Détail ligne par ligne par fichier source |
+
+Ces dossiers sont **gitignorés** (`.gitignore` → `coverage/`). Ce ne sont **pas** des métriques runtime du monitoring JobbingTrack — uniquement des **rapports de tests unitaires**.
+
+Suppression sans impact : `rm -rf backend/metrics-aggregator-service/coverage`.
+
+Doc détaillée : **[../backend/metrics-aggregator-service/README.md](../backend/metrics-aggregator-service/README.md)** (section Tests).
+
 ## 🚀 Commandes
 
 ### Commandes principales

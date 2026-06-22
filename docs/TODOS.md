@@ -43,7 +43,7 @@ Backlog détaillé : **Lot D — Mobile & observabilité** plus bas dans ce fich
 | **Infra Postgres — connexions** | **15/06** : `too many clients already` sur stack locale full (~80/100 connexions idle, pics lors des pages Statistics). `/persistence/stats` refactoré vers singleton Prisma ; `max_connections` local porté à 200 via Compose. | Recreate `postgres` pour appliquer la limite ; puis `connection_limit` Prisma par service ; audit fuites `new PrismaClient()` ad hoc. |
 | **Versionnement produit** | **15/06** : pas de semver/changelog/tags cohérents — versions éparpillées (`1.0.0` / `1.0.1`), branches longues, pas de release nominale par lot validé porteur. | Cadrer lot H : semver unique, CHANGELOG, tags Git, affichage version UI, politique local/préprod/prod (`docs/BACKLOG.md`). |
 | **Sécurité** | Pagination/navigation/central logging déjà validés techniquement ; forensics, rapports, alertes mail restent des lots séparés. | Ne pas mélanger avec le formatage CI : reprendre par lot B10/B11 après le socle backoffice. |
-| **Docs / organisation** | `TODOS.md` contient encore de l’historique utile mais trop long. | Transformer progressivement les gros blocs en liens vers `PLAN.md`, `STATUS.md`, `docs/BACKLOG.md`, sans perdre les preuves déjà notées. |
+| **Docs / organisation** | `TODOS.md` contient encore de l’historique utile mais trop long. **17/06** : dossier local `backend/metrics-aggregator-service/coverage/` documenté (rapport Jest HTML, gitignoré, voir README service + `docs/tests/README.md`). | Transformer progressivement les gros blocs en liens vers `PLAN.md`, `STATUS.md`, `docs/BACKLOG.md`, sans perdre les preuves déjà notées. |
 
 ## Phase validation porteur (ordre strict — après `db-push-all` + `make recreate`)
 
