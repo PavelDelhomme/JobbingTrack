@@ -8,7 +8,10 @@ Dernière mise à jour : 22 juin 2026
 
 Les identifiants email réels (**mots de passe compte**, **mots de passe d'application Google**, **IMAP OVH**) ne vivent **que** dans le **`.env` gitignoré** à la racine du dépôt. **Jamais** dans Git, commits, captures, tickets ou chat.
 
-**Scope autorisé** : uniquement les comptes du **porteur** pour le développement local, les smokes mobile/Playwright et l'agent email recherche — **pas** pour brancher les boîtes d'autres utilisateurs JobbingTrack.
+> **Ce document = dev/tests porteur sur la machine locale.**  
+> Le produit « chaque utilisateur connecte sa boîte Gmail/IMAP » **n'existe pas encore** — voir **[AGENT_EMAIL_ETAT_ET_ROADMAP.md](AGENT_EMAIL_ETAT_ET_ROADMAP.md)** (OAuth, consentement RGPD, UI `/`).
+
+**Scope autorisé** : uniquement les comptes du **porteur** pour le développement local, les smokes mobile/Playwright et l'agent email recherche — **pas** pour brancher les boîtes d'autres utilisateurs JobbingTrack via l'application.
 
 ---
 

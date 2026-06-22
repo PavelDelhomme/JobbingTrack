@@ -1,6 +1,7 @@
 # Emails / Mail – JobbingTrack
 
-- **Politique comptes dev/tests (porteur, Gmail app password, pm.me)** : **[COMPTES_EMAIL_DEV_ET_TESTS.md](COMPTES_EMAIL_DEV_ET_TESTS.md)** ← lire en premier pour `.env` local.
+- **État & roadmap agent email** (connexion Gmail/IMAP utilisateur, consentement) : **[AGENT_EMAIL_ETAT_ET_ROADMAP.md](AGENT_EMAIL_ETAT_ET_ROADMAP.md)** — **à lire** pour savoir ce qui est fait vs à construire.
+- **Politique comptes dev/tests (porteur, Gmail app password, pm.me)** : **[COMPTES_EMAIL_DEV_ET_TESTS.md](COMPTES_EMAIL_DEV_ET_TESTS.md)** ← `.env` local porteur uniquement.
 - **Ce qu’il faut faire** (SMTP, logs, étapes, dépannage) : **`STATUS.md`** à la racine, section « Mail / Emails – à faire ».
 - **Config SMTP par environnement** (MailHog local/dev, SMTP réel préprod/prod, OVH/Brevo/SendGrid, checklist) : **[SMTP_CONFIGURATION.md](SMTP_CONFIGURATION.md)**.
 - **Service Python** (conteneur, tests, dépannage) : **[PYTHON_EMAIL_SETUP.md](PYTHON_EMAIL_SETUP.md)**.

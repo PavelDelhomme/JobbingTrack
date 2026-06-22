@@ -1,6 +1,6 @@
 # Agent email, tâches et accompagnement recherche
 
-Statut : cadrage produit/technique, à implémenter après validation des P0/P1 bloquants.
+Statut : **cadrage produit/technique** — socle tests OK, **implémentation produit non démarrée** (pas d'OAuth utilisateur, pas d'UI connecteur, pas de consentement RGPD en app). Voir **[AGENT_EMAIL_ETAT_ET_ROADMAP.md](../emails/AGENT_EMAIL_ETAT_ET_ROADMAP.md)**.
 
 Référence visuelle fournie par le porteur : [prototype JobbingTrack](https://jobbingtrack.pplx.app).
 
