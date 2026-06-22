@@ -19,6 +19,14 @@
 
 Les fichiers **`PLAN.md`**, **`TODOS.md`**, **`BACKLOG.md`**, **`RESOLUTIONS.md`**, **`ERRORS.md`** à la racine de `docs/` sont des **redirects** (compatibilité liens) vers les chemins ci-dessus.
 
+## 22 juin 2026 — Backoffice utilisateur : « Renvoyer email de vérification » → Network Error
+
+- **Symptôme porteur** : fiche **`/backoffice/users/[id]`** (ex. Test BlueMail) → action **Renvoyer email de vérification** → `AxiosError: Network Error` / `ERR_NETWORK_CHANGED` ; gateway journalise bien le `POST /api/v1/auth/users/:id/resend-verification`.
+- **Test agent 22/06** : même endpoint via gateway HTTP **200** en **~873 ms** (`success: true`) — backend OK en conditions directes.
+- **Pistes** : (1) requête same-origin HTTPS + **Fast Refresh** Next.js qui coupe la connexion en dev ; (2) latence SMTP/notification-service intermittente → timeout proxy ; (3) UI `alert()` générique masque la vraie cause ; (4) route admin sans `requireAdmin` explicite ; (5) reset mot de passe admin utilise **`/auth/forgot-password`** au lieu de **`/auth/users/:id/send-password-reset`** (route dédiée existante).
+- **Périmètre produit à finaliser avant prod** : super-admin — renvoi vérif, reset MDP, suppression utilisateur + données métier **avec conservation stats/analytics anonymisées** (IA profils) ; **abonnement/facturation** (`/backoffice/billing`) — modèle économique durable.
+- **Suivi** : `pilotage/TODOS.md` § admin utilisateurs ; gate `production/A_VALIDER_AVANT_PRODUCTION.md`.
+
 ## 22 juin 2026 — Backoffice Vue d’ensemble : carte « Sessions actives » incohérente
 
 - **Symptôme porteur** : carte **2 Sessions actives (10 utilisateurs)** ; clic → **`/backoffice/users?status=active`** → **~100** résultats (majorité comptes E2E/test).

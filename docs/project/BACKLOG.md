@@ -6,7 +6,11 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **Méta (11/05/2026)** : la racine ne garde que `README.md`; les fichiers de pilotage sont sous `docs/`. Revue **BDD** avant campagne de tests, interprétation des **logs gateway sécurité** et suite sécurité — voir **`docs/TODOS.md`** et **`docs/STATUS.md`**.
 
-**Vue d’ensemble backoffice — carte Sessions actives (22/06/2026, gate préprod)** : retour porteur — KPI **2** sur la carte vs **~100** après clic ; sous-titre **« 10 utilisateurs »** incohérent ; destination **`/users?status=active`** mélange **sessions 30 min** (auth) et **comptes activés** (dont E2E). À traiter **avant prod** avec exclusion/filtre comptes test et alignement sémantique titre/lien. Détail technique : **`docs/pilotage/TODOS.md`** § Vue d’ensemble Sessions actives ; gate : **`docs/production/A_VALIDER_AVANT_PRODUCTION.md`**.
+**Vue d’ensemble backoffice — carte Sessions actives (22/06/2026, gate préprod)** : retour porteur — KPI **2** sur la carte vs **~100** après clic ; sous-titre **« 10 utilisateurs »** incohérent ; destination **`/users?status=active`** mélange **sessions 30 min** (auth) et **comptes activés** (dont E2E). À traiter **avant prod** avec exclusion/filtre comptes test et alignement sémantique titre/lien. Détail : **`docs/pilotage/TODOS.md`** § Sessions actives.
+
+**Backoffice admin utilisateurs — actions SUPER_ADMIN (22/06/2026)** : fiche **`/backoffice/users/[id]`** — renvoi email vérif (`Network Error` / `ERR_NETWORK_CHANGED` côté navigateur malgré `POST` gateway ; API directe **200** ~873 ms) ; reset MDP UI sur mauvaise route (`forgot-password` vs `users/:id/send-password-reset`) ; suppression = delete User seul sans cascade ni rétention analytics pour IA. Gate préprod + tâches **`TODOS.md`**.
+
+**Abonnement & facturation (22/06/2026)** : page **`/backoffice/billing`** (shell UI seulement) — définir modèle économique (prix tenables, inflation, frais paiement/hébergement), APIs, lien user↔plan, conformité facturation. Post-mobile / lot H. Voir **`STATUS.md`** § billing.
 
 **Statistics & monitoring global (18/05/2026)** : KPI services et graphes erreur/disponibilité sur **`/backoffice/statistics`** + vue d’ensemble **`/backoffice`** — chantier planifié **`PLAN.md` A1h** et cases détaillées **`TODOS.md`** § **Chantier Statistiques & backoffice** (ne pas dupliquer ici).
 

@@ -40,6 +40,8 @@
 ## F. Backoffice — KPI hub avant ouverture
 
 - [ ] **Vue d’ensemble `/backoffice`** : vérifier que chaque carte KPI (sessions, sécurité, santé, latence, CPU/RAM) affiche une valeur cohérente avec la page de destination — en particulier **Sessions actives** (retour porteur 22/06 : écart 2 vs ~100, comptes E2E). Gate détaillé : **`../production/A_VALIDER_AVANT_PRODUCTION.md`** ; correctif : **`../pilotage/TODOS.md`** § Sessions actives.
+- [ ] **Fiche utilisateur `/backoffice/users/[id]`** : actions SUPER_ADMIN (**renvoyer vérif**, **reset MDP**, **supprimer**) fonctionnelles sans `Network Error` ; emails visibles MailHog/SMTP ; politique suppression + rétention stats pour analytics/IA documentée.
+- [ ] **Abonnement & facturation `/backoffice/billing`** : modèle tarifaire et APIs définis avant prod (pas seulement le shell UI).
 - [ ] Purge ou exclusion documentée des **comptes/données de test** en préprod (ne pas porter la pollution E2E locale en prod) — voir aussi **`../pilotage/TODOS.md`** § nettoyage données test.
 
 ## G. Courriel (SMTP) et rapports de crash

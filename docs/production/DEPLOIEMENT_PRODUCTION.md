@@ -18,6 +18,8 @@ Ce fichier suit ce qui est préparé ou déployé en préprod/prod, mais pas enc
 | Security Audit images prod | GitHub | [ ] À lancer avant déploiement | Artefact `trivy-prod-image-reports` classé. | |
 | Stack production réelle | prod | [ ] Non démarré | À renseigner seulement quand un serveur prod existe. | |
 | Backoffice KPI hub (Sessions actives) | preprod | Carte hub cohérente avec destination ; comptes test exclus ou séparés. Voir `A_VALIDER_AVANT_PRODUCTION.md`. | [ ] | Retour porteur 22/06 — écart 2 vs ~100 au clic. |
+| Backoffice admin utilisateur (vérif / reset / delete) | preprod | Actions fiche user OK ; stats conservées si suppression. | [ ] | Retour porteur 22/06 — resend vérif Network Error. |
+| Abonnement & facturation | preprod / post-MVP | Modèle économique + APIs `/billing`. | [ ] | Shell UI seulement aujourd’hui. |
 
 ## Règle
 
