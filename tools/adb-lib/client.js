@@ -145,8 +145,16 @@ class AdbClient {
   // ─── Text input ────────────────────────────────────────────────
 
   /** Trouve un champ par hint, le tape, le vide, et saisit du texte */
-  async typeInField(hint, value) {
-    const r = await this._post('/tap-field-and-type', { hint, text: value });
+  async typeInField(hint, value, opts = {}) {
+    const isPassword =
+      !!opts.isPassword ||
+      !!opts.secret ||
+      /mot de passe|password/i.test(String(hint));
+    const r = await this._post('/tap-field-and-type', {
+      hint,
+      text: value,
+      isPassword,
+    });
     if (!r.success) throw new Error(r.error || `Champ "${hint}" introuvable`);
     this._invalidateUi();
     const masked =
@@ -212,8 +220,13 @@ class AdbClient {
       throw new Error(`Champ « ${label} » introuvable (${edits.length} EditText(s))`);
     }
     const idx = edits.indexOf(picked);
-    await this.typeInEditTextByIndex(idx, value, opts);
-    this._log(`type labeled "${label}" = "${String(value).slice(0, 24)}"`);
+    const isSecret =
+      !!opts.secret ||
+      /mot de passe|password/i.test(String(label)) ||
+      !!opts.isPassword;
+    await this.typeInEditTextByIndex(idx, value, { ...opts, isPassword: isSecret });
+    const masked = isSecret ? '***' : String(value).slice(0, 24);
+    this._log(`type labeled "${label}" = "${masked}"`);
   }
 
   /** Saisit du texte brut (le champ doit etre deja focus) */
@@ -476,12 +489,13 @@ class AdbClient {
       text: value,
       editTextIndex: index,
       isEmail: !!opts.isEmail,
+      isPassword: !!(opts.isPassword || opts.secret),
     });
     if (!r.success) {
       throw new Error(r.error || `EditText #${index} introuvable`);
     }
     const masked =
-      opts.isPassword || /mot de passe|password/i.test(String(value))
+      opts.secret || opts.isPassword || /mot de passe|password/i.test(String(value))
         ? '***'
         : value;
     this._log(

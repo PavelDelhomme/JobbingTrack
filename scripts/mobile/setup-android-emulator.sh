@@ -10,11 +10,13 @@
 #
 # Tout-en-un install + démarrage + APK + adb reverse :
 #   bash scripts/mobile/setup-android-emulator.sh up
+#   bash scripts/mobile/setup-android-emulator.sh configure-gmail
 #
 # Variables :
 #   MOBILE_ADB_DEVICE=emulator-5554   — forcé par ce script dans .env.mobile-emulator
 #   EMULATOR_HEADLESS=1               — pas de fenêtre (-no-window)
 #   SKIP_APK_BUILD=1                  — réutilise l’APK debug déjà buildé
+#   CONFIGURE_EMULATOR_GMAIL=1        — après `up`, lance configure-emulator-gmail.js
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -40,6 +42,14 @@ PACKAGE="com.example.jobbingtrack_mobile"
 ENV_SNIPPET="$ROOT/.env.mobile-emulator"
 PID_FILE="$ROOT/.android-sdk/emulator.pid"
 LOG_FILE="$ROOT/.android-sdk/emulator.log"
+
+env_bool() {
+  [[ "${1:-0}" == "1" || "${1:-}" == "true" || "${1:-}" == "yes" ]]
+}
+
+read_root_env_key() {
+  /usr/bin/node "$ROOT/scripts/env/env-get-key.cjs" "$1" 2>/dev/null || true
+}
 
 log() { printf '[emu-setup] %s\n' "$*"; }
 fail() { printf '[emu-setup] ERREUR: %s\n' "$*" >&2; exit 1; }
@@ -207,6 +217,26 @@ cmd_reverse_and_apk() {
   log "App installée sur $id — gateway 127.0.0.1:5002 via adb reverse"
 }
 
+cmd_configure_gmail() {
+  local flag
+  flag="$(read_root_env_key CONFIGURE_EMULATOR_GMAIL)"
+  if ! env_bool "${CONFIGURE_EMULATOR_GMAIL:-$flag}"; then
+    log "CONFIGURE_EMULATOR_GMAIL≠1 — lancez manuellement : node scripts/mobile/configure-emulator-gmail.js"
+  fi
+  if ! curl -sf "${EMULATOR_CONTROLLER_URL:-http://127.0.0.1:5055}/health" >/dev/null 2>&1; then
+    fail "Contrôleur ADB absent sur ${EMULATOR_CONTROLLER_URL:-http://127.0.0.1:5055} — lancer tools/emulator-controller/server.js"
+  fi
+  /usr/bin/node "$ROOT/scripts/mobile/configure-emulator-gmail.js"
+}
+
+maybe_configure_gmail() {
+  local flag
+  flag="$(read_root_env_key CONFIGURE_EMULATOR_GMAIL)"
+  if env_bool "${CONFIGURE_EMULATOR_GMAIL:-$flag}"; then
+    cmd_configure_gmail || log "Gmail AVD : terminer manuellement si 2FA Google (voir docs/mobile/EMULATEUR_ADB.md)"
+  fi
+}
+
 cmd_stop() {
   if [[ -f "$PID_FILE" ]]; then
     kill "$(cat "$PID_FILE")" 2>/dev/null || true
@@ -229,7 +259,7 @@ cmd_status() {
 usage() {
   sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'
   echo ""
-  echo "Commandes : install | create-avd | start | reverse | up | stop | status"
+  echo "Commandes : install | create-avd | start | reverse | configure-gmail | up | stop | status"
 }
 
 main() {
@@ -240,7 +270,8 @@ main() {
     create-avd)    cmd_create_avd ;;
     start)         cmd_start_emulator ;;
     reverse)       cmd_reverse_and_apk ;;
-    up)            cmd_install_sdk; cmd_create_avd; cmd_start_emulator; cmd_reverse_and_apk ;;
+    configure-gmail) cmd_configure_gmail ;;
+    up)            cmd_install_sdk; cmd_create_avd; cmd_start_emulator; cmd_reverse_and_apk; maybe_configure_gmail ;;
     stop)          cmd_stop ;;
     status)        cmd_status ;;
     -h|--help|help) usage ;;

@@ -619,6 +619,9 @@ const routes = {
         body.isEmail === true ||
         (hint && String(hint).toLowerCase().includes('email')) ||
         trimmed.includes('@');
+      const isPasswordField =
+        body.isPassword === true ||
+        (hint && /password|mot de passe/i.test(String(hint)));
       if (isEmailField) console.log(`[tap-field-and-type] Champ email: valeur reçue="${trimmed}" longueur=${trimmed.length} fin="${trimmed.slice(-6)}"`);
       if (isEmailField) {
         await pause(600);
@@ -630,7 +633,7 @@ const routes = {
       for (let i = 0; i < delCount; i++) await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
       await pause(150);
       if (isEmailField && /[0-9]$/.test(trimmed)) trimmed = trimmed.slice(0, -1);
-      const esc = (s) => s.replace(/ /g, '%s').replace(/[&|;<>()$`\\!"'#]/g, (c) => `\\${c}`);
+      const esc = (s) => s.replace(/ /g, '%s').replace(/[&|;<>()$`\\!"'#%]/g, (c) => `\\${c}`);
       const escaped = esc(trimmed);
       // Pour éviter que le clavier Android transforme ".com" en ".com6" ou ".me" en ".me6" : on tape les TLD caractère par caractère.
       const tldCom = trimmed.length >= 3 && trimmed.slice(-3) === 'com';
@@ -654,6 +657,15 @@ const routes = {
         for (const ch of 'me') {
           await execPromise(`adb -s ${deviceId} shell input text "${ch}"`);
           await pause(220);
+        }
+      } else if (isPasswordField || /[%&+]/.test(trimmed)) {
+        for (const ch of trimmed) {
+          if (ch === ' ') {
+            await execPromise(`adb -s ${deviceId} shell input text %s`);
+          } else {
+            await execPromise(`adb -s ${deviceId} shell input text "${esc(ch)}"`);
+          }
+          await pause(fast ? 60 : 120);
         }
       } else {
         await execPromise(`adb -s ${deviceId} shell input text "${escaped}"`);

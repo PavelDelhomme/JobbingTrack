@@ -28,10 +28,12 @@ async function ensureLoggedInShell(phone, email, password) {
 
   await ensureLoggedInShell(phone, email, password);
   await adbLib.flows.setInterimModeForSmoke(phone, true);
-  await adbLib.flows.dismissBiometricUnlock(phone, { password });
+  await adbLib.flows.restartApp(phone);
+  await phone.wait(2500);
   if (!(await phone.uiContains('Bonjour'))) {
     await adbLib.flows.login(phone, email, password);
   }
+  await adbLib.flows.dismissBiometricUnlock(phone, { password });
 
   await adbLib.flows.goToTab(phone, 2, { shell: true });
   await phone.wait(2000);
@@ -52,6 +54,10 @@ async function ensureLoggedInShell(phone, email, password) {
   await phone.wait(2000);
   await phone.assertVisible('Nouvelle entreprise');
 
+  for (let i = 0; i < 4 && !(await phone.uiContains('intérim')); i++) {
+    await phone.scrollDown(350);
+    await phone.wait(400);
+  }
   const interimOption =
     (await phone.uiContains("Boîte d'intérim")) || (await phone.uiContains('intérim'));
   if (!interimOption) {

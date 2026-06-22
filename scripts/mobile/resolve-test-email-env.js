@@ -7,6 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const { loadRootEnv, resolveWorkingAdminCredentials, GATEWAY_URL } = require('./resolve-admin-credentials');
+const { resolveEmailTriageEnv, resolveRegistrationEmail } = require('./resolve-email-triage-env');
 
 function uniqueTestEmail(baseEmail) {
   const trimmed = String(baseEmail || '').trim().toLowerCase();
@@ -38,12 +39,20 @@ function resolveVerificationPassword() {
 
 function resolveBaseTestEmail() {
   loadRootEnv();
+  try {
+    return resolveRegistrationEmail();
+  } catch {
+    /* repli messages historiques */
+  }
   const email =
     process.env.TEST_REAL_EMAIL?.trim() ||
     process.env.TEST_REAL_EMAILS?.split(',')[0]?.trim() ||
+    process.env.EMAIL_GMAIL_PRO_ACCOUNT?.trim() ||
     process.env.TEST_USER_EMAIL?.trim();
   if (!email) {
-    throw new Error('TEST_REAL_EMAIL (ou TEST_REAL_EMAILS / TEST_USER_EMAIL) requis dans .env');
+    throw new Error(
+      'TEST_REAL_EMAIL, EMAIL_GMAIL_PRO_ACCOUNT ou TEST_USER_EMAIL requis dans .env',
+    );
   }
   return email;
 }
@@ -51,6 +60,7 @@ function resolveBaseTestEmail() {
 function compareEnvDiagnostics() {
   loadRootEnv();
   const lines = [];
+  const cfg = resolveEmailTriageEnv();
   const adminEmail = process.env.ADMIN_EMAIL?.trim();
   const testAdminEmail = process.env.TEST_ADMIN_EMAIL?.trim();
   const adminPass = process.env.ADMIN_PASSWORD || '';
@@ -61,8 +71,14 @@ function compareEnvDiagnostics() {
   if (!process.env.TEST_VERIFICATION_PASSWORD?.trim()) {
     lines.push('TEST_VERIFICATION_PASSWORD absent (repli TEST_USER_PASSWORD / TEST_REAL_EMAIL_PASSWORD)');
   }
-  if (!process.env.TEST_REAL_EMAIL?.trim()) {
-    lines.push('TEST_REAL_EMAIL absent');
+  if (!cfg.testRealEmail || cfg.testRealEmail.includes('example.invalid')) {
+    lines.push('TEST_REAL_EMAIL ou EMAIL_GMAIL_PRO_ACCOUNT absent/invalide');
+  }
+  if (!cfg.gmailImap && !cfg.ovhImap) {
+    lines.push('IMAP indisponible : renseigner EMAIL_GMAIL_PRO_PASSWORD_APPLICATION et/ou TEST_EMAIL_TRIAGE_IMAP_*');
+  }
+  if (cfg.gmailAccount && !cfg.digestRecipient) {
+    lines.push('EMAIL_TRIAGE_DIGEST_RECIPIENT absent (repli gmail pro)');
   }
   return lines;
 }

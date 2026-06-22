@@ -69,20 +69,41 @@ Notes :
 
 ### 2. Gmail (développement ponctuel uniquement)
 
+Variables dédiées dans `.env.example` (section K) :
+
+| Variable | Usage |
+|----------|--------|
+| `EMAIL_GMAIL_PRO_ACCOUNT` | Compte Gmail porteur |
+| `EMAIL_GMAIL_PRO_PASSWORD` | Mot de passe compte (connexion émulateur) |
+| `EMAIL_GMAIL_PRO_PASSWORD_APPLICATION` | Mot de passe d'application Google (SMTP/IMAP) |
+
 1. Activez l'authentification à 2 facteurs sur votre compte Gmail
-2. Générez un "App Password" : https://myaccount.google.com/apppasswords
-3. Configurez dans `.env` :
+2. Générez un mot de passe d'application : https://myaccount.google.com/apppasswords (ex. nom « JobbingTrack »)
+3. Renseignez dans `.env` (jamais dans Git) :
 
 ```env
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT="587"
-SMTP_SECURE="false"
-SMTP_USER="redacted@example.invalid"
-SMTP_PASS="votre-app-password-16-caracteres"
-SMTP_FROM="JobbingTrack <redacted@example.invalid>"
+EMAIL_GMAIL_PRO_ACCOUNT=redacted@example.invalid
+EMAIL_GMAIL_PRO_PASSWORD=votre-mot-de-passe-compte-google
+EMAIL_GMAIL_PRO_PASSWORD_APPLICATION=xxxx-xxxx-xxxx-xxxx
 ```
 
+4. Pour envoyer via le stack JobbingTrack (auth-service / notification-service) :
+
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=true
+SMTP_USE_SSL=false
+SMTP_USER=redacted@example.invalid
+SMTP_PASS=xxxx-xxxx-xxxx-xxxx
+SMTP_FROM=JobbingTrack <redacted@example.invalid>
+```
+
+(`SMTP_PASS` = `EMAIL_GMAIL_PRO_PASSWORD_APPLICATION`, pas le mot de passe du compte.)
+
 Gmail ne doit pas devenir le SMTP applicatif de production. Il peut servir à un test ponctuel ou à la lecture Gmail de l'agent email, pas à l'identité d'envoi officielle JobbingTrack.
+
+Configuration automatique du compte sur l'émulateur Android : `node scripts/mobile/configure-emulator-gmail.js` — voir `docs/mobile/EMULATEUR_ADB.md`.
 
 ### 3. OVH (préproduction / production - maily.ovh)
 

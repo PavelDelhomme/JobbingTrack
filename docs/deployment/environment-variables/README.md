@@ -80,6 +80,36 @@ REDIS_URL=redis://localhost:6379  # URL Redis pour le cache
 
 MailHog est réservé au local/dev/test. En préproduction et production, renseigner un fournisseur SMTP réel et prouver la réception dans une boîte réelle.
 
+#### Compte Gmail pro porteur (`.env` local uniquement)
+
+Variables dédiées au compte Google personnel du porteur (ex. tests AVD, agent email, SMTP dev ponctuel). **Ne jamais committer** les valeurs réelles.
+
+| Variable | Rôle | Comment l’obtenir |
+|----------|------|-------------------|
+| `EMAIL_GMAIL_PRO_ACCOUNT` | Adresse Gmail (ex. `pauldelhomme.pro@gmail.com`) | Compte Google existant |
+| `EMAIL_GMAIL_PRO_PASSWORD` | Mot de passe du **compte** Google | Connexion écran Android / OAuth navigateur sur l’émulateur |
+| `EMAIL_GMAIL_PRO_PASSWORD_APPLICATION` | Mot de passe d’application **16 caractères** | [Compte Google → Sécurité → Validation en 2 étapes → Mots de passe des applications](https://myaccount.google.com/apppasswords) — créer une entrée « JobbingTrack » |
+| `CONFIGURE_EMULATOR_GMAIL` | `1` = config auto Gmail après `setup-android-emulator.sh up` | Optionnel, défaut `0` |
+
+Le mot de passe d’application sert au **SMTP/IMAP** (`SMTP_PASS`, tests agent email), pas à l’ajout du compte sur Android. Voir `docs/mobile/EMULATEUR_ADB.md` § Gmail.
+
+```bash
+# Exemple placeholders (.env.example) — valeurs réelles dans .env gitignoré
+EMAIL_GMAIL_PRO_ACCOUNT=redacted@example.invalid
+EMAIL_GMAIL_PRO_PASSWORD=
+EMAIL_GMAIL_PRO_PASSWORD_APPLICATION=
+CONFIGURE_EMULATOR_GMAIL=0
+```
+
+Alignement `.env` ↔ `.env.example` :
+
+```bash
+node scripts/env/env-align-with-example.cjs          # compare les clés
+node scripts/env/reorder-env-from-example.cjs --write  # réordonne .env sans écraser les valeurs
+```
+
+#### SMTP applicatif (reset, alertes, notifications)
+
 ```bash
 SMTP_HOST=smtp.gmail.com                      # Serveur SMTP
 SMTP_PORT=587                                 # Port SMTP
@@ -423,6 +453,6 @@ const dbUrl = process.env.DATABASE_URL ||
 
 ---
 
-**Version**: 4.1  
-**Dernière mise à jour**: Novembre 2025
+**Version**: 4.2  
+**Dernière mise à jour**: Juin 2026
 

@@ -156,12 +156,46 @@ async function fillApplicationForm(phone, companyName, position) {
     await phone.typeText(companyName);
   }
   await phone.wait(1200);
-  const createLabel = `Créer « ${companyName} »`;
-  if (await phone.uiContains(createLabel)) {
-    await phone.tap(createLabel);
-  } else {
+  const createLabels = [
+    `Créer « ${companyName} »`,
+    `Créer "${companyName}"`,
+    `Créer «${companyName}»`,
+    'Créer une nouvelle entreprise',
+  ];
+  let picked = false;
+  for (const label of createLabels) {
+    if (!(await phone.uiContains(label))) continue;
+    try {
+      await phone.tap(label);
+      picked = true;
+      break;
+    } catch {
+      /* essai suivant */
+    }
+  }
+  if (!picked) {
+    const nodes = await phone.uiNodes();
+    const createNode = nodes.find(
+      (n) =>
+        n.clickable &&
+        (n.text || n.contentDesc || '').includes('Créer') &&
+        (n.text || n.contentDesc || '').includes(companyName),
+    );
+    if (createNode?.bounds) {
+      const m = createNode.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+      if (m) {
+        await phone.tapXY(
+          Math.round((+m[1] + +m[3]) / 2),
+          Math.round((+m[2] + +m[4]) / 2),
+        );
+        picked = true;
+      }
+    }
+  }
+  if (!picked) {
     try {
       await phone.tap('Créer');
+      picked = true;
     } catch {
       throw new Error(`Option créer entreprise « ${companyName} » introuvable`);
     }

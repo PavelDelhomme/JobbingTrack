@@ -14,6 +14,7 @@ Guide rapide pour remplacer le Samsung USB par l’AVD local.
 |--------|----------|
 | 1. SDK + AVD (une fois, ~1–4 Go) | `bash scripts/mobile/setup-android-emulator.sh install` |
 | 2. Tout-en-un (émulateur + reverse + APK) | `bash scripts/mobile/setup-android-emulator.sh up` |
+| 2b. Gmail pro sur AVD (depuis `.env`) | `node scripts/mobile/configure-emulator-gmail.js` |
 | 3. Stack Docker (sans `make`) | `docker compose -f docker-compose.yml --profile full up -d` |
 | 4. Contrôleur ADB | `ADB_FAST=1 node tools/emulator-controller/server.js` |
 | 5. Variables session | `export MOBILE_ADB_DEVICE=emulator-5554 ADB_FAST=1` |
@@ -67,6 +68,44 @@ MOBILE_PREFER_EMULATOR=0
 ```
 
 Pour forcer l’émulateur : `MOBILE_ADB_DEVICE=emulator-5554` ou `MOBILE_PREFER_EMULATOR=1` (+ `.env.mobile-emulator`).
+
+## Gmail pro sur l’AVD (automatique depuis `.env`)
+
+Le compte Google porteur (ex. `pauldelhomme.pro@gmail.com`) peut être ajouté sur l’émulateur pour tester la réception mail / agent email.
+
+### Variables `.env` (racine, gitignoré)
+
+| Variable | Rôle |
+|----------|------|
+| `EMAIL_GMAIL_PRO_ACCOUNT` | Adresse Gmail |
+| `EMAIL_GMAIL_PRO_PASSWORD` | Mot de passe **compte** Google (écran connexion Android) |
+| `EMAIL_GMAIL_PRO_PASSWORD_APPLICATION` | Mot de passe d’application Google (SMTP/IMAP — **pas** utilisé pour la connexion Android) |
+| `CONFIGURE_EMULATOR_GMAIL=1` | Lance la config Gmail automatiquement après `setup-android-emulator.sh up` |
+
+Mot de passe d’application : [Compte Google → Sécurité → Validation en 2 étapes → Mots de passe des applications](https://myaccount.google.com/apppasswords) — créer « JobbingTrack ».
+
+### Commandes
+
+```bash
+# Prérequis : émulateur booté + contrôleur ADB (5055)
+bash scripts/mobile/setup-android-emulator.sh start
+cd tools/emulator-controller && ADB_FAST=1 node server.js   # autre terminal
+
+# Configuration Gmail (lit .env via scripts/env/env-get-key.cjs)
+node scripts/mobile/configure-emulator-gmail.js
+
+# Ou via le script setup
+bash scripts/mobile/setup-android-emulator.sh configure-gmail
+
+# Vérifier sans tenter la connexion
+node scripts/mobile/configure-emulator-gmail.js --check-only
+```
+
+### Limites
+
+- La **validation 2FA** Google peut exiger une saisie manuelle sur l’émulateur (code SMS/app Authenticator).
+- Le **mot de passe d’application** ne remplace pas le mot de passe compte pour « Ajouter un compte Google » dans Paramètres Android.
+- Si la connexion échoue, terminez le flux sur l’émulateur puis relancez `--check-only`.
 
 ## Dépannage
 

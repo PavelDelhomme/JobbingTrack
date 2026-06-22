@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 22 juin 2026 (fix FK analytics errors + batterie mobile)
+Dernière mise à jour : 22 juin 2026 (Gmail AVD + alignement env)
 
 ## Rôle
 
@@ -10,6 +10,7 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 
 | Priorité | Vérification agent | Preuve attendue | Statut |
 |----------|--------------------|-----------------|--------|
+| Env/Mobile | Gmail pro AVD + alignement `.env.example` | **22/06** : clés `EMAIL_GMAIL_PRO_*` + `CONFIGURE_EMULATOR_GMAIL` dans `.env.example` (placeholders) ; script `scripts/mobile/configure-emulator-gmail.js` + commande `setup-android-emulator.sh configure-gmail` ; doc `docs/deployment/environment-variables/README.md`, `docs/emails/SMTP_CONFIGURATION.md`, `docs/mobile/EMULATEUR_ADB.md`. Alignement local : `env-align-with-example.cjs` → **268/268 clés** ; typo `EMAIL_TRIAGE_FOWARD_ADDRESS` migrée → `EMAIL_TRIAGE_FORWARD_ADDRESS`. Syntaxe Node `--check` OK. Exécution AVD non testée sans émulateur booté + contrôleur 5055. | [x] |
 | Mobile | Auth + parcours candidatures — audit et correctifs | **18/06** : logout volontaire purge session chiffrée, files offline/télémétrie, caches providers (`UserSessionCleanup`, `AuthLogout`) ; `keepLoggedIn=false` ; navigation `/login` sans fermer l’app. Hors-ligne (sans internet) : session conservée. Smokes **19/19** + shell ADB **OK** Samsung. Validation porteur **OK auth candidatures**. | [x] |
 | Mobile | Déconnexion — purge locale vs mode hors-ligne | **18/06** : `UserSessionCleanup.onLogout` — JWT/refresh, biométrie, files gzip, caches téléphone local, reset providers mémoire. Distinct du 401 hors-ligne (session conservée). `flutter analyze` ciblé **0 erreur** ; APK Samsung reinstallé **Success**. | [x] |
 | Mobile | Déconnexion drawer — navigation login fiable | **19/06** : bug drawer — fermeture avant `confirmAndPerform` invalidait le `BuildContext` → déconnexion ignorée ; navigation parfois absente si contexte invalidé après purge. Correctifs : dialogue avant fermeture drawer ; `appNavigatorKey` ; navigation **toujours** via `addPostFrameCallback` ; bouton **Se déconnecter** écran biométrique. Build `~/flutter-sdk/bin/flutter` ; APK Samsung **Success** ; smoke ADB drawer : dialog → confirm → **Connexion** en **2 s**. | [x] |

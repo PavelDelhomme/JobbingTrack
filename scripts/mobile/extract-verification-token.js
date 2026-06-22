@@ -3,24 +3,10 @@
  */
 
 const { execFileSync } = require('child_process');
+const { extractTokenFromText } = require('./extract-token-from-text');
+const { resolveEmailTriageEnv } = require('./resolve-email-triage-env');
+const { waitForImapVerificationToken } = require('./fetch-imap-verification');
 const { loadRootEnv, resolveWorkingAdminCredentials, GATEWAY_URL } = require('./resolve-admin-credentials');
-
-function extractTokenFromText(text) {
-  if (!text || typeof text !== 'string') return null;
-  const hrefRegex = /href=["']([^"']+)["']/gi;
-  let match;
-  const links = [];
-  while ((match = hrefRegex.exec(text)) !== null) links.push(match[1]);
-  const inline = text.match(/(?:verify-email\?token=|verify-email\/)([a-zA-Z0-9_-]+)/);
-  if (inline) return inline[1];
-  for (const link of links) {
-    const tokenMatch =
-      link.match(/[?&]token=([a-zA-Z0-9_-]+)/) || link.match(/\/verify-email\/([a-zA-Z0-9_-]+)/);
-    if (tokenMatch) return tokenMatch[1];
-  }
-  const loose = text.match(/token=([a-f0-9]{32,64})/i);
-  return loose ? loose[1] : null;
-}
 
 async function waitForMailHogToken(email, timeoutMs = 45000) {
   const mailhogUrl =
@@ -129,6 +115,17 @@ function fetchPostgresToken(email) {
 async function resolveVerificationToken(email, { allowPostgresFallback = false } = {}) {
   const fromMailhog = await waitForMailHogToken(email);
   if (fromMailhog) return fromMailhog;
+
+  const triage = resolveEmailTriageEnv();
+  if (triage.gmailImap || triage.ovhImap) {
+    try {
+      const fromImap = await waitForImapVerificationToken(email, triage, { timeoutMs: 60000 });
+      if (fromImap) return fromImap;
+    } catch (err) {
+      console.warn(`IMAP vérif email : ${err.message}`);
+    }
+  }
+
   const fromLog = await waitForEmailLogToken(email);
   if (fromLog) return fromLog;
   if (allowPostgresFallback) {
@@ -136,10 +133,9 @@ async function resolveVerificationToken(email, { allowPostgresFallback = false }
     if (fromDb) return fromDb;
   }
   throw new Error(
-    `Token introuvable pour ${email} (MailHog + EmailLog). Vérifiez SMTP/MailHog et auth-service.`,
+    `Token introuvable pour ${email} (MailHog + IMAP + EmailLog). Vérifiez SMTP, EMAIL_GMAIL_PRO_* / EMAIL_TRIAGE_* et auth-service.`,
   );
 }
-
 module.exports = {
   extractTokenFromText,
   resolveVerificationToken,

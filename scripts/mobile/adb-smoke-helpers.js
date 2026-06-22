@@ -15,26 +15,60 @@ async function ensureUserShell(phone, email, password) {
 
 async function openProfileEdit(phone) {
   await adbLib.flows.goToTab(phone, 4, { shell: true });
-  await phone.wait(600);
+  await phone.wait(800);
   let opened = false;
-  for (const label of ['Modifier le profil', 'Modifier', 'Edit profile']) {
-    if (!(await phone.uiContains(label))) continue;
+  // Icône crayon AppBar (tooltip « Modifier ») — plus fiable que le ListTile sur émulateur
+  if (await phone.uiContains('Modifier')) {
     try {
-      await phone.tapReliable(label);
-      opened = true;
-      break;
+      const nodes = await phone.uiNodes();
+      const editBtn = nodes.find(
+        (n) =>
+          n.clickable &&
+          (n.contentDesc === 'Modifier' || n.text === 'Modifier') &&
+          !`${n.text || ''}${n.contentDesc || ''}`.includes('profil'),
+      );
+      if (editBtn?.bounds) {
+        const m = editBtn.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+        if (m) {
+          await phone.tapXY(
+            Math.round((+m[1] + +m[3]) / 2),
+            Math.round((+m[2] + +m[4]) / 2),
+          );
+          opened = true;
+        }
+      }
     } catch {
-      /* label suivant */
+      /* fallback list tile */
+    }
+  }
+  if (!opened) {
+    for (const label of ['Modifier le profil', 'Modifier', 'Edit profile']) {
+      if (!(await phone.uiContains(label))) continue;
+      try {
+        await phone.tapReliable(label);
+        opened = true;
+        break;
+      } catch {
+        /* label suivant */
+      }
     }
   }
   if (!opened) {
     throw new Error('Bouton modification profil introuvable');
   }
-  const ok = await phone.waitUntil(
-    ({ contains }) =>
-      contains('Enregistrer') && (contains('Prénom') || contains('Téléphone')),
-    { timeoutMs: 12000, pollMs: 400 },
-  );
+  const editVisible = ({ contains }) =>
+    contains('Enregistrer') &&
+    (contains('Pour changer') ||
+      contains('Email') ||
+      contains('Prénom') ||
+      contains('Nom') ||
+      contains('Téléphone'));
+  let ok = await phone.waitUntil(editVisible, { timeoutMs: 15000, pollMs: 500 });
+  if (!ok) {
+    await phone.scrollDown(500);
+    await phone.wait(600);
+    ok = await phone.waitUntil(editVisible, { timeoutMs: 8000, pollMs: 500 });
+  }
   if (!ok) {
     throw new Error('Écran modification profil introuvable');
   }
