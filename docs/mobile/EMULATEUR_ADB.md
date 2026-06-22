@@ -6,7 +6,7 @@ Guide rapide pour remplacer le Samsung USB par l’AVD local.
 
 - Stack JobbingTrack **démarrée** (gateway `127.0.0.1:5002`).
 - Flutter SDK (`~/flutter-sdk/bin/flutter` ou `flutter` dans le PATH).
-- Contrôleur ADB : `tools/emulator-controller` sur le port **5055**.
+- Contrôleur ADB : `tools/emulator-controller` sur **127.0.0.1:5055** (local uniquement, pas VPS prod).
 
 ## Commandes essentielles
 
@@ -18,8 +18,19 @@ Guide rapide pour remplacer le Samsung USB par l’AVD local.
 | 4. Contrôleur ADB | `ADB_FAST=1 node tools/emulator-controller/server.js` |
 | 5. Variables session | `export MOBILE_ADB_DEVICE=emulator-5554 ADB_FAST=1` |
 | 6. Smoke login | `node scripts/mobile/smoke-login-user-password-adb.js` |
+| 7. Copier prefs Samsung → émulateur | `bash scripts/mobile/sync-app-data-adb.sh --locale` (voir `CLONE_APPAREIL.md`) |
 
 > **`install` seul** ne démarre pas l’émulateur ni n’installe l’APK — enchaîner avec `up` ou `start` + `reverse`.
+
+## Build APK (Arch Linux)
+
+Le Flutter **pacman** (`/usr/bin/flutter`) peut échouer avec `Wrong full snapshot version`. Utiliser :
+
+```bash
+bash scripts/mobile/build-apk-debug.sh
+# ou
+export PATH="$HOME/flutter-sdk/bin:$PATH"
+```
 
 ## Workflow complet (copier-coller)
 
@@ -61,7 +72,8 @@ Pour forcer l’émulateur : `MOBILE_ADB_DEVICE=emulator-5554` ou `MOBILE_PREFER
 | `fetch failed` | Stack arrêtée | `docker compose … up -d` + `curl 127.0.0.1:5002/health` |
 | `make logs` vide | Conteneurs down | Normal après `docker compose down` — relancer la stack |
 | Login KO émulateur | Écran « mot de passe oublié » | Corrigé : rebuild APK (`setup-android-emulator.sh up`) |
-| APK absent | Pas de build | `cd mobile && flutter build apk --debug` puis `setup-android-emulator.sh reverse` |
+| `Wrong full snapshot version` | Flutter pacman Arch | `bash scripts/mobile/build-apk-debug.sh` |
+| APK absent | Pas de build | `bash scripts/mobile/build-apk-debug.sh` puis `setup-android-emulator.sh reverse` |
 
 ## Arrêt propre
 

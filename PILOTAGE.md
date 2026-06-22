@@ -11,7 +11,7 @@ Ensuite, **obligatoire avant production** :
 1. **Lot H — Hygiène dépôt** (`docs/TODOS.md` § H1–H6) : réorganisation `scripts/`, `tests/`, `tools/`, docs obsolètes, doublons.
 2. **Lot E — Documentation** : revue complète des `.md` pour refléter l’état réel (mobile, hub tests, env, déploiement).
 3. **Audit secrets** : aucune valeur sensible en clair hors `.env` / `.env.example` (placeholders uniquement) — scripts, code, docs, rapports, variables Compose. S’appuyer sur `scripts/security/secrets-scan.sh`, ggshield, revue manuelle `TEST_*` / SMTP / JWT.
-4. **Gate** : `A_VALIDER_AVANT_PRODUCTION.md` + validation porteur explicite.
+4. **Gate** : `A_VALIDER_AVANT_PRODUCTION.md` + validation porteur explicite (9 étapes préprod → prod, rapport `docs/security/SECURITY_RELEASE_IMPACT_REPORT.template.md`).
 
 Voir aussi `docs/BACKLOG.md` § « Post-D8 hygiène ».
 

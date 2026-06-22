@@ -1,12 +1,30 @@
 # À valider avant préproduction / production
 
-Dernière mise à jour : 16 juin 2026
+Dernière mise à jour : 22 juin 2026
 
 ## Rôle
 
-Ce fichier démarre seulement quand les validations locales de `TODOS_A_VALIDER.md` sont suffisamment propres. Il sert au gate préprod/prod simulé ou réel.
+Ce fichier démarre seulement quand les validations locales de `TODOS_A_VALIDER.md` sont suffisamment propres. Il sert au gate **préprod** (environnement contrôlé, pas encore ouvert au public) puis **prod**.
 
-Pour l’instant, aucune production réelle n’est lancée sur serveur.
+Pour l’instant, aucune production réelle n’est lancée sur serveur (Portainer/NPM à monter).
+
+## Enchaînement obligatoire (étape par étape)
+
+Le porteur valide **chaque étape** avant la suivante. L’agent prépare les preuves ; seul le porteur coche GO.
+
+| # | Étape | Fichier / commande | GO porteur |
+|---|--------|-------------------|------------|
+| 1 | Validations locales P0/P1/D mobile | `TODOS_A_VALIDER.md` → `TODOS_DONE.md` | [ ] |
+| 2 | Hub tests backoffice D8 | UI admin + smokes sans terminal | [ ] |
+| 3 | Suite tests + rapports | `scripts/run-all-tests-with-reports.sh` | [ ] |
+| 4 | Rapport impact release (vide structuré) | `docs/security/SECURITY_RELEASE_IMPACT_REPORT.template.md` | [ ] |
+| 5 | Matrice plateformes | `docs/mobile/COMPATIBILITE_PLATEFORMES.md` | [ ] |
+| 6 | Déploiement **préprod** VPS (Portainer, NPM, secrets hors Git) | `DEPLOIEMENT_PRODUCTION.md` | [ ] |
+| 7 | Tests identiques préprod (Android, iOS si dispo, web, API) | Reprendre matrice §4 du rapport | [ ] |
+| 8 | Audit sécurité final + tri critical/high | Rapports P0 + Trivy prod | [ ] |
+| 9 | GO production | Porteur explicite → `VALIDATION_PRODUCTION.md` | [ ] |
+
+> **Préprod** = stack derrière NPM, accès restreint, possibilité de rollback. **Prod** = ouverture réelle — uniquement après ligne 9.
 
 ## Préconditions
 

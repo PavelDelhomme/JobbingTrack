@@ -170,6 +170,20 @@ Chantier transversal ensuite obligatoire avant prod :
 
 Voir **`PILOTAGE.md`** § « Phase post-D8 ».
 
+## Matrice impact release multi-plateformes (22/06)
+
+**Statut** : cadrage documenté — **automation non implémentée** (VPS/Portainer pas encore en prod).
+
+- Modèle rapport : `docs/security/SECURITY_RELEASE_IMPACT_REPORT.template.md`
+- Cadrage mobile/desktop : `docs/mobile/COMPATIBILITE_PLATEFORMES.md`
+- Gate : `A_VALIDER_AVANT_PRODUCTION.md` (étapes 4–7)
+
+**Suite technique (backlog)** :
+
+1. Script `scripts/release/check-platform-impact.sh` (diff deps, migrations, Compose).
+2. Job CI sur PR release / tag semver.
+3. Notification porteur si changement `pubspec.yaml`, `package.json`, Prisma, `.env.example` breaking.
+
 ## Références
 
 - `STATUS.md` : état courant du projet.

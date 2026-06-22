@@ -45,6 +45,11 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | Mobile | Hub tests backoffice (D8 — gate pré-prod) | **22/06 porteur** : orchestration tests + config `.env` + matériel depuis **`/backoffice/mobile-emulator`**, Parcours utilisateur, hub Tests. Backlog `docs/TODOS.md` § D8, `A_VALIDER_AVANT_PRODUCTION.md`. **Non implémenté UI** — CLI/agent seulement aujourd’hui. **Après D8** : phase post-D8 (Lot H + E + audit secrets) — voir `PILOTAGE.md`. | [ ] |
 | Mobile | FlutterError ListTile login — faux crash email | **22/06** : `login_screen.dart` Material + filtre `crash_reporter.dart`. Rebuild APK requis. | [ ] |
 | Infra | Stack arrêtée — logs vides | **22/06** : arrêt volontaire `docker compose down` ~11:03. Relancer : `docker compose -f docker-compose.yml --profile full up -d`. Voir `docs/mobile/EMULATEUR_ADB.md`. | [ ] |
+| Mobile | Build APK Arch — snapshot Dart | **22/06** : `scripts/mobile/resolve-flutter.sh` + `build-apk-debug.sh` ; setup émulateur/physique utilisent `~/flutter-sdk/bin/flutter`. Build **OK** (`app-debug.apk`). | [x] |
+| Mobile | Smoke login émulateur | **22/06** : `MOBILE_ADB_DEVICE=emulator-5554` + contrôleur 5055 — « Session déjà active — smoke login mot de passe OK ». | [x] |
+| Mobile | Sync prefs Samsung → émulateur | **22/06** : `scripts/mobile/sync-app-data-adb.sh` (run-as debug, pas clone OS). Doc `docs/mobile/CLONE_APPAREIL.md`. Validation porteur après test manuel. | [ ] |
+| Doc | Gate préprod 9 étapes + rapport sécurité vide | **22/06** : `A_VALIDER_AVANT_PRODUCTION.md`, `SECURITY_RELEASE_IMPACT_REPORT.template.md`, `COMPATIBILITE_PLATEFORMES.md`. | [x] |
+| Mobile | Contrôleur ADB localhost | **22/06** : `EMULATOR_CONTROLLER_HOST=127.0.0.1` par défaut (pas exposé VPS). | [x] |
 | Pilotage | Phase post-D8 planifiée | **22/06** : `PILOTAGE.md`, `docs/TODOS.md` priorité #9 + § H bis, `docs/BACKLOG.md` — nettoyage/doc/secrets **après** hub tests D8 validé. | [x] |
 | Mobile | Parcours live appareil (ligne 322) | **22/06** : `smoke-mobile-live-journey-adb.js` **OK** — fix sous-onglet Tab 1/5. | [x] |
 | Mobile | Sauvegarde profil téléphone | **19/06** : `smoke-mobile-profile-save-adb.js` **OK** — téléphone enregistré visible sur profil. | [x] |

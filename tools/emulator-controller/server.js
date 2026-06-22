@@ -11,6 +11,7 @@ const path = require('path');
 const fs = require('fs');
 
 const PORT = parseInt(process.env.EMULATOR_CONTROLLER_PORT || '5055', 10);
+const HOST = process.env.EMULATOR_CONTROLLER_HOST || '127.0.0.1';
 const BASE_PATH = (process.env.EMULATOR_CONTROLLER_BASE_PATH || '').replace(/\/$/, '');
 const MOBILE_PATH = process.env.MOBILE_PROJECT_PATH || path.resolve(__dirname, '../../mobile');
 let ANDROID_HOME = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT || '';
@@ -842,6 +843,9 @@ const server = http.createServer((req, res) => {
   next();
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Emulator controller: http://0.0.0.0:${PORT} (mobile: ${MOBILE_PATH})`);
+server.listen(PORT, HOST, () => {
+  console.log(`Emulator controller: http://${HOST}:${PORT} (mobile: ${MOBILE_PATH})`);
+  if (HOST === '0.0.0.0') {
+    console.warn('ATTENTION: écoute sur toutes interfaces — réservé au lab local, jamais en prod VPS.');
+  }
 });

@@ -7,6 +7,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# shellcheck source=scripts/mobile/resolve-flutter.sh
+source "$ROOT/scripts/mobile/resolve-flutter.sh"
 MOBILE_DIR="$ROOT/mobile"
 ADB_WAIT_SEC="${ADB_WAIT_SEC:-120}"
 PACKAGE="com.example.jobbingtrack_mobile"
@@ -76,8 +78,8 @@ fi
 log "Build APK debug..."
 (
   cd "$MOBILE_DIR"
-  flutter pub get
-  flutter build apk --debug "${DART_DEFINES[@]}"
+  "$FLUTTER_BIN" pub get
+  "$FLUTTER_BIN" build apk --debug "${DART_DEFINES[@]}"
 )
 
 APK_FLUTTER="$MOBILE_DIR/build/app/outputs/flutter-apk/app-debug.apk"

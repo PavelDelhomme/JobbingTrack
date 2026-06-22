@@ -18,6 +18,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# shellcheck source=scripts/mobile/resolve-flutter.sh
+source "$ROOT/scripts/mobile/resolve-flutter.sh"
 MOBILE_DIR="$ROOT/mobile"
 AVD_NAME="${JOBBINGTRACK_AVD_NAME:-JobbingTrack_S21_FE}"
 _pick_sdk() {
@@ -146,6 +148,10 @@ cmd_start_emulator() {
   fi
   mkdir -p "$(dirname "$PID_FILE")"
   local -a args=(-avd "$AVD_NAME" -no-snapshot-save -gpu swiftshader_indirect)
+  if [[ "${EMULATOR_WRITABLE_SYSTEM:-0}" == "1" ]]; then
+    args+=(-writable-system)
+    log "Mode root possible : EMULATOR_WRITABLE_SYSTEM=1 (-writable-system)"
+  fi
   if [[ "${EMULATOR_HEADLESS:-0}" == "1" ]]; then
     args+=(-no-window)
   fi
@@ -171,9 +177,9 @@ ANDROID_SDK_ROOT=$ANDROID_SDK
 MOBILE_ADB_DEVICE=$id
 MOBILE_PREFER_EMULATOR=1
 EMULATOR_CONTROLLER_URL=http://127.0.0.1:5055
-  ADB_FAST=1
-  ADB_UI_CACHE_MS=280
-  ADB_WAIT_POLL_MS=320
+ADB_FAST=1
+ADB_UI_CACHE_MS=280
+ADB_WAIT_POLL_MS=320
 EOF
   log "Config émulateur : MOBILE_PREFER_EMULATOR=1 + MOBILE_ADB_DEVICE=$id → $ENV_SNIPPET"
   log "Prochaine étape : bash scripts/mobile/setup-android-emulator.sh up  (ou start + reverse)"
@@ -191,7 +197,7 @@ cmd_reverse_and_apk() {
   [[ -f "$apk" ]] || apk="$MOBILE_DIR/build/app/outputs/apk/debug/app-debug.apk"
   if [[ ! -f "$apk" ]] && [[ "${SKIP_APK_BUILD:-0}" != "1" ]]; then
     log "Build APK debug…"
-    (cd "$MOBILE_DIR" && flutter build apk --debug)
+    (cd "$MOBILE_DIR" && "$FLUTTER_BIN" build apk --debug)
     apk="$MOBILE_DIR/build/app/outputs/flutter-apk/app-debug.apk"
   fi
   [[ -f "$apk" ]] || fail "APK introuvable — build mobile ou copiez l’APK du Samsung"
