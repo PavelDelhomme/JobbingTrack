@@ -1,6 +1,6 @@
 # TODOS — chantier backoffice / API / doc (JobbingTrack)
 
-**Dernière mise à jour : 17 juin 2026** — réorientation porteur vers **mobile + analytics utilisateur** ; backoffice Statistics en file secondaire.
+**Dernière mise à jour : 22 juin 2026** — réorientation porteur vers **mobile + analytics utilisateur** ; phase **post-D8** (nettoyage/doc/secrets) planifiée après hub tests admin.
 
 ## Priorités mobile — à faire maintenant (17/06)
 
@@ -16,6 +16,7 @@
 | 6 | **Mises à jour app** | Versioning affiché, stratégie MAJ (store / sideload / OTA à cadrer). |
 | 7 | **Workflow central + notifications** | Logique métier côté **workflow-service** (crons déjà partiels) : transitions auto statut candidature, rappels relance/entretien, push mobile ; sync offline côté app. Voir § D7 ci-dessous. |
 | 8 | **Hub tests backoffice (pré-prod)** | Orchestrer depuis **`/backoffice/mobile-emulator`**, **`/backoffice/tests-*`** et **Parcours utilisateur** : appareil ADB/AVD, identifiants test, scripts `scripts/` + `tests/`, variables type `.env` (sans secrets en clair UI). Voir § **D8** — **obligatoire avant production**. |
+| 9 | **Post-D8 — nettoyage, doc, secrets** | **Après D8 validé** : Lot H (réorg dépôt), Lot E (doc `.md` à jour), audit secrets (`.env` / `.env.example` seuls endroits autorisés pour valeurs réelles). Voir **`PILOTAGE.md`** § « Phase post-D8 ». **Ne pas démarrer en parallèle de D8.** |
 
 Backlog détaillé : **Lot D — Mobile & observabilité** plus bas dans ce fichier.
 
@@ -608,7 +609,19 @@ Dette **`npm run type-check`** : **`ERRORS.md`** ; journal : **`make type-check-
   - **Scripts existants** : réutiliser `tools/adb-lib`, `tools/emulator-controller`, `scripts/mobile/smoke-run-mobile-validation.js`, `scripts/mobile/setup-android-emulator.sh` — **ne pas réécrire** la logique, l’exposer via API backoffice.
   - **Comportement par défaut (CLI/agent)** : si `MOBILE_ADB_DEVICE` vide → **auto-détection ADB** (priorité appareil physique USB, sinon émulateur) ; `ADB_FAST=1` pour smokes agent.
   - **Amélioration système de tests** : unifier lancement `make tests` / scripts `scripts/` / `tests/` derrière une couche backoffice ; rédaction/édition de scénarios ; matrice « test → surface → preuve ».
-  - **Gate** : documenter dans `A_VALIDER_AVANT_PRODUCTION.md` ; validation porteur avant merge prod. **Agent 22/06** : socle CLI `setup-android-emulator.sh`, `run-smokes-fast.sh`, `ADB_FAST`, `.env.mobile-emulator` ; émulateur AVD `JobbingTrack_S21_FE` + batterie **27/27 OK** Samsung ; login émulateur en cours (saisie email sans hint).
+  - **Gate** : documenter dans `A_VALIDER_AVANT_PRODUCTION.md` ; validation porteur avant merge prod. **Agent 22/06** : socle CLI `setup-android-emulator.sh`, `run-smokes-fast.sh`, `ADB_FAST`, `.env.mobile-emulator` ; émulateur AVD `JobbingTrack_S21_FE` + batterie **27/27 OK** Samsung ; login émulateur **OK** (EditText + ENTER). **Suite** : UI backoffice hub tests — puis seulement **phase post-D8** (Lot H + Lot E + audit secrets, voir `PILOTAGE.md`).
+
+---
+
+## Lot H bis — Audit secrets & conformité `.env` (gate post-D8)
+
+**Condition de démarrage** : hub tests D8 validé porteur + smokes mobile/émulateur stabilisés.
+
+- [ ] **Inventaire** : grep ciblé mots de passe, tokens JWT, clés API, emails perso dans `scripts/`, `mobile/`, `frontend/`, `backend/`, `docs/` (hors `.env.example` placeholders).
+- [ ] **Correction** : déplacer toute valeur réelle vers `.env` ; `.env.example` = placeholders + commentaires uniquement.
+- [ ] **Automatisation** : `scripts/security/secrets-scan.sh` + ggshield en CI ; rapport sans fuite des secrets trouvés.
+- [ ] **Docs** : `docs/deployment/environment-variables/README.md`, `STRICT_ENV.md`, README setup alignés.
+- [ ] **Validation porteur** : ligne dédiée `A_VALIDER_AVANT_PRODUCTION.md` avant prod.
 
 ---
 

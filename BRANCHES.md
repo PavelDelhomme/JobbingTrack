@@ -111,3 +111,21 @@ Ordre conseille pour remettre le travail sur la branche principale de developpem
 3. Apres merge, supprimer la branche distante si elle ne sert plus, ou la renommer en `finish-<type>/...` si elle doit rester consultable comme archive de travail ; tirer ensuite `dev` a jour sur les postes de travail.
 
 Les noms de branches historiques ou experimentaux ne remplacent pas ce schema : tout finit sur **`dev`** par merge ou PR, sauf politique equipe differente documentee ailleurs.
+
+## Branche `maint/monitoring-c-legacy`
+
+Branche de **maintenance longue duree** pour environnements qui restent sur le monitoring **C (legacy)** :
+
+- `monitoring-agent` / `log-collector` en C
+- **sans** migration Rust (`monitoring-agent-rs`, `log-collector-rs`, `rust/crates/metrics-aggregator`)
+
+**Branche de travail courante (`dev`)** : monitoring **Rust** par defaut (profil `monitoring` Compose).
+
+### Regles de synchronisation
+
+1. Creer / mettre a jour depuis `dev` : `git checkout maint/monitoring-c-legacy && git merge dev`
+2. **Conserver** les fichiers Compose / Makefile / docs qui pointent vers le monitoring C (ne pas merger aveuglément la bascule Rust).
+3. En cas de conflit sur `docker-compose.yml`, `docker-compose.monitoring.yml`, profils Makefile monitoring : **garder la variante C** sur cette branche.
+4. Ne pas supprimer le code Rust du depot : il reste present mais **desactive** via profils / variables sur cette branche.
+
+Usage : deploiements ou postes qui n'ont pas encore valide la migration Rust ; CI dediee possible plus tard.

@@ -158,6 +158,18 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 - [ ] **Refonte Gestion des données backoffice** : remettre à jour le hub `/data-management` et les outils admin pour manipuler, archiver, purger et auditer toutes les entités (emails compressés, analytics mobile, logs) avec garde-fous — lot lointain, après validation Lot D mobile.
 
+## Post-D8 — hygiène dépôt, documentation, secrets (22/06)
+
+**Gate** : ne pas démarrer tant que le hub tests backoffice (D8) + scripts/émulateur mobile ne sont pas validés porteur.
+
+Chantier transversal ensuite obligatoire avant prod :
+
+1. **Réorganisation** : `scripts/`, `tests/`, `tools/`, docs obsolètes (`docs/TODOS.md` Lot H).
+2. **Documentation** : revue complète `.md` vs état réel (`docs/TODOS.md` Lot E).
+3. **Secrets** : aucune valeur sensible en clair hors `.env` / placeholders `.env.example` — audit manuel + `secrets-scan.sh` / ggshield (`docs/TODOS.md` Lot H bis).
+
+Voir **`PILOTAGE.md`** § « Phase post-D8 ».
+
 ## Références
 
 - `STATUS.md` : état courant du projet.

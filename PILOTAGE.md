@@ -1,6 +1,19 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 17 juin 2026 (réorientation mobile)
+Dernière mise à jour : 22 juin 2026 (phase post-D8 + mobile)
+
+## Phase post-D8 — nettoyage global (gate obligatoire)
+
+**Ne pas attaquer ce chantier avant** que le hub tests backoffice (§ D8), les scripts `scripts/mobile/` + `tools/adb-lib` + émulateur, et la matrice tests admin soient **terminés et validés porteur**.
+
+Ensuite, **obligatoire avant production** :
+
+1. **Lot H — Hygiène dépôt** (`docs/TODOS.md` § H1–H6) : réorganisation `scripts/`, `tests/`, `tools/`, docs obsolètes, doublons.
+2. **Lot E — Documentation** : revue complète des `.md` pour refléter l’état réel (mobile, hub tests, env, déploiement).
+3. **Audit secrets** : aucune valeur sensible en clair hors `.env` / `.env.example` (placeholders uniquement) — scripts, code, docs, rapports, variables Compose. S’appuyer sur `scripts/security/secrets-scan.sh`, ggshield, revue manuelle `TEST_*` / SMTP / JWT.
+4. **Gate** : `A_VALIDER_AVANT_PRODUCTION.md` + validation porteur explicite.
+
+Voir aussi `docs/BACKLOG.md` § « Post-D8 hygiène ».
 
 ## Réorientation produit — 17/06 (décision porteur)
 

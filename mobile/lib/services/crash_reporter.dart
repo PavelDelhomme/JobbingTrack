@@ -303,6 +303,13 @@ class CrashReporter {
     };
   }
 
+  static bool _isIgnorableFlutterError(String message) {
+    const ignoredPatterns = [
+      'ListTile background color or ink splashes may be invisible',
+    ];
+    return ignoredPatterns.any(message.contains);
+  }
+
   static void initialize() {
     if (_initialized) return;
     _initialized = true;
@@ -310,9 +317,14 @@ class CrashReporter {
 
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);
+      final msg = details.exceptionAsString();
+      if (_isIgnorableFlutterError(msg)) {
+        debugPrint('[CrashReporter] FlutterError ignoré (avertissement UI): $msg');
+        return;
+      }
       _reportError(
         crashType: 'FlutterError',
-        message: details.exceptionAsString(),
+        message: msg,
         stackTrace: details.stack?.toString(),
         context: details.context?.toStringDeep(),
       );

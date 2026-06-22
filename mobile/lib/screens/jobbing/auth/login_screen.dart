@@ -364,19 +364,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
 
                 // Formulaire de connexion (toujours visible — mot de passe si empreinte indisponible)
-                Container(
+                Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  elevation: 2,
+                  shadowColor: Colors.black.withOpacity(0.1),
+                  child: Padding(
                   padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
                   child: Column(
                     children: [
                       // Champ email
@@ -495,6 +489,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ],
+                  ),
                   ),
                 ),
 

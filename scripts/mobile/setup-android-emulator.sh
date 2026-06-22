@@ -88,6 +88,8 @@ cmd_install_sdk() {
     "platform-tools" "emulator" "platforms;android-${API_LEVEL}" "$SYSTEM_IMAGE"
   [[ -x "$ANDROID_SDK/emulator/emulator" ]] || fail "Binaire emulator absent après install"
   log "SDK Android prêt : $ANDROID_SDK"
+  log "Prochaine étape : bash scripts/mobile/setup-android-emulator.sh up"
+  log "Doc complète : docs/mobile/EMULATEUR_ADB.md"
 }
 
 cmd_create_avd() {
@@ -169,11 +171,13 @@ ANDROID_SDK_ROOT=$ANDROID_SDK
 MOBILE_ADB_DEVICE=$id
 MOBILE_PREFER_EMULATOR=1
 EMULATOR_CONTROLLER_URL=http://127.0.0.1:5055
-ADB_FAST=1
-ADB_UI_CACHE_MS=350
-ADB_WAIT_POLL_MS=450
+  ADB_FAST=1
+  ADB_UI_CACHE_MS=280
+  ADB_WAIT_POLL_MS=320
 EOF
-  log "Config émulateur : MOBILE_PREFER_EMULATOR=1 + MOBILE_ADB_DEVICE=$id dans .env"
+  log "Config émulateur : MOBILE_PREFER_EMULATOR=1 + MOBILE_ADB_DEVICE=$id → $ENV_SNIPPET"
+  log "Prochaine étape : bash scripts/mobile/setup-android-emulator.sh up  (ou start + reverse)"
+  log "Doc : docs/mobile/EMULATEUR_ADB.md"
 }
 
 cmd_reverse_and_apk() {
@@ -226,7 +230,7 @@ main() {
   mkdir -p "$(dirname "$PID_FILE")" "$(dirname "$LOG_FILE")" 2>/dev/null || true
   local cmd="${1:-up}"
   case "$cmd" in
-    install)       cmd_install_sdk; cmd_create_avd ;;
+    install)       cmd_install_sdk; cmd_create_avd; log "→ Enchaîner : bash scripts/mobile/setup-android-emulator.sh up" ;;
     create-avd)    cmd_create_avd ;;
     start)         cmd_start_emulator ;;
     reverse)       cmd_reverse_and_apk ;;
