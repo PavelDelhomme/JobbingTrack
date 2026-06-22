@@ -5,27 +5,43 @@
  *   node scripts/mobile/smoke-mobile-accounts-adb.js
  */
 
-const { resolveWorkingAdminCredentials } = require('./resolve-admin-credentials');
+const { resolveWorkingAdminCredentials, GATEWAY_URL } = require('./resolve-admin-credentials');
 const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const adbLib = require('../../tools/adb-lib');
 
+async function loginAdminViaApi(email, password) {
+  const res = await fetch(`${GATEWAY_URL}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw new Error(`Login admin API HTTP ${res.status}`);
+  const data = await res.json();
+  const role = data.user?.role;
+  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+    throw new Error(`Compte ${email} sans rôle admin (role=${role || '?'})`);
+  }
+  return data;
+}
+
 async function drawerHasAdminSection(phone) {
+  await adbLib.flows.goToTab(phone, 1, { shell: true });
   await phone.openDrawer();
-  await phone.wait(2000);
-  for (let i = 0; i < 5; i++) {
+  await phone.wait(1000);
+  for (let i = 0; i < 8; i++) {
     if (
       (await phone.uiContains('Hub administration')) ||
       (await phone.uiContains('ADMINISTRATION'))
     ) {
       await phone.back();
-      await phone.wait(800);
+      await phone.wait(500);
       return true;
     }
     await phone.drawerScrollDown();
-    await phone.wait(700);
+    await phone.wait(400);
   }
   await phone.back();
-  await phone.wait(800);
+  await phone.wait(500);
   return false;
 }
 
@@ -42,6 +58,7 @@ async function drawerHasAdminSection(phone) {
 
   console.log('\n=== Compte ADMIN ===');
   console.log(`Source: ${admin.source} (${admin.email})`);
+  await loginAdminViaApi(admin.email, admin.password);
   await adbLib.flows.clearAppDataForSmoke(phone);
   await adbLib.flows.login(phone, admin.email, admin.password);
   await phone.wait(3000);

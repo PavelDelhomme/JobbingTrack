@@ -10,6 +10,7 @@
  */
 
 const adbLib = require('../../tools/adb-lib');
+const { ensureUserShell, typeInLabeledField } = require('./adb-smoke-helpers');
 const { execSync } = require('child_process');
 const { resolveWorkingUserCredentials, GATEWAY_URL } = require('./resolve-user-credentials');
 
@@ -147,14 +148,18 @@ async function fillApplicationForm(phone, companyName, position) {
     throw new Error('Sélecteur entreprise non ouvert');
   }
   try {
-    await phone.typeInField('Rechercher', companyName);
+    await typeInLabeledField(phone, 'Entreprise', companyName, {
+      hints: ['Rechercher ou saisir', 'Rechercher une entreprise', 'Entreprise'],
+      editIndex: 0,
+    });
   } catch {
     await phone.typeText(companyName);
   }
   await phone.wait(1200);
-  try {
-    await phone.tap(`Créer « ${companyName} »`);
-  } catch {
+  const createLabel = `Créer « ${companyName} »`;
+  if (await phone.uiContains(createLabel)) {
+    await phone.tap(createLabel);
+  } else {
     try {
       await phone.tap('Créer');
     } catch {
@@ -241,13 +246,11 @@ async function findApplicationByPosition(token, position) {
   try {
     await adbLib.flows.restartApp(phone);
     await adbLib.flows.dismissBiometricUnlock(phone, { password: user.password });
-    if (await phone.uiContains('Bonjour')) {
-      console.log('Session déjà active après restart');
+    if (!(await phone.uiContains('Bonjour'))) {
+      await ensureUserShell(phone, user.email, user.password);
     } else {
-      await adbLib.flows.login(phone, user.email, user.password);
-      await phone.wait(3000);
+      await phone.assertVisible('Bonjour');
     }
-    await phone.assertVisible('Bonjour');
     await phone.wait(2000);
 
     await setNetworkOffline(phone, true);

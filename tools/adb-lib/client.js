@@ -126,6 +126,65 @@ class AdbClient {
     return r.message;
   }
 
+  _boundsCenter(bounds) {
+    const m = String(bounds || '').match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+    if (!m) return null;
+    return {
+      x1: +m[1],
+      y1: +m[2],
+      x2: +m[3],
+      y2: +m[4],
+      cx: Math.round((+m[1] + +m[3]) / 2),
+      cy: Math.round((+m[2] + +m[4]) / 2),
+    };
+  }
+
+  /**
+   * Saisie sur champs Flutter labelText (hint souvent absent de l'EditText).
+   * Essaie hint/text, puis associe le libellé visible au EditText le plus proche en dessous.
+   */
+  async typeInLabeledField(label, value, opts = {}) {
+    const hints = opts.hints || [label];
+    for (const h of hints) {
+      try {
+        await this.typeInField(h, value);
+        return;
+      } catch {
+        /* fallback label / index */
+      }
+    }
+    if (opts.editIndex !== undefined) {
+      await this.typeInEditTextByIndex(opts.editIndex, value, opts);
+      return;
+    }
+    const nodes = await this.uiNodes();
+    const labelLower = String(label).toLowerCase();
+    const labelNode = nodes.find((n) => {
+      const t = (n.text || '').toLowerCase();
+      const c = (n.contentDesc || '').toLowerCase();
+      return t.includes(labelLower) || c.includes(labelLower);
+    });
+    const edits = nodes
+      .filter((n) => n.className.includes('EditText') && n.bounds)
+      .map((n) => ({ n, b: this._boundsCenter(n.bounds) }))
+      .filter((x) => x.b)
+      .sort((a, b) => a.b.y1 - b.b.y1);
+    let picked = null;
+    if (labelNode) {
+      const lb = this._boundsCenter(labelNode.bounds);
+      if (lb) {
+        picked = edits.find((e) => e.b.y1 >= lb.y1 - 40);
+      }
+    }
+    if (!picked && edits.length === 1) picked = edits[0];
+    if (!picked) {
+      throw new Error(`Champ « ${label} » introuvable (${edits.length} EditText(s))`);
+    }
+    const idx = edits.indexOf(picked);
+    await this.typeInEditTextByIndex(idx, value, opts);
+    this._log(`type labeled "${label}" = "${String(value).slice(0, 24)}"`);
+  }
+
   /** Saisit du texte brut (le champ doit etre deja focus) */
   async typeText(text) {
     await this._post('/input-text', { text });

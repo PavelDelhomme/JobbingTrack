@@ -11,7 +11,7 @@ Ensuite, **obligatoire avant production** :
 1. **Lot H — Hygiène dépôt** (`docs/TODOS.md` § H1–H6) : réorganisation `scripts/`, `tests/`, `tools/`, docs obsolètes, doublons.
 2. **Lot E — Documentation** : revue complète des `.md` pour refléter l’état réel (mobile, hub tests, env, déploiement).
 3. **Audit secrets** : aucune valeur sensible en clair hors `.env` / `.env.example` (placeholders uniquement) — scripts, code, docs, rapports, variables Compose. S’appuyer sur `scripts/security/secrets-scan.sh`, ggshield, revue manuelle `TEST_*` / SMTP / JWT.
-4. **Gate** : `A_VALIDER_AVANT_PRODUCTION.md` + validation porteur explicite (9 étapes préprod → prod, rapport `docs/security/SECURITY_RELEASE_IMPACT_REPORT.template.md`).
+4. **Gate** : `docs/production/A_VALIDER_AVANT_PRODUCTION.md` + validation porteur explicite (9 étapes préprod → prod, rapport `docs/security/SECURITY_RELEASE_IMPACT_REPORT.template.md`).
 
 Voir aussi `docs/BACKLOG.md` § « Post-D8 hygiène ».
 
@@ -62,12 +62,12 @@ Tant que `TODOS_A_VALIDER.md` contient une validation porteur bloquante non rés
 | `TODOS_A_VERIFIER.md` | Vérifications techniques agent avant de demander une validation porteur. |
 | `TODOS_DONE.md` | Éléments validés par le porteur, archivés proprement. |
 | `docs/TODOS.md` | Backlog technique ordonné, pas une preuve de validation produit. |
-| `A_VALIDER_AVANT_PRODUCTION.md` | Gate préprod/prod à exécuter après validations locales. |
-| `DEPLOIEMENT_PRODUCTION.md` | Éléments préparés/déployés en préprod/prod mais pas encore validés production. |
-| `VALIDATION_PRODUCTION.md` | Éléments validés en préprod/prod réelle. |
+| `docs/production/A_VALIDER_AVANT_PRODUCTION.md` | Gate préprod/prod à exécuter après validations locales. |
+| `docs/production/DEPLOIEMENT_PRODUCTION.md` | Éléments préparés/déployés en préprod/prod mais pas encore validés production. |
+| `docs/production/VALIDATION_PRODUCTION.md` | Éléments validés en préprod/prod réelle. |
 | `docs/STATUS.md` | Journal de ce qui a été fait et validé techniquement. |
 | `docs/BACKLOG.md` | Idées, dettes et sujets reportés hors file courte. |
-| `BRANCHES.md` | Conventions branches/commits. |
+| `docs/development/BRANCHES.md` | Conventions branches/commits. |
 
 ## État actuel
 
@@ -95,7 +95,7 @@ Ancienne priorité Lot A graphes (15/06) — **reportée** tant que le mobile n�
 5. Le porteur valide ou signale un problème.
 6. Si validé : déplacer vers `TODOS_DONE.md`.
 7. Si problème : créer ou remonter une tâche dans `docs/TODOS.md`, puis corriger avant d’avancer.
-8. Pour préprod/prod : passer ensuite par `A_VALIDER_AVANT_PRODUCTION.md`, `DEPLOIEMENT_PRODUCTION.md`, puis `VALIDATION_PRODUCTION.md`.
+8. Pour préprod/prod : passer ensuite par `docs/production/A_VALIDER_AVANT_PRODUCTION.md`, `docs/production/DEPLOIEMENT_PRODUCTION.md`, puis `docs/production/VALIDATION_PRODUCTION.md`.
 9. **Fin de journée / avant push majeur** : gate suite complète documenté dans `TODOS_A_VALIDER.md` § « Gate technique fin de journée / avant push majeur » (`scripts/run-all-tests-with-reports.sh` + lecture `tests/results/<horodatage>/`). Ne pas le lancer au milieu d’un P0/P1 sauf demande explicite du porteur. Checklist longue : `docs/tests/TESTS_END.md`.
 
 ## Format des récaps agent
@@ -104,7 +104,7 @@ Les récapitulatifs de session pour le porteur doivent être en **HTML lisible**
 
 ## Branches
 
-Suivre `BRANCHES.md` :
+Suivre `docs/development/BRANCHES.md` :
 
 - `docs/...` pour organisation documentaire et pilotage.
 - `fix/...` pour bug ou régression.

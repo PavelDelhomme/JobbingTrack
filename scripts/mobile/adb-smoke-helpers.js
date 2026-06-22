@@ -1,11 +1,38 @@
 /**
- * Helpers partagés smokes ADB — un dump UI par boucle d'attente, pas de sleeps fixes longs.
+ * Helpers partagés smokes ADB — session shell réutilisée, champs labelText Flutter.
  */
 
 const adbLib = require('../../tools/adb-lib');
 
 function nodeLabel(n) {
   return `${n.text || ''}\n${n.contentDesc || ''}`.trim();
+}
+
+/** Connexion sans restart si le shell est déjà visible. */
+async function ensureUserShell(phone, email, password) {
+  return adbLib.flows.ensureAuthenticatedShell(phone, email, password);
+}
+
+async function openProfileEdit(phone) {
+  await adbLib.flows.goToTab(phone, 4, { shell: true });
+  await phone.wait(600);
+  if (await phone.uiContains('Modifier le profil')) {
+    await phone.tap('Modifier le profil');
+  } else {
+    await phone.tap('Modifier');
+  }
+  const ok = await phone.waitUntil(
+    ({ contains }) =>
+      contains('Enregistrer') && (contains('Prénom') || contains('Téléphone')),
+    { timeoutMs: 12000, pollMs: 400 },
+  );
+  if (!ok) {
+    throw new Error('Écran modification profil introuvable');
+  }
+}
+
+async function typeInLabeledField(phone, label, value, opts = {}) {
+  return phone.typeInLabeledField(label, value, opts);
 }
 
 /** Onglet Candidatures (Tab 1/5), pas Entreprises après navigation Profil/Paramètres. */
@@ -66,6 +93,9 @@ async function openFirstApplicationDetail(phone) {
 
 module.exports = {
   nodeLabel,
+  ensureUserShell,
+  openProfileEdit,
+  typeInLabeledField,
   ensureApplicationsListTab,
   waitApplicationsTabReady,
   openFirstApplicationDetail,

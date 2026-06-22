@@ -40,7 +40,7 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **Moteur graphique dédié (après CPU & Mémoire + A5/A1h)** : ne pas le faire trop tôt. Ordre prévu : 1) clôturer/reclasser les validations P1B/P1C ouvertes ; 2) stabiliser la page **CPU & Mémoire** avec les vrais cas d’usage ; 3) finir l’alignement A5/A1h (sources live vs historique BDD, périodes partagées, axes, gaps, empty states, couleurs) ; 4) extraire alors un vrai moteur graphique partagé (`ChartShell`, `SeriesToggle`, `TimeRange`, `Legend`, `Tooltip`, `empty/error/loading states`, export/brush/zoom plus tard). Objectif : remplacer l’empilement Recharts page par page sans figer une mauvaise abstraction.
 
-**Système de versionnement — à reprendre (15/06/2026)** : le dépôt est en mode « ultra plein » depuis longtemps sans discipline release claire. Constats : versions hétérogènes (`frontend` / services Node en `1.0.1`, racine `1.0.0`, pas de `CHANGELOG.md` unique, pas de tag Git aligné sur un lot validé porteur, branches longues type `chore/ci-pr-preprod-portainer` qui accumulent P1B/P1D sans version produit explicite). **Cible à cadrer** (lot H / `docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`) : semver unique produit (`MAJOR.MINOR.PATCH`), changelog par lot validé, tag Git + image Docker + affichage backoffice/login cohérents, politique « quelle version est en local / préprod / prod », et gel des numéros tant que `TODOS_A_VALIDER.md` n’a pas le OK porteur du lot concerné. Ne pas bloquer les correctifs infra (Postgres, fuites Prisma) mais ne pas annoncer de « release » tant que ce socle n’est pas défini.
+**Système de versionnement — à reprendre (15/06/2026)** : le dépôt est en mode « ultra plein » depuis longtemps sans discipline release claire. Constats : versions hétérogènes (`frontend` / services Node en `1.0.1`, racine `1.0.0`, pas de `CHANGELOG.md` unique, pas de tag Git aligné sur un lot validé porteur, branches longues type `chore/ci-pr-preprod-portainer` qui accumulent P1B/P1D sans version produit explicite). **Cible à cadrer** (lot H / `docs/operations/RELEASE_PREPROD_PRODUCTION_PLAN.md`) : semver unique produit (`MAJOR.MINOR.PATCH`), changelog par lot validé, tag Git + image Docker + affichage backoffice/login cohérents, politique « quelle version est en local / préprod / prod », et gel des numéros tant que `docs/pilotage/TODOS_A_VALIDER.md` n’a pas le OK porteur du lot concerné. Ne pas bloquer les correctifs infra (Postgres, fuites Prisma) mais ne pas annoncer de « release » tant que ce socle n’est pas défini.
 
 **Postgres — saturation connexions `too many clients` (15/06/2026)** : symptôme observé sur `/statistics/log-stats` et proxies `persistence/*` (`FATAL: sorry, too many clients already`). Diagnostic agent : `max_connections=100`, baseline ~80–86 connexions `idle` au repos (dashboard-service ~15, security-service ~13, call/followup ~9 chacun) ; chaque microservice Node embarque son propre `PrismaClient` sans `connection_limit` dans `DATABASE_URL`. Correctifs en cours : route `/persistence/stats` déléguée au singleton `persistence.service` (plus de `new PrismaClient()` par requête) ; `docker-compose.yml` local passe `max_connections` à **200** via `POSTGRES_MAX_CONNECTIONS`. **Reste** : `connection_limit=2` ou `3` par service dans Compose, audit des `new PrismaClient()` ad hoc (ex. `securityController.getBlockedIPs`, `api-gateway/testdata.controller`), PgBouncer ou pooler si prod multi-réplicas. **Recreate postgres** requis pour appliquer `max_connections` ; surveiller `pg_stat_activity` après recreate.
 
@@ -48,7 +48,7 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **UX backoffice / mode clair (21/05/2026)** : validation porteur provisoire acceptée après renforcement global des surfaces/cartes/champs/couleurs. Ne plus bloquer le lot apparence global ici ; rouvrir uniquement des tickets ciblés page par page si un écran précis reste illisible.
 
-**CI Prettier frontend (21/05/2026)** : `frontend/.prettierignore` exclut les artefacts générés et `npm run format:check` est vert localement. Le suivi restant est opérationnel : commit/push puis observation du workflow GitHub #556 dans `TODOS_A_VALIDER.md`.
+**CI Prettier frontend (21/05/2026)** : `frontend/.prettierignore` exclut les artefacts générés et `npm run format:check` est vert localement. Le suivi restant est opérationnel : commit/push puis observation du workflow GitHub #556 dans `docs/pilotage/TODOS_A_VALIDER.md`.
 
 **Sécurité — libellés & navigation (18/05/2026)** : pages **`/b4ck0ff1ce/security/**`** (policies, logs, etc.) — reprendre noms/titres/sous-nav (**`SecuritySubNav`**, FR, fallbacks) — **`PLAN.md` B10** + priorité rapide **`TODOS.md`**.
 
@@ -168,7 +168,7 @@ Chantier transversal ensuite obligatoire avant prod :
 2. **Documentation** : revue complète `.md` vs état réel (`docs/TODOS.md` Lot E).
 3. **Secrets** : aucune valeur sensible en clair hors `.env` / placeholders `.env.example` — audit manuel + `secrets-scan.sh` / ggshield (`docs/TODOS.md` Lot H bis).
 
-Voir **`PILOTAGE.md`** § « Phase post-D8 ».
+Voir **`docs/pilotage/PILOTAGE.md`** § « Phase post-D8 ».
 
 ## Matrice impact release multi-plateformes (22/06)
 
@@ -176,7 +176,7 @@ Voir **`PILOTAGE.md`** § « Phase post-D8 ».
 
 - Modèle rapport : `docs/security/SECURITY_RELEASE_IMPACT_REPORT.template.md`
 - Cadrage mobile/desktop : `docs/mobile/COMPATIBILITE_PLATEFORMES.md`
-- Gate : `A_VALIDER_AVANT_PRODUCTION.md` (étapes 4–7)
+- Gate : `docs/production/A_VALIDER_AVANT_PRODUCTION.md` (étapes 4–7)
 
 **Suite technique (backlog)** :
 

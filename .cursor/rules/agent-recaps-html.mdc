@@ -6,6 +6,6 @@ Lors d'un récap de session pour le porteur (fin de lot, bilan technique) :
 - **Structure** : en-tête (date, branche), tableaux ou cartes colorées pour OK / KO / en cours.
 - **Contenu** : ce qui fonctionne, ce qui ne fonctionne pas, ce qui reste à valider — sections distinctes.
 - **Signature** : ne pas ajouter « Agent Cursor — JobbingTrack — généré automatiquement » ni équivalent.
-- **Pilotage** : mettre à jour `TODOS_A_VERIFIER.md` ; ajouter une ligne `TODOS_A_VALIDER.md` si validation porteur requise.
+- **Pilotage** : mettre à jour `docs/pilotage/TODOS_A_VERIFIER.md` ; ajouter une ligne `docs/pilotage/TODOS_A_VALIDER.md` si validation porteur requise.
 
 Référence modèle : sections avec fond léger (`#f0fdf4` OK, `#fef2f2` KO, `#fffbeb` en attente), titres `<h2>` courts, listes `<ul>` sans mur de tirets Markdown.

@@ -4,14 +4,15 @@
 
 Dernière mise à jour : 21 mai 2026
 
-Ce dossier centralise la documentation projet. Les fichiers de pilotage restent a la racine de `docs/`; les documents de fond sont ranges par domaine.
+Ce dossier centralise la documentation projet. **Pilotage porteur** : `docs/pilotage/` ; **production** : `docs/production/` ; **git / logs** : `docs/development/`. Les documents de fond sont rangés par domaine.
 
 ## A lire en premier
 
 - [Getting started](getting-started/README.md) : installation, demarrage et acces utiles.
-- [../PILOTAGE.md](../PILOTAGE.md) : point d’entrée obligatoire avant nouvelle tâche.
-- [../TODOS_A_VALIDER.md](../TODOS_A_VALIDER.md) : validations porteur bloquantes.
-- [../TODOS_A_VERIFIER.md](../TODOS_A_VERIFIER.md) : vérifications techniques agent.
+- [pilotage/PILOTAGE.md](pilotage/PILOTAGE.md) : point d’entrée obligatoire avant nouvelle tâche.
+- [pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md) : validations porteur bloquantes.
+- [pilotage/TODOS_A_VERIFIER.md](pilotage/TODOS_A_VERIFIER.md) : vérifications techniques agent.
+- [pilotage/TRAITER_IMMEDIATEMENT.md](pilotage/TRAITER_IMMEDIATEMENT.md) : checklist agent début de session.
 - [STATUS.md](STATUS.md) : etat courant reel du projet.
 - [TODOS.md](TODOS.md) : prochaines actions, avec les taches a faire en premier.
 - [PLAN.md](PLAN.md) : plan d'execution par lots.
@@ -23,13 +24,14 @@ Ce dossier centralise la documentation projet. Les fichiers de pilotage restent 
 
 Les cases cochees dans `TODOS.md` signifient surtout "fait dans le depot" ou "procedure disponible". Elles ne remplacent pas une validation produit.
 
-- [À valider par le porteur](../TODOS_A_VALIDER.md) : validations locales/visuelles/fonctionnelles qui bloquent la suite.
-- [Validé par le porteur](../TODOS_DONE.md) : éléments déjà acceptés.
-- [À valider avant production](../A_VALIDER_AVANT_PRODUCTION.md) : gate préprod/prod.
-- [Déploiement production](../DEPLOIEMENT_PRODUCTION.md) : éléments déployés mais pas encore validés production.
-- [Validation production](../VALIDATION_PRODUCTION.md) : validations préprod/prod réelles.
+- [À valider par le porteur](pilotage/TODOS_A_VALIDER.md) : validations locales/visuelles/fonctionnelles qui bloquent la suite.
+- [Validé par le porteur](pilotage/TODOS_DONE.md) : éléments déjà acceptés.
+- [À valider avant production](production/A_VALIDER_AVANT_PRODUCTION.md) : gate préprod/prod.
+- [Déploiement production](production/DEPLOIEMENT_PRODUCTION.md) : éléments déployés mais pas encore validés production.
+- [Validation production](production/VALIDATION_PRODUCTION.md) : validations préprod/prod réelles.
 - [Audit sécurité projet](security/AUDIT_SEC_PROJECT.md) : risques sécurité, P0, rapports et suites attendues.
-- [Branches et commits](../BRANCHES.md) : conventions de branches et commits.
+- [Branches et commits](development/BRANCHES.md) : conventions de branches et commits.
+- [Logs dev](development/LOGS.md) : journal des sessions agent / porteur.
 - [Release preprod / production](operations/RELEASE_PREPROD_PRODUCTION_PLAN.md) : chemin vers preprod, beta, prod, RGPD et release.
 - [Checklist preprod / production](operations/PREPROD_PRODUCTION_CHECKLIST.md) : controles operationnels.
 
@@ -40,6 +42,9 @@ docs/
 ├── README.md
 ├── INDEX.md
 ├── navigation.md
+├── pilotage/          ← PILOTAGE, TODOS_A_*, TRAITER_IMMEDIATEMENT
+├── production/        ← gate préprod/prod
+├── development/       ← BRANCHES, LOGS
 ├── STATUS.md
 ├── PLAN.md
 ├── TODOS.md
@@ -186,7 +191,7 @@ Points actifs a suivre dans `TODOS.md` :
 ## Regles de maintenance
 
 - Mettre les prochaines actions dans `TODOS.md`, pas dans ce README.
-- Mettre les validations porteur dans `../TODOS_A_VALIDER.md`.
+- Mettre les validations porteur dans `pilotage/TODOS_A_VALIDER.md`.
 - Ne pas versionner de secrets, rapports generes sensibles ou artefacts locaux.
 - Ne pas documenter un contournement HTTP/TLS comme solution de securite.
 - Quand un dossier est archive ou legacy, le dire explicitement au lieu de le presenter comme actif.

@@ -112,6 +112,70 @@ Ordre conseille pour remettre le travail sur la branche principale de developpem
 
 Les noms de branches historiques ou experimentaux ne remplacent pas ce schema : tout finit sur **`dev`** par merge ou PR, sauf politique equipe differente documentee ailleurs.
 
+## Flux de travail complet (feat / fix → tests → dev → preprod)
+
+Schema recommande pour enchainer les chantiers sans melanger validation et developpement :
+
+```mermaid
+flowchart LR
+  dev[dev]
+  feat[feat/ ou fix/]
+  test[test/ ou tests/]
+  preprod[preprod / staging]
+  prod[prod / main]
+
+  dev --> feat
+  feat --> test
+  test -->|PR + tests OK| dev
+  dev -->|gate preprod OK| preprod
+  preprod -->|validation porteur| prod
+```
+
+### Etapes detaillees
+
+1. **Partir de `dev` a jour**
+   ```bash
+   git checkout dev && git pull origin dev
+   ```
+
+2. **Ouvrir une branche de travail** (`feat/`, `fix/`, `docs/`, etc.)
+   ```bash
+   git checkout -b feat/mon-sujet
+   ```
+   Commits atomiques ; message `type(scope): ...` (voir section Commits).
+
+3. **Branche de validation tests** (quand le sujet est pret a etre verifie)
+   - Creer depuis la branche de travail ou depuis `dev` apres rebase :
+     ```bash
+     git checkout -b test/mon-sujet
+     ```
+   - Lancer la batterie adaptee (smokes mobile, tests backend, gate frontend, etc.).
+   - Documenter les preuves dans **`docs/pilotage/TODOS_A_VERIFIER.md`**.
+   - Ne pas merger dans `dev` tant que les tests cibles et la non-regression exigee ne sont pas verts.
+
+4. **Integration dans `dev`**
+   - PR `test/mon-sujet` → `dev` (ou `feat/mon-sujet` → `dev` si la branche test n'a servi qu'a une passe courte).
+   - Apres merge : tirer `dev`, renommer la branche en `finish-<type>/...` si archive utile, supprimer les branches locales/obsoletes.
+
+5. **Preprod / production**
+   - Gates porteur : **`docs/production/A_VALIDER_AVANT_PRODUCTION.md`**, **`DEPLOIEMENT_PRODUCTION.md`**, **`VALIDATION_PRODUCTION.md`**.
+   - Merge `dev` → branche preprod/staging uniquement apres validations ouvertes fermees dans **`docs/pilotage/TODOS_A_VALIDER.md`**.
+
+### Quand utiliser `test/` vs travailler directement sur `feat/`
+
+| Situation | Branche |
+|-----------|---------|
+| Correction ou feature en cours, commits frequents | `feat/` ou `fix/` |
+| Campagne de tests / non-regression avant merge `dev` | `test/` ou `tests/` (meme convention kebab-case) |
+| Documentation ou pilotage seul | `docs/` |
+| Maintenance repo sans impact produit | `chore/` |
+
+Les prefixes `test/` et `tests/` sont equivalents ; preferer **`test/`** pour rester aligne avec le type autorise ci-dessus.
+
+### Enchainement depuis `dev`
+
+Apres merge d'un sujet, le prochain chantier repart toujours de **`dev`** (pull, nouvelle branche `feat/` ou `fix/`). Ne pas empiler deux sujets non lies sur la meme branche de travail.
+
 ## Branche `maint/monitoring-c-legacy`
 
 Branche de **maintenance longue duree** pour environnements qui restent sur le monitoring **C (legacy)** :

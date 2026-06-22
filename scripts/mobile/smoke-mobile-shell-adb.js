@@ -4,6 +4,7 @@
  * Usage : node scripts/mobile/smoke-mobile-shell-adb.js
  */
 const adbLib = require('../../tools/adb-lib');
+const { ensureUserShell } = require('./adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const { loadRootEnv } = require('./resolve-admin-credentials');
 
@@ -28,24 +29,7 @@ async function assertNoFlutterErrors(adb) {
   console.log('Device:', phone.device);
   console.log('User:', email);
 
-  await adbLib.flows.dismissBiometricUnlock(phone);
-  await adbLib.flows.restartApp(phone);
-  await phone.wait(3000);
-
-  if (!(await phone.uiContains('Bonjour'))) {
-    if (
-      (await phone.uiContains('Email')) ||
-      (await phone.uiContains('Mot de passe')) ||
-      (await phone.uiContains('Se connecter'))
-    ) {
-      await adbLib.flows.login(phone, email, password);
-    } else {
-      await adbLib.flows.loginFresh(phone, email, password);
-    }
-  } else {
-    console.log('Session déjà active — skip login');
-  }
-
+  await ensureUserShell(phone, email, password);
   await phone.assertVisible('Bonjour');
   console.log('✅ Dashboard visible');
 

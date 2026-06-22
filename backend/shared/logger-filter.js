@@ -106,8 +106,13 @@ const filterP2021InPrintf = winston.format.printf(({ timestamp, level, message, 
       return ''; // Ne pas afficher
     }
   }
+  const serviceLabel =
+    service ||
+    process.env.SERVICE_NAME ||
+    process.env.npm_package_name ||
+    'app';
   let metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
-  return `${timestamp} [${service}] ${level}: ${message}${metaStr}`;
+  return `${timestamp} [${serviceLabel}] ${level}: ${message}${metaStr}`;
 });
 
 module.exports = {

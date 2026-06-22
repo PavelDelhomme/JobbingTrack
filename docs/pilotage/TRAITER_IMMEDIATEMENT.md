@@ -16,7 +16,7 @@ Dernière mise à jour : 21 mai 2026.
 | 4 | **`docs/TODOS.md`** | Backlog technique ordonné |
 | 5 | **`docs/PLAN.md`** / **`docs/STATUS.md`** | Phases, état et journal |
 | 6 | **`docs/ERRORS.md`** | Erreurs connues et résolutions |
-| 7 | **`BRANCHES.md`** | Conventions Git |
+| 7 | **`docs/development/BRANCHES.md`** | Conventions Git |
 
 Thèmes détaillés : `docs/operations/DEV_HTTPS.md`, `docs/configuration/STRICT_ENV.md`, `docs/security/README.md`, `docs/security/STATS.md`.
 
@@ -27,7 +27,7 @@ Thèmes détaillés : `docs/operations/DEV_HTTPS.md`, `docs/configuration/STRICT
 Cocher mentalement (ou dans la réponse si utile) :
 
 - [ ] **Pilotage** : si `TODOS_A_VALIDER.md` contient un P0 ouvert, ne pas démarrer une nouvelle feature.
-- [ ] **Branche** : `git branch --show-current` — respecter `BRANCHES.md` (`docs/...`, `fix/...`, `feat/...`, `security/...`) et finir sur `dev`.
+- [ ] **Branche** : `git branch --show-current` — respecter `docs/development/BRANCHES.md` (`docs/...`, `fix/...`, `feat/...`, `security/...`) et finir sur `dev`.
 - [ ] **Périmètre** : une demande = un objectif ; pas de refactor hors sujet.
 - [ ] **Secrets** : ne jamais committer `.env`, mots de passe, tokens ; ne pas recopier `ADMIN_PASSWORD` dans le chat.
 - [ ] **Make** : ne pas exécuter `make …` sauf demande explicite — utiliser scripts / `docker compose` / `npm` / `cargo` (règle workspace).

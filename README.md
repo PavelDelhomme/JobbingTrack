@@ -19,6 +19,9 @@
 | Fichier | Rôle |
 |---------|------|
 | **README.md** | Présentation, démarrage rapide, liens docs. C’est le seul Markdown conservé à la racine. |
+| **[docs/pilotage/PILOTAGE.md](docs/pilotage/PILOTAGE.md)** | Point d’entrée obligatoire — flux porteur / agent |
+| **[docs/pilotage/TODOS_A_VALIDER.md](docs/pilotage/TODOS_A_VALIDER.md)** | Validations porteur bloquantes |
+| **[docs/pilotage/TODOS_A_VERIFIER.md](docs/pilotage/TODOS_A_VERIFIER.md)** | Preuves techniques agent |
 | **[docs/STATUS.md](docs/STATUS.md)** | **À faire maintenant**, état détaillé, priorités produit |
 | **[docs/ERRORS.md](docs/ERRORS.md)** | Erreurs connues non résolues |
 | **[docs/project/FONCTIONNALITES.md](docs/project/FONCTIONNALITES.md)** | Liste complète des fonctionnalités |

@@ -7,6 +7,7 @@
  */
 
 const adbLib = require('../../tools/adb-lib');
+const { ensureUserShell, typeInLabeledField, openProfileEdit } = require('./adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const { loadRootEnv } = require('./resolve-admin-credentials');
 
@@ -17,24 +18,7 @@ function nodeLabel(n) {
 }
 
 async function ensureLoggedIn(phone, email, password) {
-  await adbLib.flows.dismissBiometricUnlock(phone, { password });
-  if (
-    (await phone.uiContains('Bonjour')) ||
-    (await phone.uiContains('Tab 1 of 4'))
-  ) {
-    return;
-  }
-  if (
-    (await phone.uiContains('Email')) ||
-    (await phone.uiContains('Mot de passe')) ||
-    (await phone.uiContains('Se connecter'))
-  ) {
-    await adbLib.flows.login(phone, email, password);
-  } else {
-    await adbLib.flows.loginFresh(phone, email, password);
-  }
-  await adbLib.flows.dismissBiometricUnlock(phone, { password });
-  await phone.assertVisible('Bonjour');
+  return ensureUserShell(phone, email, password);
 }
 
 async function openDrawerItemWithScroll(phone, label) {
@@ -109,8 +93,8 @@ async function createContactFromApplicationDetail(phone, contactName) {
   if (!(await phone.uiContains('Nouveau contact'))) {
     throw new Error('Dialogue création contact (depuis candidature) introuvable');
   }
-  await phone.typeInField('Prénom', contactName);
-  await phone.typeInField('Nom', 'ADB');
+  await typeInLabeledField(phone, 'Prénom', contactName, { editIndex: 0 });
+  await typeInLabeledField(phone, 'Nom', 'ADB', { editIndex: 1 });
   await phone.wait(500);
   try {
     await phone.tap('Créer');
@@ -213,14 +197,20 @@ async function tapFirstContact(phone, preferName) {
   console.log('✅ Entreprises : écran OK');
 
   try {
-    await phone.typeInField('Rechercher', 'zzz-smoke-no-match-xyz');
+    await typeInLabeledField(phone, 'Rechercher', 'zzz-smoke-no-match-xyz', {
+      hints: ['Rechercher une entreprise', 'Rechercher'],
+      editIndex: 0,
+    });
     await phone.wait(1500);
     if (!(await phone.uiContains('Aucune entreprise'))) {
       console.log('✅ Entreprises : recherche filtre (liste réduite ou vide)');
     } else {
       console.log('✅ Entreprises : recherche sans résultat OK');
     }
-    await phone.typeInField('Rechercher', 'a');
+    await typeInLabeledField(phone, 'Rechercher', 'a', {
+      hints: ['Rechercher une entreprise', 'Rechercher'],
+      editIndex: 0,
+    });
     await phone.wait(1500);
   } catch (e) {
     console.log('⚠️ Recherche entreprise : champ non saisi ADB —', e.message);
@@ -296,20 +286,8 @@ async function tapFirstContact(phone, preferName) {
 
   // ── Profil → Modifier (sans sauvegarde)
   await adbLib.flows.goToTab(phone, 4, { shell: true });
-  await phone.wait(1500);
-  try {
-    await phone.tap('Modifier');
-  } catch {
-    await phone.tap('Modifier le profil');
-  }
-  await phone.wait(2000);
-  const editOk =
-    (await phone.uiContains('Prénom')) ||
-    (await phone.uiContains('Enregistrer')) ||
-    (await phone.uiContains('Modifier le profil'));
-  if (!editOk) {
-    throw new Error('Écran modification profil introuvable');
-  }
+  await phone.wait(800);
+  await openProfileEdit(phone);
   console.log('✅ Profil : écran modification OK');
   await phone.back();
   await phone.wait(1500);

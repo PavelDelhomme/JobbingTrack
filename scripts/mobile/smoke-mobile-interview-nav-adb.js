@@ -6,6 +6,7 @@
  */
 
 const adbLib = require('../../tools/adb-lib');
+const { ensureUserShell } = require('./adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const { loadRootEnv } = require('./resolve-admin-credentials');
 
@@ -16,24 +17,7 @@ function nodeLabel(n) {
 }
 
 async function ensureLoggedIn(phone, email, password) {
-  await adbLib.flows.dismissBiometricUnlock(phone, { password });
-  if (
-    (await phone.uiContains('Bonjour')) ||
-    (await phone.uiContains('Tab 1 of 4')) ||
-    (await phone.uiContains('Open navigation menu'))
-  ) {
-    return;
-  }
-  if (
-    (await phone.uiContains('Email')) ||
-    (await phone.uiContains('Mot de passe')) ||
-    (await phone.uiContains('Se connecter'))
-  ) {
-    await adbLib.flows.login(phone, email, password);
-  } else {
-    await adbLib.flows.loginFresh(phone, email, password);
-  }
-  await adbLib.flows.dismissBiometricUnlock(phone, { password });
+  await ensureUserShell(phone, email, password);
   await phone.assertVisible('Bonjour');
 }
 

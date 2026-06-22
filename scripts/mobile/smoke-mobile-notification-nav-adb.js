@@ -4,6 +4,7 @@
  *   node scripts/mobile/smoke-mobile-notification-nav-adb.js
  */
 const adbLib = require('../../tools/adb-lib');
+const { ensureUserShell } = require('./adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const { loadRootEnv } = require('./resolve-admin-credentials');
 
@@ -19,20 +20,7 @@ function boundsCenter(bounds) {
 }
 
 async function ensureLoggedIn(phone, email, password) {
-  await adbLib.flows.dismissBiometricUnlock(phone, { password });
-  if (await phone.uiContains('Bonjour')) return;
-  await adbLib.flows.restartApp(phone);
-  await phone.wait(3000);
-  if (
-    (await phone.uiContains('Email')) ||
-    (await phone.uiContains('Mot de passe')) ||
-    (await phone.uiContains('Se connecter'))
-  ) {
-    await adbLib.flows.login(phone, email, password);
-  } else if (!(await phone.uiContains('Bonjour'))) {
-    await adbLib.flows.loginFresh(phone, email, password);
-  }
-  await adbLib.flows.dismissBiometricUnlock(phone, { password });
+  await ensureUserShell(phone, email, password);
   await phone.assertVisible('Bonjour');
 }
 
@@ -63,20 +51,35 @@ async function tapNotificationBell(phone) {
 
 async function tapFirstNotificationTile(phone) {
   const nodes = await phone.uiNodes();
-  const patterns = [/changement/i, /statut/i, /rappel/i, /relance/i, /entretien/i];
+  const patterns = [/changement/i, /statut/i, /rappel/i, /relance/i, /entretien/i, /candidature/i, /notification/i];
   for (const n of nodes) {
     const label = `${n.text} ${n.contentDesc}`.trim();
     if (!label || label === 'Notifications' || label === 'Tout marquer lu') continue;
-    if (!patterns.some((re) => re.test(label))) continue;
+    if (!patterns.some((re) => re.test(label)) && !n.clickable) continue;
     const c = boundsCenter(n.bounds);
     if (!c || c.cy < 420) continue;
+    if (label.length < 4) continue;
     await phone.tapXY(c.cx, c.cy);
-    await phone.wait(3500);
+    await phone.wait(2500);
     return label.slice(0, 60);
   }
-  await phone.tapXY(540, 680);
-  await phone.wait(3500);
-  return 'fallback-coords';
+  const tile = nodes.find(
+    (n) =>
+      n.clickable &&
+      n.bounds &&
+      boundsCenter(n.bounds)?.cy > 480 &&
+      boundsCenter(n.bounds)?.cy < 1200 &&
+      n.text &&
+      n.text.length > 6 &&
+      !['Notifications', 'Tout marquer lu', 'Fermer'].includes(n.text),
+  );
+  if (tile) {
+    const c = boundsCenter(tile.bounds);
+    await phone.tapXY(c.cx, c.cy);
+    await phone.wait(2500);
+    return tile.text.slice(0, 60);
+  }
+  throw new Error('Aucune notification métier cliquable dans la sheet');
 }
 
 (async () => {

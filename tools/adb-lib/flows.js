@@ -176,9 +176,9 @@ async function clearAppDataForSmoke(adb) {
 
 async function restartApp(adb) {
   await adb.shellCommand('am force-stop com.example.jobbingtrack_mobile');
-  await adb.wait(1500);
+  await adb.wait(ADB_FAST ? 500 : 1500);
   await adb.shellCommand('monkey -p com.example.jobbingtrack_mobile -c android.intent.category.LAUNCHER 1');
-  await adb.wait(4000);
+  await adb.wait(ADB_FAST ? 1800 : 4000);
   await dismissBiometricUnlock(adb);
 }
 
@@ -374,14 +374,19 @@ async function login(adb, email, password) {
   await adb.enter();
   let home = await adb.waitFor('Bonjour', ADB_FAST ? 10000 : 15000);
   if (!home) {
+    home = await adb.waitFor(`Tab 1 of ${SHELL_TAB_COUNT}`, ADB_FAST ? 5000 : 8000);
+  }
+  if (!home) {
     await adb.scrollDown(500);
     await adb.wait(200);
     try {
       await adb.tap('Se connecter');
     } catch {
-      await adb.tapXY(540, 1680);
+      await adb.enter();
     }
-    home = await adb.waitFor('Bonjour', ADB_FAST ? 8000 : 12000);
+    home =
+      (await adb.waitFor('Bonjour', ADB_FAST ? 8000 : 12000)) ||
+      (await adb.waitFor(`Tab 1 of ${SHELL_TAB_COUNT}`, ADB_FAST ? 5000 : 8000));
   }
   if (!home) {
     if (await adb.uiContains('Erreur')) {
@@ -622,7 +627,7 @@ async function goToTab(adb, tabNumber, { shell = false } = {}) {
     throw new Error(`Onglet introuvable: ${tabLabel}`);
   }
   await adb.tap(tabLabel);
-  await adb.wait(500);
+  await adb.wait(ADB_FAST ? 280 : 500);
   return shell ? `Shell onglet ${tabNumber}` : `Onglet ${tabNumber}`;
 }
 

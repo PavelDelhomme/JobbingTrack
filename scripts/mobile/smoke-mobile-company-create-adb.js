@@ -7,27 +7,14 @@
  */
 
 const adbLib = require('../../tools/adb-lib');
+const { ensureUserShell, typeInLabeledField } = require('./adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const { loadRootEnv } = require('./resolve-admin-credentials');
 
 loadRootEnv();
 
 async function ensureLoggedInShell(phone, email, password) {
-  await adbLib.flows.dismissBiometricUnlock(phone, { password });
-  await adbLib.flows.restartApp(phone);
-  await phone.wait(3000);
-  if (!(await phone.uiContains('Bonjour'))) {
-    if (
-      (await phone.uiContains('Email')) ||
-      (await phone.uiContains('Mot de passe')) ||
-      (await phone.uiContains('Se connecter'))
-    ) {
-      await adbLib.flows.login(phone, email, password);
-    } else {
-      await adbLib.flows.loginFresh(phone, email, password);
-    }
-  }
-  await adbLib.flows.dismissBiometricUnlock(phone, { password });
+  await ensureUserShell(phone, email, password);
   await phone.assertVisible('Bonjour');
 }
 
@@ -41,17 +28,10 @@ async function ensureLoggedInShell(phone, email, password) {
 
   await ensureLoggedInShell(phone, email, password);
   await adbLib.flows.setInterimModeForSmoke(phone, true);
-  await adbLib.flows.restartApp(phone);
-  await phone.wait(3000);
-  if (
-    (await phone.uiContains('Email')) ||
-    (await phone.uiContains('Mot de passe')) ||
-    (await phone.uiContains('Se connecter'))
-  ) {
+  await adbLib.flows.dismissBiometricUnlock(phone, { password });
+  if (!(await phone.uiContains('Bonjour'))) {
     await adbLib.flows.login(phone, email, password);
   }
-  await adbLib.flows.dismissBiometricUnlock(phone, { password });
-  await phone.assertVisible('Bonjour');
 
   await adbLib.flows.goToTab(phone, 2, { shell: true });
   await phone.wait(2000);
@@ -79,7 +59,7 @@ async function ensureLoggedInShell(phone, email, password) {
   }
   console.log('✅ Dialogue : option boîte d\'intérim visible');
 
-  await phone.typeInField('Nom', companyName);
+  await typeInLabeledField(phone, 'Nom', companyName, { editIndex: 0 });
   await phone.wait(600);
   await phone.tap('Créer');
   await phone.wait(4000);
