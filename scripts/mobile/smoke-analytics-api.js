@@ -124,6 +124,32 @@ async function getJson(path, token) {
   }
   console.log('Duplicate sessionId upsert OK (service stable)');
 
+  const staleSessionId = `sess-smoke-stale-${Date.now()}`;
+  const errorPost = await fetch(`${GATEWAY_URL}/api/v1/analytics/errors`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      sessionId: staleSessionId,
+      deviceId: `mob-smoke-${Date.now()}`,
+      errorType: 'smoke',
+      errorName: 'SmokeAnalyticsError',
+      errorMessage: 'POST errors with unknown sessionId must upsert session first',
+      page: '/smoke',
+      platform: 'android',
+      severity: 'warning',
+    }),
+  });
+  const errorPostBody = await errorPost.json().catch(() => ({}));
+  if (errorPost.status !== 200 || !errorPostBody.success) {
+    throw new Error(
+      `POST analytics/errors stale session HTTP ${errorPost.status}: ${JSON.stringify(errorPostBody)}`,
+    );
+  }
+  console.log('POST analytics/errors with stale sessionId OK');
+
   console.log('\nSmoke analytics API OK');
 })().catch((err) => {
   console.error('Smoke analytics API KO:', err.message);

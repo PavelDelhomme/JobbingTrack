@@ -69,7 +69,7 @@ interface ActiveSession {
   errors: number;
 }
 
-interface UserListItem extends AnalyticsUserListItem {}
+type UserListItem = AnalyticsUserListItem;
 
 interface UserEvent {
   id: string;

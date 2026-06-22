@@ -66,6 +66,30 @@ async function getJson(path, token) {
   }
   console.log('Session créée/upsert:', sessionId);
 
+  const staleErrorSession = `sess-smoke-err-${Date.now()}`;
+  const errRes = await fetch(`${GATEWAY_URL}/api/v1/analytics/errors`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${userToken}`,
+    },
+    body: JSON.stringify({
+      sessionId: staleErrorSession,
+      deviceId,
+      platform: 'android',
+      errorType: 'smoke',
+      errorName: 'SmokeUserApiError',
+      errorMessage: 'Erreur simulée sans session préalable (login/CRUD telemetry)',
+      page: '/applications',
+      severity: 'warning',
+    }),
+  });
+  const errBody = await errRes.json().catch(() => ({}));
+  if (errRes.status !== 200 || !errBody.success) {
+    throw new Error(`POST errors stale session HTTP ${errRes.status}: ${JSON.stringify(errBody)}`);
+  }
+  console.log('POST analytics/errors (session auto-créée) OK');
+
   await fetch(`${GATEWAY_URL}/api/v1/analytics/events`, {
     method: 'POST',
     headers: {

@@ -1,8 +1,17 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 15 juin 2026 — **Branche** `fix/frontend-services-performance` (Services — premier correctif CPU/RAM frontend).
+**Dernière mise à jour** : 22 juin 2026 — **Branche** `dev` (mobile Lot D + analytics utilisateur).
 
 **Chantier structuré (backoffice + API + doc)** : voir **`PLAN.md`** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **`TODOS.md`** (cases à cocher + règles PR / tests).
+
+## 22 juin 2026 — Mobile émulateur, télémétrie analytics, batterie smokes
+
+- **Stack locale** : profil `full` relancé — gateway `127.0.0.1:5002` **200**, 21 conteneurs healthy (+ mailhog).
+- **Correctif backend analytics** : `POST /api/v1/analytics/errors` et `/performance` appelaient `userError.create` / `userPerformance.create` sans `ensureAnalyticsSession()` → FK Postgres `user_errors_sessionId_fkey` quand le mobile réutilise un `sess-*` local absent de `user_sessions`. **Fix** : upsert session avant insert (aligné sur `persistUserEvent`). Smokes `smoke-analytics-api.js` (cas stale sessionId) **OK** ; repro `sess-1782115941952` **HTTP 200**.
+- **Télémétrie mobile** (déjà câblée côté app, débloquée côté API) : `MobileAnalyticsService` — sessions au consentement, latence API, erreurs HTTP ≥ 400, traces navigation ; `CrashReporter` → `POST /analytics/errors` + `/crashes`. Doc : `docs/mobile/EMULATEUR_ADB.md` § validation télémétrie.
+- **Scripts validation** : `run-smokes-fast.sh` force `API_URL=127.0.0.1:5002` + capture logs pre/post via `capture-validation-logs.sh`. Contrôleur ADB local `127.0.0.1:5055`.
+- **Batterie émulateur** : **18/27 OK** (~29 min) — 9 KO sélecteurs a11y (Samsung **27/27** référence). Artefacts : `tests/results/mobile-validation-2026-06-22-final/`.
+- **Reste ouvert** : hub tests backoffice **D8** (UI admin) ; 9 smokes émulateur a11y ; ligne porteur FlutterError ListTile login ; sync prefs Samsung → émulateur.
 
 ## 15 juin 2026 — Frontend CPU/RAM : Services en mode sobre par défaut
 

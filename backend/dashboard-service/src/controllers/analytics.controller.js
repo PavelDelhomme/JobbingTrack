@@ -509,11 +509,21 @@ class AnalyticsController {
         ? stackTrace.substring(0, 5000) 
         : null;
 
+      let session = null;
+      if (sessionId) {
+        session = await ensureAnalyticsSession({
+          sessionId,
+          userId,
+          deviceId,
+          platform: platform || 'mobile',
+        });
+      }
+
       const error = await prisma.userError.create({
         data: {
           userId: userId || null,
           sessionId: sessionId || null,
-          deviceId: deviceId || null,
+          deviceId: deviceId || session?.deviceId || null,
           errorType,
           errorName,
           errorMessage: errorMessage.substring(0, 1000), // Limiter la taille
@@ -601,11 +611,21 @@ class AnalyticsController {
         appVersion
       } = req.body;
 
+      let session = null;
+      if (sessionId) {
+        session = await ensureAnalyticsSession({
+          sessionId,
+          userId,
+          deviceId,
+          platform: platform || 'mobile',
+        });
+      }
+
       const performance = await prisma.userPerformance.create({
         data: {
           userId: userId || null,
           sessionId: sessionId || null,
-          deviceId: deviceId || null,
+          deviceId: deviceId || session?.deviceId || null,
           metricType,
           metricName,
           value,

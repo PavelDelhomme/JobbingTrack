@@ -50,7 +50,11 @@ cd tools/emulator-controller && ADB_FAST=1 node server.js
 # Terminal 4 — smokes
 export MOBILE_ADB_DEVICE=emulator-5554 ADB_FAST=1
 node scripts/mobile/smoke-login-user-password-adb.js
-bash scripts/mobile/run-smokes-fast.sh   # batterie rapide
+bash scripts/mobile/run-smokes-fast.sh   # batterie rapide (+ capture logs pre/post)
+
+# Capturer logs Docker + logcat (à tout moment)
+bash scripts/mobile/capture-validation-logs.sh
+# → tests/results/mobile-validation-<timestamp>/
 ```
 
 ## Samsung USB + émulateur en parallèle
@@ -73,9 +77,26 @@ Pour forcer l’émulateur : `MOBILE_ADB_DEVICE=emulator-5554` ou `MOBILE_PREFER
 | `make logs` vide | Conteneurs down | Normal après `docker compose down` — relancer la stack |
 | Login KO émulateur | Écran « mot de passe oublié » | Corrigé : rebuild APK (`setup-android-emulator.sh up`) |
 | `Wrong full snapshot version` | Flutter pacman Arch | `bash scripts/mobile/build-apk-debug.sh` |
-| APK absent | Pas de build | `bash scripts/mobile/build-apk-debug.sh` puis `setup-android-emulator.sh reverse` |
+| `fetch failed` (batterie) | `API_URL=api-gateway:3000` hôte | `run-smokes-fast.sh` force `127.0.0.1:5002` |
+| Smokes KO émulateur seulement | Champs a11y différents Samsung | Valider sur Samsung ; voir `tests/results/.../RECAP.md` |
+| `POST /analytics/errors` **500** | Session mobile `sess-*` absente en BDD (FK Postgres) | Corrigé **22/06** : `ensureAnalyticsSession()` avant insert erreurs/perf. Vérifier : `node scripts/mobile/smoke-analytics-api.js` |
+| Télémétrie erreurs perdue | Même cause FK + file offline | Backend upsert session ; mobile envoie déjà via `MobileAnalyticsService` + `CrashReporter` (login, CRUD, latence API) |
 
-## Arrêt propre
+## Validation télémétrie (login + parcours)
+
+Après login mobile (consentement analytics activé par défaut à l’inscription) :
+
+```bash
+# API — sessions, events, errors (dont sessionId stale)
+node scripts/mobile/smoke-analytics-api.js
+node scripts/mobile/smoke-analytics-test-user-sessions.js
+
+# Vérifier absence d’erreurs FK Postgres
+docker logs jobbingtrack-postgres --since 10m 2>&1 | rg "user_errors_sessionId_fkey" || echo "OK — pas de FK"
+```
+
+Le mobile remonte : **sessions** (`POST /analytics/sessions`), **événements** (navigation/écrans), **erreurs API** (status ≥ 400), **performances** (latence > 3 s), **crashes** (`POST /crashes` + `POST /analytics/errors`). Le backend crée désormais la session manquante avant toute écriture erreur/perf.
+
 
 ```bash
 bash scripts/mobile/setup-android-emulator.sh stop
