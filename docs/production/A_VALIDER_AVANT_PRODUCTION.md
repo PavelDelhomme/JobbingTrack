@@ -45,7 +45,7 @@ Le porteur valide **chaque étape** avant la suivante. L’agent prépare les pr
 
 | Validation | Environnement cible | Preuve attendue | Statut | Retour |
 |------------|---------------------|-----------------|--------|--------|
-| **Hub tests & émulateur mobile (D8)** | local / preprod | Depuis backoffice : choix appareil ADB réel ou AVD, lancement smokes mobile + rapports ; config test (équivalent `.env`) sans secrets en clair ; Parcours utilisateur + hub Tests unifiés. Voir `docs/TODOS.md` § D8. | [ ] | |
+| **Hub tests & émulateur mobile (D8)** | local / preprod | Depuis backoffice : choix appareil ADB réel ou AVD, lancement smokes mobile + rapports ; config test (équivalent `.env`) sans secrets en clair ; Parcours utilisateur + hub Tests unifiés. Voir `docs/pilotage/TODOS.md` § D8. | [ ] | |
 | Variables prod strictes | preprod | Pas de secret faible/fallback dev, `.env` hors Git, `SECURITY_INTERNAL_SECRET`, `METRICS_API_KEY`, SMTP, Redis, Postgres validés. | [ ] | |
 | Emails SMTP réels | preprod | `SMTP_HOST` fournisseur réel (pas MailHog/localhost), TLS cohérent, secrets hors Git, reset/vérification + alerte sécurité reçus dans une boîte réelle, `EmailLog` `SENT`. | [ ] | |
 | HTTPS public / reverse proxy | preprod | Domaine API/front en HTTPS public, `TRUST_PROXY_HOPS` cohérent, WAF inspecte le trafic public. | [ ] | |
