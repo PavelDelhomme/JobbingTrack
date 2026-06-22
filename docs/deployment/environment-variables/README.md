@@ -82,7 +82,9 @@ MailHog est réservé au local/dev/test. En préproduction et production, rensei
 
 #### Compte Gmail pro porteur (`.env` local uniquement)
 
-Variables dédiées au compte Google personnel du porteur (ex. tests AVD, agent email, SMTP dev ponctuel). **Ne jamais committer** les valeurs réelles.
+> **Politique** : ces variables ne concernent **que** le Gmail pro du porteur (ex. `pauldelhomme.pro@gmail.com`) — **pas** d'autres comptes Google utilisateurs. Compte principal mobile/tests : **`paul.delhomme@pm.me`**. Détail : **[`docs/emails/COMPTES_EMAIL_DEV_ET_TESTS.md`](../../emails/COMPTES_EMAIL_DEV_ET_TESTS.md)**.
+
+Variables dédiées au compte Google personnel du porteur (tests AVD, agent email, SMTP dev ponctuel). **Ne jamais committer** les valeurs réelles.
 
 | Variable | Rôle | Comment l’obtenir |
 |----------|------|-------------------|

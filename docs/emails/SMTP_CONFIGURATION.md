@@ -67,7 +67,9 @@ Notes :
 - Depuis un conteneur Docker, utiliser toujours `mailhog:1025`.
 - Ne jamais configurer `SMTP_HOST=mailhog` dans un environnement préprod/prod.
 
-### 2. Gmail (développement ponctuel uniquement)
+### 2. Gmail (développement ponctuel uniquement — compte porteur)
+
+> **Scope** : `EMAIL_GMAIL_PRO_*` et le mot de passe d'application Google ne sont valables **que** pour le **Gmail pro du porteur** (ex. `pauldelhomme.pro@gmail.com`), pas pour d'autres comptes. Compte utilisateur mobile de référence : **`paul.delhomme@pm.me`**. Voir **[COMPTES_EMAIL_DEV_ET_TESTS.md](COMPTES_EMAIL_DEV_ET_TESTS.md)**.
 
 Variables dédiées dans `.env.example` (section K) :
 

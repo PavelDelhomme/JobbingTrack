@@ -71,7 +71,9 @@ Pour forcer l’émulateur : `MOBILE_ADB_DEVICE=emulator-5554` ou `MOBILE_PREFER
 
 ## Gmail pro sur l’AVD (automatique depuis `.env`)
 
-Le compte Google porteur (ex. `pauldelhomme.pro@gmail.com`) peut être ajouté sur l’émulateur pour tester la réception mail / agent email.
+> **Politique** : un seul Gmail autorisé — celui du porteur (`EMAIL_GMAIL_PRO_ACCOUNT`, ex. `pauldelhomme.pro@gmail.com`). Mot de passe d'application = **SMTP/IMAP uniquement**, pas connexion Android. Compte mobile principal : **`paul.delhomme@pm.me`** (Proton). Doc complète : **[COMPTES_EMAIL_DEV_ET_TESTS.md](../emails/COMPTES_EMAIL_DEV_ET_TESTS.md)**.
+
+Le compte Google porteur peut être ajouté sur l’émulateur pour tester la réception mail / agent email.
 
 ### Variables `.env` (racine, gitignoré)
 

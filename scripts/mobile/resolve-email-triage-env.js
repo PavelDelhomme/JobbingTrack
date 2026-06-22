@@ -2,10 +2,11 @@
  * Résout la configuration « machine email » (agent triage + smokes mobile).
  * Source de vérité : `.env` racine — jamais de secrets dans `.env.example`.
  *
- * Chaîne typique porteur :
+ * Chaîne typique porteur (comptes autorisés uniquement — voir docs/emails/COMPTES_EMAIL_DEV_ET_TESTS.md) :
  *   candidatures@delhomme.ovh  →  forward  →  pauldelhomme.pro@gmail.com
  *   EMAIL_TRIAGE_READ_ACCOUNT = boîte OVH lue (IMAP)
- *   EMAIL_GMAIL_PRO_ACCOUNT   = boîte Gmail (AVD + IMAP app password + digest)
+ *   EMAIL_GMAIL_PRO_ACCOUNT   = Gmail pro porteur (AVD + IMAP app password + digest)
+ *   TEST_USER_EMAIL           = compte principal porteur (ex. paul.delhomme@pm.me)
  */
 
 const { loadRootEnv } = require('./resolve-admin-credentials');

@@ -19,6 +19,10 @@
 
 Les fichiers **`PLAN.md`**, **`TODOS.md`**, **`BACKLOG.md`**, **`RESOLUTIONS.md`**, **`ERRORS.md`** à la racine de `docs/` sont des **redirects** (compatibilité liens) vers les chemins ci-dessus.
 
+## 22 juin 2026 — Doc comptes email dev (Gmail, pm.me, politique porteur)
+
+- **`docs/emails/COMPTES_EMAIL_DEV_ET_TESTS.md`** : politique — credentials **uniquement** comptes porteur (Gmail pro + `paul.delhomme@pm.me` + tests) ; mot de passe d'application vs mot de passe compte ; chaîne OVH→Gmail ; liens `.env.example`, EMULATEUR_ADB, SMTP.
+
 ## 22 juin 2026 — Backoffice utilisateur : « Renvoyer email de vérification » → Network Error
 
 - **Symptôme porteur** : fiche **`/backoffice/users/[id]`** (ex. Test BlueMail) → action **Renvoyer email de vérification** → `AxiosError: Network Error` / `ERR_NETWORK_CHANGED` ; gateway journalise bien le `POST /api/v1/auth/users/:id/resend-verification`.

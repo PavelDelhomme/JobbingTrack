@@ -43,6 +43,7 @@
 
 ### 📧 **Configuration Emails**
 - **[📧 Guide Emails](emails/README.md)** - Configuration envoi d'emails (vérification, reset password)
+- **[🔐 Comptes email dev/tests](emails/COMPTES_EMAIL_DEV_ET_TESTS.md)** - Gmail app password, pm.me, politique porteur
 - **[📬 Mail](emails/MAIL.md)** - Routes, flux et suivi emails
 - **[SMTP](emails/SMTP_CONFIGURATION.md)** - Configuration SMTP
 - **[Python Email Setup](emails/PYTHON_EMAIL_SETUP.md)** - Setup historique / compatibilité

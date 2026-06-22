@@ -19,6 +19,8 @@ Le système doit aider le porteur à :
 
 ## Sources à connecter
 
+> **Politique comptes** (dev/tests porteur) : Gmail app password et IMAP OVH/Gmail ne concernent **que** les boîtes du porteur documentées dans **[COMPTES_EMAIL_DEV_ET_TESTS.md](../emails/COMPTES_EMAIL_DEV_ET_TESTS.md)** (Gmail pro, OVH candidatures, compte principal **`paul.delhomme@pm.me`**) — **pas** les comptes d'autres utilisateurs inscrits.
+
 - Un ou plusieurs comptes Gmail de recherche connectés via OAuth et scopes minimaux, configurés hors Git.
 - Une ou plusieurs boîtes **IMAP** configurées hors Git, en lecture seule au départ, pour les comptes qui ne passent pas par Gmail ou pour des boîtes candidatures dédiées.
 - Boîte JobbingTrack dédiée aux candidatures, alias ou transfert, configurée hors Git.
