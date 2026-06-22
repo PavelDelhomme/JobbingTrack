@@ -9,6 +9,9 @@
 
 const { spawnSync } = require('child_process');
 const path = require('path');
+const { loadRootEnv } = require('./resolve-admin-credentials');
+
+loadRootEnv();
 
 const ROOT = path.join(__dirname, '../..');
 const NODE = process.execPath;
@@ -25,12 +28,24 @@ const adbTests = [
   'scripts/mobile/smoke-login-user-password-adb.js',
   'scripts/mobile/smoke-mobile-shell-adb.js',
   'scripts/mobile/smoke-mobile-navigation-adb.js',
+  'scripts/mobile/smoke-mobile-application-detail-fab-adb.js',
+  'scripts/mobile/smoke-mobile-fab-relance-adb.js',
+  'scripts/mobile/smoke-mobile-application-sheet-adb.js',
+  'scripts/mobile/smoke-mobile-entity-links-adb.js',
+  'scripts/mobile/smoke-mobile-followup-nav-adb.js',
+  'scripts/mobile/smoke-mobile-settings-interim-adb.js',
+  'scripts/mobile/smoke-mobile-interim-calendar-adb.js',
   'scripts/mobile/smoke-mobile-entities-adb.js',
+  'scripts/mobile/smoke-mobile-profile-save-adb.js',
+  'scripts/mobile/smoke-mobile-home-upcoming-adb.js',
+  'scripts/mobile/smoke-mobile-live-journey-adb.js',
+  'scripts/mobile/smoke-mobile-interview-nav-adb.js',
   'scripts/mobile/smoke-mobile-accounts-adb.js',
   'scripts/mobile/smoke-mobile-interim-home-adb.js',
   'scripts/mobile/smoke-mobile-notification-nav-adb.js',
   'scripts/mobile/smoke-mobile-company-create-adb.js',
   'scripts/mobile/smoke-offline-business-adb.js',
+  'scripts/mobile/smoke-mobile-offline-telemetry-adb.js',
 ];
 
 const adbTestsLast = [
@@ -40,6 +55,7 @@ const adbTestsLast = [
 const slowAdbTests = [
   'scripts/mobile/smoke-register-adb.js',
   'scripts/mobile/smoke-verify-email-adb.js',
+  'scripts/mobile/smoke-register-telemetry-refuse-adb.js',
 ];
 
 function runScript(relPath, label) {
@@ -62,6 +78,10 @@ function runScript(relPath, label) {
 (async () => {
   const skipSlow = process.argv.includes('--skip-slow');
   const results = [];
+
+  process.env.ADB_FAST = process.env.ADB_FAST || '1';
+  process.env.ADB_UI_CACHE_MS = process.env.ADB_UI_CACHE_MS || '280';
+  process.env.ADB_WAIT_POLL_MS = process.env.ADB_WAIT_POLL_MS || '320';
 
   console.log('JobbingTrack — batterie validation mobile Lot D');
   console.log(`Racine: ${ROOT}`);

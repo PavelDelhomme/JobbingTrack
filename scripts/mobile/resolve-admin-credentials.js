@@ -29,6 +29,29 @@ function loadRootEnv() {
     }
     if (!process.env[key]) process.env[key] = value;
   }
+  const emuEnv = path.resolve(__dirname, '../../.env.mobile-emulator');
+  if (
+    fs.existsSync(emuEnv) &&
+    ['1', 'true', 'yes'].includes(String(process.env.MOBILE_PREFER_EMULATOR || '').toLowerCase())
+  ) {
+    for (const line of fs.readFileSync(emuEnv, 'utf8').split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      if (trimmed.startsWith('export ')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq <= 0) continue;
+      const key = trimmed.slice(0, eq).trim();
+      let value = trimmed.slice(eq + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      if (value.includes('${')) continue;
+      process.env[key] = value;
+    }
+  }
 }
 
 async function probeLogin(email, password) {

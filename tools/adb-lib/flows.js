@@ -13,6 +13,8 @@
  *   await flows.openDrawerItem(adb, 'Relances');
  */
 
+const { ADB_FAST } = require('./client');
+
 /** Shell mobile : Accueil, Candidatures, Calendrier, Profil (4 onglets). */
 const SHELL_TAB_COUNT = 4;
 
@@ -60,9 +62,9 @@ async function dismissBiometricUnlock(adb, opts = {}) {
   if (!xml || xml.length < 50 || xml.includes('biometrics.app.setting')) {
     for (let i = 0; i < 3; i++) {
       await adb.back();
-      await adb.wait(800);
+      await adb.wait(ADB_FAST ? 200 : 800);
       try {
-        xml = await adb.uiDump();
+        xml = await adb.uiDump(true);
       } catch {
         xml = '';
       }
@@ -291,33 +293,105 @@ function resolveTestCredentials(overrides = {}) {
   return { email, password };
 }
 
+async function isPasswordLoginForm(adb) {
+  if (await adb.uiContains('Bonjour')) return false;
+  if (await adb.uiContains('Retour à la connexion')) return false;
+  if (await adb.uiContains('Mot de passe oublié') && !(await adb.uiContains('Se connecter'))) {
+    return false;
+  }
+  if (await adb.uiContains('Email')) return true;
+  const edits = await adb.listEditTexts();
+  return edits.length >= 2 && (await adb.uiContains('Se connecter'));
+}
+
+/** Écran « mot de passe oublié » ou reset — revenir au formulaire login. */
+async function ensureLoginFormScreen(adb) {
+  const snap = await adb.uiSnapshot(true);
+  if (
+    snap.contains('Retour à la connexion') ||
+    (snap.contains('Mot de passe oublié') && !snap.contains('Se connecter'))
+  ) {
+    try {
+      await adb.tap('Retour à la connexion');
+    } catch {
+      await adb.back();
+    }
+    await adb.wait(400);
+  }
+}
+
+async function fillLoginFields(adb, email, password) {
+  let edits = await adb.listEditTexts();
+  if (edits.length >= 2) {
+    await adb.typeInEditTextByIndex(0, email, { isEmail: true });
+    await adb.wait(300);
+    await adb.typeInEditTextByIndex(1, password, { isPassword: true });
+    return;
+  }
+  if (edits.length === 1) {
+    await adb.typeInEditTextByIndex(0, email, { isEmail: true });
+    await adb.wait(300);
+    await adb.tapXY(540, 1320);
+    await adb.wait(300);
+    adb._invalidateUi();
+    edits = await adb.listEditTexts();
+    const pwdIdx = edits.length >= 2 ? 1 : 0;
+    await adb.typeInEditTextByIndex(pwdIdx, password, { isPassword: true });
+    return;
+  }
+  try {
+    await adb.typeInField('Email', email);
+  } catch {
+    throw new Error('Champ email introuvable');
+  }
+  await adb.wait(300);
+  edits = await adb.listEditTexts();
+  if (edits.length >= 2) {
+    await adb.typeInEditTextByIndex(1, password, { isPassword: true });
+  } else if (edits.length === 1) {
+    await adb.tapXY(540, 1320);
+    await adb.wait(300);
+    await adb.typeInEditTextByIndex(0, password, { isPassword: true });
+  } else {
+    throw new Error('Champ mot de passe introuvable');
+  }
+}
+
 async function login(adb, email, password) {
   const creds = resolveTestCredentials({ email, password });
   email = creds.email;
   password = creds.password;
-  await ensureFullLoginForm(adb);
-  await adb.wait(500);
-  await adb.typeInField('Email', email);
-  await adb.wait(800);
-  if (!(await adb.uiContains('Mot de passe'))) {
+  await ensureLoginFormScreen(adb);
+  if (!(await isPasswordLoginForm(adb)) && !(await adb.uiContains('Email'))) {
+    await ensureFullLoginForm(adb);
+  }
+  await ensureLoginFormScreen(adb);
+  await adb.wait(300);
+
+  await fillLoginFields(adb, email, password);
+
+  await adb.wait(200);
+  await adb.enter();
+  let home = await adb.waitFor('Bonjour', ADB_FAST ? 10000 : 15000);
+  if (!home) {
     await adb.scrollDown(500);
-    await adb.wait(500);
-  }
-  try {
-    await adb.typeInField('Mot de passe', password);
-  } catch {
-    const edits = await adb.listEditTexts();
-    if (edits.length >= 2) {
-      await adb.typeInEditTextByIndex(1, password);
-    } else {
-      throw new Error('Champ mot de passe introuvable');
+    await adb.wait(200);
+    try {
+      await adb.tap('Se connecter');
+    } catch {
+      await adb.tapXY(540, 1680);
     }
+    home = await adb.waitFor('Bonjour', ADB_FAST ? 8000 : 12000);
   }
-  await adb.wait(500);
-  await adb.closeKeyboard();
-  await adb.wait(800);
-  await adb.tap('connecter');
-  await adb.wait(4000);
+  if (!home) {
+    if (await adb.uiContains('Erreur')) {
+      throw new Error('Connexion echouee (erreur API visible)');
+    }
+    if (await adb.uiContains('Retour à la connexion')) {
+      throw new Error('Connexion echouee (ecran mot de passe oublie)');
+    }
+    throw new Error('Connexion echouee (Bonjour introuvable)');
+  }
   return `Connecte avec ${email}`;
 }
 
@@ -334,7 +408,9 @@ async function loginFresh(adb, email, password) {
     if (
       (await adb.uiContains('Email')) ||
       (await adb.uiContains('Mot de passe')) ||
-      ((await adb.uiContains('Connexion')) && (await adb.uiContains('Se connecter')))
+      ((await adb.uiContains('Connexion')) &&
+        (await adb.uiContains('Se connecter')) &&
+        (await adb.listEditTexts()).length >= 2)
     ) {
       break;
     }
@@ -360,7 +436,12 @@ async function loginFresh(adb, email, password) {
     }
   }
   await ensureFullLoginForm(adb);
-  if (!(await adb.uiContains('Email')) && !(await adb.uiContains('Mot de passe'))) {
+  if (
+    !(await adb.uiContains('Email')) &&
+    !(await adb.uiContains('Mot de passe')) &&
+    !(await adb.uiContains('Se connecter')) &&
+    (await adb.listEditTexts()).length < 2
+  ) {
     throw new Error('Ecran de connexion introuvable après déconnexion');
   }
   return login(adb, email, password);
@@ -388,20 +469,20 @@ async function ensureFullLoginForm(adb) {
     (await adb.uiContains('Connexion par empreinte')) ||
     (await adb.uiContains('Compte enregistré'))
   ) {
-    if (await adb.uiContains('Email') || await adb.uiContains('Mot de passe')) {
+    if ((await adb.uiContains('Email')) || (await isPasswordLoginForm(adb))) {
       return 'Formulaire login visible';
     }
     for (const label of ['Se connecter avec le mot de passe', 'Utiliser un autre compte']) {
       try {
         await adb.tap(label);
         await adb.wait(1500);
-        if ((await adb.uiContains('Email')) || (await adb.uiContains('Mot de passe'))) {
+        if ((await adb.uiContains('Email')) || (await isPasswordLoginForm(adb))) {
           return 'Formulaire login ouvert';
         }
       } catch {}
     }
   }
-  if (!(await adb.uiContains('Email')) && !(await adb.uiContains('Mot de passe'))) {
+  if (!(await isPasswordLoginForm(adb)) && !(await adb.uiContains('Email'))) {
     await adb.scrollDown(800);
     await adb.wait(800);
   }
@@ -527,19 +608,21 @@ async function goToTab(adb, tabNumber, { shell = false } = {}) {
   const tabLabel = shell
     ? `Tab ${tabNumber} of ${SHELL_TAB_COUNT}`
     : `Tab ${tabNumber} of`;
-  if (!(await adb.uiContains(tabLabel))) {
+  let snap = await adb.uiSnapshot();
+  if (!snap.contains(tabLabel)) {
     if (shell) {
       await ensureOnDashboard(adb);
     } else {
       await adb.back();
-      await adb.wait(1500);
+      await adb.wait(600);
     }
+    snap = await adb.uiSnapshot(true);
   }
-  if (!(await adb.uiContains(tabLabel))) {
+  if (!snap.contains(tabLabel)) {
     throw new Error(`Onglet introuvable: ${tabLabel}`);
   }
   await adb.tap(tabLabel);
-  await adb.wait(2500);
+  await adb.wait(500);
   return shell ? `Shell onglet ${tabNumber}` : `Onglet ${tabNumber}`;
 }
 

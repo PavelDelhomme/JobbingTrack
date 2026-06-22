@@ -11,6 +11,16 @@
  */
 
 const CONTROLLER_URL = process.env.EMULATOR_CONTROLLER_URL || 'http://localhost:5055';
+const UI_CACHE_MS = Number(process.env.ADB_UI_CACHE_MS || 280);
+const WAIT_FOR_POLL_MS = Number(process.env.ADB_WAIT_POLL_MS || 320);
+const ADB_FAST = ['1', 'true', 'yes'].includes(String(process.env.ADB_FAST || '').toLowerCase());
+const FAST_SCALE = Number(process.env.ADB_FAST_SCALE || 0.22);
+
+function scaleWait(ms) {
+  const n = Number(ms) || 0;
+  if (!ADB_FAST || n <= 0) return n;
+  return Math.max(60, Math.round(n * FAST_SCALE));
+}
 const { execSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
@@ -27,6 +37,35 @@ class AdbClient {
     this.deviceId = deviceId;
     this.baseUrl = (opts.controllerUrl || CONTROLLER_URL).replace(/\/$/, '');
     this._log = opts.log || ((msg) => console.log(`  [adb] ${msg}`));
+    this._uiCache = null;
+    this._uiCacheAt = 0;
+  }
+
+  _invalidateUi() {
+    this._uiCache = null;
+    this._uiCacheAt = 0;
+  }
+
+  static parseNodes(xml) {
+    const nodes = [];
+    const re = /<node[^>]*>/g;
+    let m;
+    while ((m = re.exec(xml)) !== null) {
+      const n = m[0];
+      const a = (attr) => {
+        const x = n.match(new RegExp(`${attr}="([^"]*)"`));
+        return x ? x[1] : '';
+      };
+      nodes.push({
+        text: a('text'),
+        contentDesc: a('content-desc'),
+        className: a('class'),
+        bounds: a('bounds'),
+        resourceId: a('resource-id'),
+        clickable: /clickable="true"/.test(n),
+      });
+    }
+    return nodes;
   }
 
   // ─── HTTP helpers ──────────────────────────────────────────────
@@ -35,7 +74,7 @@ class AdbClient {
     const res = await fetch(`${this.baseUrl}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceId: this.deviceId, ...body }),
+      body: JSON.stringify({ deviceId: this.deviceId, fast: ADB_FAST, ...body }),
     });
     return res.json();
   }
@@ -51,6 +90,7 @@ class AdbClient {
   async tap(text, index = 0) {
     const r = await this._post('/find-and-tap', { text, index });
     if (!r.success) throw new Error(r.error || `"${text}" introuvable`);
+    this._invalidateUi();
     this._log(`tap "${text}" -> ${r.message}`);
     return r.message;
   }
@@ -63,7 +103,12 @@ class AdbClient {
   /** Tap a des coordonnees brutes */
   async tapXY(x, y) {
     await this._post('/input-tap', { x, y });
+    this._invalidateUi();
     this._log(`tap (${x},${y})`);
+  }
+
+  async tapCoords(x, y) {
+    return this.tapXY(x, y);
   }
 
   // ─── Text input ────────────────────────────────────────────────
@@ -72,6 +117,7 @@ class AdbClient {
   async typeInField(hint, value) {
     const r = await this._post('/tap-field-and-type', { hint, text: value });
     if (!r.success) throw new Error(r.error || `Champ "${hint}" introuvable`);
+    this._invalidateUi();
     const masked =
       /mot de passe|password/i.test(hint) || /mot de passe|password/i.test(String(value))
         ? '***'
@@ -83,11 +129,15 @@ class AdbClient {
   /** Saisit du texte brut (le champ doit etre deja focus) */
   async typeText(text) {
     await this._post('/input-text', { text });
+    this._invalidateUi();
   }
 
   // ─── Keys ──────────────────────────────────────────────────────
 
-  async keyevent(code) { await this._post('/input-keyevent', { keycode: code }); }
+  async keyevent(code) {
+    await this._post('/input-keyevent', { keycode: code });
+    this._invalidateUi();
+  }
   async back()    { await this.keyevent(4);   this._log('BACK'); }
   async home()    { await this.keyevent(3);   this._log('HOME'); }
   async enter()   { await this.keyevent(66);  this._log('ENTER'); }
@@ -100,6 +150,7 @@ class AdbClient {
 
   async swipe(x1, y1, x2, y2, duration = 300) {
     await this._post('/input-swipe', { x1, y1, x2, y2, duration });
+    this._invalidateUi();
     this._log(`swipe (${x1},${y1})->(${x2},${y2})`);
   }
 
@@ -122,10 +173,28 @@ class AdbClient {
 
   // ─── UI inspection ─────────────────────────────────────────────
 
-  /** Dump le XML complet de l'UI */
-  async uiDump() {
+  /** Dump le XML complet de l'UI (cache court pour éviter dumps redondants). */
+  async uiDump(force = false) {
+    const now = Date.now();
+    if (!force && this._uiCache && now - this._uiCacheAt < UI_CACHE_MS) {
+      return this._uiCache;
+    }
     const r = await this._post('/ui-dump', {});
-    return r.xml || '';
+    this._uiCache = r.xml || '';
+    this._uiCacheAt = now;
+    return this._uiCache;
+  }
+
+  /** Snapshot UI : un seul dump pour plusieurs assertions. */
+  async uiSnapshot(force = false) {
+    const xml = await this.uiDump(force);
+    const nodes = AdbClient.parseNodes(xml);
+    const lower = xml.toLowerCase();
+    return {
+      xml,
+      nodes,
+      contains: (text) => lower.includes(String(text).toLowerCase()),
+    };
   }
 
   /** Verifie si un texte est present a l'ecran */
@@ -137,22 +206,7 @@ class AdbClient {
   /** Parse tous les noeuds UI visibles */
   async uiNodes() {
     const xml = await this.uiDump();
-    const nodes = [];
-    const re = /<node[^>]*>/g;
-    let m;
-    while ((m = re.exec(xml)) !== null) {
-      const n = m[0];
-      const a = (attr) => { const x = n.match(new RegExp(`${attr}="([^"]*)"`)); return x ? x[1] : ''; };
-      nodes.push({
-        text: a('text'),
-        contentDesc: a('content-desc'),
-        className: a('class'),
-        bounds: a('bounds'),
-        resourceId: a('resource-id'),
-        clickable: /clickable="true"/.test(n),
-      });
-    }
-    return nodes;
+    return AdbClient.parseNodes(xml);
   }
 
   /** Trouve un element par texte ou content-desc */
@@ -165,13 +219,26 @@ class AdbClient {
   }
 
   /** Attend qu'un texte apparaisse (polling) */
-  async waitFor(text, timeoutMs = 30000, pollMs = 3000) {
+  async waitFor(text, timeoutMs = 20000, pollMs = WAIT_FOR_POLL_MS) {
     const t0 = Date.now();
+    const poll = pollMs ?? WAIT_FOR_POLL_MS;
     while (Date.now() - t0 < timeoutMs) {
-      if (await this.uiContains(text)) return true;
-      await this.wait(pollMs);
+      if ((await this.uiSnapshot(true)).contains(text)) return true;
+      await this.wait(poll);
     }
     return false;
+  }
+
+  /** Attend un prédicat basé sur un seul dump UI par itération. */
+  async waitUntil(predicate, { timeoutMs = 15000, pollMs = WAIT_FOR_POLL_MS } = {}) {
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeoutMs) {
+      const snap = await this.uiSnapshot(true);
+      const result = await predicate(snap);
+      if (result) return result;
+      await this.wait(pollMs);
+    }
+    return null;
   }
 
   /** Asserte qu'un texte est present, sinon throw */
@@ -252,6 +319,7 @@ class AdbClient {
       } catch {}
     }
     this._log(`pref ${fullKey}=${value}`);
+    this._invalidateUi();
   }
 
   async tapByIndex(index) {
@@ -293,7 +361,7 @@ class AdbClient {
 
   // ─── Utilities ─────────────────────────────────────────────────
 
-  wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+  wait(ms) { return new Promise((r) => setTimeout(r, scaleWait(ms))); }
 
   _boundsCenter(bounds) {
     const m = bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
@@ -313,32 +381,27 @@ class AdbClient {
 
   /** Saisie par index de champ EditText (formulaires Flutter sans hint accessible). */
   async typeInEditTextByIndex(index, value, opts = {}) {
-    const edits = await this.listEditTexts();
-    if (index < 0 || index >= edits.length) {
-      throw new Error(`EditText #${index} introuvable (${edits.length} champ(s))`);
+    const r = await this._post('/tap-field-and-type', {
+      hint: opts.isEmail ? 'email' : opts.isPassword ? 'password' : 'field',
+      text: value,
+      editTextIndex: index,
+      isEmail: !!opts.isEmail,
+    });
+    if (!r.success) {
+      throw new Error(r.error || `EditText #${index} introuvable`);
     }
-    const center = this._boundsCenter(edits[index].bounds);
-    await this.tapXY(center.cx, center.cy);
-    await this.wait(opts.isEmail ? 600 : 400);
-    await this.clearField();
-    await this.wait(200);
-    if (opts.isEmail) {
-      for (const hint of ['redacted', 'example', 'Email', '@']) {
-        try {
-          await this.typeInField(hint, value);
-          this._log(`type EditText#${index} (email) via hint "${hint}"`);
-          return;
-        } catch {
-          /* essai suivant */
-        }
-      }
-    }
-    await this.typeText(value);
-    this._log(`type EditText#${index} = "${String(value).slice(0, 24)}${String(value).length > 24 ? '…' : ''}"`);
+    const masked =
+      opts.isPassword || /mot de passe|password/i.test(String(value))
+        ? '***'
+        : value;
+    this._log(
+      `type EditText#${index} = "${String(masked).slice(0, 24)}${String(masked).length > 24 ? '…' : ''}"`,
+    );
   }
 
   async clearField() {
     await this._post('/clear-field', {});
+    this._invalidateUi();
   }
 
   // ─── Healthcheck & devices ─────────────────────────────────────
@@ -360,14 +423,39 @@ class AdbClient {
  * @returns {Promise<AdbClient>}
  */
 async function createAdb(deviceId, opts = {}) {
-  if (!deviceId) {
-    const tmp = new AdbClient('_probe_', opts);
-    const devs = await tmp.listDevices();
-    if (devs.length === 0) throw new Error('Aucun appareil ADB detecte');
-    deviceId = devs[0].id;
-    console.log(`[adb-lib] Appareil auto-detecte: ${deviceId}`);
+  const tmp = new AdbClient('_probe_', opts);
+  const devs = await tmp.listDevices();
+  if (devs.length === 0) {
+    throw new Error(
+      'Aucun appareil ADB detecte. Branchez le Samsung ou lancez: bash scripts/mobile/setup-android-emulator.sh up',
+    );
   }
+
+  const preferred =
+    deviceId || process.env.MOBILE_ADB_DEVICE || process.env.ADB_DEVICE_ID;
+  if (preferred) {
+    const found = devs.find((d) => d.id === preferred);
+    if (!found) {
+      throw new Error(
+        `Appareil ${preferred} introuvable (${devs.map((d) => d.id).join(', ')})`,
+      );
+    }
+    console.log(`[adb-lib] Appareil cible: ${preferred}`);
+    return new AdbClient(preferred, opts);
+  }
+
+  if (process.env.MOBILE_PREFER_EMULATOR === '1') {
+    const emu = devs.find((d) => d.id.startsWith('emulator-'));
+    if (emu) {
+      console.log(`[adb-lib] Emulateur auto: ${emu.id}`);
+      return new AdbClient(emu.id, opts);
+    }
+  }
+
+  const physical = devs.find((d) => !d.id.startsWith('emulator-'));
+  deviceId = physical ? physical.id : devs[0].id;
+  console.log(`[adb-lib] Appareil auto-detecte: ${deviceId}`);
   return new AdbClient(deviceId, opts);
 }
 
-module.exports = { AdbClient, createAdb };
+module.exports = { AdbClient, createAdb, scaleWait, ADB_FAST };

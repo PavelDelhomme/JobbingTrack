@@ -101,6 +101,24 @@ D’après `mobile/lib/main.dart` et `mobile/lib/screens/` :
 
 Référence implémentation actuelle : `frontend/src/app/(admin)/backoffice/mobile-emulator/page.tsx` (aujourd’hui : appareils simulés, URL manuelle, iframe, logs simulés ; à étendre avec ADB réel et logs logcat). Démarrer sur téléphone : USB + débogage USB ; make emulator-controller (dernier code) ; rafraîchir appareils, sélectionner le téléphone ; Build APK puis Installer et lancer. Logs Flutter run = terminal du contrôleur ; à faire : streamer dans l'UI. À faire plus tard : AVD depuis l'UI, logs en direct.
 
+**Émulateur sans USB (CLI, agent 22/06)** : `bash scripts/mobile/setup-android-emulator.sh up` crée/démarre l’AVD `JobbingTrack_S21_FE` (profil proche S21 FE) ; `MOBILE_PREFER_EMULATOR=1` + `MOBILE_ADB_DEVICE=emulator-5554` dans `.env` ou `.env.mobile-emulator`. Smokes rapides : `bash scripts/mobile/run-smokes-fast.sh`.
+
+---
+
+## 🧪 Hub tests backoffice — à faire avant production (D8)
+
+**Objectif porteur 22/06** : depuis le backoffice admin, piloter **tout** le système de tests sans terminal obligatoire.
+
+| Zone backoffice | À faire |
+|-----------------|--------|
+| **`/backoffice/mobile-emulator`** | Vrai appareil ADB ou AVD (pas iframe factice) ; choix device ; build/install ; parcours ADB ; config test (gateway, compte, mode rapide). |
+| **Parcours utilisateur** | Lancer scénarios journey + smokes mobile ; voir résultat et logs. |
+| **`/backoffice/tests-*` + rapports** | Boutons par catégorie (mobile API, mobile ADB, frontend Jest, Playwright, sécurité) ; stdout + lien `tests/results/`. |
+| **Config tests (UI)** | Équivalent `.env` : `MOBILE_ADB_DEVICE`, `MOBILE_PREFER_EMULATOR`, `ADB_FAST`, URLs gateway — **pas de mots de passe en clair** (références clés `.env`). |
+| **Matériel & comptes test** | Registre téléphones/émulateurs ; comptes TEST_USER/ADMIN ; état prêt/occupé. |
+
+**Comportement par défaut (CLI / agent)** : `MOBILE_ADB_DEVICE` vide → auto-détection ADB (**USB prioritaire** sur émulateur). Détail : `docs/TODOS.md` § **D8**, `A_VALIDER_AVANT_PRODUCTION.md`.
+
 ---
 
 ## 🚶 User journey mobile – à faire correctement

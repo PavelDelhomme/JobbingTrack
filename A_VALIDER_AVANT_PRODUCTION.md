@@ -21,11 +21,13 @@ Pour l’instant, aucune production réelle n’est lancée sur serveur.
 | Exposition publique serveur/conteneurs/réseau minimisée et stratégie leurres/masquage validée | [ ] |
 | Déploiement VPS/Portainer/NPM préparé hors secrets Git | [ ] |
 | Sauvegarde/restauration BDD testée au moins en simulation | [ ] |
+| **Hub tests backoffice (D8)** — lancer smokes mobile + suite principale depuis UI admin ; config appareil ADB/AVD et comptes test sans terminal ; émulateur mobile = vrai ADB (pas iframe factice) | [ ] |
 
 ## Gate préprod/prod
 
 | Validation | Environnement cible | Preuve attendue | Statut | Retour |
 |------------|---------------------|-----------------|--------|--------|
+| **Hub tests & émulateur mobile (D8)** | local / preprod | Depuis backoffice : choix appareil ADB réel ou AVD, lancement smokes mobile + rapports ; config test (équivalent `.env`) sans secrets en clair ; Parcours utilisateur + hub Tests unifiés. Voir `docs/TODOS.md` § D8. | [ ] | |
 | Variables prod strictes | preprod | Pas de secret faible/fallback dev, `.env` hors Git, `SECURITY_INTERNAL_SECRET`, `METRICS_API_KEY`, SMTP, Redis, Postgres validés. | [ ] | |
 | Emails SMTP réels | preprod | `SMTP_HOST` fournisseur réel (pas MailHog/localhost), TLS cohérent, secrets hors Git, reset/vérification + alerte sécurité reçus dans une boîte réelle, `EmailLog` `SENT`. | [ ] | |
 | HTTPS public / reverse proxy | preprod | Domaine API/front en HTTPS public, `TRUST_PROXY_HOPS` cohérent, WAF inspecte le trafic public. | [ ] | |

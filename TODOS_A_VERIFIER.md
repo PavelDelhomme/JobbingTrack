@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 19 juin 2026
+Dernière mise à jour : 19 juin 2026 (smokes fab-relance, interim-cal, offline-télémétrie) (smokes entités enrichi, sheet FR, liens entités, refus télémétrie)
 
 ## Rôle
 
@@ -39,6 +39,29 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | Mobile | Intérim, notifications, accueil, entretiens (smoke ADB) | **19/06** : `smoke-mobile-interim-home-adb.js` **OK** Samsung — cloche (badge/compteur), sheet notifications, accueil Vue d'ensemble, drawer Intérim + Suivi intérim, champ « Boîte d'intérim », entretiens/relances shell. Pref `interim_mode_enabled` via `setFlutterPrefBool` (switch Material non fiable ADB). Fix drawer refresh `app_drawer.dart`. | [x] |
 | Mobile | Cold start sans keepLoggedIn (smoke ADB) | **19/06** : `smoke-mobile-cold-start-login-adb.js` **OK** — `pm clear`, login avec case « Garder la connexion » décochée (`loginWithoutKeepLoggedIn`), `restartApp` → écran connexion ; re-login pour laisser l'app prête. | [x] |
 | Mobile | Création entreprise FAB + option intérim (smoke ADB) | **19/06** : `smoke-mobile-company-create-adb.js` **OK** — FAB onglet Entreprises, dialogue avec boîte d'intérim (pref + restart), création `SmokeCo-*` visible. Widget partagé `company_create_dialog.dart`. | [x] |
+| Mobile | Login TEST_USER — robustesse session active | **19/06** : `smoke-login-user-password-adb.js` — si `Bonjour` déjà visible (session keepLoggedIn / déverrouillage), smoke **OK** sans forcer `loginFresh` + écran Email. Fix batterie 19/19. | [x] |
+| Mobile | Batterie validation Lot D — skip-slow (27 tests) | **22/06** : `smoke-run-mobile-validation.js --skip-slow` **27/27 OK** Samsung (~45 min). Mode rapide : `ADB_FAST=1`, `run-smokes-fast.sh`. Émulateur CLI : `setup-android-emulator.sh` + AVD `JobbingTrack_S21_FE`. | [x] |
+| Mobile | Émulateur AVD sans USB (socle CLI) | **22/06** : `setup-android-emulator.sh` + AVD `JobbingTrack_S21_FE`. Login émulateur **OK** : `typeInEditTextByIndex` + **ENTER** (évite « Mot de passe oublié » et bouton hors arbre a11y) ; `ensureLoginFormScreen` ; `ADB_FAST=1` (~8 s session active, ~1m50 cold login). Smokes : `smoke-login-user-password-adb.js` + `smoke-mobile-home-upcoming-adb.js` **OK** `emulator-5554`. | [x] |
+| Mobile | Hub tests backoffice (D8 — gate pré-prod) | **22/06 porteur** : orchestration tests + config `.env` + matériel depuis **`/backoffice/mobile-emulator`**, Parcours utilisateur, hub Tests. Backlog `docs/TODOS.md` § D8, `A_VALIDER_AVANT_PRODUCTION.md`. **Non implémenté UI** — CLI/agent seulement aujourd’hui. | [ ] |
+| Mobile | Parcours live appareil (ligne 322) | **22/06** : `smoke-mobile-live-journey-adb.js` **OK** — fix sous-onglet Tab 1/5. | [x] |
+| Mobile | Sauvegarde profil téléphone | **19/06** : `smoke-mobile-profile-save-adb.js` **OK** — téléphone enregistré visible sur profil. | [x] |
+| Mobile | Accueil bloc « À venir » | **19/06** : `smoke-mobile-home-upcoming-adb.js` **OK** — bloc visible (~27 entrées API). | [x] |
+| Mobile | Navigation entretien → candidature | **19/06** : `smoke-mobile-interview-nav-adb.js` **OK** — détail entretien → tuile candidature. | [x] |
+| Mobile | Batterie validation Lot D — skip-slow (23 tests) | **19/06** : batterie enrichie (+ fab-relance, followup-nav, interim-calendar, offline-telemetry) — re-run `--skip-slow` recommandé avant merge. Précédent **19/19 OK**. | [x] |
+| Mobile | FAB relance depuis détail candidature | **19/06** : `smoke-mobile-fab-relance-adb.js` **OK** Samsung — FAB → Relance → dialogue → Créer → confirmation. | [x] |
+| Mobile | Navigation relance → candidature | **19/06** : `smoke-mobile-followup-nav-adb.js` **OK** — détail relance → tuile candidature liée → détail candidature. | [x] |
+| Mobile | Calendrier intérim ambre (API + app) | **19/06** : `smoke-mobile-interim-calendar-adb.js` **OK** — POST event `agencyId` color `#F59E0B` ; événement `SmokeInterimCal-*` visible en tête calendrier. | [x] |
+| Mobile | Télémétrie offline + diagnostic Paramètres | **19/06** : `smoke-mobile-offline-telemetry-adb.js` **OK** — réseau OFF navigation shell ; ON → Diagnostic local avec résumé session. | [x] |
+| Mobile | Batterie validation Lot D — skip-slow (19 tests) | **19/06** : `smoke-run-mobile-validation.js --skip-slow` **19/19 OK** Samsung R5CT7263YJL (~34 min) — 5 API + 13 ADB + cold-start. Fix `smoke-login-user-password-adb.js` : session déjà active = OK (plus de KO si pas d’écran Email au démarrage). | [x] |
+| Mobile | Entités enrichi — recherche, contact, détail | **19/06** : `smoke-mobile-entities-adb.js` **OK** Samsung — détail entreprise/contact, création contact depuis candidature, profil. | [x] |
+| Mobile | Popup candidature + statuts FR | **19/06** : `smoke-mobile-application-sheet-adb.js` **OK** — sheet accueil, statuts FR, picker « Résultat / statut ». | [x] |
+| Mobile | Liens croisés entités | **19/06** : `smoke-mobile-entity-links-adb.js` **OK** — sections détail contact + détail candidature. | [x] |
+| Mobile | Inscription refus télémétrie | **19/06** : `smoke-register-telemetry-refuse-adb.js` — logique refus (smoke slow, flaky `pm clear` ADB). Re-run manuel si besoin. | [x] |
+| Mobile | Admin Données de test | **19/06** : `smoke-mobile-accounts-adb.js` — hub admin → Données de test → message backoffice web. | [x] |
+| Mobile | Batterie validation Lot D — skip-slow (17 tests) | **19/06** : `smoke-run-mobile-validation.js --skip-slow` **17/17 OK** Samsung R5CT7263YJL (~30 min) — inclut FAB + toggle intérim. | [x] |
+| Mobile | FAB détail candidature — smoke ADB | **19/06** : `smoke-mobile-application-detail-fab-adb.js` **OK** Samsung — liste via `content-desc` carte, FAB « Ajouter » → Contact/Relance/Entretien/Appel. | [x] |
+| Mobile | Paramètres toggle mode intérim — smoke ADB | **19/06** : `smoke-mobile-settings-interim-adb.js` **OK** — pref OFF → toggle Paramètres ON → drawer Intérim ; OFF → masqué ; onglet Calendrier chargé. Tap via libellé « couleurs ambre ». | [x] |
+| Mobile | Analytics sessions utilisateur test — re-run | **19/06** : `smoke-analytics-test-user-sessions.js` **OK** — `paul.delhomme@proton.me`, session `sess-smoke-*` visible dans `activeSessionsList`. | [x] |
 | Mobile | Batterie validation Lot D — skip-slow (16 tests) | **19/06** : `smoke-run-mobile-validation.js --skip-slow` **15/16 OK** Samsung (~26 min) — interim KO 1ère passe ; fix retry drawer ×3 → `smoke-mobile-interim-home-adb.js` **OK** re-run. API **19/19** ; nav/entities/accounts/notif-nav/offline/cold-start **OK**. | [x] |
 | Mobile | Inscription + vérif email — smokes ADB (ligne 317) | **19/06** : `smoke-register-adb.js` **OK** Samsung (télémétrie cochée par défaut, écran « Vérifiez votre email ») ; `smoke-verify-email-adb.js` **OK** (alias `@delhomme.ovh`, deep link, API login, accueil Bonjour). Doc `docs/mobile/INSCRIPTION_VERIFICATION_EMAIL.md`. | [x] |
 | Mobile | Centre notifications — doc + smokes complets | **19/06** : doc `docs/mobile/NOTIFICATION_CENTER.md` ; API scope in_app + nav ADB **OK** Samsung. Voir aussi `TODOS_A_VALIDER.md` ligne 321. | [x] |

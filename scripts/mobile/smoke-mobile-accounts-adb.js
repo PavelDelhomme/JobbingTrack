@@ -51,6 +51,42 @@ async function drawerHasAdminSection(phone) {
     throw new Error('Section ADMINISTRATION absente pour le compte admin');
   }
   console.log('OK: menu ADMINISTRATION visible');
+
+  await phone.openDrawer();
+  await phone.wait(1500);
+  let hubOpened = false;
+  for (let i = 0; i < 5; i++) {
+    if (await phone.uiContains('Hub administration')) {
+      await phone.tap('Hub administration');
+      hubOpened = true;
+      break;
+    }
+    await phone.drawerScrollDown();
+    await phone.wait(600);
+  }
+  if (!hubOpened) {
+    throw new Error('Hub administration introuvable pour compte admin');
+  }
+  await phone.wait(2500);
+  try {
+    await phone.tap('Donnees test');
+  } catch {
+    await phone.tap('Données de test');
+  }
+  await phone.wait(2000);
+  const testDataOk =
+    (await phone.uiContains('backoffice web')) ||
+    (await phone.uiContains('Générateur de données')) ||
+    (await phone.uiContains('Données de test'));
+  if (!testDataOk) {
+    throw new Error('Écran Données de test : message backoffice introuvable');
+  }
+  console.log('OK: Données de test → renvoi backoffice');
+  await phone.back();
+  await phone.wait(800);
+  await phone.back();
+  await phone.wait(800);
+
   await adbLib.flows.ensureLoggedOut(phone);
 
   console.log('\n=== Compte UTILISATEUR TEST ===');

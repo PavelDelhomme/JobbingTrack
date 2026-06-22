@@ -200,3 +200,7 @@ data/monitoring/metrics/*
 data/monitoring/history/*
 data/archives/security-logs/
 !data/monitoring/.gitkeep
+
+# Émulateur Android local (scripts/mobile/setup-android-emulator.sh)
+.android-sdk/
+.env.mobile-emulator

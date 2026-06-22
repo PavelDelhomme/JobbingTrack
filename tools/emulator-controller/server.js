@@ -127,18 +127,20 @@ function ensureWritableFlutterGradle() {
 
 /** Exécute uiautomator dump avec timeout et 2 tentatives (évite échec après redémarrage app). */
 async function uiaDumpWithRetry(deviceId, timeoutMs = 25000) {
+  const fast = ['1', 'true', 'yes'].includes(String(process.env.ADB_FAST || '').toLowerCase());
+  const effectiveTimeout = fast ? Math.min(timeoutMs, 12000) : timeoutMs;
   const deviceArg = deviceId ? `-s ${deviceId}` : '';
   const dumpCmd = `adb ${deviceArg} shell uiautomator dump /sdcard/ui_dump.xml`;
   const catCmd = `adb ${deviceArg} shell cat /sdcard/ui_dump.xml`;
   let lastErr;
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      await execPromise(dumpCmd, { timeout: timeoutMs });
+      await execPromise(dumpCmd, { timeout: effectiveTimeout });
       const { stdout } = await execPromise(catCmd, { timeout: 10000 });
       return stdout || '';
     } catch (e) {
       lastErr = e;
-      if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
+      if (attempt < 2) await new Promise(r => setTimeout(r, 700));
     }
   }
   throw lastErr;
@@ -530,19 +532,52 @@ const routes = {
       const hint = body && body.hint;
       const text = body && body.text;
       const index = Math.max(0, parseInt(body && body.index, 10) || 0);
-      if (!deviceId || !hint || typeof text !== 'string') {
-        return send(res, 400, { success: false, error: 'Body { "deviceId", "hint": "Email", "text": "value" } requis' });
+      const editTextIndexRaw = body && body.editTextIndex;
+      const hasEditTextIndex =
+        editTextIndexRaw !== undefined && editTextIndexRaw !== null && editTextIndexRaw !== '';
+      if (!deviceId || typeof text !== 'string' || (!hint && !hasEditTextIndex)) {
+        return send(res, 400, {
+          success: false,
+          error: 'Body { "deviceId", "hint" ou "editTextIndex", "text": "value" } requis',
+        });
       }
       const xml = await uiaDumpWithRetry(deviceId);
       const nodeRegex = /<node[^>]*>/g;
-      const hintLower = hint.toLowerCase();
+      const hintLower = hint ? String(hint).toLowerCase() : '';
       const matchStr = (attr) => attr && attr.toLowerCase().includes(hintLower);
       const editableTrue = (n) => /editable="true"/.test(n) || /class="[^"]*EditText[^"]*"/.test(n);
       const targets = [];
       const targetsEditable = [];
       const targetCurrentTexts = [];
+
+      if (hasEditTextIndex) {
+        const editIdx = Math.max(0, parseInt(editTextIndexRaw, 10) || 0);
+        const editNodes = [];
+        let mEdit;
+        while ((mEdit = nodeRegex.exec(xml)) !== null) {
+          const n = mEdit[0];
+          if (!editableTrue(n)) continue;
+          const boundsMatch = n.match(/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
+          if (!boundsMatch) continue;
+          const t = (n.match(/text="([^"]*)"/) || [])[1];
+          editNodes.push({ bounds: boundsMatch, text: (t || '').trim(), y: parseInt(boundsMatch[2], 10) });
+        }
+        editNodes.sort((a, b) => a.y - b.y);
+        const picked = editNodes[editIdx];
+        if (!picked) {
+          return send(res, 200, {
+            success: false,
+            error: `EditText #${editIdx} introuvable (${editNodes.length} champ(s))`,
+          });
+        }
+        targets.push(picked.bounds);
+        targetCurrentTexts.push(picked.text);
+        targetsEditable.push(picked.bounds);
+      }
+
       let match;
-      while ((match = nodeRegex.exec(xml)) !== null) {
+      if (!hasEditTextIndex) {
+        while ((match = nodeRegex.exec(xml)) !== null) {
         const n = match[0];
         const h = (n.match(/hint="([^"]*)"/) || [])[1];
         const t = (n.match(/text="([^"]*)"/) || [])[1];
@@ -557,11 +592,16 @@ const routes = {
             if (editableTrue(n)) targetsEditable.push(boundsMatch);
           }
         }
+        }
       }
       const list = targetsEditable.length > 0 ? targetsEditable : targets;
       const target = list[index];
       if (!target) {
-        return send(res, 200, { success: false, error: `Field with hint/text "${hint}" not found${targets.length ? ` (${targets.length} match(es), ${targetsEditable.length} editable, index ${index})` : ''}` });
+        const label = hasEditTextIndex ? `EditText #${editTextIndexRaw}` : `Field with hint/text "${hint}"`;
+        return send(res, 200, {
+          success: false,
+          error: `${label} not found${targets.length ? ` (${targets.length} match(es), ${targetsEditable.length} editable, index ${index})` : ''}`,
+        });
       }
       const targetIdxInAll = targets.indexOf(target);
       const currentFieldText = targetIdxInAll >= 0 && targetCurrentTexts[targetIdxInAll] !== undefined ? targetCurrentTexts[targetIdxInAll] : '';
@@ -569,17 +609,25 @@ const routes = {
       const cy = Math.round((parseInt(target[2]) + parseInt(target[4])) / 2);
       await execPromise(`adb -s ${deviceId} shell input tap ${cx} ${cy}`);
       let trimmed = typeof text === 'string' ? text.trim() : String(text).trim();
-      const isEmailField = (hint && String(hint).toLowerCase().includes('email')) || (trimmed.includes('@'));
+      const fast =
+        (body && body.fast === true) ||
+        ['1', 'true', 'yes'].includes(String(process.env.ADB_FAST || '').toLowerCase());
+      const pause = (ms) =>
+        new Promise((r) => setTimeout(r, fast ? Math.max(40, Math.round(ms * 0.25)) : ms));
+      const isEmailField =
+        body.isEmail === true ||
+        (hint && String(hint).toLowerCase().includes('email')) ||
+        trimmed.includes('@');
       if (isEmailField) console.log(`[tap-field-and-type] Champ email: valeur reçue="${trimmed}" longueur=${trimmed.length} fin="${trimmed.slice(-6)}"`);
       if (isEmailField) {
-        await new Promise(r => setTimeout(r, 600));
+        await pause(600);
       } else {
-        await new Promise(r => setTimeout(r, 400));
+        await pause(400);
       }
       await execPromise(`adb -s ${deviceId} shell input keyevent KEYCODE_MOVE_END`);
       const delCount = currentFieldText.length > 0 ? Math.min(120, currentFieldText.length + 15) : 0;
       for (let i = 0; i < delCount; i++) await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
-      await new Promise(r => setTimeout(r, 150));
+      await pause(150);
       if (isEmailField && /[0-9]$/.test(trimmed)) trimmed = trimmed.slice(0, -1);
       const esc = (s) => s.replace(/ /g, '%s').replace(/[&|;<>()$`\\!"'#]/g, (c) => `\\${c}`);
       const escaped = esc(trimmed);
@@ -591,53 +639,79 @@ const routes = {
         const part1Esc = esc(part1);
         console.log(`[tap-field-and-type] Email .com: part1="${part1}" puis "com" caractère par caractère`);
         await execPromise(`adb -s ${deviceId} shell input text "${part1Esc}"`);
-        await new Promise(r => setTimeout(r, 550));
+        await pause(550);
         for (const ch of 'com') {
           await execPromise(`adb -s ${deviceId} shell input text "${ch}"`);
-          await new Promise(r => setTimeout(r, 220));
+          await pause(220);
         }
       } else if (isEmailField && tldMe) {
         const part1 = trimmed.slice(0, -2);
         const part1Esc = esc(part1);
         console.log(`[tap-field-and-type] Email .me: part1="${part1}" puis "me" caractère par caractère`);
         await execPromise(`adb -s ${deviceId} shell input text "${part1Esc}"`);
-        await new Promise(r => setTimeout(r, 450));
+        await pause(450);
         for (const ch of 'me') {
           await execPromise(`adb -s ${deviceId} shell input text "${ch}"`);
-          await new Promise(r => setTimeout(r, 220));
+          await pause(220);
         }
       } else {
         await execPromise(`adb -s ${deviceId} shell input text "${escaped}"`);
       }
-      // Après saisie email : relire le champ via UI dump et supprimer uniquement les chiffres en fin (suggestion clavier "6").
-      // On n'envoie pas de backspace+retype pour éviter de re-déclencher la suggestion.
-      if (isEmailField) {
-        await new Promise(r => setTimeout(r, 550));
-        const xml2 = await uiaDumpWithRetry(deviceId);
-        const nodeRegex2 = /<node[^>]*>/g;
-        const targets2 = [];
-        const texts2 = [];
-        let m2;
-        while ((m2 = nodeRegex2.exec(xml2)) !== null) {
-          const n = m2[0];
-          const h = (n.match(/hint="([^"]*)"/) || [])[1];
-          const t = (n.match(/text="([^"]*)"/) || [])[1];
-          const ok = h && String(h).toLowerCase().includes(hintLower);
-          if (ok && editableTrue(n)) {
-            const b = n.match(/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
-            if (b) {
-              targets2.push(b);
-              texts2.push((t || '').trim());
+      // Après saisie email : relire le champ (sauf mode rapide — dumps UI coûteux).
+      if (isEmailField && !fast) {
+        const emailAttempts = fast ? 2 : 4;
+        for (let attempt = 0; attempt < emailAttempts; attempt++) {
+          await pause(attempt === 0 ? 550 : 400);
+          const xml2 = await uiaDumpWithRetry(deviceId);
+          const nodeRegex2 = /<node[^>]*>/g;
+          const texts2 = [];
+          if (hasEditTextIndex) {
+            const editIdx2 = Math.max(0, parseInt(editTextIndexRaw, 10) || 0);
+            const editNodes2 = [];
+            let mEdit2;
+            while ((mEdit2 = nodeRegex2.exec(xml2)) !== null) {
+              const n = mEdit2[0];
+              if (!editableTrue(n)) continue;
+              const boundsMatch = n.match(/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
+              if (!boundsMatch) continue;
+              const t = (n.match(/text="([^"]*)"/) || [])[1];
+              editNodes2.push({ text: (t || '').trim(), y: parseInt(boundsMatch[2], 10) });
+            }
+            editNodes2.sort((a, b) => a.y - b.y);
+            if (editNodes2[editIdx2]) texts2.push(editNodes2[editIdx2].text);
+          } else {
+            let m2;
+            while ((m2 = nodeRegex2.exec(xml2)) !== null) {
+              const n = m2[0];
+              const h = (n.match(/hint="([^"]*)"/) || [])[1];
+              const t = (n.match(/text="([^"]*)"/) || [])[1];
+              const ok = h && String(h).toLowerCase().includes(hintLower);
+              if (ok && editableTrue(n)) texts2.push((t || '').trim());
             }
           }
-        }
-        const idx = Math.min(index, texts2.length - 1);
-        const currentText = idx >= 0 ? texts2[idx] : '';
-        const trailingDigits = (currentText.match(/[0-9]+$/) || [])[0];
-        if (trailingDigits) {
-          const nBack = trailingDigits.length;
-          console.log(`[tap-field-and-type] Email: champ se termine par "${trailingDigits}", envoi de ${nBack} backspace(s)`);
-          for (let b = 0; b < nBack; b++) await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
+          const idx = Math.min(index, texts2.length - 1);
+          let currentText = idx >= 0 ? texts2[idx] : '';
+          if (!currentText) break;
+          if (currentText === trimmed) {
+            if (attempt >= 2) break;
+            continue;
+          }
+          const trailingDigits = (currentText.match(/[0-9]+$/) || [])[0];
+          if (trailingDigits) {
+            const nBack = trailingDigits.length;
+            console.log(
+              `[tap-field-and-type] Email: champ se termine par "${trailingDigits}", envoi de ${nBack} backspace(s)`,
+            );
+            for (let b = 0; b < nBack; b++) await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
+            currentText = currentText.slice(0, -nBack);
+          }
+          if (currentText && currentText !== trimmed && currentText.startsWith(trimmed)) {
+            const nBack = currentText.length - trimmed.length;
+            console.log(
+              `[tap-field-and-type] Email: suffixe parasite "${currentText.slice(trimmed.length)}" → ${nBack} backspace(s)`,
+            );
+            for (let b = 0; b < nBack; b++) await execPromise(`adb -s ${deviceId} shell input keyevent 67`);
+          }
         }
       }
       send(res, 200, { success: true, message: `Typed "${trimmed.slice(0, 30)}" in field "${hint}" at (${cx}, ${cy})` });

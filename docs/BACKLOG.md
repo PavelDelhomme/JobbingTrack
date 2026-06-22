@@ -114,9 +114,12 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 ## Priorité basse – Mobile et émulateur
 
 - [ ] **App mobile Flutter** : auth, dashboard, CRUD, calendrier, notifications, sync offline.
+- [ ] **Hub tests backoffice admin (gate pré-prod, D8)** — **22/06 porteur** : lancer depuis **`/backoffice/mobile-emulator`**, **Parcours utilisateur** et **hub Tests** l’ensemble des smokes (`scripts/mobile/`, `scripts/run-all-tests-with-reports.sh`, Jest/Playwright ciblés) ; configurer appareil ADB/AVD, comptes test, variables type `.env` (sans secrets en clair) ; registre matériel + utilisateurs de test ; rapports `tests/results/` dans l’UI. **CLI par défaut** : auto-détection ADB (USB prioritaire). Voir `docs/TODOS.md` § **D8**.
+- [ ] **Émulateur mobile backoffice — vrai ADB/OS** : remplacer iframe/profils factices par streaming écran ADB réel ou AVD ; build/install APK, logcat filtré, parcours `adb-lib` ; script hôte `scripts/mobile/setup-android-emulator.sh` (AVD `JobbingTrack_S21_FE`). **Agent 22/06** : socle CLI + contrôleur `:5055` + `.env.mobile-emulator`.
 - [ ] **Émulateur mobile – Build APK** : corriger `flutter_local_notifications`.
 - [ ] **Logs Android (logcat)** : streamer dans l'UI.
 - [ ] **Playwright mobile dans `make tests`** : séparer une cible smoke (rapide, stable) de la campagne longue (actuellement timeout 600s / exit 124 dans l’agrégat).
+- [ ] **Smokes mobile mode rapide** : `ADB_FAST=1` (défaut smokes agent), `scripts/mobile/run-smokes-fast.sh` ; documenter bascule émulateur via `MOBILE_PREFER_EMULATOR=1`.
 
 ## Priorité moyenne – CI/CD et déploiement
 
