@@ -889,12 +889,16 @@ services:
       - "${WORKFLOW_SERVICE_PORT:-5016}:${WORKFLOW_SERVICE_INTERNAL_PORT:-3013}"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - AUTH_SERVICE_URL=http://jobbingtrack-auth-service:${AUTH_SERVICE_INTERNAL_PORT:-3001}
+      - INTERNAL_CRON_TOKEN=${INTERNAL_CRON_TOKEN:-${JWT_SECRET}}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - ENABLE_CENTRAL_LOGGING=${ENABLE_CENTRAL_LOGGING:-true}
       - METRICS_SERVICE_URL=http://jobbingtrack-metrics-aggregator:3014
       - METRICS_API_KEY=${METRICS_API_KEY:?METRICS_API_KEY is required}
       - NODE_ENV=development
       - PORT=${WORKFLOW_SERVICE_INTERNAL_PORT:-3013}
       - SERVICE_NAME=jobbingtrack-workflow-service
+      - TZ=${TZ:-Europe/Paris}
     depends_on:
       postgres:
         condition: service_healthy

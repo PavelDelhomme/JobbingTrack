@@ -267,6 +267,9 @@ up: ## Démarrer services essentiels (postgres, redis, api-gateway, frontend, au
 	@echo "🚀 Démarrage des services essentiels..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service)
 	@echo ""
+	@echo "📋 Tables bootstrap (log_collector_logs, audit_logs)..."
+	@$(MAKE) db-ensure-bootstrap-tables || echo "⚠️  db-ensure-bootstrap-tables a échoué (vérifiez Postgres)"
+	@echo ""
 	@echo "🚀 Démarrage des services optionnels (profil full)..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d)
 	@echo ""
@@ -296,6 +299,7 @@ up-no-check: ## Démarrer services essentiels SANS vérification Docker (mode co
 	@echo "⚠️  ATTENTION: Vérifications Docker ignorées"
 	$(call check_and_free_ports)
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres redis api-gateway frontend auth-service dashboard-service)
+	@$(MAKE) db-ensure-bootstrap-tables || echo "⚠️  db-ensure-bootstrap-tables a échoué (vérifiez Postgres)"
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d)
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-agent-rs log-collector-rs jobbingtrack-metrics-aggregator)
 	@echo ""
@@ -309,6 +313,7 @@ up-monitoring: ## Démarrer uniquement le monitoring (postgres, monitoring-agent
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) up -d postgres)
 	@echo "⏳ Attente PostgreSQL (10s)..."
 	@sleep 10
+	@$(MAKE) db-ensure-bootstrap-tables
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d --build monitoring-agent-rs log-collector-rs jobbingtrack-metrics-aggregator)
 	@echo ""
 	@echo "✅ Stack monitoring démarrée."
@@ -508,11 +513,14 @@ _up-full-internal:
 	@echo "⏳ Attente supplémentaire pour que PostgreSQL soit complètement prêt (3s)..."
 	@sleep 3
 	
-	# Avant la gateway : DNS joignable pour les proxys /api/v1/security/* et /api/v1/metrics (évite ENOTFOUND au boot)
-	@echo "🚀 Pré-démarrage security-service + stack monitoring Rust + metrics-aggregator..."
+	# Tables monitoring/audit avant tout collecteur (évite ERROR Postgres « log_collector_logs does not exist »)
+	@echo "📋 Tables bootstrap (log_collector_logs, audit_logs)..."
+	@$(MAKE) db-ensure-bootstrap-tables || echo "⚠️  db-ensure-bootstrap-tables a échoué (vérifiez Postgres)"
+	
+	# Avant la gateway : DNS joignable pour /api/v1/security/* (évite ENOTFOUND transitoire au boot)
+	@echo "🚀 Pré-démarrage security-service (monitoring démarré après db-push-all)..."
 	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile full up -d security-service)
-	$(call docker_compose, $(COMPOSE_FILES_ESSENTIAL) --profile monitoring up -d monitoring-agent-rs log-collector-rs jobbingtrack-metrics-aggregator)
-	@echo "⏳ Attente résolution des noms security / metrics (6s)..."
+	@echo "⏳ Attente résolution du nom security-service (6s)..."
 	@sleep 6
 	
 	# Démarrer services principaux
@@ -581,8 +589,9 @@ _up-full-internal:
 	# Vérification utilisateur admin (résultat trimmé pour éviter faux négatifs)
 	@echo "🔍 Vérification de l'utilisateur administrateur..."
 	@POSTGRES_CONTAINER=$$(docker ps -q -f name=jobbingtrack-postgres 2>/dev/null | head -1); \
+	ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL 2>/dev/null || echo admin@jobbingtrack.test)"; \
 	if [ -n "$$POSTGRES_CONTAINER" ]; then \
-		ADMIN_COUNT=$$(docker exec $$POSTGRES_CONTAINER psql -U jobbingtrack -d jobbingtrack -t -A -c "SELECT COUNT(*) FROM \"User\" WHERE email = 'admin@jobbingtrack.test';" 2>/dev/null | tr -d ' \n\r\t' || echo ""); \
+		ADMIN_COUNT=$$(docker exec $$POSTGRES_CONTAINER psql -U jobbingtrack -d jobbingtrack -t -A -c "SELECT COUNT(*) FROM \"User\" WHERE email = '$${ADMIN_EMAIL}';" 2>/dev/null | tr -d ' \n\r\t' || echo ""); \
 		if [ -z "$$ADMIN_COUNT" ]; then \
 			echo "⚠️  Impossible de vérifier l'admin (table User ou PostgreSQL non prêt)"; \
 			echo "   💡 Si besoin: make create-admin-user"; \

@@ -63,7 +63,14 @@ class CronScheduler {
       await runEmailAgentSyncJob();
     });
 
-    logger.info('⏰ Cron scheduler started with 9 jobs');
+    // Agent email — digest quotidien 18:00 (Europe/Paris si TZ conteneur configuré)
+    cron.schedule('0 18 * * *', async () => {
+      logger.info('📬 Running email agent daily digest (18:00)...');
+      const { runEmailAgentDigestJob } = require('./emailAgentDigestJob');
+      await runEmailAgentDigestJob();
+    });
+
+    logger.info('⏰ Cron scheduler started with 10 jobs');
     logger.info('   - Pending workflow executions: every hour');
     logger.info('   - Auto-followup check: daily at 9:00');
     logger.info('   - Trash auto-clean: daily at 2:00');
@@ -72,6 +79,8 @@ class CronScheduler {
     logger.info('   - Followup reminders: daily at 10:00');
     logger.info('   - Follow-up no-response reminders: daily at 10:15');
     logger.info('   - Interview feedback reminders: daily at 8:15');
+    logger.info('   - Email agent sync: every 30 minutes');
+    logger.info('   - Email agent digest: daily at 18:00');
   }
 
   async processPendingExecutions() {
@@ -589,6 +598,14 @@ class CronScheduler {
       followupReminders: () => this.sendFollowupReminders(),
       applicationReminders: () => this.sendApplicationReminders(),
       followUpNoResponseReminders: () => this.sendFollowUpNoResponseReminders(),
+      emailAgentSync: () => {
+        const { runEmailAgentSyncJob } = require('./emailAgentSyncJob');
+        return runEmailAgentSyncJob();
+      },
+      emailAgentDigest: () => {
+        const { runEmailAgentDigestJob } = require('./emailAgentDigestJob');
+        return runEmailAgentDigestJob();
+      },
     };
   }
 

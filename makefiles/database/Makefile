@@ -4,7 +4,7 @@
 # Gestion des bases de données (migrations, seed, backup, restore, environnements)
 # ============================================================================
 
-.PHONY: db-migrate db-seed datas-remove-tests-tags db-reset db-backup db-restore db-fix-role db-fix-isarchived db-fix-is-archived db-up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd seed-auth db-replicate-schema-to-test
+.PHONY: db-migrate db-seed datas-remove-tests-tags db-reset db-backup db-restore db-fix-role db-fix-isarchived db-fix-is-archived db-up-dev up-test up-staging up-prod up-all-dbs switch-db reset-db copy-prod-to-dev init-all-dbs help-database migrate-all migrate-restart db-ensure-bootstrap-tables db-push-all db-push-metrics db-push-auth db-push-security db-push-deployment db-init-system-metrics refresh-bdd seed-auth db-replicate-schema-to-test
 
 # ============================================================================
 # AIDE
@@ -19,6 +19,7 @@ help-database: ## Afficher l'aide base de données
 	@echo "  make refresh-bdd           - Tout en un : build → down → up-full → db-push-all (puis lancer tests API)"
 	@echo "  make db-migrate             - Appliquer migrations Prisma"
 	@echo "  make db-push-all            - Synchroniser schémas Prisma (db push)"
+	@echo "  make db-ensure-bootstrap-tables - Tables log_collector_logs + audit_logs avant monitoring"
 	@echo "  make db-push-auth           - Créer tables auth (User, etc.) si erreur 'User does not exist'"
 	@echo "  make seed-auth             - Créer/mettre à jour l'admin avec email vérifié (après db-push-all, pour pouvoir se connecter)"
 	@echo "  make db-push-metrics       - Prisma db push pour metrics-aggregator uniquement"
@@ -119,6 +120,16 @@ migrate-restart: ## Appliquer les migrations puis redémarrer les services actif
 	@$(MAKE) restart
 	@echo ""
 	@echo "✅ Migrations appliquées et services redémarrés !"
+
+# Tables hors Prisma requises avant log-collector-rs / audit (idempotent, rapide)
+db-ensure-bootstrap-tables: ## Créer log_collector_logs + audit_logs si absentes (avant monitoring ou db-push-all)
+	@docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré." && exit 1)
+	@for sql in ensure-log-collector-tables.sql ensure-audit-logs.sql; do \
+		if [ -f "$(ROOT_DIR)/scripts/db/$$sql" ]; then \
+			echo "📋 Bootstrap SQL : $$sql"; \
+			docker exec -e "PGOPTIONS=-c client_min_messages=WARNING" -i jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -f - < "$(ROOT_DIR)/scripts/db/$$sql" && echo "  ✅ $$sql OK" || (echo "  ❌ $$sql a échoué" && exit 1); \
+		fi; \
+	done
 
 db-push-all: ## Synchroniser les schémas Prisma sur tous les services (prisma db push) ; DB_PUSH_VERBOSE=1 pour les NOTICE psql complètes
 	@echo "📦 db-push-all : Prisma db push (9 services) + init-system-metrics + init-key-tables (NOTICE SQL réduites par défaut — DB_PUSH_VERBOSE=1)"
@@ -307,14 +318,10 @@ create-admin-user: ## Créer/Réinitialiser l'utilisateur super administrateur
 
 recreate-admin-user: ## Supprimer et recréer l'utilisateur administrateur
 	@echo "🔄 Recréation de l'utilisateur administrateur..."
-	@docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "DELETE FROM \"User\" WHERE email = 'admin@jobbingtrack.test';" 2>/dev/null || true
+	@ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL 2>/dev/null || echo admin@jobbingtrack.test)"; \
+	docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "DELETE FROM \"User\" WHERE email = '$${ADMIN_EMAIL}';" 2>/dev/null || true
 	@echo "✅ Utilisateur existant supprimé"
 	@$(MAKE) create-admin-user
-
-create-admin-user: ## OBSOLETE: utiliser create-admin-user avec ADMIN_EMAIL/ADMIN_PASSWORD
-	@echo "❌ Target obsolète : l'ancien script créait un compte personnel avec mot de passe codé en dur."
-	@echo "✅ Utilisez create-admin-user avec ADMIN_EMAIL et ADMIN_PASSWORD dans .env."
-	@exit 1
 
 db-clean: ## Supprimer UNIQUEMENT les volumes JobbingTrack
 	@echo "🗑️  Suppression des volumes JobbingTrack..."

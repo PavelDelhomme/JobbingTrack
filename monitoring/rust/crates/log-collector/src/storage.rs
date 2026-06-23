@@ -80,8 +80,26 @@ impl QueryFilters {
     }
 }
 
-fn ensure_schema(client: &mut Client) -> Result<(), postgres::Error> {
+pub fn ensure_schema(client: &mut Client) -> Result<(), postgres::Error> {
     client.batch_execute(CREATE_SCHEMA_SQL)
+}
+
+pub fn store_log_entry_resilient(client: &mut Client, entry: &LogEntry) -> Result<u64, postgres::Error> {
+    match store_log_entry(client, entry) {
+        Ok(rows) => Ok(rows),
+        Err(error) if is_missing_relation(&error) => {
+            ensure_schema(client)?;
+            store_log_entry(client, entry)
+        }
+        Err(error) => Err(error),
+    }
+}
+
+fn is_missing_relation(error: &postgres::Error) -> bool {
+    if let Some(db_error) = error.as_db_error() {
+        return db_error.code().code() == "42P01";
+    }
+    error.to_string().contains("does not exist")
 }
 
 fn parse_limit(params: &HashMap<String, String>) -> i32 {

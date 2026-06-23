@@ -1,8 +1,22 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 22 juin 2026 — **Branche** `dev` (mobile Lot D + analytics utilisateur).
+**Dernière mise à jour** : 23 juin 2026 — infra `up-full` + digest agent email 18h (phase 2 amorcée).
 
 **Chantier structuré (backoffice + API + doc)** : voir **[`project/PLAN.md`](project/PLAN.md)** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **[`pilotage/TODOS.md`](pilotage/TODOS.md)** (cases à cocher + règles PR / tests).
+
+## 23 juin 2026 — Infra `up-full` : `log_collector_logs` au boot
+
+- **Symptôme** : rafales Postgres `relation "log_collector_logs" does not exist` pendant `make up-full`.
+- **Correctifs** : `make db-ensure-bootstrap-tables` ; ordre démarrage corrigé ; collecteur Rust auto-création table (`store_log_entry_resilient`).
+
+## 23 juin 2026 — Agent email : digest quotidien 18h (phase 2)
+
+- **Implémenté** : `emailAgentDigestService`, cron workflow `0 18 * * *`, endpoint `/api/v1/email-agent/internal/cron-digest`, trigger dev `emailAgentDigest`.
+- **Reste** : digest hebdomadaire, Google Tasks/Calendar, liaison auto email↔candidature, validation porteur.
+
+## 23 juin 2026 — Bootstrap admin `up-full`
+
+- Stub Makefile dupliqué `create-admin-user` supprimé ; vérif admin alignée sur `ADMIN_EMAIL` (`.env`).
 
 ## Navigation documentation (structure juin 2026)
 
@@ -22,7 +36,7 @@ Les fichiers **`PLAN.md`**, **`TODOS.md`**, **`BACKLOG.md`**, **`RESOLUTIONS.md`
 ## 22 juin 2026 — Agent email : socle produit multi-utilisateur (phase 1)
 
 - **Implémenté** : modèles Prisma (`UserMailbox`, `UserAgentConsent`, `EmailTriageMessage`), flag `jobSearchAgentEnabled`, API `/api/v1/email-agent/*`, OAuth Gmail, IMAP self-service, consentements RGPD, chiffrement tokens, worker sync 30 min, UI **`/agent`**.
-- **Reste** : digest 18h (notification-service), Google Tasks/Calendar, liaison auto email↔candidature, mobile, validation porteur.
+- **Reste** : digest hebdomadaire, Google Tasks/Calendar, liaison auto email↔candidature, mobile, validation porteur.
 - Détail : **`docs/emails/AGENT_EMAIL_ETAT_ET_ROADMAP.md`**.
 
 ## 22 juin 2026 — Doc comptes email dev (Gmail, pm.me, politique porteur)

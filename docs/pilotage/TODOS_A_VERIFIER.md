@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 23 juin 2026 (agent email phase 1 + AVD email)
+Dernière mise à jour : 23 juin 2026 (infra up-full + digest agent email 18h)
 
 ## Rôle
 
@@ -10,6 +10,8 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 
 | Priorité | Vérification agent | Preuve attendue | Statut |
 |----------|--------------------|-----------------|--------|
+| Infra | `up-full` — plus d’ERROR Postgres `log_collector_logs does not exist` au boot | **23/06** : cause = `log-collector-rs` démarré **avant** `db-push-all`. Correctifs Makefile : `db-ensure-bootstrap-tables` après Postgres ; pré-démarrage = `security-service` seul ; idem `make up` / `up-no-check` / `up-monitoring`. **Rust** : `store_log_entry_resilient` recrée la table au 1er INSERT (code `42P01`). Tests : bootstrap puis restart collecteur → **0 ERROR** ; drop table + recreate image sans bootstrap → **39 lignes**, **0 ERROR** Postgres. Image `log-collector-rs` rebuild OK. | [x] |
+| Agent email | Digest quotidien 18h (phase 2) | **23/06** : smoke `seed-email-agent-digest-smoke.sql` → **`sent:1`, `items:3`**, `EmailLog` **SENT**, anti-doublon OK. **Porteur 23/06** : digest reçu sur **Proton** (`paul.delhomme@proton.me`). Script rejeu : `scripts/db/seed-email-agent-digest-smoke.sql`. | [x] |
 | Doc | Restructuration `docs/` — hubs + sous-dossiers | **22/06** : `TODOS.md` → `pilotage/` ; `PLAN`/`BACKLOG`/`RESOLUTIONS` → `project/` ; `ERRORS` → `troubleshooting/` ; PDF → `_meta/` ; stubs redirects racine ; hubs alignés. Branche `feat/docs-structure-reorg`. | [x] |
 | Backoffice | Vue d’ensemble — carte « Sessions actives » (audit sémantique) | **22/06 retour porteur** : carte **2** + sous-titre **10 utilisateurs** ; clic `/users?status=active` → **~100** comptes (E2E majoritaires). Cause code documentée. **Non corrigé** — gate préprod. | [x] |
 | Backoffice | Fiche user — renvoi email vérif + actions admin | **22/06 retour porteur** : `POST .../resend-verification` → `Network Error` navigateur ; gateway reçoit le POST. Test API direct **200 ~873 ms**. Reset MDP UI sur `/forgot-password` (route admin `send-password-reset` existante). Delete = hard delete sans rétention analytics. **Non corrigé**. | [x] |

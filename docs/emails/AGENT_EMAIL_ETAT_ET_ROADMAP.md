@@ -6,7 +6,7 @@ Dernière mise à jour : 22 juin 2026
 
 ## Réponse courte
 
-**Partiellement implémenté (22/06/2026)** — socle produit multi-utilisateur en place ; digest 18h SMTP, Google Tasks/Calendar et liaison auto email↔candidature restent à finaliser.
+**Partiellement implémenté (23/06/2026)** — socle multi-utilisateur + **digest quotidien 18h** (cron workflow) ; Google Tasks/Calendar et liaison auto email↔candidature restent à finaliser.
 
 Ce qui existe aujourd’hui :
 
@@ -25,7 +25,7 @@ Ce qui existe aujourd’hui :
 | Gmail sur émulateur AVD | **OK partiel** | `configure-emulator-gmail.js` — compte **`EMAIL_GMAIL_PRO_*`** porteur |
 | Politique accès agent (tests + API) | **OK** | `jobSearchAgentEnabled` en BDD + `auth-service/src/lib/agentAccessPolicy.js` |
 | Politique connexion Gmail/IMAP (tests) | **OK unitaire** | `mail-connection-policy.js` — OAuth / IMAP placeholder |
-| Classification emails, digest, Calendar | **OK unitaire** | moteur déterministe testé ; worker prod sync + tri partiel |
+| Classification emails, digest, Calendar | **Partiel prod** | moteur déterministe testé ; sync 30 min ; **digest 18h SMTP** (`emailAgentDigestService` + cron workflow) |
 | **OAuth Google par utilisateur** | **Partiel** | flux `/api/v1/email-agent/oauth/google/*` ; requiert `GOOGLE_OAUTH_*` |
 | **UI « Connecter ma boîte »** | **OK** | `/agent` — Gmail OAuth + formulaire IMAP |
 | **Table BDD comptes mail / tokens** | **OK** | `UserMailbox`, tokens chiffrés `credentialsEnc` |
@@ -101,8 +101,7 @@ Pipeline prévu :
 4. **IMAP générique** : connecteur + test connexion (comme OVH candidatures).
 5. **Worker** : import borné + classification + file « à traiter ».
 6. **UI** `/` : connecteurs + consentements + validation suggestions.
-7. **Digest 18h** via notification-service (SMTP JobbingTrack, pas Gmail perso comme expéditeur).
-8. **Google Tasks / Calendar** (après consentement dédié).
+7. **Digest 18h** via auth-service + cron workflow (**23/06 fait**) ; digest hebdo et Google Tasks/Calendar (après consentement dédié) — **reste**.
 
 Suivi détaillé : [`docs/pilotage/TODOS.md`](../pilotage/TODOS.md) § Agent email · [`docs/features/EMAIL_TRIAGE_AGENT.md`](../features/EMAIL_TRIAGE_AGENT.md).
 

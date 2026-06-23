@@ -11,7 +11,7 @@ use postgres::Client;
 use crate::config::Config;
 use crate::discovery::discover_logs;
 use crate::parser::parse_docker_log_line;
-use crate::storage::{connect_storage, store_log_entry};
+use crate::storage::{connect_storage, store_log_entry_resilient};
 use crate::types::WatchedLog;
 
 pub fn run_collector(config: Arc<Config>) -> std::io::Result<()> {
@@ -116,7 +116,7 @@ fn parse_and_store_line(line: &str, watch: &WatchedLog, client: Option<&mut Clie
         return;
     };
 
-    if let Err(error) = store_log_entry(db, &entry) {
+    if let Err(error) = store_log_entry_resilient(db, &entry) {
         eprintln!("log-collector insert error: {error}");
     }
 }
