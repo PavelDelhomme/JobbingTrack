@@ -204,3 +204,4 @@ data/archives/security-logs/
 # Émulateur Android local (scripts/mobile/setup-android-emulator.sh)
 .android-sdk/
 .env.mobile-emulator
+tools/apk/*.apk

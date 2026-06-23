@@ -127,6 +127,18 @@ const authenticate = async (req, res, next) => {
   }
 };
 
+const requireAdmin = (req, res, next) => {
+  const role = req.user?.role;
+  if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+    return next();
+  }
+  return res.status(403).json({
+    success: false,
+    error: 'Accès administrateur requis',
+  });
+};
+
 module.exports = {
-  authenticate
+  authenticate,
+  requireAdmin,
 };

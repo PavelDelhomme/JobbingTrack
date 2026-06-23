@@ -40,6 +40,13 @@ function isEmptyValue(lines, key) {
   return !val || isPlaceholder(val);
 }
 
+function isInvalidImapHost(lines, key = 'TEST_EMAIL_TRIAGE_IMAP_HOST') {
+  const line = lines.find((l) => l.startsWith(`${key}=`));
+  if (!line) return true;
+  const val = line.slice(key.length + 1).trim().toLowerCase();
+  return !val || val.includes('example.com') || val.includes('example.invalid');
+}
+
 function main() {
   if (!fs.existsSync(ENV_PATH)) {
     console.error('.env introuvable');
@@ -101,21 +108,75 @@ function main() {
       if (WRITE) lines = setEnvKey(lines, 'TEST_EMAIL_TRIAGE_IMAP_EMAIL', cfg.readAccount);
     }
     const ovhHost = process.env.TEST_REAL_EMAIL_IMAP_HOST?.trim() || 'imap.mail.ovh.net';
+    const ovhHostFixed = ovhHost.includes('ssl0.ovh.net') ? 'imap.mail.ovh.net' : ovhHost;
     const ovhPort = process.env.TEST_REAL_EMAIL_IMAP_PORT?.trim() || '993';
-    if (isEmptyValue(lines, 'TEST_EMAIL_TRIAGE_IMAP_HOST')) {
-      changes.push(`TEST_EMAIL_TRIAGE_IMAP_HOST ← ${ovhHost}`);
-      if (WRITE) lines = setEnvKey(lines, 'TEST_EMAIL_TRIAGE_IMAP_HOST', ovhHost);
+    if (isEmptyValue(lines, 'TEST_EMAIL_TRIAGE_IMAP_HOST') || isInvalidImapHost(lines)) {
+      changes.push(`TEST_EMAIL_TRIAGE_IMAP_HOST ← ${ovhHostFixed}`);
+      if (WRITE) lines = setEnvKey(lines, 'TEST_EMAIL_TRIAGE_IMAP_HOST', ovhHostFixed);
     }
     if (isEmptyValue(lines, 'TEST_EMAIL_TRIAGE_IMAP_PORT')) {
       changes.push(`TEST_EMAIL_TRIAGE_IMAP_PORT ← ${ovhPort}`);
       if (WRITE) lines = setEnvKey(lines, 'TEST_EMAIL_TRIAGE_IMAP_PORT', ovhPort);
     }
+    const readPass = process.env.EMAIL_TRIAGE_READ_PASSWORD?.trim();
     const imapPass =
+      readPass ||
       process.env.TEST_EMAIL_TRIAGE_IMAP_PASSWORD?.trim() ||
-      process.env.TEST_REAL_EMAIL_IMAP_PASSWORD?.trim();
-    if (isEmptyValue(lines, 'TEST_EMAIL_TRIAGE_IMAP_PASSWORD') && imapPass) {
-      changes.push('TEST_EMAIL_TRIAGE_IMAP_PASSWORD ← TEST_REAL_EMAIL_IMAP_PASSWORD');
+      process.env.TEST_REAL_EMAIL_IMAP_PASSWORD?.trim() ||
+      process.env.TEST_REAL_EMAIL_PASSWORD?.trim();
+    const currentTriagePass = lines
+      .find((l) => l.startsWith('TEST_EMAIL_TRIAGE_IMAP_PASSWORD='))
+      ?.slice('TEST_EMAIL_TRIAGE_IMAP_PASSWORD='.length)
+      .trim();
+    const shouldSyncTriagePass =
+      readPass &&
+      (isEmptyValue(lines, 'TEST_EMAIL_TRIAGE_IMAP_PASSWORD') || currentTriagePass !== readPass);
+    if (shouldSyncTriagePass) {
+      changes.push('TEST_EMAIL_TRIAGE_IMAP_PASSWORD ← EMAIL_TRIAGE_READ_PASSWORD');
+      if (WRITE) lines = setEnvKey(lines, 'TEST_EMAIL_TRIAGE_IMAP_PASSWORD', readPass);
+    } else if (isEmptyValue(lines, 'TEST_EMAIL_TRIAGE_IMAP_PASSWORD') && imapPass) {
+      const src = readPass
+        ? 'EMAIL_TRIAGE_READ_PASSWORD'
+        : process.env.TEST_REAL_EMAIL_IMAP_PASSWORD?.trim()
+          ? 'TEST_REAL_EMAIL_IMAP_PASSWORD'
+          : 'TEST_REAL_EMAIL_PASSWORD';
+      changes.push(`TEST_EMAIL_TRIAGE_IMAP_PASSWORD ← ${src}`);
       if (WRITE) lines = setEnvKey(lines, 'TEST_EMAIL_TRIAGE_IMAP_PASSWORD', imapPass);
+    }
+    const bluemail = cfg.readAccount;
+    if (bluemail && isEmptyValue(lines, 'NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL')) {
+      changes.push('NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL ← EMAIL_TRIAGE_READ_ACCOUNT');
+      if (WRITE) lines = setEnvKey(lines, 'NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL', bluemail);
+    }
+    const bluemailPass =
+      readPass ||
+      process.env.NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD?.trim() ||
+      process.env.TEST_EMAIL_TRIAGE_IMAP_PASSWORD?.trim() ||
+      imapPass;
+    const currentBluemailPass = lines
+      .find((l) => l.startsWith('NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD='))
+      ?.slice('NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD='.length)
+      .trim();
+    const shouldSyncBluemailPass =
+      readPass &&
+      bluemail &&
+      (isEmptyValue(lines, 'NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD') ||
+        currentBluemailPass !== readPass);
+    if (shouldSyncBluemailPass) {
+      changes.push('NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD ← EMAIL_TRIAGE_READ_PASSWORD');
+      if (WRITE) lines = setEnvKey(lines, 'NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD', readPass);
+    } else if (isEmptyValue(lines, 'NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD') && bluemailPass) {
+      changes.push('NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD ← mot de passe boîte OVH');
+      if (WRITE) lines = setEnvKey(lines, 'NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD', bluemailPass);
+    }
+  }
+
+  if (cfg.gmailAccount) {
+    const digestLine = lines.find((l) => l.startsWith('TEST_EMAIL_TRIAGE_DIGEST_RECIPIENT='));
+    const digestVal = digestLine?.slice('TEST_EMAIL_TRIAGE_DIGEST_RECIPIENT='.length).trim();
+    if (!digestVal || isPlaceholder(digestVal)) {
+      changes.push('TEST_EMAIL_TRIAGE_DIGEST_RECIPIENT ← EMAIL_GMAIL_PRO_ACCOUNT');
+      if (WRITE) lines = setEnvKey(lines, 'TEST_EMAIL_TRIAGE_DIGEST_RECIPIENT', cfg.gmailAccount);
     }
   }
 

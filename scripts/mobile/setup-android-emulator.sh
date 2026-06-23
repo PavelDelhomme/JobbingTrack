@@ -17,6 +17,8 @@
 #   EMULATOR_HEADLESS=1               — pas de fenêtre (-no-window)
 #   SKIP_APK_BUILD=1                  — réutilise l’APK debug déjà buildé
 #   CONFIGURE_EMULATOR_GMAIL=1        — après `up`, lance configure-emulator-gmail.js
+#   CONFIGURE_EMULATOR_BLUEMAIL=1     — après `up`, installe + configure BlueMail OVH
+#   JOBBINGTRACK_AVD_IMAGE=google_apis_playstore | google_apis
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -37,7 +39,10 @@ _pick_sdk() {
 ANDROID_SDK="$(_pick_sdk)"
 API_LEVEL="${ANDROID_API_LEVEL:-34}"
 ABI="x86_64"
-SYSTEM_IMAGE="system-images;android-${API_LEVEL};google_apis;${ABI}"
+# google_apis_playstore = Play Store réel (installer BlueMail, etc.)
+# Override : JOBBINGTRACK_AVD_IMAGE=google_apis pour l'ancienne image sans Play
+AVD_IMAGE_FLAVOR="${JOBBINGTRACK_AVD_IMAGE:-google_apis_playstore}"
+SYSTEM_IMAGE="system-images;android-${API_LEVEL};${AVD_IMAGE_FLAVOR};${ABI}"
 PACKAGE="com.example.jobbingtrack_mobile"
 ENV_SNIPPET="$ROOT/.env.mobile-emulator"
 PID_FILE="$ROOT/.android-sdk/emulator.pid"
@@ -229,6 +234,48 @@ cmd_configure_gmail() {
   /usr/bin/node "$ROOT/scripts/mobile/configure-emulator-gmail.js"
 }
 
+cmd_configure_bluemail() {
+  if ! curl -sf "${EMULATOR_CONTROLLER_URL:-http://127.0.0.1:5055}/health" >/dev/null 2>&1; then
+    fail "Contrôleur ADB absent sur ${EMULATOR_CONTROLLER_URL:-http://127.0.0.1:5055} — lancer tools/emulator-controller/server.js"
+  fi
+  /usr/bin/node "$ROOT/scripts/mobile/install-emulator-bluemail.js" || true
+  /usr/bin/node "$ROOT/scripts/mobile/configure-emulator-bluemail.js"
+}
+
+maybe_configure_bluemail() {
+  local flag
+  flag="$(read_root_env_key CONFIGURE_EMULATOR_BLUEMAIL)"
+  if env_bool "${CONFIGURE_EMULATOR_BLUEMAIL:-$flag}"; then
+    cmd_configure_bluemail || log "BlueMail AVD : terminer manuellement si échec IMAP (voir EMULATEUR_ADB.md)"
+  fi
+}
+
+cmd_migrate_playstore() {
+  log "Migration AVD → image Google Play (google_apis_playstore)…"
+  log "L'AVD actuel sera recréé — comptes/apps émulateur seront perdus."
+  AVD_IMAGE_FLAVOR="google_apis_playstore"
+  SYSTEM_IMAGE="system-images;android-${API_LEVEL};${AVD_IMAGE_FLAVOR};${ABI}"
+  cmd_stop 2>/dev/null || true
+  ensure_cmdline_tools
+  local sm
+  sm="$(sdkmanager_bin)" || fail "sdkmanager introuvable"
+  log "Téléchargement image Play Store API ${API_LEVEL} (~1 Go)…"
+  yes | "$sm" --sdk_root="$ANDROID_SDK" --licenses >/dev/null 2>&1 || true
+  "$sm" --sdk_root="$ANDROID_SDK" \
+    "platform-tools" "emulator" "platforms;android-${API_LEVEL}" "$SYSTEM_IMAGE"
+  local avdm="$ANDROID_SDK/cmdline-tools/latest/bin/avdmanager"
+  if "$ANDROID_SDK/emulator/emulator" -list-avds 2>/dev/null | grep -qx "$AVD_NAME"; then
+    log "Suppression ancien AVD $AVD_NAME…"
+    echo no | "$avdm" delete avd -n "$AVD_NAME" 2>/dev/null || true
+  fi
+  cmd_create_avd
+  cmd_start_emulator
+  cmd_reverse_and_apk
+  maybe_configure_gmail
+  maybe_configure_bluemail
+  log "Migration Play Store terminée — Play Store disponible sur l'émulateur."
+}
+
 maybe_configure_gmail() {
   local flag
   flag="$(read_root_env_key CONFIGURE_EMULATOR_GMAIL)"
@@ -259,7 +306,7 @@ cmd_status() {
 usage() {
   sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'
   echo ""
-  echo "Commandes : install | create-avd | start | reverse | configure-gmail | up | stop | status"
+  echo "Commandes : install | create-avd | start | reverse | configure-gmail | configure-bluemail | migrate-playstore | up | stop | status"
 }
 
 main() {
@@ -271,7 +318,9 @@ main() {
     start)         cmd_start_emulator ;;
     reverse)       cmd_reverse_and_apk ;;
     configure-gmail) cmd_configure_gmail ;;
-    up)            cmd_install_sdk; cmd_create_avd; cmd_start_emulator; cmd_reverse_and_apk; maybe_configure_gmail ;;
+    configure-bluemail) cmd_configure_bluemail ;;
+    migrate-playstore) cmd_migrate_playstore ;;
+    up)            cmd_install_sdk; cmd_create_avd; cmd_start_emulator; cmd_reverse_and_apk; maybe_configure_gmail; maybe_configure_bluemail ;;
     stop)          cmd_stop ;;
     status)        cmd_status ;;
     -h|--help|help) usage ;;

@@ -50,7 +50,9 @@ function resolveEmailTriageEnv(env = process.env) {
     'imap.mail.ovh.net';
   const imapOvhPort = trim(merged.TEST_EMAIL_TRIAGE_IMAP_PORT) || trim(merged.TEST_REAL_EMAIL_IMAP_PORT) || '993';
   const imapOvhPassword =
-    trim(merged.TEST_EMAIL_TRIAGE_IMAP_PASSWORD) || trim(merged.TEST_REAL_EMAIL_IMAP_PASSWORD);
+    trim(merged.EMAIL_TRIAGE_READ_PASSWORD) ||
+    trim(merged.TEST_EMAIL_TRIAGE_IMAP_PASSWORD) ||
+    trim(merged.TEST_REAL_EMAIL_IMAP_PASSWORD);
 
   const gmailImapReady =
     Boolean(gmailAccount && gmailAppPassword && !isPlaceholder(gmailAccount) && !isPlaceholder(gmailAppPassword));

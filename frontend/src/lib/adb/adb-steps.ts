@@ -697,14 +697,29 @@ export async function executeStep(
     }
 
     case "open_bluemail": {
-      try {
-        await adb.shellCommand(
-          "am start -n com.bluemail.mail/.activity.WelcomeActivity",
-        );
-      } catch {
-        await adb.shellCommand(
-          "am start -a android.intent.action.MAIN -p com.bluemail.mail",
-        );
+      const packages = ["me.bluemail.mail", "com.bluemail.mail"];
+      let opened = false;
+      for (const pkg of packages) {
+        try {
+          await adb.shellCommand(
+            `am start -n ${pkg}/.activity.WelcomeActivity`,
+          );
+          opened = true;
+          break;
+        } catch {
+          try {
+            await adb.shellCommand(
+              `am start -a android.intent.action.MAIN -p ${pkg}`,
+            );
+            opened = true;
+            break;
+          } catch {
+            /* package suivant */
+          }
+        }
+      }
+      if (!opened) {
+        throw new Error("BlueMail non installé sur l'appareil");
       }
       await adb.wait(3000);
       return "BlueMail ouvert";
