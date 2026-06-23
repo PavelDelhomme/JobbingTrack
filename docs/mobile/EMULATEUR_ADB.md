@@ -15,6 +15,7 @@ Guide rapide pour remplacer le Samsung USB par l’AVD local.
 | 1. SDK + AVD (une fois, ~1–4 Go) | `bash scripts/mobile/setup-android-emulator.sh install` |
 | 2. Tout-en-un (émulateur + reverse + APK) | `bash scripts/mobile/setup-android-emulator.sh up` |
 | 2b. Gmail pro sur AVD (depuis `.env`) | `node scripts/mobile/configure-emulator-gmail.js` |
+| 2c. BlueMail + boîte OVH candidatures (manuel AVD) | Play Store → BlueMail → IMAP `candidatures@…` (voir § BlueMail ci-dessous) |
 | 3. Stack Docker (sans `make`) | `docker compose -f docker-compose.yml --profile full up -d` |
 | 4. Contrôleur ADB | `ADB_FAST=1 node tools/emulator-controller/server.js` |
 | 5. Variables session | `export MOBILE_ADB_DEVICE=emulator-5554 ADB_FAST=1` |
@@ -109,6 +110,95 @@ node scripts/mobile/configure-emulator-gmail.js --check-only
 - Le **mot de passe d’application** ne remplace pas le mot de passe compte pour « Ajouter un compte Google » dans Paramètres Android.
 - Si la connexion échoue, terminez le flux sur l’émulateur puis relancez `--check-only`.
 
+> **Distinction** : le compte Google sur l’AVD sert à **Gmail pro** (forward OVH). Ce n’est **pas** le login JobbingTrack (`TEST_USER_EMAIL` = `paul.delhomme@pm.me`). Le flux OAuth produit `/agent` (navigateur) est **optionnel** pour ces tests émulateur.
+
+## BlueMail + boîte OVH candidatures sur l’AVD
+
+Pour lire **`candidatures@delhomme.ovh`** (ou l’équivalent porteur) **directement en IMAP**, sans passer par le forward Gmail :
+
+```text
+candidatures@delhomme.ovh  ──forward──►  pauldelhomme.pro@gmail.com
+        │                                          │
+   BlueMail (IMAP OVH)                    Compte Google AVD (§ Gmail)
+```
+
+| Boîte | Client sur l’AVD | Variables `.env` |
+|-------|------------------|------------------|
+| Gmail pro (forward) | Compte **Google** / app Gmail | `EMAIL_GMAIL_PRO_*` |
+| OVH candidatures | **BlueMail** (IMAP) | `EMAIL_TRIAGE_READ_ACCOUNT`, `TEST_EMAIL_TRIAGE_IMAP_*` |
+
+Mot de passe OVH = mot de passe **boîte mail OVH** (pas le mot de passe d’application Google).
+
+### Prérequis AVD
+
+- Image émulateur avec **Google Play** (Play Store disponible).
+- Émulateur booté (`setup-android-emulator.sh up` ou `start`).
+
+### Installation BlueMail
+
+1. Ouvrir **Play Store** sur l’émulateur.
+2. Installer **BlueMail** (`com.bluemail.mail`).
+3. Au premier lancement : autoriser les notifications si demandé (optionnel).
+
+Ouverture rapide via ADB (contrôleur 5055 ou `adb -s emulator-5554`) :
+
+```bash
+adb -s emulator-5554 shell am start -n com.bluemail.mail/.activity.WelcomeActivity
+# variante si échec :
+adb -s emulator-5554 shell am start -a android.intent.action.MAIN -p com.bluemail.mail
+```
+
+### Configuration IMAP OVH (manuel sur l’AVD)
+
+BlueMail → **Ajouter un compte** → **Autre (IMAP/SMTP)** :
+
+| Champ | Valeur type porteur |
+|-------|---------------------|
+| Adresse | `candidatures@delhomme.ovh` (ou `EMAIL_TRIAGE_READ_ACCOUNT`) |
+| Mot de passe | Mot de passe boîte OVH (`.env` : `TEST_EMAIL_TRIAGE_IMAP_PASSWORD` ou `TEST_REAL_EMAIL_IMAP_PASSWORD`) |
+| Serveur entrant (IMAP) | `imap.mail.ovh.net` |
+| Port IMAP | `993` |
+| Chiffrement IMAP | SSL/TLS |
+| Serveur sortant (SMTP) | `ssl0.ovh.net` (optionnel pour tests lecture) |
+| Port SMTP | `465` (SSL) ou `587` (STARTTLS) |
+
+Aligner les variables tests depuis le `.env` racine :
+
+```bash
+node scripts/mobile/sync-test-env.js --write
+node scripts/mobile/fetch-imap-verification.js --check-only
+```
+
+### Vérification email JobbingTrack (parcours manuel)
+
+1. Inscription ou renvoi vérif depuis l’app mobile (alias type `test+mob@delhomme.ovh` ou adresse OVH selon le test).
+2. Ouvrir **BlueMail** (OVH) ou **Gmail** (forward) → mail JobbingTrack → lien de vérification.
+3. Retour app → connexion avec `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`.
+
+Smokes ADB :
+
+```bash
+export MOBILE_ADB_DEVICE=emulator-5554 ADB_FAST=1
+node scripts/mobile/smoke-verify-email-adb.js
+```
+
+### Automatisation ADB (optionnel)
+
+Le backoffice **Émulateur mobile** expose le parcours **`mobile_register_verify_bluemail`** (étape `open_bluemail`). Variables optionnelles pour remplissage auto :
+
+```env
+NEXT_PUBLIC_VERIFICATION_BLUEMAIL_EMAIL=candidatures@delhomme.ovh
+NEXT_PUBLIC_VERIFICATION_BLUEMAIL_PASSWORD=<mot de passe boîte OVH — .env uniquement>
+```
+
+Sans ces clés, le parcours reste faisable **à la main** sur l’AVD.
+
+### Limites
+
+- BlueMail n’est **pas** requis pour le login JobbingTrack (compte **pm.me**).
+- Ne pas confondre avec le produit **`/agent`** (OAuth Google côté web) — ici on teste la **réception mail sur l’appareil**.
+- Credentials **porteur uniquement** — voir [COMPTES_EMAIL_DEV_ET_TESTS.md](../emails/COMPTES_EMAIL_DEV_ET_TESTS.md).
+
 ## Dépannage
 
 | Symptôme | Cause probable | Action |
@@ -120,6 +210,8 @@ node scripts/mobile/configure-emulator-gmail.js --check-only
 | `Wrong full snapshot version` | Flutter pacman Arch | `bash scripts/mobile/build-apk-debug.sh` |
 | `fetch failed` (batterie) | `API_URL=api-gateway:3000` hôte | `run-smokes-fast.sh` force `127.0.0.1:5002` |
 | Smokes KO émulateur seulement | Champs a11y différents Samsung | Valider sur Samsung ; voir `tests/results/.../RECAP.md` |
+| BlueMail : échec IMAP OVH | Mauvais mot de passe ou host | Vérifier `imap.mail.ovh.net:993` + `fetch-imap-verification.js --check-only` |
+| Play Store absent sur AVD | Image sans Google Play | Recréer AVD avec image **Play Store** (`setup-android-emulator.sh install`) |
 | `POST /analytics/errors` **500** | Session mobile `sess-*` absente en BDD (FK Postgres) | Corrigé **22/06** : `ensureAnalyticsSession()` avant insert erreurs/perf. Vérifier : `node scripts/mobile/smoke-analytics-api.js` |
 | Télémétrie erreurs perdue | Même cause FK + file offline | Backend upsert session ; mobile envoie déjà via `MobileAnalyticsService` + `CrashReporter` (login, CRUD, latence API) |
 
@@ -138,6 +230,7 @@ docker logs jobbingtrack-postgres --since 10m 2>&1 | rg "user_errors_sessionId_f
 
 Le mobile remonte : **sessions** (`POST /analytics/sessions`), **événements** (navigation/écrans), **erreurs API** (status ≥ 400), **performances** (latence > 3 s), **crashes** (`POST /crashes` + `POST /analytics/errors`). Le backend crée désormais la session manquante avant toute écriture erreur/perf.
 
+## Arrêt
 
 ```bash
 bash scripts/mobile/setup-android-emulator.sh stop

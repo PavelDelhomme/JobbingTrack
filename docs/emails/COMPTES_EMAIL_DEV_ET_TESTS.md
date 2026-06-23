@@ -132,6 +132,8 @@ node scripts/mobile/configure-emulator-gmail.js --check-only
 node scripts/mobile/configure-emulator-gmail.js
 ```
 
+BlueMail + boîte OVH **`candidatures@…`** sur l’AVD (IMAP, tests vérif email) : **[EMULATEUR_ADB.md](../mobile/EMULATEUR_ADB.md)** § BlueMail + boîte OVH candidatures.
+
 ---
 
 ## Liens
