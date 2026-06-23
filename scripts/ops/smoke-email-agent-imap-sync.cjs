@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Smoke agent email — connexion IMAP OVH (.env) + sync API utilisateur.
- * Usage : node scripts/ops/smoke-email-agent-imap-sync.cjs
- * Requiert stack locale (API gateway) + EMAIL_TRIAGE_READ_* ou TEST_EMAIL_TRIAGE_IMAP_*.
+ * Smoke agent email — IMAP accessible (.env) + sync API utilisateur.
+ * Priorité : Gmail pro (app password) si disponible, sinon boîte OVH.
+ * Usage : node scripts/ops/smoke-email-agent-imap-sync.cjs [--ovh-only]
  */
 
 const path = require('node:path');
@@ -13,6 +13,7 @@ const {
 } = require('../../backend/auth-service/src/services/imapMinimalClient');
 
 const rootDir = path.join(__dirname, '../..');
+const ovhOnly = process.argv.includes('--ovh-only');
 
 async function loginUserToken(apiBase, email, password) {
   const { status, data } = await requestJson(`${apiBase}/api/v1/auth/login`, {
@@ -29,18 +30,26 @@ async function loginUserToken(apiBase, email, password) {
   return token;
 }
 
+function pickImapAccount(triage) {
+  if (ovhOnly && triage.ovhImap) return { imap: triage.ovhImap, label: 'OVH (forcé)' };
+  if (triage.gmailImap) return { imap: triage.gmailImap, label: 'Gmail pro (accessible)' };
+  if (triage.ovhImap) return { imap: triage.ovhImap, label: 'OVH (fallback)' };
+  return null;
+}
+
 async function main() {
   const env = loadRootEnv(rootDir);
   Object.assign(process.env, env);
   const triage = resolveEmailTriageEnv();
-  const imap = triage.ovhImap;
+  const picked = pickImapAccount(triage);
 
-  if (!imap) {
-    console.error('SKIP: EMAIL_TRIAGE_READ_ACCOUNT/PASSWORD ou TEST_EMAIL_TRIAGE_IMAP_* manquants');
+  if (!picked) {
+    console.error('SKIP: aucune boîte IMAP configurée (Gmail pro ou EMAIL_TRIAGE_READ_*)');
     process.exit(2);
   }
 
-  console.log(`[1/4] Test IMAP ${imap.email} @ ${imap.host}:${imap.port}`);
+  const { imap, label } = picked;
+  console.log(`[1/4] Test IMAP (${label}) ${imap.email} @ ${imap.host}:${imap.port}`);
   await testImapConnection({
     host: imap.host,
     port: imap.port,

@@ -60,9 +60,10 @@ jest.mock("@/lib/services/statisticsService", () => ({
 }));
 
 jest.mock("@/lib/services/applicationAnalyticsService", () => ({
-  fetchApplicationEvents: jest.fn().mockResolvedValue([]),
-  fetchApplicationPerformance: jest.fn().mockResolvedValue([]),
-  fetchCrashReports: jest.fn().mockResolvedValue([]),
+  fetchApplicationEvents: jest.fn().mockResolvedValue({ data: [], pagination: { total: 0 } }),
+  fetchApplicationPerformance: jest.fn().mockResolvedValue({ data: [], pagination: { total: 0 } }),
+  fetchApplicationErrors: jest.fn().mockResolvedValue({ data: [], pagination: { total: 0 } }),
+  fetchCrashReports: jest.fn().mockResolvedValue({ data: [], pagination: { total: 0 } }),
 }));
 
 const mockConsumeSilentFetch = jest.fn(() => false);

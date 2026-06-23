@@ -2,7 +2,7 @@
 # Lance la suite Playwright E2E du frontend (standalone). Variables attendues (exportées par le parent) :
 # PLAYWRIGHT_BASE_URL, API_URL, API_GATEWAY_URL, PLAYWRIGHT_WORKERS
 set -euo pipefail
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT/frontend" || exit 1
 npm install --no-audit --no-fund 2>/dev/null || true
 

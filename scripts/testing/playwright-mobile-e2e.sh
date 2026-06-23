@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Suite Playwright mobile (frontend). Appele par run-all-tests-with-reports.sh si adb device ou RUN_PLAYWRIGHT_MOBILE=1.
 set -euo pipefail
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/../.." && pwd)"
 cd "$ROOT/frontend" || exit 1
 npm install --no-audit --no-fund 2>/dev/null || true
 
