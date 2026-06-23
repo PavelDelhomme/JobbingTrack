@@ -70,7 +70,14 @@ class CronScheduler {
       await runEmailAgentDigestJob();
     });
 
-    logger.info('⏰ Cron scheduler started with 10 jobs');
+    // Agent email — récap hebdomadaire dimanche 18:00 (si EMAIL_TRIAGE_DIGEST_WEEKLY_ENABLED=true)
+    cron.schedule('0 18 * * 0', async () => {
+      logger.info('📬 Running email agent weekly digest (Sunday 18:00)...');
+      const { runEmailAgentWeeklyDigestJob } = require('./emailAgentWeeklyDigestJob');
+      await runEmailAgentWeeklyDigestJob();
+    });
+
+    logger.info('⏰ Cron scheduler started with 11 jobs');
     logger.info('   - Pending workflow executions: every hour');
     logger.info('   - Auto-followup check: daily at 9:00');
     logger.info('   - Trash auto-clean: daily at 2:00');
@@ -81,6 +88,7 @@ class CronScheduler {
     logger.info('   - Interview feedback reminders: daily at 8:15');
     logger.info('   - Email agent sync: every 30 minutes');
     logger.info('   - Email agent digest: daily at 18:00');
+    logger.info('   - Email agent weekly digest: Sunday at 18:00');
   }
 
   async processPendingExecutions() {
@@ -605,6 +613,10 @@ class CronScheduler {
       emailAgentDigest: () => {
         const { runEmailAgentDigestJob } = require('./emailAgentDigestJob');
         return runEmailAgentDigestJob();
+      },
+      emailAgentWeeklyDigest: () => {
+        const { runEmailAgentWeeklyDigestJob } = require('./emailAgentWeeklyDigestJob');
+        return runEmailAgentWeeklyDigestJob({ force: true });
       },
     };
   }

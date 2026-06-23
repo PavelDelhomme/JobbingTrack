@@ -24,9 +24,28 @@ function renderSection(title, items = [], appUrl = DEFAULT_APP_URL) {
   return `<section><h2>${escapeHtml(title)}</h2><ul>${rows}</ul></section>`;
 }
 
+function renderStatsBlock(stats = {}) {
+  if (!stats || typeof stats !== 'object') return '';
+  const rows = [
+    ['Emails analysés (7 j)', stats.total],
+    ['En attente', stats.pending],
+    ['Validés', stats.accepted],
+    ['Liés à une candidature', stats.linked],
+  ]
+    .filter(([, value]) => value != null)
+    .map(
+      ([label, value]) =>
+        `<tr><td style="padding:4px 12px 4px 0;color:#4b5563;">${escapeHtml(label)}</td><td><strong>${escapeHtml(value)}</strong></td></tr>`,
+    )
+    .join('');
+  if (!rows) return '';
+  return `<section><h2>Vue d’ensemble</h2><table>${rows}</table></section>`;
+}
+
 function renderDigestHtml(summary = {}, options = {}) {
   const appUrl = options.appUrl || summary.appUrl || DEFAULT_APP_URL;
   const sections = [
+    renderStatsBlock(summary.stats),
     renderSection('Emails importants', summary.importantEmails, appUrl),
     renderSection('Entretiens à préparer', summary.interviewsToPrepare, appUrl),
     renderSection('Relances recommandées', summary.recommendedFollowups, appUrl),
@@ -54,6 +73,17 @@ function renderDigestText(summary = {}, options = {}) {
     '',
     'Récapitulatif JobbingTrack',
   ];
+
+  if (summary.stats) {
+    lines.push(
+      '',
+      'Vue d’ensemble (7 j)',
+      `- Emails analysés : ${summary.stats.total ?? 0}`,
+      `- En attente : ${summary.stats.pending ?? 0}`,
+      `- Validés : ${summary.stats.accepted ?? 0}`,
+      `- Liés candidature : ${summary.stats.linked ?? 0}`,
+    );
+  }
 
   const blocks = [
     ['Emails importants', summary.importantEmails],

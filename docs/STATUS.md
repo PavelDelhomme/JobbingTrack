@@ -1,8 +1,15 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 23 juin 2026 — agent email phase 2 (liaison + Tasks/Calendar + smoke IMAP).
+**Dernière mise à jour** : 24 juin 2026 — agent email récap hebdomadaire + fix IMAP AUTH PLAIN.
 
 **Chantier structuré (backoffice + API + doc)** : voir **[`project/PLAN.md`](project/PLAN.md)** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **[`pilotage/TODOS.md`](pilotage/TODOS.md)** (cases à cocher + règles PR / tests).
+
+## 24 juin 2026 — Agent email : récap hebdomadaire + IMAP AUTH PLAIN
+
+- **Récap hebdo** : `sendWeeklyDigestsForEligibleUsers`, stats 7 j, cron workflow dimanche 18h, endpoint `/internal/cron-digest-weekly`, trigger dev `emailAgentWeeklyDigest` (`force: true`).
+- **IMAP** : client minimal → `AUTHENTICATE PLAIN` (mots de passe avec `#`/`^`).
+- **Tests** : `emailAgentWeeklyDigest.test.js` **4/4 OK** ; email-triage suite OK.
+- **IMAP OVH** : smoke toujours `AUTHENTICATIONFAILED` — mot de passe chargé OK côté `.env`, rejet serveur OVH.
 
 ## 23 juin 2026 — Agent email phase 2 : liaison candidature + Tasks/Calendar
 

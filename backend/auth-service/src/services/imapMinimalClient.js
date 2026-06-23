@@ -32,15 +32,21 @@ class ImapMinimalClient {
     });
   }
 
-  command(cmd, { acceptNo = false } = {}) {
+  command(cmd, { acceptNo = false, continuation = null } = {}) {
     return new Promise((resolve, reject) => {
       const tag = this.nextTag();
       let pending = '';
+      let continuationSent = false;
       const onData = (chunk) => {
         pending += chunk;
         const lines = pending.split('\r\n');
         pending = lines.pop() || '';
         for (const line of lines) {
+          if (continuation && !continuationSent && line.startsWith('+')) {
+            continuationSent = true;
+            this.socket.write(`${continuation}\r\n`);
+            continue;
+          }
           if (line.startsWith(`${tag} OK`)) {
             cleanup();
             resolve(pending);
@@ -63,9 +69,8 @@ class ImapMinimalClient {
   }
 
   async login() {
-    const user = this.email.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    const pass = this.password.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    await this.command(`LOGIN "${user}" "${pass}"`);
+    const authString = Buffer.from(`\0${this.email}\0${this.password}`, 'utf8').toString('base64');
+    await this.command('AUTHENTICATE PLAIN', { continuation: authString });
   }
 
   async selectInbox() {

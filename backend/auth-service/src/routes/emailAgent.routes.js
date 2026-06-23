@@ -35,6 +35,23 @@ router.post('/internal/cron-digest', async (req, res, next) => {
   }
 });
 
+router.post('/internal/cron-digest-weekly', async (req, res, next) => {
+  try {
+    const expected = process.env.INTERNAL_CRON_TOKEN || process.env.JWT_SECRET;
+    const token = req.headers['x-internal-cron-token'];
+    if (!expected || token !== expected) {
+      return res.status(403).json({ success: false, error: 'forbidden' });
+    }
+    const emailAgentDigestService = require('../services/emailAgentDigestService');
+    const payload = await emailAgentDigestService.sendWeeklyDigestsForEligibleUsers({
+      force: req.body?.force === true,
+    });
+    return res.json({ success: true, ...payload });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.use(authenticate);
 
 router.get('/status', emailAgentController.getStatus);

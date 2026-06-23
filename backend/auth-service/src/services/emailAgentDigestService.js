@@ -7,6 +7,8 @@ const { getPublicFrontendUrl } = require('../utils/frontendUrlForEmails');
 const logger = require('../utils/logger');
 
 const DIGEST_SUBJECT_PREFIX = 'Digest recherche emploi JobbingTrack';
+const WEEKLY_DIGEST_SUBJECT_PREFIX = 'Récap hebdomadaire recherche emploi JobbingTrack';
+const { isWeeklyDigestDay } = require('../lib/digestSchedulePolicy');
 
 function triageItem(message, appUrl) {
   const subject = String(message.subject || '(sans objet)').slice(0, 120);
@@ -65,6 +67,151 @@ async function buildUserDigestSummary(userId) {
   }
 
   return summary;
+}
+
+async function buildUserWeeklyDigestSummary(userId) {
+  const appUrl = getPublicFrontendUrl();
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const messages = await prisma.emailTriageMessage.findMany({
+    where: { userId, receivedAt: { gte: since } },
+    orderBy: { receivedAt: 'desc' },
+    take: 80,
+  });
+
+  const stats = {
+    total: messages.length,
+    pending: messages.filter((m) => m.reviewStatus === 'PENDING').length,
+    accepted: messages.filter((m) => m.reviewStatus === 'ACCEPTED').length,
+    linked: messages.filter((m) => Boolean(m.applicationId)).length,
+  };
+
+  const summary = {
+    subject: `${WEEKLY_DIGEST_SUBJECT_PREFIX} — semaine du ${since.toLocaleDateString('fr-FR')}`,
+    appUrl,
+    stats,
+    importantEmails: [],
+    interviewsToPrepare: [],
+    recommendedFollowups: [],
+    needsConfirmation: [],
+  };
+
+  for (const message of messages.filter((m) => m.reviewStatus === 'PENDING')) {
+    const bucket = classifyForDigest(message);
+    if (!bucket || summary[bucket].length >= 10) continue;
+    summary[bucket].push(triageItem(message, appUrl));
+  }
+
+  return summary;
+}
+
+async function alreadySentThisWeek(userId) {
+  const start = new Date();
+  start.setDate(start.getDate() - start.getDay());
+  start.setHours(0, 0, 0, 0);
+  const existing = await prisma.emailLog.findFirst({
+    where: {
+      userId,
+      type: 'NOTIFICATION',
+      status: 'SENT',
+      subject: { startsWith: WEEKLY_DIGEST_SUBJECT_PREFIX },
+      sentAt: { gte: start },
+    },
+    select: { id: true },
+  });
+  return Boolean(existing);
+}
+
+async function sendUserWeeklyDigest(user) {
+  if (!(await hasDigestConsent(user.id))) {
+    return { userId: user.id, skipped: true, reason: 'digest_consent_missing' };
+  }
+
+  if (await alreadySentThisWeek(user.id)) {
+    return { userId: user.id, skipped: true, reason: 'already_sent_this_week' };
+  }
+
+  const summary = await buildUserWeeklyDigestSummary(user.id);
+  if (countDigestItems(summary) === 0 && summary.stats.total === 0) {
+    return { userId: user.id, skipped: true, reason: 'empty_weekly_digest' };
+  }
+
+  const identity = resolveDigestFrom();
+  if (!identity.valid) {
+    return { userId: user.id, skipped: true, reason: identity.reason || 'invalid_digest_from' };
+  }
+
+  const html = renderDigestHtml(summary, { appUrl: summary.appUrl });
+  const text = renderDigestText(summary, { appUrl: summary.appUrl });
+  const subject = summary.subject;
+
+  const emailLog = await emailService.logEmail({
+    userId: user.id,
+    to: user.email,
+    from: identity.from,
+    subject,
+    type: 'NOTIFICATION',
+    emailContent: html,
+    metadata: { kind: 'email_agent_weekly_digest' },
+  });
+
+  try {
+    await emailService.getProvider().sendEmail({
+      to: user.email,
+      subject,
+      htmlContent: html,
+      textContent: text,
+      from: identity.from,
+      replyTo: identity.replyTo || undefined,
+    });
+    if (emailLog?.id) {
+      await emailService.updateEmailLogStatus(emailLog.id, 'SENT');
+    }
+    logger.info(`📬 Récap hebdomadaire agent email envoyé à ${user.email}`);
+    return {
+      userId: user.id,
+      ok: true,
+      items: countDigestItems(summary),
+      stats: summary.stats,
+      to: user.email,
+    };
+  } catch (error) {
+    if (emailLog?.id) {
+      await emailService.updateEmailLogStatus(emailLog.id, 'FAILED', error);
+    }
+    logger.error(`Récap hebdo agent email échoué pour ${user.email}: ${error.message}`);
+    return { userId: user.id, ok: false, error: error.message };
+  }
+}
+
+async function sendWeeklyDigestsForEligibleUsers(options = {}) {
+  const dayCheck = isWeeklyDigestDay(new Date(), process.env);
+  if (!options.force && !dayCheck.allowed) {
+    return { skipped: true, reason: dayCheck.reason, ...dayCheck };
+  }
+
+  if (process.env.EMAIL_TRIAGE_DIGEST_WEEKLY_ENABLED !== 'true' && !options.force) {
+    return { skipped: true, reason: 'weekly_digest_disabled' };
+  }
+
+  const users = await prisma.user.findMany({
+    where: {
+      jobSearchAgentEnabled: true,
+      emailVerified: true,
+      isActive: true,
+    },
+    select: { id: true, email: true },
+  });
+
+  const results = [];
+  for (const user of users) {
+    results.push(await sendUserWeeklyDigest(user));
+  }
+
+  const sent = results.filter((row) => row.ok).length;
+  const skipped = results.filter((row) => row.skipped).length;
+  const failed = results.filter((row) => row.ok === false).length;
+
+  return { total: users.length, sent, skipped, failed, results, day: dayCheck.day };
 }
 
 async function hasDigestConsent(userId) {
@@ -184,7 +331,12 @@ async function sendDailyDigestsForEligibleUsers() {
 
 module.exports = {
   buildUserDigestSummary,
+  buildUserWeeklyDigestSummary,
   sendUserDigest,
+  sendUserWeeklyDigest,
   sendDailyDigestsForEligibleUsers,
+  sendWeeklyDigestsForEligibleUsers,
   classifyForDigest,
+  DIGEST_SUBJECT_PREFIX,
+  WEEKLY_DIGEST_SUBJECT_PREFIX,
 };

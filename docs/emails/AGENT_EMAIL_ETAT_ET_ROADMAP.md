@@ -6,7 +6,7 @@ Dernière mise à jour : 22 juin 2026
 
 ## Réponse courte
 
-**Partiellement implémenté (23/06/2026)** — socle multi-utilisateur + **digest quotidien 18h** + **liaison candidature** + **propositions Tasks/Calendar** (API + UI `/agent`) ; digest hebdo et validation porteur restent ouverts.
+**Partiellement implémenté (23/06/2026)** — digest **18h** validé Proton + liaison candidature + Tasks/Calendar + **récap hebdomadaire** (cron dimanche 18h, `EMAIL_TRIAGE_DIGEST_WEEKLY_ENABLED`) ; IMAP OVH live et mobile restent ouverts.
 
 Ce qui existe aujourd’hui :
 
