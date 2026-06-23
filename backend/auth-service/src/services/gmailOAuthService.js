@@ -5,6 +5,8 @@ const logger = require('../utils/logger');
 const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/tasks',
+  'https://www.googleapis.com/auth/calendar.events',
 ];
 
 function getOAuthConfig() {
@@ -124,6 +126,7 @@ async function fetchRecentGmailMessages(credentials, maxCount = 20) {
 module.exports = {
   GMAIL_SCOPES,
   getOAuthConfig,
+  createOAuthClient,
   getAuthorizationUrl,
   parseStateToken,
   exchangeCodeForTokens,

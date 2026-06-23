@@ -6,7 +6,7 @@ Dernière mise à jour : 22 juin 2026
 
 ## Réponse courte
 
-**Partiellement implémenté (23/06/2026)** — socle multi-utilisateur + **digest quotidien 18h** (cron workflow) ; Google Tasks/Calendar et liaison auto email↔candidature restent à finaliser.
+**Partiellement implémenté (23/06/2026)** — socle multi-utilisateur + **digest quotidien 18h** + **liaison candidature** + **propositions Tasks/Calendar** (API + UI `/agent`) ; digest hebdo et validation porteur restent ouverts.
 
 Ce qui existe aujourd’hui :
 
@@ -26,11 +26,12 @@ Ce qui existe aujourd’hui :
 | Politique accès agent (tests + API) | **OK** | `jobSearchAgentEnabled` en BDD + `auth-service/src/lib/agentAccessPolicy.js` |
 | Politique connexion Gmail/IMAP (tests) | **OK unitaire** | `mail-connection-policy.js` — OAuth / IMAP placeholder |
 | Classification emails, digest, Calendar | **Partiel prod** | moteur déterministe testé ; sync 30 min ; **digest 18h SMTP** (`emailAgentDigestService` + cron workflow) |
-| **OAuth Google par utilisateur** | **Partiel** | flux `/api/v1/email-agent/oauth/google/*` ; requiert `GOOGLE_OAUTH_*` |
+| **OAuth Google par utilisateur** | **Partiel** | flux `/api/v1/email-agent/oauth/google/*` ; scopes `gmail.readonly`, `tasks`, `calendar.events` |
 | **UI « Connecter ma boîte »** | **OK** | `/agent` — Gmail OAuth + formulaire IMAP |
 | **Table BDD comptes mail / tokens** | **OK** | `UserMailbox`, tokens chiffrés `credentialsEnc` |
 | **Consentement RGPD mail (UI)** | **OK** | 6 consentements versionnés ; audit BDD |
-| **Relier email → candidature (auto)** | **Partiel** | classification + file « à traiter » ; pas encore écriture candidature |
+| **Relier email → candidature (auto)** | **Partiel** | suggestions + auto-link score unique ≥10 ; UI liaison manuelle `/agent` |
+| **Google Tasks / Calendar** | **Partiel** | API `/triage/:id/actions/*` + boutons UI ; requiert Gmail OAuth + consentements dédiés |
 
 > Les variables `EMAIL_GMAIL_PRO_*` et `EMAIL_TRIAGE_*` dans `.env` servent au **développement et aux tests du porteur**. Elles **ne remplacent pas** un connecteur multi-utilisateur en production.
 
@@ -101,7 +102,7 @@ Pipeline prévu :
 4. **IMAP générique** : connecteur + test connexion (comme OVH candidatures).
 5. **Worker** : import borné + classification + file « à traiter ».
 6. **UI** `/` : connecteurs + consentements + validation suggestions.
-7. **Digest 18h** via auth-service + cron workflow (**23/06 fait**) ; digest hebdo et Google Tasks/Calendar (après consentement dédié) — **reste**.
+7. **Digest 18h** via auth-service + cron workflow (**23/06 fait**) ; digest hebdo — **reste**. **23/06** : liaison candidature + Tasks/Calendar (API + UI `/agent`, smoke IMAP `scripts/ops/smoke-email-agent-imap-sync.cjs`).
 
 Suivi détaillé : [`docs/pilotage/TODOS.md`](../pilotage/TODOS.md) § Agent email · [`docs/features/EMAIL_TRIAGE_AGENT.md`](../features/EMAIL_TRIAGE_AGENT.md).
 

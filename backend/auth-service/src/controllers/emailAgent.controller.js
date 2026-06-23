@@ -1,4 +1,6 @@
 const emailAgentService = require('../services/emailAgentService');
+const emailAgentLinkService = require('../services/emailAgentLinkService');
+const emailAgentActionService = require('../services/emailAgentActionService');
 const { getAuthorizationUrl, parseStateToken } = require('../services/gmailOAuthService');
 const logger = require('../utils/logger');
 
@@ -108,9 +110,72 @@ const reviewTriage = async (req, res) => {
     const message = await emailAgentService.updateTriageReview(
       req.user.id,
       req.params.messageId,
-      req.body.reviewStatus,
+      req.body || {},
     );
     res.json({ success: true, message });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+const suggestLinks = async (req, res) => {
+  try {
+    const suggestions = await emailAgentLinkService.suggestApplicationLinks(
+      req.user.id,
+      req.params.messageId,
+    );
+    res.json({ success: true, suggestions });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+const linkApplication = async (req, res) => {
+  try {
+    const message = await emailAgentLinkService.linkTriageToApplication(
+      req.user.id,
+      req.params.messageId,
+      req.body.applicationId,
+    );
+    res.json({ success: true, message });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+const proposedActions = async (req, res) => {
+  try {
+    const actions = await emailAgentActionService.getProposedActions(
+      req.user.id,
+      req.params.messageId,
+    );
+    res.json({ success: true, actions });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+const createTask = async (req, res) => {
+  try {
+    const result = await emailAgentActionService.createGoogleTask(
+      req.user.id,
+      req.params.messageId,
+      req.body || {},
+    );
+    res.json({ success: true, ...result });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
+const createCalendarEvent = async (req, res) => {
+  try {
+    const result = await emailAgentActionService.createGoogleCalendarEvent(
+      req.user.id,
+      req.params.messageId,
+      req.body || {},
+    );
+    res.json({ success: true, ...result });
   } catch (error) {
     handleError(res, error);
   }
@@ -161,6 +226,11 @@ module.exports = {
   revokeMailboxHandler,
   listTriage,
   reviewTriage,
+  suggestLinks,
+  linkApplication,
+  proposedActions,
+  createTask,
+  createCalendarEvent,
   syncNow,
   setAgentFlag,
 };

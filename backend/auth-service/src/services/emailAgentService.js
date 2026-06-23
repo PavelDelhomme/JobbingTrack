@@ -11,6 +11,7 @@ const {
   exchangeCodeForTokens,
   fetchRecentGmailMessages,
 } = require('./gmailOAuthService');
+const { autoLinkTriageMessage, linkTriageToApplication } = require('./emailAgentLinkService');
 const logger = require('../utils/logger');
 
 const CONSENT_VERSION = '1.0';
@@ -273,7 +274,7 @@ async function listTriageMessages(userId, { status = 'PENDING', limit = 50 } = {
   });
 }
 
-async function updateTriageReview(userId, messageId, reviewStatus) {
+async function updateTriageReview(userId, messageId, payload = {}) {
   await assertAgentAccess(userId);
   const existing = await prisma.emailTriageMessage.findFirst({
     where: { id: messageId, userId },
@@ -283,6 +284,12 @@ async function updateTriageReview(userId, messageId, reviewStatus) {
     err.status = 404;
     throw err;
   }
+
+  if (payload.applicationId) {
+    return linkTriageToApplication(userId, messageId, payload.applicationId);
+  }
+
+  const reviewStatus = payload.reviewStatus || payload;
   return prisma.emailTriageMessage.update({
     where: { id: messageId },
     data: { reviewStatus },
@@ -316,7 +323,7 @@ async function syncMailbox(mailbox) {
       body: msg.snippet,
     });
     try {
-      await prisma.emailTriageMessage.upsert({
+      const upserted = await prisma.emailTriageMessage.upsert({
         where: {
           mailboxId_externalId: {
             mailboxId: mailbox.id,
@@ -346,6 +353,13 @@ async function syncMailbox(mailbox) {
         },
       });
       imported += 1;
+      if (!upserted.applicationId) {
+        try {
+          await autoLinkTriageMessage(mailbox.userId, upserted.id);
+        } catch (linkErr) {
+          logger.warn(`Auto-link skipped message=${upserted.id}: ${linkErr.message}`);
+        }
+      }
     } catch (err) {
       logger.warn(`Triage upsert failed mailbox=${mailbox.id}: ${err.message}`);
     }

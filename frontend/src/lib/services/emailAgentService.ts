@@ -39,6 +39,27 @@ export interface TriageMessage {
   confidence?: string | null;
   reviewStatus: string;
   labels: string[];
+  applicationId?: string | null;
+  companyId?: string | null;
+}
+
+export interface ApplicationLinkSuggestion {
+  applicationId: string;
+  companyId: string | null;
+  companyName: string | null;
+  position: string;
+  score: number;
+}
+
+export interface ProposedAgentActions {
+  messageId: string;
+  classification?: string | null;
+  task:
+    | { allowed: true; title: string; notes: string }
+    | { allowed: false; reason: string };
+  calendar:
+    | { allowed?: true; kind: string; decision?: string; title?: string; reason?: string; message?: string }
+    | { allowed: false; reason: string };
 }
 
 export interface AgentStatusResponse {
@@ -141,10 +162,57 @@ export async function fetchTriageMessages(status = "PENDING") {
   return data;
 }
 
-export async function reviewTriageMessage(messageId: string, reviewStatus: string) {
+export async function reviewTriageMessage(
+  messageId: string,
+  reviewStatus: string,
+  applicationId?: string,
+) {
   const { data } = await apiClient.patch(`/email-agent/triage/${messageId}`, {
     reviewStatus,
+    ...(applicationId ? { applicationId } : {}),
   });
+  return data;
+}
+
+export async function fetchLinkSuggestions(messageId: string) {
+  const { data } = await apiClient.get<{
+    success: boolean;
+    suggestions: ApplicationLinkSuggestion[];
+  }>(`/email-agent/triage/${messageId}/link-suggestions`);
+  return data;
+}
+
+export async function linkTriageToApplication(messageId: string, applicationId: string) {
+  const { data } = await apiClient.post(`/email-agent/triage/${messageId}/link`, {
+    applicationId,
+  });
+  return data;
+}
+
+export async function fetchProposedActions(messageId: string) {
+  const { data } = await apiClient.get<{ success: boolean; actions: ProposedAgentActions }>(
+    `/email-agent/triage/${messageId}/actions`,
+  );
+  return data;
+}
+
+export async function createTriageGoogleTask(messageId: string, payload?: { title?: string; notes?: string }) {
+  const { data } = await apiClient.post(`/email-agent/triage/${messageId}/actions/task`, payload || {});
+  return data;
+}
+
+export async function createTriageCalendarEvent(
+  messageId: string,
+  payload?: {
+    hasExplicitTime?: boolean;
+    hour?: number;
+    minute?: number;
+    startDateTime?: string;
+    durationMinutes?: number;
+    title?: string;
+  },
+) {
+  const { data } = await apiClient.post(`/email-agent/triage/${messageId}/actions/calendar`, payload || {});
   return data;
 }
 

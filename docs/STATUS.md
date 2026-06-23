@@ -1,8 +1,17 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 23 juin 2026 — infra `up-full` + digest agent email 18h (phase 2 amorcée).
+**Dernière mise à jour** : 23 juin 2026 — agent email phase 2 (liaison + Tasks/Calendar + smoke IMAP).
 
 **Chantier structuré (backoffice + API + doc)** : voir **[`project/PLAN.md`](project/PLAN.md)** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **[`pilotage/TODOS.md`](pilotage/TODOS.md)** (cases à cocher + règles PR / tests).
+
+## 23 juin 2026 — Agent email phase 2 : liaison candidature + Tasks/Calendar
+
+- **Backend** : `emailAgentLinkService` (suggestions score, auto-link sync si match unique ≥10), `emailAgentActionService` (propositions + création Google Tasks/Calendar), `calendarTimePolicy.js`, scopes OAuth étendus (`tasks`, `calendar.events`).
+- **API** : `GET/POST /api/v1/email-agent/triage/:id/link-suggestions|link`, `GET/POST .../actions`, `.../actions/task`, `.../actions/calendar`.
+- **UI** : `/agent` — boutons « Lier candidature », « Tasks / Calendar » par email en attente.
+- **Ops** : `scripts/ops/smoke-email-agent-imap-sync.cjs` (IMAP OVH `.env` + sync API).
+- **Tests** : `backend/auth-service/tests/emailAgentLinkService.test.js`, `emailAgentActionService.test.js`.
+- **Reste** : digest hebdomadaire, validation porteur UI, test IMAP OVH live porteur.
 
 ## 23 juin 2026 — Infra `up-full` : `log_collector_logs` au boot
 
@@ -11,8 +20,8 @@
 
 ## 23 juin 2026 — Agent email : digest quotidien 18h (phase 2)
 
-- **Implémenté** : `emailAgentDigestService`, cron workflow `0 18 * * *`, endpoint `/api/v1/email-agent/internal/cron-digest`, trigger dev `emailAgentDigest`.
-- **Reste** : digest hebdomadaire, Google Tasks/Calendar, liaison auto email↔candidature, validation porteur.
+- **Implémenté** : `emailAgentDigestService`, cron workflow `0 18 * * *`, endpoint `/api/v1/email-agent/internal/cron-digest`, trigger dev `emailAgentDigest` ; digest Proton validé porteur.
+- **Reste** : digest hebdomadaire, validation porteur UI `/agent`.
 
 ## 23 juin 2026 — Bootstrap admin `up-full`
 

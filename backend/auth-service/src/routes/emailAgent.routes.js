@@ -44,6 +44,11 @@ router.post('/mailboxes/imap', emailAgentController.connectImap);
 router.delete('/mailboxes/:mailboxId', emailAgentController.revokeMailboxHandler);
 router.get('/triage', emailAgentController.listTriage);
 router.patch('/triage/:messageId', emailAgentController.reviewTriage);
+router.get('/triage/:messageId/link-suggestions', emailAgentController.suggestLinks);
+router.post('/triage/:messageId/link', emailAgentController.linkApplication);
+router.get('/triage/:messageId/actions', emailAgentController.proposedActions);
+router.post('/triage/:messageId/actions/task', emailAgentController.createTask);
+router.post('/triage/:messageId/actions/calendar', emailAgentController.createCalendarEvent);
 router.post('/sync', emailAgentController.syncNow);
 
 router.put('/users/:userId/agent-enabled', requireAdmin, emailAgentController.setAgentFlag);
