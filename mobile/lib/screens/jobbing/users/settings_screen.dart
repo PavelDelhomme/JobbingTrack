@@ -257,6 +257,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  _sectionTitle('Recherche d\'emploi'),
+                  Card(
+                    child: Semantics(
+                      label: 'Agent email',
+                      button: true,
+                      child: ListTile(
+                        leading: const Icon(Icons.mark_email_read_outlined),
+                        title: const Text('Agent email'),
+                        subtitle: const Text(
+                          'Boîtes IMAP, triage candidatures, digest — consentements et sync.',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.of(context).pushNamed('/email-agent'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   _sectionTitle('Application'),
                   Card(
                     child: ListTile(

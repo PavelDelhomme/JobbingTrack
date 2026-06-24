@@ -193,6 +193,11 @@ class _AppDrawerState extends State<AppDrawer> {
                 title: 'Paramètres',
                 route: '/settings',
               ),
+              _DrawerItem(
+                icon: Icons.mark_email_read_outlined,
+                title: 'Agent email',
+                route: '/email-agent',
+              ),
             ],
           ),
 

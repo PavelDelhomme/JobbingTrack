@@ -18,6 +18,7 @@ import 'package:jobbingtrack_mobile/screens/jobbing/auth/register_screen.dart';
 import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/users/settings_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/users/email_agent_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/analytics_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/logs/logs_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/search/search_screen.dart';
@@ -192,6 +193,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
               ),
           '/application-form': (context) => const ApplicationFormScreen(),
           '/settings': (context) => const SettingsScreen(),
+          '/email-agent': (context) => const EmailAgentScreen(),
           '/analytics': (context) => const AdminGuard(child: AnalyticsScreen()),
           '/logs': (context) => const AdminGuard(child: LogsScreen()),
           '/search': (context) => const SearchScreen(),
