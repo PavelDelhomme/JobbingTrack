@@ -133,11 +133,14 @@ export default defineConfig({
     },
   ],
 
-  // Serveur frontend : en local on réutilise Docker (port 5003) ; en CI on démarre npm run dev
-  webServer: {
-    command: process.env.CI ? "npm run dev" : "true",
-    url: process.env.FRONTEND_URL || "http://localhost:5003",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  ...(process.env.CI
+    ? {
+        webServer: {
+          command: "npm run dev",
+          url: process.env.FRONTEND_URL || "http://localhost:5003",
+          reuseExistingServer: false,
+          timeout: 120000,
+        },
+      }
+    : {}),
 });
