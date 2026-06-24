@@ -25,6 +25,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirmPassword = true;
   bool _acceptTerms = false;
   bool _acceptTelemetry = true;
+  bool _interestedInEmailAgent = false;
 
   @override
   void dispose() {
@@ -409,6 +410,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   '(performances, navigation, stabilité) pour améliorer l\'application. '
                                   'Aucun contenu personnel (candidatures, mots de passe) n\'est transmis. '
                                   'Obligatoire pour créer un compte.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[700],
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Agent email (opt-in informatif — activation par administrateur)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Semantics(
+                              label: 'Intérêt pour l\'agent email de recherche d\'emploi',
+                              child: Checkbox(
+                                value: _interestedInEmailAgent,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _interestedInEmailAgent = value ?? false;
+                                  });
+                                },
+                              ),
+                            ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _interestedInEmailAgent = !_interestedInEmailAgent;
+                                  });
+                                },
+                                child: Text(
+                                  'Je souhaite utiliser l\'agent email (lecture de boîtes mail, '
+                                  'classification des candidatures). L\'activation est validée par un '
+                                  'administrateur ; vous pourrez connecter vos boîtes IMAP ou Gmail '
+                                  'depuis Paramètres ou l\'espace Agent après connexion.',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[700],

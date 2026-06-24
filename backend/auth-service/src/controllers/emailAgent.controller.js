@@ -1,6 +1,7 @@
 const emailAgentService = require('../services/emailAgentService');
 const emailAgentLinkService = require('../services/emailAgentLinkService');
 const emailAgentActionService = require('../services/emailAgentActionService');
+const { discoverImapSettings } = require('../services/imapDiscoveryService');
 const { getAuthorizationUrl, parseStateToken } = require('../services/gmailOAuthService');
 const logger = require('../utils/logger');
 
@@ -72,6 +73,19 @@ const googleOAuthCallback = async (req, res) => {
   } catch (err) {
     logger.error('Google OAuth callback error:', err);
     return res.redirect(`${redirectKo}&reason=${encodeURIComponent(err.message || 'oauth_failed')}`);
+  }
+};
+
+const discoverImap = async (req, res) => {
+  try {
+    const email = String(req.query.email || '').trim();
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'email_required' });
+    }
+    const discovery = await discoverImapSettings(email);
+    return res.json({ success: true, ...discovery });
+  } catch (error) {
+    handleError(res, error);
   }
 };
 
@@ -222,6 +236,7 @@ module.exports = {
   updateConsents,
   startGoogleOAuth,
   googleOAuthCallback,
+  discoverImap,
   connectImap,
   revokeMailboxHandler,
   listTriage,

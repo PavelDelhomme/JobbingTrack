@@ -10,6 +10,7 @@ import {
   ApplicationLinkSuggestion,
   CONSENT_LABELS,
   connectImapMailbox,
+  discoverImapSettings,
   createTriageCalendarEvent,
   createTriageGoogleTask,
   fetchAgentStatus,
@@ -54,6 +55,8 @@ export default function AgentEmailContent() {
     imapPort: "993",
     displayName: "",
   });
+  const [imapDiscoveryHint, setImapDiscoveryHint] = useState<string | null>(null);
+  const [imapDiscovering, setImapDiscovering] = useState(false);
   const [linkSuggestions, setLinkSuggestions] = useState<Record<string, ApplicationLinkSuggestion[]>>({});
   const [proposedActions, setProposedActions] = useState<Record<string, ProposedAgentActions>>({});
   const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null);
@@ -134,6 +137,37 @@ export default function AgentEmailContent() {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "OAuth Google indisponible");
       setActionLoading(null);
+    }
+  };
+
+  const handleImapEmailBlur = async () => {
+    const email = imapForm.emailAddress.trim();
+    if (!email.includes("@")) return;
+    setImapDiscovering(true);
+    setImapDiscoveryHint(null);
+    try {
+      const discovery = await discoverImapSettings(email);
+      if (discovery.found && discovery.suggested) {
+        setImapForm((f) => ({
+          ...f,
+          imapHost: f.imapHost || discovery.suggested!.imapHost,
+          imapPort: f.imapPort === "993" ? String(discovery.suggested!.imapPort) : f.imapPort,
+          displayName: f.displayName || email,
+        }));
+        const provider = discovery.suggested.provider || "serveur détecté";
+        const source = discovery.suggested.source || "";
+        const note =
+          discovery.suggested.note === "proton_bridge_required"
+            ? " Proton Mail nécessite Proton Bridge (IMAP local)."
+            : "";
+        setImapDiscoveryHint(
+          `Détecté : ${provider} (${discovery.suggested.imapHost}:${discovery.suggested.imapPort})${note}${source ? ` · ${source}` : ""}. Vous pouvez corriger manuellement.`,
+        );
+      }
+    } catch {
+      setImapDiscoveryHint("Détection automatique indisponible — saisissez l'hôte IMAP manuellement.");
+    } finally {
+      setImapDiscovering(false);
     }
   };
 
@@ -403,6 +437,7 @@ export default function AgentEmailContent() {
               placeholder="Adresse email"
               value={imapForm.emailAddress}
               onChange={(e) => setImapForm((f) => ({ ...f, emailAddress: e.target.value }))}
+              onBlur={handleImapEmailBlur}
               className="rounded-lg border px-3 py-2 text-sm dark:bg-gray-900 dark:border-gray-700"
             />
             <input
@@ -426,12 +461,18 @@ export default function AgentEmailContent() {
               onChange={(e) => setImapForm((f) => ({ ...f, imapPort: e.target.value }))}
               className="rounded-lg border px-3 py-2 text-sm dark:bg-gray-900 dark:border-gray-700"
             />
+            {imapDiscoveryHint && (
+              <p className="md:col-span-2 text-xs text-gray-600 dark:text-gray-400">
+                {imapDiscovering ? "Détection du serveur IMAP…" : imapDiscoveryHint}
+              </p>
+            )}
             <button
               type="submit"
               disabled={
                 !status?.agentEnabled ||
                 !status?.hasRequiredConsents ||
-                actionLoading === "imap"
+                actionLoading === "imap" ||
+                imapDiscovering
               }
               className="md:col-span-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm disabled:opacity-50"
             >

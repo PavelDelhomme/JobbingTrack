@@ -130,6 +130,37 @@ export async function startGoogleOAuth() {
   return data;
 }
 
+export interface ImapDiscoveryResult {
+  found: boolean;
+  reason?: string;
+  emailAddress?: string;
+  domain?: string;
+  suggested?: {
+    imapHost: string;
+    imapPort: number;
+    imapUseTls: boolean;
+    provider?: string;
+    source?: string;
+    note?: string | null;
+    confidence?: string;
+  };
+  alternatives?: Array<{
+    imapHost: string;
+    imapPort: number;
+    imapUseTls: boolean;
+    provider?: string;
+    source?: string;
+  }>;
+}
+
+export async function discoverImapSettings(emailAddress: string) {
+  const { data } = await apiClient.get<ImapDiscoveryResult & { success: boolean }>(
+    "/email-agent/mailboxes/imap/discover",
+    { params: { email: emailAddress } },
+  );
+  return data;
+}
+
 export async function connectImapMailbox(payload: {
   emailAddress: string;
   password: string;

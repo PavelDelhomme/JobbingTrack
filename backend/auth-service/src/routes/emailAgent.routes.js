@@ -57,6 +57,7 @@ router.use(authenticate);
 router.get('/status', emailAgentController.getStatus);
 router.put('/consents', emailAgentController.updateConsents);
 router.get('/oauth/google/start', emailAgentController.startGoogleOAuth);
+router.get('/mailboxes/imap/discover', emailAgentController.discoverImap);
 router.post('/mailboxes/imap', emailAgentController.connectImap);
 router.delete('/mailboxes/:mailboxId', emailAgentController.revokeMailboxHandler);
 router.get('/triage', emailAgentController.listTriage);
