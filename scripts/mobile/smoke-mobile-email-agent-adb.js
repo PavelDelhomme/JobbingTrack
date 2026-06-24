@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Smoke écran Agent email mobile (drawer + contenu).
+ * Smoke écran Agent email mobile (Paramètres → Agent email).
+ *   node scripts/mobile/prepare-smoke-device-adb.js   # une fois par session
  *   node scripts/mobile/smoke-mobile-email-agent-adb.js
  */
 
@@ -9,38 +10,6 @@ const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const { loadRootEnv } = require('./resolve-admin-credentials');
 
 loadRootEnv();
-
-async function ensureLoggedIn(phone, email, password) {
-  await adbLib.flows.dismissBiometricUnlock(phone, { password });
-  if (await phone.uiContains('Bonjour')) return;
-  try {
-    await adbLib.flows.login(phone, email, password);
-  } catch {
-    await adbLib.flows.loginFresh(phone, email, password);
-  }
-  await adbLib.flows.dismissBiometricUnlock(phone, { password });
-  await phone.assertVisible('Bonjour');
-}
-
-async function openEmailAgentFromDrawer(phone) {
-  if (await phone.uiContains('Open navigation menu')) {
-    await phone.tap('Open navigation menu');
-  } else {
-    await phone.openDrawer();
-  }
-  await phone.wait(1200);
-  for (let i = 0; i < 6; i++) {
-    if (await phone.uiContains('Agent email')) break;
-    await phone.scrollDown(350);
-    await phone.wait(500);
-  }
-  try {
-    await phone.tap('Agent email');
-  } catch {
-    await phone.tap('email');
-  }
-  await phone.wait(2500);
-}
 
 async function openEmailAgentFromSettings(phone) {
   await adbLib.flows.goToTab(phone, 4, { shell: true });
@@ -63,9 +32,11 @@ async function openEmailAgentFromSettings(phone) {
 async function main() {
   const { email, password } = await resolveWorkingUserCredentials();
   const phone = await adbLib.connect();
-  console.log('[email-agent-adb] Appareil connecté');
-
-  await ensureLoggedIn(phone, email, password);
+  console.log('[email-agent-adb] Préparation session smoke');
+  await adbLib.flows.prepareSmokeSession(phone, { restart: true });
+  console.log('[email-agent-adb] Connexion shell');
+  const msg = await adbLib.flows.ensureAuthenticatedShell(phone, email, password);
+  console.log('  →', msg);
 
   console.log('[1/2] Paramètres → Agent email');
   await openEmailAgentFromSettings(phone);

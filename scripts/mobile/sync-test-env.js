@@ -89,6 +89,12 @@ function main() {
       changes.push('EMAIL_TRIAGE_DIGEST_RECIPIENT ← EMAIL_GMAIL_PRO_ACCOUNT');
       if (WRITE) lines = setEnvKey(lines, 'EMAIL_TRIAGE_DIGEST_RECIPIENT', cfg.gmailAccount);
     }
+    const testUser =
+      process.env.TEST_USER_EMAIL?.trim() || process.env.TEST_REAL_EMAIL?.split(',')[0]?.trim();
+    if (testUser && isEmptyValue(lines, 'EMAIL_TRIAGE_DIGEST_OVERRIDE_EMAILS')) {
+      changes.push('EMAIL_TRIAGE_DIGEST_OVERRIDE_EMAILS ← TEST_USER_EMAIL');
+      if (WRITE) lines = setEnvKey(lines, 'EMAIL_TRIAGE_DIGEST_OVERRIDE_EMAILS', testUser);
+    }
     if (isEmptyValue(lines, 'EMAIL_TRIAGE_FORWARD_ADDRESS')) {
       changes.push('EMAIL_TRIAGE_FORWARD_ADDRESS ← EMAIL_GMAIL_PRO_ACCOUNT');
       if (WRITE) lines = setEnvKey(lines, 'EMAIL_TRIAGE_FORWARD_ADDRESS', cfg.gmailAccount);

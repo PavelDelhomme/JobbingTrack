@@ -34,6 +34,11 @@ const getEmailLogs = async (req, res) => {
     if (status) where.status = status;
     if (channel === 'crash_report') {
       where.metadata = { path: ['channel'], equals: 'crash_report' };
+    } else if (channel === 'email_agent_daily_digest' || channel === 'email_agent_weekly_digest') {
+      where.metadata = { path: ['kind'], equals: channel };
+    }
+    if (req.query.kind) {
+      where.metadata = { path: ['kind'], equals: String(req.query.kind) };
     }
     if (to) where.to = { contains: to, mode: 'insensitive' };
     if (q) {

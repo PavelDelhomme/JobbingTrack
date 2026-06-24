@@ -80,10 +80,15 @@ type EmailFilters = {
 function buildInitialEmailFilters(searchParams: URLSearchParams): EmailFilters {
   const type = searchParams.get("type");
   const channel = searchParams.get("channel");
+  const validChannels = new Set([
+    "crash_report",
+    "email_agent_daily_digest",
+    "email_agent_weekly_digest",
+  ]);
   return {
     status: "",
     type: type === "NOTIFICATION" ? "NOTIFICATION" : "",
-    channel: channel === "crash_report" ? "crash_report" : "",
+    channel: channel && validChannels.has(channel) ? channel : "",
     query: "",
   };
 }
@@ -687,6 +692,17 @@ export default function EmailMonitorPage() {
                         <Badge variant="outline">
                           {getTypeLabel(email.type)}
                         </Badge>
+                        {email.metadata?.kind === "email_agent_daily_digest" && (
+                          <Badge variant="secondary">Digest agent (jour)</Badge>
+                        )}
+                        {email.metadata?.kind === "email_agent_weekly_digest" && (
+                          <Badge variant="secondary">Digest agent (semaine)</Badge>
+                        )}
+                        {email.metadata?.accountEmail && email.metadata.accountEmail !== email.to && (
+                          <Badge variant="outline" title="Compte utilisateur lié">
+                            Compte : {String(email.metadata.accountEmail)}
+                          </Badge>
+                        )}
                         {email.metadata?.channel === "crash_report" && (
                           <Badge variant="destructive">
                             {email.metadata?.feedback === true

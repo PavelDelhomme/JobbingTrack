@@ -22,6 +22,8 @@ class ApiConfigStore {
   static const _keyKeepLoggedIn = 'auth_keep_logged_in';
   static const _keyBiometricUnlock = 'auth_biometric_unlock';
   static const _keyInterimMode = 'interim_mode_enabled';
+  /// Smokes ADB debug uniquement — contourne l'écran biométrique au cold start.
+  static const _keyTestAutomationSkipBiometric = 'test_automation_skip_biometric';
 
   /// Session auth locale (token JWT + profil — stockage chiffré OS).
   static Future<void> saveAuthSession({
@@ -82,6 +84,16 @@ class ApiConfigStore {
   static Future<void> saveInterimModeEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyInterimMode, enabled);
+  }
+
+  static Future<bool> loadTestAutomationSkipBiometric() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyTestAutomationSkipBiometric) ?? false;
+  }
+
+  static Future<void> saveTestAutomationSkipBiometric(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyTestAutomationSkipBiometric, enabled);
   }
 
   // ——— Télémétrie mobile (consentement RGPD) ———

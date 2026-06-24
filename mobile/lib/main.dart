@@ -243,9 +243,10 @@ class _SplashScreenState extends State<_SplashScreen> {
     await MobileAnalyticsService.instance.initialize(authToken: auth.token);
     if (!mounted) return;
     if (restored) {
+      final skipBioTest = kDebugMode && await ApiConfigStore.loadTestAutomationSkipBiometric();
       final bio = await ApiConfigStore.loadBiometricUnlockEnabled();
       final keep = await ApiConfigStore.loadKeepLoggedIn();
-      if (bio && keep && await BiometricAuthService.isDeviceSupported()) {
+      if (!skipBioTest && bio && keep && await BiometricAuthService.isDeviceSupported()) {
         Navigator.of(context).pushReplacementNamed('/biometric-unlock');
         return;
       }

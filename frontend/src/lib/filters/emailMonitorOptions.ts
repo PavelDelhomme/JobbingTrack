@@ -26,6 +26,8 @@ export type EmailTypeFilter =
 
 export const EMAIL_CHANNEL_FILTER_OPTIONS = [
   { value: "crash_report", label: "Crash / retour mobile" },
+  { value: "email_agent_daily_digest", label: "Digest agent (quotidien)" },
+  { value: "email_agent_weekly_digest", label: "Digest agent (hebdo)" },
 ] as const;
 
 export type EmailChannelFilter =

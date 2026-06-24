@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 24 juin 2026 (agent email récap hebdo + IMAP AUTH PLAIN)
+Dernière mise à jour : 24 juin 2026 (digest traçabilité + smoke biométrie)
 
 ## Rôle
 
@@ -14,7 +14,9 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | Agent email | Digest quotidien 18h (phase 2) | **23/06** : smoke `seed-email-agent-digest-smoke.sql` → **`sent:1`, `items:3`**, `EmailLog` **SENT**, anti-doublon OK. **Porteur 23/06** : digest reçu sur **Proton** (`paul.delhomme@proton.me`). Script rejeu : `scripts/db/seed-email-agent-digest-smoke.sql`. | [x] |
 | Infra tests | IMAP OVH candidatures@ — connexion live | **24/06** : smoke `--ovh-only` **OK** (`imap.mail.ovh.net:993`, AUTH PLAIN). **Bootstrap admin** `scripts/ops/bootstrap-admin-email-agent.cjs` **OK** : agent activé sur `paul.delhomme@proton.me`, boîte `candidatures@delhomme.ovh` liée, sync OK, **3 messages PENDING** triage. Digest cible `.env` : `pauldelhomme.pro@gmail.com`. | [x] |
 | Agent email | Découverte auto serveur IMAP + bootstrap porteur | **24/06** : `imapDiscoveryService.js` (domain hints OVH/Gmail/Outlook/Proton/Yahoo/iCloud, MX, Thunderbird autoconfig, fallback `imap.{domain}`) ; API `GET /email-agent/mailboxes/imap/discover` ; UI `/agent` auto-remplit hôte/port au blur email. Mobile inscription : opt-in informatif agent email. | [x] |
-| Mobile | Agent email — écran mobile complet | **24/06** : `EmailAgentScreen` (statut, consentements, boîtes IMAP, détection auto, sync, triage) ; drawer + Paramètres ; `email_agent_service.dart` ; tests Flutter **2/2** ; `smoke-email-agent-api.js` **OK** (agent actif, 1 boîte, 3 triage) ; APK debug installé Samsung. Smoke ADB `smoke-mobile-email-agent-adb.js` à valider porteur (biométrie). | [x] |
+| Mobile | Agent email — écran mobile complet | **24/06** : `EmailAgentScreen` ; smoke API **OK**. | [x] |
+| Agent email | Digest — traçabilité + destinataire porteur | **24/06** : digest 23/06 retrouvé en `EmailLog` (`SENT` → `paul.delhomme@proton.me`, kind `email_agent_daily_digest`) — **pas MailHog** car SMTP réel. Fix : `EMAIL_TRIAGE_DIGEST_OVERRIDE_EMAILS` + `RECIPIENT` → Gmail pro pour porteur ; metadata `accountEmail` ; filtre backoffice « Digest agent » ; `list-email-logs.cjs`. | [x] |
+| Mobile | Smokes ADB — bypass biométrie sécurisé (debug) | **24/06** : pref `test_automation_skip_biometric` (debug + ADB uniquement) ; `prepare-smoke-device-adb.js` ; flows ne déconnecte plus en mode smoke. APK réinstallé Samsung. | [x] |
 | Doc | Restructuration `docs/` — hubs + sous-dossiers | **22/06** : `TODOS.md` → `pilotage/` ; `PLAN`/`BACKLOG`/`RESOLUTIONS` → `project/` ; `ERRORS` → `troubleshooting/` ; PDF → `_meta/` ; stubs redirects racine ; hubs alignés. Branche `feat/docs-structure-reorg`. | [x] |
 | Backoffice | Vue d’ensemble — carte « Sessions actives » (audit sémantique) | **22/06 retour porteur** : carte **2** + sous-titre **10 utilisateurs** ; clic `/users?status=active` → **~100** comptes (E2E majoritaires). Cause code documentée. **Non corrigé** — gate préprod. | [x] |
 | Backoffice | Fiche user — renvoi email vérif + actions admin | **22/06 retour porteur** : `POST .../resend-verification` → `Network Error` navigateur ; gateway reçoit le POST. Test API direct **200 ~873 ms**. Reset MDP UI sur `/forgot-password` (route admin `send-password-reset` existante). Delete = hard delete sans rétention analytics. **Non corrigé**. | [x] |

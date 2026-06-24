@@ -27,11 +27,30 @@ async function isShellVisible(adb) {
   return false;
 }
 
+async function prepareSmokeSession(adb, opts = {}) {
+  const { skipBiometric = true, keepLoggedIn = true, restart = false } = opts;
+  if (keepLoggedIn) {
+    await adb.setFlutterPrefBool('auth_keep_logged_in', true);
+  }
+  if (skipBiometric) {
+    await adb.setFlutterPrefBool('test_automation_skip_biometric', true);
+  }
+  if (restart) {
+    await restartApp(adb);
+    await adb.wait(ADB_FAST ? 1500 : 3500);
+  }
+  return 'Smoke session prefs OK';
+}
+
 async function ensureAuthenticatedShell(adb, email, password) {
   const creds = resolveTestCredentials({ email, password });
   email = creds.email;
   password = creds.password;
-  await dismissBiometricUnlock(adb, { password });
+  if (await isShellVisible(adb)) return 'Shell OK';
+  const smokeAuto = await isSmokeAutomation(adb);
+  if (!smokeAuto) {
+    await dismissBiometricUnlock(adb, { password });
+  }
   if (await isShellVisible(adb)) return 'Shell OK';
   if (await adb.uiContains('Bonjour')) {
     try {
@@ -63,8 +82,20 @@ async function setInterimModeForSmoke(adb, enabled = true) {
   return `interim_mode_enabled=${enabled}`;
 }
 
+async function isSmokeAutomation(adb) {
+  try {
+    const xml = await adb.shellCommand(
+      'run-as com.example.jobbingtrack_mobile cat shared_prefs/FlutterSharedPreferences.xml',
+    );
+    return xml.includes('flutter.test_automation_skip_biometric" value="true"');
+  } catch {
+    return false;
+  }
+}
+
 async function dismissBiometricUnlock(adb, opts = {}) {
   const { password } = opts;
+  const smokeAuto = await isSmokeAutomation(adb);
   let xml = '';
   try {
     xml = await adb.uiDump();
@@ -93,6 +124,18 @@ async function dismissBiometricUnlock(adb, opts = {}) {
       if (ok) return true;
     }
     if (await adb.uiContains('Se déconnecter')) {
+      if (smokeAuto) {
+        if (password && (await adb.uiContains('Mot de passe JobbingTrack'))) {
+          const ok = await unlockWithJobbingTrackPassword(adb, password);
+          if (ok) return true;
+        }
+        if (await adb.uiContains('Mot de passe JobbingTrack')) {
+          await adb.tap('Mot de passe JobbingTrack');
+          await adb.wait(2500);
+          return true;
+        }
+        return false;
+      }
       await adb.tap('Se déconnecter');
       await adb.wait(1000);
       if (await adb.uiContains('Déconnexion')) {
@@ -757,6 +800,7 @@ async function sequence(adb, steps) {
 
 module.exports = {
   setInterimModeForSmoke,
+  prepareSmokeSession,
   ensureAuthenticatedShell,
   isShellVisible,
   clearAppDataForSmoke,

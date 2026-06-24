@@ -3,6 +3,7 @@ const emailService = require('./emailService');
 const { CONSENT_VERSION } = require('./emailAgentService');
 const { renderDigestHtml, renderDigestText, countDigestItems } = require('../lib/digestRenderer');
 const { resolveDigestFrom } = require('../lib/digestIdentity');
+const { resolveDigestRecipient } = require('../lib/digestRecipient');
 const { getPublicFrontendUrl } = require('../utils/frontendUrlForEmails');
 const logger = require('../utils/logger');
 
@@ -140,23 +141,28 @@ async function sendUserWeeklyDigest(user) {
     return { userId: user.id, skipped: true, reason: identity.reason || 'invalid_digest_from' };
   }
 
+  const recipient = resolveDigestRecipient(user);
   const html = renderDigestHtml(summary, { appUrl: summary.appUrl });
   const text = renderDigestText(summary, { appUrl: summary.appUrl });
   const subject = summary.subject;
 
   const emailLog = await emailService.logEmail({
     userId: user.id,
-    to: user.email,
+    to: recipient.to,
     from: identity.from,
     subject,
     type: 'NOTIFICATION',
     emailContent: html,
-    metadata: { kind: 'email_agent_weekly_digest' },
+    metadata: {
+      kind: 'email_agent_weekly_digest',
+      accountEmail: recipient.accountEmail,
+      recipientSource: recipient.source,
+    },
   });
 
   try {
     await emailService.getProvider().sendEmail({
-      to: user.email,
+      to: recipient.to,
       subject,
       htmlContent: html,
       textContent: text,
@@ -166,13 +172,14 @@ async function sendUserWeeklyDigest(user) {
     if (emailLog?.id) {
       await emailService.updateEmailLogStatus(emailLog.id, 'SENT');
     }
-    logger.info(`📬 Récap hebdomadaire agent email envoyé à ${user.email}`);
+    logger.info(`📬 Récap hebdomadaire agent email envoyé à ${recipient.to} (compte ${recipient.accountEmail})`);
     return {
       userId: user.id,
       ok: true,
       items: countDigestItems(summary),
       stats: summary.stats,
-      to: user.email,
+      to: recipient.to,
+      accountEmail: recipient.accountEmail,
     };
   } catch (error) {
     if (emailLog?.id) {
@@ -261,23 +268,28 @@ async function sendUserDigest(user) {
     return { userId: user.id, skipped: true, reason: identity.reason || 'invalid_digest_from' };
   }
 
+  const recipient = resolveDigestRecipient(user);
   const html = renderDigestHtml(summary, { appUrl: summary.appUrl });
   const text = renderDigestText(summary, { appUrl: summary.appUrl });
   const subject = summary.subject;
 
   const emailLog = await emailService.logEmail({
     userId: user.id,
-    to: user.email,
+    to: recipient.to,
     from: identity.from,
     subject,
     type: 'NOTIFICATION',
     emailContent: html,
-    metadata: { kind: 'email_agent_daily_digest' },
+    metadata: {
+      kind: 'email_agent_daily_digest',
+      accountEmail: recipient.accountEmail,
+      recipientSource: recipient.source,
+    },
   });
 
   try {
     await emailService.getProvider().sendEmail({
-      to: user.email,
+      to: recipient.to,
       subject,
       htmlContent: html,
       textContent: text,
@@ -287,12 +299,13 @@ async function sendUserDigest(user) {
     if (emailLog?.id) {
       await emailService.updateEmailLogStatus(emailLog.id, 'SENT');
     }
-    logger.info(`📬 Digest agent email envoyé à ${user.email}`);
+    logger.info(`📬 Digest agent email envoyé à ${recipient.to} (compte ${recipient.accountEmail})`);
     return {
       userId: user.id,
       ok: true,
       items: countDigestItems(summary),
-      to: user.email,
+      to: recipient.to,
+      accountEmail: recipient.accountEmail,
     };
   } catch (error) {
     if (emailLog?.id) {
