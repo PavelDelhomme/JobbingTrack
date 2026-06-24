@@ -1,5 +1,8 @@
-const path = require('path');
 const crypto = require('crypto');
+
+function generateDevTestBypassToken(randomBytes = 32) {
+  return `jtbypass1-${crypto.randomBytes(randomBytes).toString('base64url')}`;
+}
 
 describe('devTestBypassRequest — format jeton non-prod', () => {
   const originalEnv = process.env;
@@ -18,10 +21,6 @@ describe('devTestBypassRequest — format jeton non-prod', () => {
 
   test('accepte uniquement le format jtbypass1- + suffixe', () => {
     process.env = { ...originalEnv, NODE_ENV: 'development' };
-    const { generateDevTestBypassToken } = require(path.join(
-      __dirname,
-      '../../../config/dev-test-bypass-format.cjs'
-    ));
     const t = generateDevTestBypassToken(32);
     process.env.DEV_TEST_BYPASS_TOKEN = t;
     jest.resetModules();
@@ -31,10 +30,6 @@ describe('devTestBypassRequest — format jeton non-prod', () => {
 
   test('en production, isDevTestBypassRequest est toujours false', () => {
     process.env = { ...originalEnv, NODE_ENV: 'production' };
-    const { generateDevTestBypassToken } = require(path.join(
-      __dirname,
-      '../../../config/dev-test-bypass-format.cjs'
-    ));
     process.env.DEV_TEST_BYPASS_TOKEN = generateDevTestBypassToken(32);
     jest.resetModules();
     const { isDevTestBypassRequest } = require('../src/utils/devTestBypassRequest');

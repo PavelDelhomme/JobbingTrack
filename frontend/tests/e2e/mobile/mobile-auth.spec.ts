@@ -1,13 +1,12 @@
 // Tests fonctionnels mobile — utilise un utilisateur classique (rôle USER)
 import { test, expect } from "@playwright/test";
-import { process } from "process";
 import { ensureTestUser, requireTestCredentials } from "../test-data-helper";
 /**
  * Tests Mobile - Authentification
  * Inscription, connexion, déconnexion, réinitialisation mot de passe
  */
 
-const FRONTEND_URL = process.env.FRONTEND_URL;
+const FRONTEND_URL = process.env.FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || "http://localhost:5003";
 
 test.describe("📱 Mobile - Authentification", () => {
   let testCredentials: { email: string; password: string } | null = null;

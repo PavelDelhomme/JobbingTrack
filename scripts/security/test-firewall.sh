@@ -149,7 +149,7 @@ echo ""
 # Test 2: Créer une règle firewall de test
 echo "📋 Test 2: Création d'une règle firewall de test"
 refresh_icurl_hdrs
-RULE_DATA='{"name":"Test Rule","description":"Règle de test","protocol":"TCP","action":"DENY","destPort":9999,"priority":50}'
+RULE_DATA='{"name":"Test Rule","description":"Règle de test","sourceIp":"10.0.0.99","protocol":"TCP","action":"DENY","destPort":9999,"priority":50}'
 # Accepter 201 (succès) ou 503 (table non trouvée - besoin de db-push-all)
 response=$(curl -s -w "\n%{http_code}" -X POST "${FIREWALL_BASE_URL}/api/v1/security/firewall/rules" \
     "${icurl_hdrs[@]}" \
