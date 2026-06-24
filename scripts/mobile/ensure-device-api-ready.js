@@ -54,6 +54,8 @@ function sh(cmd) {
   }
 
   console.log('\nPrêt — relancez l\'app mobile (APK debug) et connectez-vous.');
+  console.log('Usage normal (biométrie) : node scripts/mobile/clear-smoke-device-adb.js');
+  console.log('Smokes ADB uniquement   : node scripts/mobile/prepare-smoke-device-adb.js');
 })().catch((e) => {
   console.error('ensure-device-api-ready KO:', e.message);
   process.exit(1);

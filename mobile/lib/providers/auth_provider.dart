@@ -204,11 +204,28 @@ class AuthProvider with ChangeNotifier {
       }
     } catch (e) {
       final deviceId = await ApiConfigStore.getOrCreateDeviceId();
+      final errText = e.toString();
       ApiService.postSecurityEvent(
         eventType: 'auth_failure',
-        message: e.toString(),
+        message: errText,
         deviceId: deviceId,
       );
+      final isNetwork =
+          errText.contains('joindre') ||
+          errText.contains('SocketException') ||
+          errText.contains('Connection refused') ||
+          errText.contains('Failed host lookup') ||
+          ApiService.lastRequestWasNetworkFailure;
+      if (isNetwork) {
+        CrashReporter.reportManualError(
+          message: 'Connexion mobile impossible — $errText (API: ${ApiService.baseUrl})',
+          screenName: 'login',
+          metadata: {
+            'category': 'auth_network',
+            'deviceId': deviceId,
+          },
+        );
+      }
       _isLoading = false;
       notifyListeners();
       rethrow;
