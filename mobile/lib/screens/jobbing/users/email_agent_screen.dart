@@ -20,6 +20,8 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
   String? _error;
   EmailAgentStatus? _status;
   List<EmailAgentTriageMessage> _messages = [];
+  final Map<String, List<EmailAgentLinkSuggestion>> _linkSuggestions = {};
+  String? _expandedMessageId;
   final Map<String, bool> _consentDraft = {};
   String? _discoveryHint;
 
@@ -193,6 +195,41 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
         reviewStatus: 'DISMISSED',
       );
     });
+  }
+
+  Future<void> _toggleMessageExpand(EmailAgentTriageMessage msg) async {
+    if (_expandedMessageId == msg.id) {
+      setState(() => _expandedMessageId = null);
+      return;
+    }
+    setState(() => _expandedMessageId = msg.id);
+    if (_linkSuggestions.containsKey(msg.id) || msg.applicationId != null) return;
+    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    try {
+      final suggestions = await EmailAgentService.fetchLinkSuggestions(
+        token: token,
+        messageId: msg.id,
+      );
+      if (!mounted) return;
+      setState(() => _linkSuggestions[msg.id] = suggestions);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+        );
+      }
+    }
+  }
+
+  Future<void> _linkMessage(EmailAgentTriageMessage msg, String applicationId) async {
+    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    await _runAction(() async {
+      await EmailAgentService.linkToApplication(
+        token: token,
+        messageId: msg.id,
+        applicationId: applicationId,
+      );
+    }, success: 'Email lié à la candidature');
   }
 
   @override
@@ -385,21 +422,70 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
                         if (_messages.isEmpty)
                           _infoCard('Rien en attente', 'Synchronisez vos boîtes pour importer les emails.')
                         else
-                          ..._messages.map((msg) => Card(
-                                child: ListTile(
-                                  isThreeLine: true,
-                                  title: Text(msg.subject, maxLines: 2, overflow: TextOverflow.ellipsis),
-                                  subtitle: Text(
-                                    '${msg.fromAddress}\n${dateFmt.format(msg.receivedAt.toLocal())}'
-                                    '${msg.classification != null ? ' · ${msg.classification}' : ''}',
+                          ..._messages.map((msg) {
+                            final expanded = _expandedMessageId == msg.id;
+                            final suggestions = _linkSuggestions[msg.id] ?? [];
+                            return Card(
+                              child: Column(
+                                children: [
+                                  ListTile(
+                                    isThreeLine: true,
+                                    title: Text(msg.subject, maxLines: 2, overflow: TextOverflow.ellipsis),
+                                    subtitle: Text(
+                                      '${msg.fromAddress}\n${dateFmt.format(msg.receivedAt.toLocal())}'
+                                      '${msg.classification != null ? ' · ${msg.classification}' : ''}'
+                                      '${msg.applicationId != null ? '\n✓ Candidature liée' : ''}',
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
+                                          tooltip: 'Détails / lier',
+                                          onPressed: _actionLoading ? null : () => _toggleMessageExpand(msg),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.check_circle_outline),
+                                          tooltip: 'Ignorer',
+                                          onPressed: _actionLoading ? null : () => _dismissMessage(msg),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.check_circle_outline),
-                                    tooltip: 'Ignorer',
-                                    onPressed: _actionLoading ? null : () => _dismissMessage(msg),
-                                  ),
-                                ),
-                              )),
+                                  if (expanded) ...[
+                                    if (msg.snippet != null && msg.snippet!.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            msg.snippet!,
+                                            style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                                          ),
+                                        ),
+                                      ),
+                                    if (msg.applicationId == null && suggestions.isEmpty)
+                                      const Padding(
+                                        padding: EdgeInsets.all(12),
+                                        child: Text('Aucune candidature suggérée — créez-en une dans l\'app.'),
+                                      ),
+                                    for (final s in suggestions)
+                                      ListTile(
+                                        dense: true,
+                                        title: Text(s.companyName ?? 'Entreprise'),
+                                        subtitle: Text('${s.position} · score ${s.score.toStringAsFixed(0)}'),
+                                        trailing: TextButton(
+                                          onPressed: _actionLoading
+                                              ? null
+                                              : () => _linkMessage(msg, s.applicationId),
+                                          child: const Text('Lier'),
+                                        ),
+                                      ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          }),
                       ],
                     ],
                     const SizedBox(height: 24),

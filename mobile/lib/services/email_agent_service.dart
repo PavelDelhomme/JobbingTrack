@@ -58,6 +58,7 @@ class EmailAgentTriageMessage {
   final DateTime receivedAt;
   final String? classification;
   final String reviewStatus;
+  final String? applicationId;
 
   const EmailAgentTriageMessage({
     required this.id,
@@ -67,6 +68,7 @@ class EmailAgentTriageMessage {
     required this.receivedAt,
     this.classification,
     required this.reviewStatus,
+    this.applicationId,
   });
 
   factory EmailAgentTriageMessage.fromJson(Map<String, dynamic> json) {
@@ -78,6 +80,30 @@ class EmailAgentTriageMessage {
       receivedAt: DateTime.tryParse(json['receivedAt']?.toString() ?? '') ?? DateTime.now(),
       classification: json['classification']?.toString(),
       reviewStatus: json['reviewStatus']?.toString() ?? 'PENDING',
+      applicationId: json['applicationId']?.toString(),
+    );
+  }
+}
+
+class EmailAgentLinkSuggestion {
+  final String applicationId;
+  final String? companyName;
+  final String position;
+  final double score;
+
+  const EmailAgentLinkSuggestion({
+    required this.applicationId,
+    this.companyName,
+    required this.position,
+    required this.score,
+  });
+
+  factory EmailAgentLinkSuggestion.fromJson(Map<String, dynamic> json) {
+    return EmailAgentLinkSuggestion(
+      applicationId: json['applicationId']?.toString() ?? '',
+      companyName: json['companyName']?.toString(),
+      position: json['position']?.toString() ?? '',
+      score: (json['score'] as num?)?.toDouble() ?? 0,
     );
   }
 }
@@ -292,6 +318,34 @@ class EmailAgentService {
         )
         .timeout(_defaultTimeout);
     await _decode(res, 'revue triage');
+  }
+
+  static Future<List<EmailAgentLinkSuggestion>> fetchLinkSuggestions({
+    required String? token,
+    required String messageId,
+  }) async {
+    final res = await http.get(
+      Uri.parse('${ApiService.baseUrl}/api/v1/email-agent/triage/$messageId/link-suggestions'),
+      headers: _headers(token),
+    ).timeout(_defaultTimeout);
+    final data = await _decode(res, 'suggestions liaison');
+    final raw = data['suggestions'] as List<dynamic>? ?? [];
+    return raw
+        .map((e) => EmailAgentLinkSuggestion.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  static Future<void> linkToApplication({
+    required String? token,
+    required String messageId,
+    required String applicationId,
+  }) async {
+    final res = await http.post(
+      Uri.parse('${ApiService.baseUrl}/api/v1/email-agent/triage/$messageId/link'),
+      headers: _headers(token),
+      body: jsonEncode({'applicationId': applicationId}),
+    ).timeout(_defaultTimeout);
+    await _decode(res, 'liaison candidature');
   }
 }
 
