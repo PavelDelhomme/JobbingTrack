@@ -25,16 +25,17 @@ class EmailService:
         self.port = int(os.getenv('SMTP_PORT', '1025'))
         self.use_tls = os.getenv('SMTP_SECURE', 'false').lower() == 'true' or os.getenv('SMTP_USE_TLS', 'false').lower() == 'true'
         self.use_ssl = os.getenv('SMTP_USE_SSL', 'false').lower() == 'true'
-        
-        # Correction automatique : Port 465 nécessite SSL
-        if self.port == 465 and not self.use_ssl:
+
+        # Ports SMTP standards : 465 = SSL implicite ; 587 = STARTTLS (jamais SMTP_SSL direct).
+        if self.port == 465:
             self.use_ssl = True
-            self.use_tls = False  # SSL et TLS sont mutuellement exclusifs
-        
-        # Correction automatique : Port 587 nécessite STARTTLS (TLS)
-        if self.port == 587 and not self.use_ssl:
+            self.use_tls = False
+        elif self.port == 587:
+            self.use_ssl = False
             self.use_tls = True
-            self.use_ssl = False  # Port 587 utilise STARTTLS, pas SSL direct
+        elif self.port == 25 or self.port == 1025:
+            self.use_ssl = False
+            # MailHog / relais local : pas de TLS par défaut
         self.username = os.getenv('SMTP_USER', '')
         self.password = os.getenv('SMTP_PASS', '')
         self.from_email = os.getenv('SMTP_FROM', 'JobbingTrack <redacted@example.invalid>')
@@ -427,6 +428,8 @@ L'équipe {self.app_name}
             Dict avec success (bool) et message (str)
         """
         verification_link = f"{self.frontend_url}/verify-email?token={verification_token}"
+        mobile_scheme = os.getenv('MOBILE_APP_SCHEME', 'jobbingtrack').strip() or 'jobbingtrack'
+        mobile_link = f"{mobile_scheme}://verify-email?token={verification_token}"
         subject = '✅ Vérifiez votre adresse email - JobbingTrack'
         
         message = f'''
@@ -436,6 +439,9 @@ Bienvenue sur {self.app_name} !
 
 Veuillez vérifier votre adresse email en cliquant sur le lien suivant :
 {verification_link}
+
+Sur l'application mobile JobbingTrack, vous pouvez aussi ouvrir ce lien :
+{mobile_link}
 
 Ce lien est valide pendant 60 minutes.
 
@@ -470,6 +476,11 @@ L'équipe {self.app_name}
             <p style="color: #666; font-size: 14px;">
                 Ou copiez-collez ce lien dans votre navigateur :<br>
                 <a href="{verification_link}" style="color: #3b82f6; word-break: break-all;">{verification_link}</a>
+            </p>
+
+            <p style="color: #666; font-size: 14px;">
+                <strong>Sur mobile (Samsung / app JobbingTrack)</strong> :<br>
+                <a href="{mobile_link}" style="color: #3b82f6; word-break: break-all;">{mobile_link}</a>
             </p>
             
             <p style="color: #dc2626; font-size: 14px;">
