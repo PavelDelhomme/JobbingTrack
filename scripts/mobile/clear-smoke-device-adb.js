@@ -1,19 +1,5 @@
 #!/usr/bin/env node
-/**
- * Désactive les prefs smoke ADB (retour usage normal : biométrie, pas de bypass test).
- * Usage: node scripts/mobile/clear-smoke-device-adb.js
- */
-
-const adbLib = require('../../tools/adb-lib');
-
-async function main() {
-  const phone = await adbLib.connect();
-  await phone.setFlutterPrefBool('test_automation_skip_biometric', false);
-  console.log('OK — test_automation_skip_biometric=false');
-  console.log('Relancez l\'app : la biométrie refonctionne si activée dans Paramètres.');
-}
-
-main().catch((err) => {
-  console.error('FAIL:', err.message);
-  process.exit(1);
-});
+const { spawnSync } = require('child_process');
+const path = require('path');
+const r = spawnSync(process.execPath, [path.join(__dirname, 'setup/clear-smoke-device-adb.js'), ...process.argv.slice(2)], { stdio: 'inherit', env: process.env });
+process.exit(r.status ?? 1);

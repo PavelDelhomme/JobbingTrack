@@ -119,7 +119,8 @@ async function prepareSmokeSession(adb, opts = {}) {
   const { skipBiometric = true, keepLoggedIn = true, restart = false } = opts;
   if (skipBiometric) {
     await adb.setFlutterPrefBool('test_automation_skip_biometric', true);
-    await adb.setFlutterPrefBool('auth_biometric_unlock', false);
+    // Ne pas toucher auth_biometric_unlock : le bypass smoke est limité à la pref test ;
+    // hors smokes, la biométrie porteur reste opérationnelle après restoreSmokeSessionPrefs.
   }
   if (keepLoggedIn) {
     await adb.setFlutterPrefBool('auth_keep_logged_in', true);
@@ -135,6 +136,12 @@ async function prepareSmokeSession(adb, opts = {}) {
     await ensureFullLoginForm(adb);
   }
   return 'Smoke session prefs OK';
+}
+
+/** Fin de smoke : réactive empreinte / déverrouillage produit (debug APK). */
+async function restoreSmokeSessionPrefs(adb) {
+  await adb.setFlutterPrefBool('test_automation_skip_biometric', false);
+  return 'Prefs smoke restaurées (biométrie produit)';
 }
 
 async function ensureAuthenticatedShell(adb, email, password) {
@@ -1017,6 +1024,7 @@ async function sequence(adb, steps) {
 module.exports = {
   setInterimModeForSmoke,
   prepareSmokeSession,
+  restoreSmokeSessionPrefs,
   ensureAuthenticatedShell,
   isShellVisible,
   clearAppDataForSmoke,

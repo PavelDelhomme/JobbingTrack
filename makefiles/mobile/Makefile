@@ -79,45 +79,45 @@ test-emulator-controller: ## Vérifier que le contrôleur répond (GET /health, 
 
 # Appareil physique : adb reverse + build/install APK
 mobile-device-ready: ## Préparer appareil USB (adb reverse 5002/5003, build APK, install)
-	@bash "$(ROOT_DIR)/scripts/mobile/setup-physical-device.sh"
+	@bash "$(ROOT_DIR)/scripts/mobile/setup/setup-physical-device.sh"
 
 # Alias porteur : build + install + lancement sur téléphone USB
 run-mobile: ## Build, installe et lance l'app Flutter sur appareil USB (adb reverse inclus)
-	@bash "$(ROOT_DIR)/scripts/mobile/setup-physical-device.sh"
+	@bash "$(ROOT_DIR)/scripts/mobile/setup/setup-physical-device.sh"
 
 # Connexion automatique admin (TEST_ADMIN_* puis repli ADMIN_* si login gateway OK)
 mobile-login-admin: ## Login auto sur appareil ADB avec credentials admin (.env)
 	@echo "📱 Connexion admin mobile (TEST_ADMIN_* puis ADMIN_*)..."
 	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true
 	@adb reverse tcp:5003 tcp:5003 2>/dev/null || true
-	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke-login-admin-adb.js"
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke/adb/smoke-login-admin-adb.js"
 
 mobile-login-user: ## Login auto ADB avec TEST_USER_EMAIL/PASSWORD (.env)
 	@echo "📱 Connexion utilisateur test mobile (TEST_USER_*)..."
 	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true
 	@adb reverse tcp:5003 tcp:5003 2>/dev/null || true
-	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke-login-user-adb.js"
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke/adb/smoke-login-user-adb.js"
 
 mobile-test-accounts: ## Smoke ADB admin + user (menu ADMIN visible / masqué)
 	@echo "📱 Smoke dual comptes mobile (admin puis utilisateur test)..."
 	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true
 	@adb reverse tcp:5003 tcp:5003 2>/dev/null || true
-	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke-mobile-accounts-adb.js"
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke/adb/smoke-mobile-accounts-adb.js"
 
 mobile-smoke-full-journey: ## Parcours API complet (candidature, contact, entretien, relance, appels, analytics)
 	@echo "📱 Smoke parcours complet API mobile..."
-	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke-full-journey-api.js"
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke/api/smoke-full-journey-api.js"
 
 mobile-register-smoke: ## Smoke inscription UI (télémétrie + écran vérif email)
 	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true
-	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke-register-adb.js"
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke/adb/smoke-register-adb.js"
 
 mobile-verify-email-smoke: ## E2E : inscription TEST_REAL_EMAIL → email (MailHog/Log) → deep link → login ADB
 	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true
-	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke-verify-email-adb.js"
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke/adb/smoke-verify-email-adb.js"
 
 mobile-sync-test-env: ## Comparer / aligner TEST_ADMIN_* et TEST_VERIFICATION_PASSWORD (.env)
-	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/sync-test-env.js" $(if $(WRITE),--write,)
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/setup/sync-test-env.js" $(if $(WRITE),--write,)
 
 # Ouvrir un lien de vérification email dans l'app (TOKEN=xxx requis)
 mobile-verify-email: ## Ouvrir deep link verify-email sur appareil (TOKEN=xxx)

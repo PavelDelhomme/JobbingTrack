@@ -14,7 +14,7 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 |----------|--------------------|-----------------|--------|
 | A1 | Smokes rapides — gate par défaut | `node scripts/mobile/smoke-run-mobile-fast.js` OK Samsung ; pré-vol `smoke-preflight.js` (verrou ADB, `SMOKE_SHARED_SHELL=1`) ; pas de scripts parallèles sur le même appareil | [ ] |
 | A2 | Attente email smokes — bonne boîte + diagnostic | Helper IMAP poll avec timeout ; ordre EmailLog → MailHog → Gmail → OVH ; logs indiquent boîte et tentative ; échec = message actionnable (mauvaise boîte, token absent, délai) | [ ] |
-| A3 | Bypass biométrie smokes (pas produit) | Pref `test_automation_skip_biometric` ; smokes sans prompt Samsung/Aegis ; biométrie porteur inchangée hors mode test | [ ] |
+| A3 | Bypass biométrie smokes (pas produit) | Pref `test_automation_skip_biometric` (debug APK) ; smokes sans prompt Samsung ; **restauration auto** fin batterie + `clear-smoke-device-adb.js` ; biométrie porteur inchangée hors pref | [x] |
 | A4 | Hub admin ADB multi-comptes | `smoke-mobile-admin-hub-adb.js` OK : admin visible → hub → retour TEST_USER sans blocage login | [ ] |
 | A5 | Consentements agent `/agent` — sync mobile→web | Consentements sauvés mobile visibles sur `/agent` (même compte) ; UI switches statut OK/KO + `grantedAt` ; `hasRequiredConsents` cohérent | [ ] UI switches + badges OK/KO + dates `grantedAt`/`revokedAt` dans `AgentEmailContent.tsx` ; `./node_modules/.bin/tsc --noEmit` frontend **OK** (17/06). **Reste** : preuve sync même compte mobile→BDD→web + validation porteur |
 | A6 | Comptes test prêts | `ensure-test-accounts-ready.js` : `TEST_USER` + `TEST_ADMIN` login API + `emailVerified=true` | [x] |
@@ -25,8 +25,11 @@ Commandes utiles (directes, sans Make) :
 node scripts/mobile/ensure-test-accounts-ready.js
 node scripts/mobile/smoke-preflight.js
 node scripts/mobile/smoke-run-mobile-fast.js
-ADB_FAST=1 node scripts/mobile/smoke-mobile-admin-hub-adb.js
+ADB_FAST=1 node scripts/mobile/smoke/adb/smoke-mobile-admin-hub-adb.js
+node scripts/mobile/clear-smoke-device-adb.js   # si usage porteur après smokes
 ```
+
+Index scripts : `scripts/mobile/README.md`.
 
 ## Vérifications ouvertes (historique / autres lots)
 
