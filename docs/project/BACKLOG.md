@@ -2,7 +2,9 @@
 
 Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` contient l'état courant ; ce fichier contient le backlog complet.
 
-**Gate porteur juin 2026 (priorité absolue)** : avant tout chantier mobile/agent suivant (picker/planning ligne 332, merge `dev`, FCM prod…), clôturer la **file stricte** `TODOS_A_VALIDER.md` étapes **1→5** (319 inscription vérif → 323 consentements RGPD). Détail : § « File de validation porteur » dans ce fichier pilotage.
+**Gate porteur juin 2026 (priorité absolue)** : avant tout chantier mobile/agent suivant (picker/planning ligne 332, merge `dev`, FCM prod…), clôturer la **file stricte** `TODOS_A_VALIDER.md` étapes **1→5** (319 inscription vérif → 323 consentements RGPD). Détail : § « File de validation porteur » dans ce fichier pilotage. **Étape 1 guide** : `docs/mobile/VALIDATION_ETAPE_1_INSCRIPTION.md`.
+
+**Standards documentation (Lot H/E, avant tests finaux / prod)** : `docs/development/DOCUMENTATION_STANDARDS.md` — plafond ~150 lignes par hub (sauf fichiers pilotage listés), scinder plutôt qu’allonger, aligner `make help` et README scripts.
 
 **Chantier structuré** (lot **A** : monitoring + logs ; lot **B** : sécurité ; intérim ; doc ; **lot H** : release/préprod/conformité) : pour ne pas dupliquer la granularité, suivre **`docs/PLAN.md`** (lots A–H) et **`docs/TODOS.md`**. Le présent fichier reste la réserve pour les sujets « plus tard », la dette large et les idées non planifiées sur le calendrier court.
 

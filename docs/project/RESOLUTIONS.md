@@ -10,9 +10,11 @@
 Le porteur a confirmé que **rien n’est encore validé** sur la séquence inscription → navigation FAB → OVH SMTP → agent admin → consentements RGPD. L’ordre **319 → 320 → 321 → 322 → 323** est désormais **bloquant** : pas de merge `dev`, pas de validation picker/planning (ligne 332) avant OK explicite des étapes 1–5.
 
 ### Documentation
+- Guide pas à pas porteur étape 1 : `docs/mobile/VALIDATION_ETAPE_1_INSCRIPTION.md`
 - Guide pas à pas porteur : `docs/pilotage/TODOS_A_VALIDER.md` § « File de validation porteur — ordre strict »
 - État courant : `docs/STATUS.md` (étape 1 / 5)
 - Agent : `docs/pilotage/TODOS_A_VERIFIER.md` § « File porteur — en attente »
+- **Standards doc (Lot H/E, avant prod)** : `docs/development/DOCUMENTATION_STANDARDS.md` — hubs ≤ 150 lignes sauf exceptions pilotage ; parallèle `make help`.
 
 ---
 

@@ -25,7 +25,7 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 
 | Étape | Ligne | Statut agent | Statut porteur | Action porteur |
 |-------|-------|--------------|----------------|----------------|
-| 1 | 319 Inscription + vérif email | smokes API/ADB OK | **[ ] BLOQUANT** | Mail réel + clic lien — § étape 1 |
+| 1 | 319 Inscription + vérif email | smokes API/ADB OK | **[ ] BLOQUANT** | Guide : [`docs/mobile/VALIDATION_ETAPE_1_INSCRIPTION.md`](../../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md) |
 | 2 | 320 Navigation + FAB | smokes ADB OK | bloquée par 319 | § étape 2 |
 | 3 | 321 OVH SMTP `@jobbingtrack.com` | doc + diagnostic OK | bloquée par 320 | MX Plan OVH — § étape 3 |
 | 4 | 322 Agent admin `/agent` | UI + API OK | bloquée par 321 | § étape 4 |

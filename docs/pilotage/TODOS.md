@@ -679,7 +679,9 @@ Dette **`npm run type-check`** : **`ERRORS.md`** ; journal : **`make type-check-
 
 ## Lot E — Documentation
 
-- [x] `STATUS.md` — structure de lecture + tableau lots A–F + liens (avril 2026).
+**Standard (17/06/2026)** : avant tests finaux complets et déploiement — appliquer [`docs/development/DOCUMENTATION_STANDARDS.md`](../development/DOCUMENTATION_STANDARDS.md) : hubs ≤ **150 lignes** (sauf fichiers pilotage/INDEX/PLAN/STATUS/BACKLOG/ERRORS listés dans ce doc), scinder les sujets longs, aligner **`make help`** / README scripts avec les procédures markdown, documenter fonctions/scripts non évidents.
+
+- [ ] **Gate doc pré-prod** : après Lot H (réorg scripts/fichiers), revue complète + découpage ; checklist fin § « Checklist agent » dans `DOCUMENTATION_STANDARDS.md`.
 - [x] `ERRORS.md` — § Pièges dashboard + pipeline + lignes chantier A/B (avril 2026).
 - [x] `project/FONCTIONNALITES.md` — § 4.1 dashboard détaillé + date avril 2026.
 - [x] `RESOLUTIONS.md` — entrée avril 2026 (vue d’ensemble observabilité).
@@ -723,6 +725,15 @@ Dette **`npm run type-check`** : **`ERRORS.md`** ; journal : **`make type-check-
 ## Lot H — Hygiène dépôt : `scripts/`, `tests/`, `tools/`, `services/`, mobile
 
 Chantier **transversal** (hors périmètre fonctionnel A–G seul) : rangement, usage réel, doc. Cocher au fil de l’eau.
+
+**Doc obligatoire en fin de Lot H** : mettre à jour toute doc impactée selon [`docs/development/DOCUMENTATION_STANDARDS.md`](../development/DOCUMENTATION_STANDARDS.md) **avant** tests finaux (`Lot F`) et gate prod — plus de fichiers précis plutôt que hubs géants ; parallèle `make help` ↔ markdown.
+
+### H0 — Doc & help (fin Lot H, avant Lot F / prod)
+
+- [ ] Appliquer `DOCUMENTATION_STANDARDS.md` : plafond **150 lignes** par hub (exceptions pilotage listées dans ce fichier).
+- [ ] Scinder les `.md` trop longs ; index courts dans `docs/INDEX.md` / `navigation.md`.
+- [ ] Chaque script déplacé (H1–H3) : MAJ doc + ligne `make help` ou README domaine.
+- [ ] Parallèle **make help ↔ markdown** : une procédure = une source de vérité sous `docs/` ou `scripts/*/README.md`.
 
 ### H1 — Dossier **`scripts/`** (~90 fichiers à la racine du dossier + sous-dossiers `db/`, `monitoring/`, `testing/`, etc.)
 

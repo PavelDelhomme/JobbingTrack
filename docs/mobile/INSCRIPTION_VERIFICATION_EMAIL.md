@@ -37,15 +37,17 @@ Prérequis : stack up, `adb reverse tcp:5002 tcp:5002`, Samsung connecté.
 
 Flows : `tools/adb-lib/flows.js` — `register()` laisse la télémétrie cochée (défaut UI).
 
-## Validation porteur (ligne 317)
+## Validation porteur (ligne 319 — étape 1 / 5)
 
-Checklist sur **Samsung** (`adb reverse tcp:5002 tcp:5002` si besoin) :
+**Guide pas à pas porteur** : [`VALIDATION_ETAPE_1_INSCRIPTION.md`](VALIDATION_ETAPE_1_INSCRIPTION.md)
+
+Checklist résumée sur **Samsung** (`adb reverse tcp:5002 tcp:5002` si besoin) :
 
 1. **Refus télémétrie** : Inscription → décocher « Partager des données anonymes » → **S'inscrire** → snackbar rouge, pas de compte créé.
 2. **Inscription OK** : recocher télémétrie + conditions → email test `@delhomme.ovh` → écran **Vérifiez votre email**.
 3. **Renvoi** : bouton **Renvoyer l'email de vérification** → message vert « Un nouvel email… ».
 4. **Deep link** : ouvrir le lien du mail (ou `adb shell am start -a android.intent.action.VIEW -d "jobbingtrack://verify-email?token=…"`) → **Email vérifié** → Connexion.
-5. Réponse porteur : `OK Mobile Inscription vérif email` ou `KO` + détail.
+5. Réponse porteur : `OK Mobile — Inscription + télémétrie obligatoire + vérif email` ou `KO` + détail (voir guide étape 1).
 
 Smokes agent (déjà OK 25/06) :
 

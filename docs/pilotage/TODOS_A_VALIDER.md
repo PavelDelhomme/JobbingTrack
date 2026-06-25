@@ -332,6 +332,8 @@ En cas de `KO` : décrire **exactement** ce qui bloque (écran, message, boîte 
 
 ### Étape 1 — Ligne 319 : Inscription + télémétrie + vérif email (**BLOQUANTE**)
 
+> **Guide porteur pas à pas** : [`docs/mobile/VALIDATION_ETAPE_1_INSCRIPTION.md`](../../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md) ← **commencer ici sur Samsung**.
+
 **Environnement** : Samsung `R5CT7263YJL` (ou AVD) + stack locale (`gateway` `127.0.0.1:5002`, `adb reverse tcp:5002 tcp:5002`). APK debug installé (`bash scripts/mobile/setup/build-apk-debug.sh`).
 
 **Prérequis agent (déjà faits — ne pas re-valider toi)** :

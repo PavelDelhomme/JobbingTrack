@@ -12,6 +12,7 @@ Application mobile cross-platform avec Flutter, synchronisation temps réel et m
 
 **Guides Lot D (19/06)** :
 
+- **[Validation porteur — Étape 1 / 5 (inscription + mail réel)](VALIDATION_ETAPE_1_INSCRIPTION.md)** ← **priorité porteur**
 - [Centre de notifications mobile](NOTIFICATION_CENTER.md) — filtre métier, navigation au tap, smokes
 - [Inscription et vérification email](INSCRIPTION_VERIFICATION_EMAIL.md) — télémétrie obligatoire, deep link, smokes ADB
 

@@ -4,7 +4,9 @@
 
 ## Priorité immédiate — ce que le porteur doit faire maintenant
 
-**Étape courante : 1 / 5** — ligne **319** `TODOS_A_VALIDER.md` : **Inscription + télémétrie + vérif email sur boîte réelle**.
+**Étape courante : 1 / 5** — ligne **319** : inscription + vérif email sur **ta vraie boîte mail**.
+
+**Guide détaillé (Samsung, checklist, texte OK/KO)** : [`mobile/VALIDATION_ETAPE_1_INSCRIPTION.md`](mobile/VALIDATION_ETAPE_1_INSCRIPTION.md)
 
 | Étape | Sujet | Toi (porteur) | Agent |
 |-------|--------|---------------|-------|
