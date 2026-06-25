@@ -187,6 +187,27 @@ Les événements créés automatiquement par l’agent email doivent respecter u
 - heure détectée mais douteuse : conserver la preuve extraite de l’email et demander validation dans l’interface ;
 - digest : signaler les invitations ambiguës dans une section “À confirmer” plutôt que les masquer.
 
+## Emails réels vs données seed (dev)
+
+| Source | Comment |
+|--------|---------|
+| **Boîte IMAP** (`candidatures@delhomme.ovh`, sync ↻) | Vrais messages : sujet + extrait analysés par `classifyEmail` (mêmes règles que les tests). |
+| **Seed SQL** (`smoke-triage-1…3`, `reset-email-agent-triage-seed.cjs`) | Emails fictifs pour rejouer le triage sans dépendre de la boîte OVH. |
+
+Le compte JobbingTrack (`paul.delhomme@proton.me`) sert à la **connexion** et au **digest** ; la **lecture** des candidatures se fait via les boîtes « Boîtes connectées ».
+
+## Statut candidature ← email validé (25/06)
+
+Quand l’utilisateur **lie** une candidature puis **Valide** un email (dans un ordre ou l’autre), et que le message porte un `suggestedStatus` :
+
+1. Le moteur de règles propose un code (`REJECTED_WITHOUT_INTERVIEW`, `FIRST_INTERVIEW_PENDING`, `RELANCED_PENDING`, etc.).
+2. Après **Valider** (`reviewStatus = ACCEPTED`) + `applicationId`, le backend met à jour `Application.statusId`, historise (`ApplicationStatusHistory`, commentaire « Agent email : … »).
+3. Pas d’application sans **Valider** explicite ni sans **lier** la candidature.
+4. Respect de `statusEngineOptOut` sur la candidature.
+5. API : `PATCH /email-agent/triage/:id` et `POST …/link` renvoient `statusApply: { applied, statusCode, … }`.
+
+Ordre recommandé mobile : **▼ → Lier → Valider**.
+
 ## Tests agent email à prévoir
 
 La suite de test dédiée doit être créée avec des fixtures non sensibles et des variables `.env` locales configurées hors Git :

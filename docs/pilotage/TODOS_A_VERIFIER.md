@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 24 juin 2026 (digest traçabilité + smoke biométrie)
+Dernière mise à jour : 25 juin 2026 (inscription ligne 317 — smokes API rejoués)
 
 ## Rôle
 
@@ -17,6 +17,11 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | Mobile | Agent email — écran mobile complet | **24/06** : `EmailAgentScreen` ; smoke API **OK**. | [x] |
 | Agent email | Digest — traçabilité + destinataire porteur | **24/06** : digest 23/06 retrouvé en `EmailLog` (`SENT` → `paul.delhomme@proton.me`, kind `email_agent_daily_digest`) — **pas MailHog** car SMTP réel. Fix : `EMAIL_TRIAGE_DIGEST_OVERRIDE_EMAILS` + `RECIPIENT` → Gmail pro pour porteur ; metadata `accountEmail` ; filtre backoffice « Digest agent » ; `list-email-logs.cjs`. | [x] |
 | Mobile | Smokes ADB — bypass biométrie sécurisé (debug) | **24/06** : pref `test_automation_skip_biometric` ; `prepare-smoke-device-adb.js` / `clear-smoke-device-adb.js`. **Smoke agent email ADB OK** Samsung (Paramètres → Agent email). Parcours API **19/19 OK**. | [x] |
+| Mobile | Agent email — triage expand 3 emails seed (ADB) | **24/06** : smoke ADB expand **OK** ; fix PATCH `DISMISSED`→`REJECTED`. **Reset seed** : `node scripts/ops/reset-email-agent-triage-seed.cjs` → **3 PENDING**. Carte « Suite » retirée mobile. | [x] |
+| Mobile | Paramètres — persistance télémétrie / toggles | **24/06** : `_load()` ne remet plus les toggles à `false` avant prefs ; `reloadFromStore()` resync service. Consentement = **local appareil** (`SharedPreferences`), pas compte serveur. | [x] |
+| Mobile | Inscription — renvoi email vérification (API) | **25/06** : script `smoke-resend-verification-api.js` recréé (token post-renvoi via BDD) ; **OK** (~3 min, EmailLog + postgres). `smoke-auth-password-flows-e2e.js --skip-adb` **13/13 OK**. Stack up, gateway **200**. | [x] |
+| Mobile | Inscription ligne 317 — prêt validation porteur | **25/06** : API inscription/vérif/renvoi **OK** ; agent email triage **OK** porteur 25/06. **Reste porteur** : bouton « Renvoyer » sur Samsung ; deep link `jobbingtrack://verify-email?token=…` depuis mail réel. | [ ] |
+| Agent email | Statut candidature ← email validé + lié | **25/06** : `emailAgentApplicationStatusService` ; `suggestedStatus` appliqué si `ACCEPTED` + `applicationId` ; respect `statusEngineOptOut` ; API `statusApply` ; mobile affiche statut proposé + snackbar. Jest **7/7** status+triage review. Doc `EMAIL_TRIAGE_AGENT.md` § emails réels vs seed. | [x] |
 | Doc | Restructuration `docs/` — hubs + sous-dossiers | **22/06** : `TODOS.md` → `pilotage/` ; `PLAN`/`BACKLOG`/`RESOLUTIONS` → `project/` ; `ERRORS` → `troubleshooting/` ; PDF → `_meta/` ; stubs redirects racine ; hubs alignés. Branche `feat/docs-structure-reorg`. | [x] |
 | Backoffice | Vue d’ensemble — carte « Sessions actives » (audit sémantique) | **22/06 retour porteur** : carte **2** + sous-titre **10 utilisateurs** ; clic `/users?status=active` → **~100** comptes (E2E majoritaires). Cause code documentée. **Non corrigé** — gate préprod. | [x] |
 | Backoffice | Fiche user — renvoi email vérif + actions admin | **22/06 retour porteur** : `POST .../resend-verification` → `Network Error` navigateur ; gateway reçoit le POST. Test API direct **200 ~873 ms**. Reset MDP UI sur `/forgot-password` (route admin `send-password-reset` existante). Delete = hard delete sans rétention analytics. **Non corrigé**. | [x] |

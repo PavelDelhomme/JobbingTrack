@@ -149,6 +149,28 @@ class MobileAnalyticsService extends ChangeNotifier {
       _sessionStarted = false;
       _notifyDevStatus('Consentement désactivé');
     }
+    notifyListeners();
+  }
+
+  /// Recharge les préférences locales et réactive la télémétrie si consentement ON.
+  Future<void> reloadFromStore({String? authToken}) async {
+    _consent = await ApiConfigStore.loadAnalyticsConsent();
+    _performanceEnabled = await ApiConfigStore.loadPerformanceTelemetryEnabled();
+    _activityTraceEnabled = await ApiConfigStore.loadActivityTraceEnabled();
+    if (authToken != null) {
+      _authToken = authToken;
+      CrashReporter.setToken(authToken);
+    }
+    if (_consent) {
+      if (!_sessionStarted) await _startSession();
+      if (_syncTimer == null) _schedulePeriodicFlush();
+    } else {
+      _syncTimer?.cancel();
+      _syncTimer = null;
+      _nextFlushAt = null;
+      _sessionStarted = false;
+    }
+    notifyListeners();
   }
 
   Future<void> setPerformanceEnabled(bool enabled) async {

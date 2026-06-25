@@ -141,4 +141,5 @@ module.exports = {
   resolveVerificationToken,
   waitForMailHogToken,
   waitForEmailLogToken,
+  fetchPostgresToken,
 };

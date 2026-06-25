@@ -15,22 +15,26 @@ class PendingVerificationScreen extends StatefulWidget {
 class _PendingVerificationScreenState extends State<PendingVerificationScreen> {
   bool _resending = false;
   String? _resendMessage;
+  bool _resendOk = false;
 
   Future<void> _resend() async {
     setState(() {
       _resending = true;
       _resendMessage = null;
+      _resendOk = false;
     });
     try {
       await ApiService.resendVerificationEmail(widget.email);
       if (!mounted) return;
       setState(() {
         _resendMessage = 'Un nouvel email de vérification a été envoyé.';
+        _resendOk = true;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _resendMessage = 'Envoi impossible : ${e.toString().replaceAll('Exception: ', '')}';
+        _resendMessage = e.toString().replaceAll('Exception: ', '');
+        _resendOk = false;
       });
     } finally {
       if (mounted) setState(() => _resending = false);
@@ -86,7 +90,7 @@ class _PendingVerificationScreenState extends State<PendingVerificationScreen> {
                     _resendMessage!,
                     style: TextStyle(
                       fontSize: 13,
-                      color: _resendMessage!.startsWith('Envoi') ? Colors.red[700] : Colors.green[700],
+                      color: _resendOk ? Colors.green[700] : Colors.red[700],
                     ),
                     textAlign: TextAlign.center,
                   ),

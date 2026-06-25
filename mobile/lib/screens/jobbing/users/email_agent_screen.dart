@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/email_agent_service.dart';
+import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/back_to_home_scope.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
@@ -21,6 +22,7 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
   EmailAgentStatus? _status;
   List<EmailAgentTriageMessage> _messages = [];
   final Map<String, List<EmailAgentLinkSuggestion>> _linkSuggestions = {};
+  final Map<String, EmailAgentProposedActions> _proposedActions = {};
   String? _expandedMessageId;
   final Map<String, bool> _consentDraft = {};
   String? _discoveryHint;
@@ -192,9 +194,41 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
       await EmailAgentService.reviewTriage(
         token: token,
         messageId: msg.id,
-        reviewStatus: 'DISMISSED',
+        reviewStatus: 'REJECTED',
       );
     });
+  }
+
+  Future<void> _reviewMessage(EmailAgentTriageMessage msg, String reviewStatus, {String? success}) async {
+    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    setState(() {
+      _actionLoading = true;
+      _error = null;
+    });
+    try {
+      final statusApply = await EmailAgentService.reviewTriage(
+        token: token,
+        messageId: msg.id,
+        reviewStatus: reviewStatus,
+      );
+      await _load();
+      if (!mounted) return;
+      var text = success ?? 'Action enregistrée';
+      if (statusApply.applied && statusApply.statusCode != null) {
+        text = '$text · Candidature : ${applicationStatusLabel(statusApply.statusCode!)}';
+      } else if (reviewStatus == 'ACCEPTED' &&
+          msg.suggestedStatus != null &&
+          msg.applicationId == null) {
+        text = '$text · Liez une candidature pour appliquer le statut proposé';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _actionLoading = false);
+    }
   }
 
   Future<void> _toggleMessageExpand(EmailAgentTriageMessage msg) async {
@@ -203,15 +237,22 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
       return;
     }
     setState(() => _expandedMessageId = msg.id);
-    if (_linkSuggestions.containsKey(msg.id) || msg.applicationId != null) return;
     final token = Provider.of<AuthProvider>(context, listen: false).token;
     try {
-      final suggestions = await EmailAgentService.fetchLinkSuggestions(
-        token: token,
-        messageId: msg.id,
-      );
-      if (!mounted) return;
-      setState(() => _linkSuggestions[msg.id] = suggestions);
+      if (!_linkSuggestions.containsKey(msg.id) && msg.applicationId == null) {
+        final suggestions = await EmailAgentService.fetchLinkSuggestions(
+          token: token,
+          messageId: msg.id,
+        );
+        if (mounted) setState(() => _linkSuggestions[msg.id] = suggestions);
+      }
+      if (!_proposedActions.containsKey(msg.id)) {
+        final actions = await EmailAgentService.fetchProposedActions(
+          token: token,
+          messageId: msg.id,
+        );
+        if (mounted) setState(() => _proposedActions[msg.id] = actions);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -221,15 +262,54 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
     }
   }
 
-  Future<void> _linkMessage(EmailAgentTriageMessage msg, String applicationId) async {
+  Future<void> _createTask(EmailAgentTriageMessage msg) async {
+    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    final actions = _proposedActions[msg.id];
+    await _runAction(() async {
+      await EmailAgentService.createGoogleTask(
+        token: token,
+        messageId: msg.id,
+        title: actions?.taskTitle,
+        notes: actions?.taskNotes,
+      );
+    }, success: 'Tâche Google créée (ou file d\'attente web)');
+  }
+
+  Future<void> _createCalendar(EmailAgentTriageMessage msg) async {
     final token = Provider.of<AuthProvider>(context, listen: false).token;
     await _runAction(() async {
-      await EmailAgentService.linkToApplication(
+      await EmailAgentService.createCalendarEvent(token: token, messageId: msg.id);
+    }, success: 'Événement Calendar proposé');
+  }
+
+  Future<void> _linkMessage(EmailAgentTriageMessage msg, String applicationId) async {
+    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    setState(() {
+      _actionLoading = true;
+      _error = null;
+    });
+    try {
+      final statusApply = await EmailAgentService.linkToApplication(
         token: token,
         messageId: msg.id,
         applicationId: applicationId,
       );
-    }, success: 'Email lié à la candidature');
+      await _load();
+      if (!mounted) return;
+      var text = 'Email lié à la candidature';
+      if (statusApply.applied && statusApply.statusCode != null) {
+        text = '$text · Statut : ${applicationStatusLabel(statusApply.statusCode!)}';
+      } else if (msg.reviewStatus == 'ACCEPTED' && msg.suggestedStatus != null) {
+        text = '$text · Validez l\'email pour appliquer le statut';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _actionLoading = false);
+    }
   }
 
   @override
@@ -420,13 +500,19 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
                         const SizedBox(height: 16),
                         _sectionTitle('À traiter (${_messages.length})'),
                         if (_messages.isEmpty)
-                          _infoCard('Rien en attente', 'Synchronisez vos boîtes pour importer les emails.')
+                          _infoCard(
+                            'Rien en attente',
+                            'Les emails traités (Valider, Reporter, Ignorer) quittent cette liste. '
+                            'Synchronisez ↻ pour en importer de nouveaux, ou relancez les tests seed côté dev.',
+                          )
                         else
                           ..._messages.map((msg) {
                             final expanded = _expandedMessageId == msg.id;
                             final suggestions = _linkSuggestions[msg.id] ?? [];
+                            final actions = _proposedActions[msg.id];
                             return Card(
                               child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   ListTile(
                                     isThreeLine: true,
@@ -439,10 +525,14 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        IconButton(
-                                          icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
-                                          tooltip: 'Détails / lier',
-                                          onPressed: _actionLoading ? null : () => _toggleMessageExpand(msg),
+                                        Semantics(
+                                          label: 'Détails email triage',
+                                          button: true,
+                                          child: IconButton(
+                                            icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
+                                            tooltip: 'Détails / lier',
+                                            onPressed: _actionLoading ? null : () => _toggleMessageExpand(msg),
+                                          ),
                                         ),
                                         IconButton(
                                           icon: const Icon(Icons.check_circle_outline),
@@ -456,31 +546,122 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
                                     if (msg.snippet != null && msg.snippet!.isNotEmpty)
                                       Padding(
                                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                                        child: Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: Text(
-                                            msg.snippet!,
-                                            style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                                        child: Text(
+                                          msg.snippet!,
+                                          style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                                        ),
+                                      ),
+                                    if (msg.suggestedStatus != null && msg.suggestedStatus!.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                                        child: Text(
+                                          'Statut candidature proposé : '
+                                          '${applicationStatusLabel(msg.suggestedStatus!)}'
+                                          '${msg.applicationId == null ? '\nLier une candidature, puis Valider pour l\'appliquer.' : ''}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.blueGrey.shade800,
+                                            height: 1.35,
                                           ),
                                         ),
                                       ),
-                                    if (msg.applicationId == null && suggestions.isEmpty)
-                                      const Padding(
-                                        padding: EdgeInsets.all(12),
-                                        child: Text('Aucune candidature suggérée — créez-en une dans l\'app.'),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                      child: Wrap(
+                                        spacing: 8,
+                                        runSpacing: 4,
+                                        children: [
+                                          TextButton(
+                                            onPressed: _actionLoading
+                                                ? null
+                                                : () => _reviewMessage(msg, 'ACCEPTED', success: 'Email validé'),
+                                            child: const Text('Valider'),
+                                          ),
+                                          TextButton(
+                                            onPressed: _actionLoading
+                                                ? null
+                                                : () => _reviewMessage(msg, 'DEFERRED', success: 'Reporté'),
+                                            child: const Text('Reporter'),
+                                          ),
+                                        ],
                                       ),
-                                    for (final s in suggestions)
-                                      ListTile(
-                                        dense: true,
-                                        title: Text(s.companyName ?? 'Entreprise'),
-                                        subtitle: Text('${s.position} · score ${s.score.toStringAsFixed(0)}'),
-                                        trailing: TextButton(
-                                          onPressed: _actionLoading
-                                              ? null
-                                              : () => _linkMessage(msg, s.applicationId),
-                                          child: const Text('Lier'),
+                                    ),
+                                    if (msg.applicationId == null) ...[
+                                      if (suggestions.isEmpty)
+                                        const Padding(
+                                          padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+                                          child: Text(
+                                            'Aucune candidature suggérée — créez-en une dans Candidatures.',
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                        ),
+                                      for (final s in suggestions)
+                                        ListTile(
+                                          dense: true,
+                                          title: Text(s.companyName ?? 'Entreprise'),
+                                          subtitle: Text('${s.position} · score ${s.score.toStringAsFixed(0)}'),
+                                          trailing: TextButton(
+                                            onPressed: _actionLoading
+                                                ? null
+                                                : () => _linkMessage(msg, s.applicationId),
+                                            child: const Text('Lier'),
+                                          ),
+                                        ),
+                                    ],
+                                    if (actions != null) ...[
+                                      const Divider(height: 1),
+                                      Padding(
+                                        padding: const EdgeInsets.all(12),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Actions Google',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 13,
+                                                color: Colors.grey[800],
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            if (actions.taskAllowed) ...[
+                                              Text(
+                                                actions.taskTitle ?? 'Tâche proposée',
+                                                style: const TextStyle(fontSize: 12),
+                                              ),
+                                              TextButton.icon(
+                                                onPressed: _actionLoading ? null : () => _createTask(msg),
+                                                icon: const Icon(Icons.task_alt, size: 18),
+                                                label: const Text('Créer tâche Google'),
+                                              ),
+                                            ] else
+                                              Text(
+                                                actions.taskReason ??
+                                                    'Tasks : consentement GOOGLE_TASKS + Gmail OAuth (web /agent).',
+                                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                              ),
+                                            if (actions.calendarAllowed &&
+                                                actions.calendarDecision == 'schedule')
+                                              TextButton.icon(
+                                                onPressed: _actionLoading ? null : () => _createCalendar(msg),
+                                                icon: const Icon(Icons.event, size: 18),
+                                                label: const Text('Créer événement (10h)'),
+                                              )
+                                            else if (!actions.calendarAllowed)
+                                              Text(
+                                                actions.calendarReason ??
+                                                    'Calendar : consentement GOOGLE_CALENDAR requis.',
+                                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                              )
+                                            else if (actions.calendarMessage != null)
+                                              Text(
+                                                actions.calendarMessage!,
+                                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                              ),
+                                          ],
                                         ),
                                       ),
+                                    ],
                                   ],
                                 ],
                               ),
@@ -526,8 +707,10 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
         leading: Icon(Icons.smart_toy_outlined, color: color),
         title: Text(label, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
         subtitle: Text(
-          '${status.mailboxes.length} boîte(s) · email compte : '
-          '${Provider.of<AuthProvider>(context).user?.email ?? ''}',
+          '${status.mailboxes.length} boîte(s) IMAP lue(s) · '
+          'compte JobbingTrack : ${Provider.of<AuthProvider>(context).user?.email ?? ''}\n'
+          'Le digest et la connexion utilisent ce compte ; les emails viennent des boîtes ci-dessous.',
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade700, height: 1.35),
         ),
       ),
     );

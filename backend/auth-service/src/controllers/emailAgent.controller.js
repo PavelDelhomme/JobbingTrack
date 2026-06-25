@@ -121,12 +121,16 @@ const listTriage = async (req, res) => {
 
 const reviewTriage = async (req, res) => {
   try {
-    const message = await emailAgentService.updateTriageReview(
+    const result = await emailAgentService.updateTriageReview(
       req.user.id,
       req.params.messageId,
       req.body || {},
     );
-    res.json({ success: true, message });
+    res.json({
+      success: true,
+      message: result.message,
+      statusApply: result.statusApply || { applied: false },
+    });
   } catch (error) {
     handleError(res, error);
   }
@@ -146,12 +150,16 @@ const suggestLinks = async (req, res) => {
 
 const linkApplication = async (req, res) => {
   try {
-    const message = await emailAgentLinkService.linkTriageToApplication(
+    const result = await emailAgentService.linkTriageToApplication(
       req.user.id,
       req.params.messageId,
       req.body.applicationId,
     );
-    res.json({ success: true, message });
+    res.json({
+      success: true,
+      message: result.message,
+      statusApply: result.statusApply || { applied: false },
+    });
   } catch (error) {
     handleError(res, error);
   }

@@ -57,6 +57,7 @@ class EmailAgentTriageMessage {
   final String? snippet;
   final DateTime receivedAt;
   final String? classification;
+  final String? suggestedStatus;
   final String reviewStatus;
   final String? applicationId;
 
@@ -67,6 +68,7 @@ class EmailAgentTriageMessage {
     this.snippet,
     required this.receivedAt,
     this.classification,
+    this.suggestedStatus,
     required this.reviewStatus,
     this.applicationId,
   });
@@ -79,8 +81,33 @@ class EmailAgentTriageMessage {
       snippet: json['snippet']?.toString(),
       receivedAt: DateTime.tryParse(json['receivedAt']?.toString() ?? '') ?? DateTime.now(),
       classification: json['classification']?.toString(),
+      suggestedStatus: json['suggestedStatus']?.toString(),
       reviewStatus: json['reviewStatus']?.toString() ?? 'PENDING',
       applicationId: json['applicationId']?.toString(),
+    );
+  }
+}
+
+class EmailAgentStatusApplyResult {
+  final bool applied;
+  final String? statusCode;
+  final String? applicationId;
+  final String? reason;
+
+  const EmailAgentStatusApplyResult({
+    required this.applied,
+    this.statusCode,
+    this.applicationId,
+    this.reason,
+  });
+
+  factory EmailAgentStatusApplyResult.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const EmailAgentStatusApplyResult(applied: false);
+    return EmailAgentStatusApplyResult(
+      applied: json['applied'] == true,
+      statusCode: json['statusCode']?.toString(),
+      applicationId: json['applicationId']?.toString(),
+      reason: json['reason']?.toString(),
     );
   }
 }
@@ -305,7 +332,7 @@ class EmailAgentService {
         .toList();
   }
 
-  static Future<void> reviewTriage({
+  static Future<EmailAgentStatusApplyResult> reviewTriage({
     required String? token,
     required String messageId,
     required String reviewStatus,
@@ -317,7 +344,10 @@ class EmailAgentService {
           body: jsonEncode({'reviewStatus': reviewStatus}),
         )
         .timeout(_defaultTimeout);
-    await _decode(res, 'revue triage');
+    final data = await _decode(res, 'revue triage');
+    return EmailAgentStatusApplyResult.fromJson(
+      data['statusApply'] is Map ? Map<String, dynamic>.from(data['statusApply'] as Map) : null,
+    );
   }
 
   static Future<List<EmailAgentLinkSuggestion>> fetchLinkSuggestions({
@@ -335,7 +365,7 @@ class EmailAgentService {
         .toList();
   }
 
-  static Future<void> linkToApplication({
+  static Future<EmailAgentStatusApplyResult> linkToApplication({
     required String? token,
     required String messageId,
     required String applicationId,
@@ -345,7 +375,99 @@ class EmailAgentService {
       headers: _headers(token),
       body: jsonEncode({'applicationId': applicationId}),
     ).timeout(_defaultTimeout);
-    await _decode(res, 'liaison candidature');
+    final data = await _decode(res, 'liaison candidature');
+    return EmailAgentStatusApplyResult.fromJson(
+      data['statusApply'] is Map ? Map<String, dynamic>.from(data['statusApply'] as Map) : null,
+    );
+  }
+
+  static Future<EmailAgentProposedActions> fetchProposedActions({
+    required String? token,
+    required String messageId,
+  }) async {
+    final res = await http.get(
+      Uri.parse('${ApiService.baseUrl}/api/v1/email-agent/triage/$messageId/actions'),
+      headers: _headers(token),
+    ).timeout(_defaultTimeout);
+    final data = await _decode(res, 'actions proposées');
+    final actions = data['actions'];
+    if (actions is! Map) throw Exception('Actions invalides');
+    return EmailAgentProposedActions.fromJson(Map<String, dynamic>.from(actions));
+  }
+
+  static Future<Map<String, dynamic>> createGoogleTask({
+    required String? token,
+    required String messageId,
+    String? title,
+    String? notes,
+  }) async {
+    final res = await http.post(
+      Uri.parse('${ApiService.baseUrl}/api/v1/email-agent/triage/$messageId/actions/task'),
+      headers: _headers(token),
+      body: jsonEncode({
+        if (title != null) 'title': title,
+        if (notes != null) 'notes': notes,
+      }),
+    ).timeout(_defaultTimeout);
+    return _decode(res, 'création tâche Google');
+  }
+
+  static Future<Map<String, dynamic>> createCalendarEvent({
+    required String? token,
+    required String messageId,
+    int hour = 10,
+    int minute = 0,
+  }) async {
+    final res = await http.post(
+      Uri.parse('${ApiService.baseUrl}/api/v1/email-agent/triage/$messageId/actions/calendar'),
+      headers: _headers(token),
+      body: jsonEncode({'hasExplicitTime': false, 'hour': hour, 'minute': minute}),
+    ).timeout(_defaultTimeout);
+    return _decode(res, 'création événement Calendar');
+  }
+}
+
+class EmailAgentProposedActions {
+  final bool taskAllowed;
+  final String? taskTitle;
+  final String? taskNotes;
+  final String? taskReason;
+  final bool calendarAllowed;
+  final String? calendarDecision;
+  final String? calendarTitle;
+  final String? calendarMessage;
+  final String? calendarReason;
+
+  const EmailAgentProposedActions({
+    required this.taskAllowed,
+    this.taskTitle,
+    this.taskNotes,
+    this.taskReason,
+    required this.calendarAllowed,
+    this.calendarDecision,
+    this.calendarTitle,
+    this.calendarMessage,
+    this.calendarReason,
+  });
+
+  factory EmailAgentProposedActions.fromJson(Map<String, dynamic> json) {
+    final task = json['task'];
+    final calendar = json['calendar'];
+    Map<String, dynamic>? taskMap;
+    Map<String, dynamic>? calMap;
+    if (task is Map) taskMap = Map<String, dynamic>.from(task);
+    if (calendar is Map) calMap = Map<String, dynamic>.from(calendar);
+    return EmailAgentProposedActions(
+      taskAllowed: taskMap?['allowed'] == true,
+      taskTitle: taskMap?['title']?.toString(),
+      taskNotes: taskMap?['notes']?.toString(),
+      taskReason: taskMap?['reason']?.toString(),
+      calendarAllowed: calMap?['allowed'] != false,
+      calendarDecision: calMap?['decision']?.toString(),
+      calendarTitle: calMap?['title']?.toString(),
+      calendarMessage: calMap?['message']?.toString(),
+      calendarReason: calMap?['reason']?.toString(),
+    );
   }
 }
 

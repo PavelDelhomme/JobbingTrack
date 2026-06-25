@@ -45,10 +45,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() {
-      _consent = false;
-      _loading = true;
-    });
+    setState(() => _loading = true);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    await MobileAnalyticsService.instance.reloadFromStore(authToken: auth.token);
     final consent = await ApiConfigStore.loadAnalyticsConsent();
     final perf = await ApiConfigStore.loadPerformanceTelemetryEnabled();
     final trace = await ApiConfigStore.loadActivityTraceEnabled();

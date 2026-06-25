@@ -11,7 +11,8 @@ const {
   exchangeCodeForTokens,
   fetchRecentGmailMessages,
 } = require('./gmailOAuthService');
-const { autoLinkTriageMessage, linkTriageToApplication } = require('./emailAgentLinkService');
+const { autoLinkTriageMessage, linkTriageToApplication: linkTriageOnly } = require('./emailAgentLinkService');
+const { applySuggestedStatusFromTriage } = require('./emailAgentApplicationStatusService');
 const logger = require('../utils/logger');
 
 const CONSENT_VERSION = '1.0';
@@ -274,6 +275,24 @@ async function listTriageMessages(userId, { status = 'PENDING', limit = 50 } = {
   });
 }
 
+const TRIAGE_REVIEW_STATUSES = new Set(['PENDING', 'ACCEPTED', 'REJECTED', 'DEFERRED']);
+
+function normalizeTriageReviewStatus(raw) {
+  if (typeof raw !== 'string' || !raw.trim()) {
+    const err = new Error('invalid_review_status');
+    err.status = 400;
+    throw err;
+  }
+  let status = raw.trim().toUpperCase();
+  if (status === 'DISMISSED') status = 'REJECTED';
+  if (!TRIAGE_REVIEW_STATUSES.has(status)) {
+    const err = new Error('invalid_review_status');
+    err.status = 400;
+    throw err;
+  }
+  return status;
+}
+
 async function updateTriageReview(userId, messageId, payload = {}) {
   await assertAgentAccess(userId);
   const existing = await prisma.emailTriageMessage.findFirst({
@@ -286,14 +305,26 @@ async function updateTriageReview(userId, messageId, payload = {}) {
   }
 
   if (payload.applicationId) {
-    return linkTriageToApplication(userId, messageId, payload.applicationId);
+    const linked = await linkTriageToApplication(userId, messageId, payload.applicationId);
+    return linked;
   }
 
-  const reviewStatus = payload.reviewStatus || payload;
-  return prisma.emailTriageMessage.update({
+  const reviewStatus = normalizeTriageReviewStatus(payload.reviewStatus);
+  const updated = await prisma.emailTriageMessage.update({
     where: { id: messageId },
     data: { reviewStatus },
   });
+  const statusApply =
+    reviewStatus === 'ACCEPTED'
+      ? await applySuggestedStatusFromTriage(userId, messageId)
+      : { applied: false, reason: 'review_not_accepted' };
+  return { message: updated, statusApply };
+}
+
+async function linkTriageToApplication(userId, messageId, applicationId) {
+  const updated = await linkTriageOnly(userId, messageId, applicationId);
+  const statusApply = await applySuggestedStatusFromTriage(userId, messageId);
+  return { message: updated, statusApply };
 }
 
 async function syncMailbox(mailbox) {
@@ -457,6 +488,8 @@ module.exports = {
   revokeMailbox,
   listTriageMessages,
   updateTriageReview,
+  linkTriageToApplication,
+  normalizeTriageReviewStatus,
   syncUserMailboxes,
   syncAllEnabledMailboxes,
   setJobSearchAgentEnabled,
