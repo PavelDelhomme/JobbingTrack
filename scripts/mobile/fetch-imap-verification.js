@@ -81,8 +81,10 @@ class ImapSession {
     await this.command('SELECT INBOX');
   }
 
-  async searchRecentTo(targetEmail, maxAgeMinutes = 30) {
-    const since = new Date(Date.now() - maxAgeMinutes * 60 * 1000);
+  async searchRecentTo(targetEmail, { maxAgeMinutes = 30, sinceMs = 0 } = {}) {
+    const since = sinceMs
+      ? new Date(Math.max(sinceMs - 60000, Date.now() - maxAgeMinutes * 60 * 1000))
+      : new Date(Date.now() - maxAgeMinutes * 60 * 1000);
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const sinceStr = `${since.getDate()}-${months[since.getMonth()]}-${since.getFullYear()}`;
     const local = String(targetEmail).split('@')[0].replace(/[+]/g, '*');
@@ -128,17 +130,22 @@ class ImapSession {
   }
 }
 
-async function fetchVerificationFromImap(mailbox, targetEmail, { timeoutMs = 45000, pollMs = 4000 } = {}) {
+async function fetchVerificationFromImap(mailbox, targetEmail, { timeoutMs = 45000, pollMs = 4000, sinceMs = 0 } = {}) {
   if (!mailbox?.host || !mailbox.email || !mailbox.password) return null;
   const deadline = Date.now() + timeoutMs;
   let lastErr;
+  let attempt = 0;
   while (Date.now() < deadline) {
+    attempt += 1;
     const session = new ImapSession(mailbox);
     try {
       await session.connect();
       await session.login();
       await session.selectInbox();
-      const uid = await session.searchRecentTo(targetEmail);
+      if (attempt === 1 || attempt % 4 === 0) {
+        console.log(`   IMAP poll #${attempt} — ${mailbox.email} INBOX → ${targetEmail}`);
+      }
+      const uid = await session.searchRecentTo(targetEmail, { sinceMs });
       if (uid) {
         const body = await session.fetchBody(uid);
         const token = extractTokenFromText(body);

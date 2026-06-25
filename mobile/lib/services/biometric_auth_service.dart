@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 
 /// Déverrouillage biométrique (empreinte / Face ID / code appareil).
 class BiometricAuthService {
@@ -82,6 +83,10 @@ class BiometricAuthService {
     String reason = 'Déverrouillez JobbingTrack',
     bool biometricOnly = false,
   }) async {
+    if (kDebugMode && await ApiConfigStore.loadTestAutomationSkipBiometric()) {
+      debugPrint('[BIO] test_automation_skip_biometric — pas de prompt empreinte');
+      return (success: false, errorMessage: 'Mode test ADB — mot de passe');
+    }
     if (!await isDeviceSupported()) {
       return (success: false, errorMessage: 'Authentification locale non disponible sur cet appareil');
     }

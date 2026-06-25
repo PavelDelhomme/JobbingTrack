@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
+import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/utils/auth_logout.dart';
 import 'package:jobbingtrack_mobile/utils/post_auth_navigation.dart';
 
@@ -32,6 +34,12 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> {
   }
 
   Future<void> _loadDeviceCapabilities() async {
+    final skipBioTest = kDebugMode && await ApiConfigStore.loadTestAutomationSkipBiometric();
+    if (skipBioTest) {
+      if (!mounted) return;
+      await PostAuthNavigation.go(context, '/home');
+      return;
+    }
     final supported = await BiometricAuthService.isDeviceSupported();
     final enrolled = await BiometricAuthService.getEnrolledBiometrics();
     if (!mounted) return;

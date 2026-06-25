@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AdminLayout } from "@/components/features";
 import { useAuth } from "@/lib/hooks/auth";
 import {
+  AgentConsent,
   AgentConsentType,
   AgentStatusResponse,
   ApplicationLinkSuggestion,
@@ -27,6 +28,7 @@ import {
   TriageMessage,
   updateAgentConsents,
 } from "@/lib/services/emailAgentService";
+import { Switch } from "@/components/ui/switch";
 
 const CONSENT_ORDER: AgentConsentType[] = [
   "MAILBOX_ACCESS",
@@ -49,6 +51,7 @@ export default function AgentEmailContent() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [consentDraft, setConsentDraft] = useState<Record<string, boolean>>({});
+  const [consentMeta, setConsentMeta] = useState<Record<string, AgentConsent>>({});
   const [imapForm, setImapForm] = useState({
     emailAddress: "",
     password: "",
@@ -85,11 +88,14 @@ export default function AgentEmailContent() {
       const agentStatus = await fetchAgentStatus();
       setStatus(agentStatus);
       const draft: Record<string, boolean> = {};
+      const meta: Record<string, AgentConsent> = {};
       for (const type of CONSENT_ORDER) {
         const found = agentStatus.consents.find((c) => c.consentType === type);
         draft[type] = found?.granted === true;
+        if (found) meta[type] = found;
       }
       setConsentDraft(draft);
+      setConsentMeta(meta);
       if (agentStatus.access.allowed) {
         const triage = await fetchTriageMessages("PENDING");
         setMessages(triage.messages || []);
@@ -372,7 +378,9 @@ export default function AgentEmailContent() {
               </li>
               <li>
                 Consentements requis :{" "}
-                <strong>{status.hasRequiredConsents ? "OK" : "Accès boîtes mail requis"}</strong>
+                <strong className={status.hasRequiredConsents ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}>
+                  {status.hasRequiredConsents ? "OK — accès boîtes autorisé" : "Incomplet — MAILBOX_ACCESS requis"}
+                </strong>
               </li>
               <li>
                 À traiter : <strong>{status.pendingTriageCount}</strong>
@@ -410,32 +418,63 @@ export default function AgentEmailContent() {
         <section className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
           <h2 className="font-semibold text-gray-900 dark:text-white">Consentements RGPD</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Version {status?.consentVersion || "1.0"} — horodatés et révocables à tout moment.
+            Version {status?.consentVersion || "1.0"} — compte connecté{" "}
+            <strong className="text-gray-800 dark:text-gray-200">{authUser?.email || "—"}</strong>.
+            Les consentements enregistrés sur mobile apparaissent ici pour le même compte (pas pour un autre
+            utilisateur).
           </p>
+          {!status?.agentEnabled && (
+            <p className="text-sm text-amber-700 dark:text-amber-300 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3">
+              Agent non activé — les statuts ci-dessous reflètent la base de données ; activez l&apos;agent pour
+              modifier.
+            </p>
+          )}
           <div className="space-y-3">
             {CONSENT_ORDER.map((type) => {
               const meta = CONSENT_LABELS[type];
+              const stored = consentMeta[type];
+              const granted = consentDraft[type] === true;
+              const grantedAt = stored?.grantedAt
+                ? new Date(stored.grantedAt).toLocaleString("fr-FR")
+                : null;
+              const revokedAt = stored?.revokedAt
+                ? new Date(stored.revokedAt).toLocaleString("fr-FR")
+                : null;
               return (
-                <label
+                <div
                   key={type}
-                  className="flex items-start gap-3 rounded-lg border border-gray-100 dark:border-gray-800 p-3 cursor-pointer"
+                  className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-gray-100 dark:border-gray-800 p-3"
                 >
-                  <input
-                    type="checkbox"
-                    className="mt-1"
-                    checked={consentDraft[type] === true}
-                    onChange={(e) =>
-                      setConsentDraft((prev) => ({ ...prev, [type]: e.target.checked }))
-                    }
-                    disabled={!status?.agentEnabled}
-                  />
-                  <span>
-                    <span className="font-medium text-gray-900 dark:text-white">{meta.title}</span>
-                    <span className="block text-sm text-gray-600 dark:text-gray-400">
-                      {meta.description}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-gray-900 dark:text-white">{meta.title}</div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{meta.description}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      {granted && grantedAt && <>Accordé le {grantedAt}</>}
+                      {!granted && revokedAt && <>Révoqué le {revokedAt}</>}
+                      {!granted && !revokedAt && !stored && <>Jamais enregistré</>}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span
+                      className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                        granted
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
+                          : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                      }`}
+                    >
+                      {granted ? "Actif" : "Inactif"}
                     </span>
-                  </span>
-                </label>
+                    <Switch
+                      checked={granted}
+                      disabled={!status?.agentEnabled}
+                      aria-label={`${meta.title} — ${granted ? "actif" : "inactif"}`}
+                      onCheckedChange={(checked) =>
+                        setConsentDraft((prev) => ({ ...prev, [type]: checked }))
+                      }
+                      className={granted ? "bg-emerald-600" : undefined}
+                    />
+                  </div>
+                </div>
               );
             })}
           </div>

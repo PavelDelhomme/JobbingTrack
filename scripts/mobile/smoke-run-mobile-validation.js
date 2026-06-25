@@ -10,6 +10,7 @@
 const { spawnSync } = require('child_process');
 const path = require('path');
 const { loadRootEnv } = require('./resolve-admin-credentials');
+const { ensureTestAccountsReady } = require('./ensure-test-accounts-ready');
 
 loadRootEnv();
 
@@ -88,6 +89,8 @@ function runScript(relPath, label) {
   console.log('JobbingTrack — batterie validation mobile Lot D');
   console.log(`Racine: ${ROOT}`);
   console.log(`Mode: ${skipSlow ? 'rapide (sans register/verify-email)' : 'complet'}`);
+
+  await ensureTestAccountsReady();
 
   for (const rel of apiTests) {
     results.push(runScript(rel, `API · ${path.basename(rel, '.js')}`));

@@ -38,18 +38,23 @@ class _LoginScreenState extends State<LoginScreen> {
     final bio = await ApiConfigStore.loadBiometricUnlockEnabled();
     final supported = await BiometricAuthService.canOfferUnlockOption();
     final creds = await BiometricCredentialStore.load();
+    final skipBioTest = kDebugMode && await ApiConfigStore.loadTestAutomationSkipBiometric();
     if (mounted) {
       setState(() {
         _keepLoggedIn = keep;
-        _biometricAvailable = supported;
-        _enableBiometric = bio && supported;
-        _savedAccountEmail = creds?.email;
-        _showFullLoginForm = _savedAccountEmail == null || !supported;
+        _biometricAvailable = supported && !skipBioTest;
+        _enableBiometric = bio && supported && !skipBioTest;
+        _savedAccountEmail = skipBioTest ? null : creds?.email;
+        _showFullLoginForm =
+            skipBioTest || _savedAccountEmail == null || !supported;
         if (_savedAccountEmail != null && !_showFullLoginForm) {
           _emailController.text = _savedAccountEmail!;
         }
       });
-      if (_savedAccountEmail != null && supported && !_showFullLoginForm) {
+      if (!skipBioTest &&
+          _savedAccountEmail != null &&
+          supported &&
+          !_showFullLoginForm) {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           await Future<void>.delayed(const Duration(milliseconds: 400));
           if (mounted) await _loginWithBiometric(auto: true);
@@ -81,6 +86,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _loginWithBiometric({bool auto = false}) async {
+    final skipBioTest = kDebugMode && await ApiConfigStore.loadTestAutomationSkipBiometric();
+    if (skipBioTest) {
+      if (mounted) setState(() => _showFullLoginForm = true);
+      return;
+    }
     final creds = await BiometricCredentialStore.load();
     if (creds == null) {
       if (!auto) _showSnackBar('Aucun compte enregistré sur cet appareil');

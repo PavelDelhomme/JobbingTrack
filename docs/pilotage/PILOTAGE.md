@@ -1,10 +1,26 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 22 juin 2026 (phase post-D8 + mobile)
+Dernière mise à jour : 17 juin 2026 (réorganisation feuille de route — mobile d’abord)
 
-## Phase post-D8 — nettoyage global (gate obligatoire)
+## Feuille de route — ordre strict (juin 2026)
 
-**Ne pas attaquer ce chantier avant** que le hub tests backoffice (§ D8), les scripts `scripts/mobile/` + `tools/adb-lib` + émulateur, et la matrice tests admin soient **terminés et validés porteur**.
+| Phase | Contenu | Statut | Règle |
+|-------|---------|--------|-------|
+| **A — Mobile Lot D** | App Flutter, smokes ADB fiables/rapides, agent email utilisateur (`/agent`), sync consentements mobile↔web, hub admin mobile, auth/biométrie smokes | **EN COURS** | Seul chantier agent actif. Voir `TODOS.md` § Phase A. |
+| **B — Gate pré-prod mobile** | Validations porteur `TODOS_A_VALIDER.md` lignes Lot D (317+), D8 hub tests backoffice (UI), batterie `smoke-run-mobile-fast.js` | Après A | Ne pas ouvrir la prod avant OK porteur sur cette gate. |
+| **C — Déploiement rapide** | Builds release, pipeline préprod, SMTP `@jobbingtrack.com` (porteur OVH), `A_VALIDER_AVANT_PRODUCTION.md` | Après B | Infra email = action porteur ; agent prépare smokes/checklists. |
+| **D — Post-D8 / triage** | Lot H (réorg `scripts/`/`tests/`/`tools/`), Lot E doc, audit secrets, doublons dépôt, validations backoffice P1B/P1C en masse | **BLOQUÉ** | **Ne pas démarrer** tant que phase A+B non clôturées. |
+
+**Travail agent en cours (phase A)** — détail et preuves dans `TODOS_A_VERIFIER.md` § « Phase mobile en cours » :
+
+1. Smokes ultra-rapides mais fiables (`smoke-run-mobile-fast.js`, `smoke-preflight.js`, verrou ADB, attente email/IMAP diagnostiquée).
+2. Bypass biométrie Samsung pour smokes (Flutter + `tools/adb-lib`, sans bloquer la biométrie produit porteur).
+3. Consentements agent RGPD : sync mobile → BDD → `/agent` web (switches statut, pas checkboxes trompeuses).
+4. Smoke hub admin multi-comptes (`smoke-mobile-admin-hub-adb.js`).
+
+## Phase post-D8 — nettoyage global (gate obligatoire — phase D)
+
+**Ne pas attaquer ce chantier avant** clôture phases **A + B** (mobile stabilisé + validations porteur Lot D + D8).
 
 Ensuite, **obligatoire avant production** :
 
@@ -75,14 +91,14 @@ Statut : **validation porteur locale en cours** — P0 HTTPS, Backoffice sécuri
 
 Exception porteur 15/06 : lot **P1D CI/PR/déploiement** clôturé le 15/06 — PR #8 et #9 mergées, PR #7 fermée, préprod Portainer cadrée (`deploy-preprod.yml`, `VPS_PORTAINER_NPM_OVH.md` §5.1), mail récap **3/3 SENT**. Le porteur demande de continuer le **Lot B complet**, avec mail récap à chaque bloc terminé, puis d’enchaîner Lot C selon le même processus.
 
-Priorité immédiate stricte (17/06 — réorientation porteur) :
+Priorité immédiate stricte (17/06 — réorganisé) :
 
-1. **Lot D — Mobile & analytics utilisateur** : app Flutter `mobile/`, API auth/métier, interactions BDD, déploiements, remontée analytics/événements, interface complète. Voir [`TODOS.md`](TODOS.md) § « Priorités mobile ».
-2. Validations backoffice restantes dans `TODOS_A_VALIDER.md` **après** incréments mobile significatifs, sauf correctif bloquant signalé par le porteur.
-3. Déplacer les lignes validées vers `TODOS_DONE.md`.
-4. Reprendre [`TODOS.md`](TODOS.md) backlog backoffice en file secondaire.
+1. **Phase A — Mobile Lot D** uniquement (smokes, agent `/agent`, auth, parcours métier). Tableau détaillé : [`TODOS.md`](TODOS.md) § « Feuille de route ».
+2. **Phase B** — validations porteur Lot D dans `TODOS_A_VALIDER.md` (première ligne ouverte = file de validation).
+3. **Phases C puis D** — déploiement, puis triage/réorg/Lot H : **interdit** avant clôture A+B.
+4. Backoffice P1B/P1C, Statistics, Performances : **file secondaire** (phase D), sauf correctif bloquant mobile signalé par le porteur.
 
-Ancienne priorité Lot A graphes (15/06) — **reportée** tant que le mobile n’est pas stabilisé.
+Ancienne priorité Lot A graphes (15/06) — **dans phase D**, pas avant mobile.
 
 ## Flux de travail
 

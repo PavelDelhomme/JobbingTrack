@@ -13,7 +13,9 @@ async function main() {
   const phone = await adbLib.connect();
   await adbLib.flows.prepareSmokeSession(phone, { restart: true });
   console.log('Préparation smoke OK — app redémarrée.');
-  console.log('Prefs: test_automation_skip_biometric=true, auth_keep_logged_in=true');
+  console.log(
+    'Prefs: test_automation_skip_biometric=true, auth_biometric_unlock=false, auth_keep_logged_in=true',
+  );
 }
 
 main().catch((err) => {

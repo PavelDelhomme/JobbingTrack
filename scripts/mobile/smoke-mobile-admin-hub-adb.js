@@ -13,6 +13,7 @@ const {
   loadRootEnv,
 } = require('./resolve-admin-credentials');
 const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
+const { ensureTestAccountsReady } = require('./ensure-test-accounts-ready');
 
 loadRootEnv();
 
@@ -68,7 +69,6 @@ async function openAdminHubFromDrawer(phone, adminEmail) {
 
 async function restorePorteurSession(phone, email, password) {
   await switchToAccount(phone, email, password);
-  await adbLib.flows.prepareSmokeSession(phone, { restart: false });
   await phone.assertVisible('Bonjour');
 }
 
@@ -91,23 +91,42 @@ async function switchToAccount(phone, email, password, { force = false } = {}) {
   }
   if (await phone.uiContains('Bonjour')) {
     await adbLib.flows.ensureLoggedOut(phone);
-    await phone.wait(1500);
+    await phone.wait(800);
   }
   await adbLib.flows.login(phone, email, password);
+  await adbLib.flows.dismissBiometricUnlock(phone, { password });
 }
 
 (async () => {
   const admin = await resolveWorkingAdminCredentials();
   const user = await resolveWorkingUserCredentials();
   const phone = await adbLib.connect();
+  const sharedShell = process.env.SMOKE_SHARED_SHELL === '1';
+  const preflightDone = process.env.SMOKE_PREFLIGHT_DONE === '1';
+
   console.log('Device:', phone.device);
   console.log('Admin:', admin.email, `(${admin.source})`);
+  if (sharedShell) console.log('Mode session partagée — pas de pm clear');
 
   await loginAdminViaApi(admin.email, admin.password);
-  await adbLib.flows.clearAppDataForSmoke(phone);
-  await adbLib.flows.prepareSmokeSession(phone, { restart: false });
-  await adbLib.flows.login(phone, admin.email, admin.password);
+  if (!preflightDone) {
+    await ensureTestAccountsReady();
+  }
+
+  if (sharedShell) {
+    await switchToAccount(phone, admin.email, admin.password, { force: true });
+  } else {
+    await adbLib.flows.clearAppDataForSmoke(phone);
+    await adbLib.flows.prepareSmokeSession(phone, { restart: false });
+    await adbLib.flows.login(phone, admin.email, admin.password);
+  }
+
   await adbLib.flows.dismissBiometricUnlock(phone, { password: admin.password });
+  if (await phone.uiContains('vérifier votre email')) {
+    throw new Error(
+      `Compte admin « ${admin.email} » : email non vérifié côté API — relancer ensure-test-accounts-ready.js`,
+    );
+  }
   await phone.assertVisible('Bonjour');
 
   await openAdminHubFromDrawer(phone, admin.email);

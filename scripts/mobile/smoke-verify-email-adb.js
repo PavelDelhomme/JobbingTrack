@@ -39,12 +39,15 @@ function adbDeviceArgs(deviceId) {
   console.log(`Email test (alias sur ${baseEmail}) : ${email}`);
   console.log(`Mot de passe : source ${passSource}`);
 
+  const regStartedAt = Date.now();
   const reg = await registerUser(email, password);
   console.log(reg.created ? 'Inscription créée' : 'Compte existant → renvoi vérif');
 
-  console.log('Attente email de vérification (MailHog → IMAP Gmail/OVH → EmailLog)…');
-  await new Promise((r) => setTimeout(r, reg.created ? 6000 : 3000));
-  const { token, source: tokenSource } = await resolveVerificationToken(email);
+  console.log('Attente email de vérification (EmailLog → MailHog → IMAP)…');
+  await new Promise((r) => setTimeout(r, reg.created ? 4000 : 2000));
+  const { token, source: tokenSource } = await resolveVerificationToken(email, {
+    sinceMs: regStartedAt - 5000,
+  });
   console.log(`Token extrait via ${tokenSource} (${token.slice(0, 8)}…)`);
 
   execFileSync('adb', [...adbDeviceArgs(deviceId), 'shell', 'am', 'force-stop', PACKAGE]);

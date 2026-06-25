@@ -1,24 +1,61 @@
 # TODOS — chantier backoffice / API / doc (JobbingTrack)
 
-**Dernière mise à jour : 23 juin 2026** — infra `up-full` + digest agent email 18h (phase 2 amorcée).
+**Dernière mise à jour : 17 juin 2026** — feuille de route réorganisée (mobile d’abord, triage post-D8 bloqué).
 
-## Priorités mobile — à faire maintenant (17/06)
+## Feuille de route — ordre de travail (juin 2026)
 
-> Décision porteur : le backoffice a une base suffisante ; prioriser l’**application mobile complète**, les **déploiements**, les **interactions BDD**, l’**interface mobile** et la **remontée analytics utilisateur**.
+> **Règle porteur** : ne pas démarrer triage dépôt, réorganisation fichiers, Lot H/E, audit secrets ni campagne validations backoffice P1C tant que les **phases A + B** ne sont pas clôturées. Voir `PILOTAGE.md`.
+
+### Phase A — EN COURS (mobile + agent utilisateur)
+
+| # | Sujet | Prochaine action | Preuve / script |
+|---|--------|------------------|-----------------|
+| A1 | **Smokes ADB fiables et rapides** | Gate par défaut : `node scripts/mobile/smoke-run-mobile-fast.js` (~8–15 min) ; pré-vol `smoke-preflight.js` (verrou ADB, session partagée, comptes `emailVerified`) ; diagnostic attente email (`fetch-imap-verification.js`, bonne boîte `.env`) | `TODOS_A_VERIFIER.md` § phase mobile |
+| A2 | **Bypass biométrie smokes uniquement** | Pref `test_automation_skip_biometric` + `prepareSmokeSession` ; ne pas casser biométrie produit (validée porteur 19/06) | APK debug rebuild après changements Flutter |
+| A3 | **Parcours mobile métier** | FAB candidature (ciblage exact poste/entreprise), navigation retour shell, offline, entités, profil | Smokes listés dans `smoke-run-mobile-fast.js` |
+| A4 | **Hub admin mobile** | Switch `TEST_ADMIN_*` → hub → restauration `TEST_USER` sans `pm clear` répété | `smoke-mobile-admin-hub-adb.js` |
+| A5 | **Agent email `/agent`** | Sync consentements mobile → BDD → web ; UI **switches** statut RGPD (grantedAt) ; même `userId` que session mobile | `AgentEmailContent.tsx`, API `/email-agent/consents` |
+| A6 | **Auth / vérif email smokes** | `ensure-test-accounts-ready.js` ; renvoi vérif API ; deep link ADB | `smoke-verify-email-adb.js`, `smoke-resend-verification-api.js` |
+
+### Phase B — Gate pré-prod mobile (après A)
 
 | # | Sujet | Prochaine action |
 |---|--------|------------------|
-| 1 | **App mobile Flutter (`mobile/`)** | Parcours auth → dashboard → candidatures/entreprises/contacts ; stabiliser `ApiService` + `AuthProvider` ; tests widget/intégration. |
-| 2 | **API mobile ↔ microservices** | Vérifier endpoints métier consommés par l’app ; corriger écarts config (`api_config_store`), headers corrélation B9, session révoquée. |
-| 3 | **Interactions BDD** | CRUD candidatures, relances, entretiens, événements depuis mobile avec preuves Postgres. |
-| 4 | **Déploiements mobile** | Builds debug/release, variables env, doc `mobile/PROCESSUS_APPLICATION_MOBILE_ET_API.md`, pipeline préprod (lot H). |
-| 5 | **Analytics utilisateur (D4/D5)** | Événements normalisés mobile + parcours email/auth ; exposition `/backoffice/user-analytics` ; séparer infra vs produit. |
-| 6 | **Mises à jour app** | Versioning affiché, stratégie MAJ (store / sideload / OTA à cadrer). |
-| 7 | **Workflow central + notifications** | Logique métier côté **workflow-service** (crons déjà partiels) : transitions auto statut candidature, rappels relance/entretien, push mobile ; sync offline côté app. Voir § D7 ci-dessous. |
-| 8 | **Hub tests backoffice (pré-prod)** | Orchestrer depuis **`/backoffice/mobile-emulator`**, **`/backoffice/tests-*`** et **Parcours utilisateur** : appareil ADB/AVD, identifiants test, scripts `scripts/` + `tests/`, variables type `.env` (sans secrets en clair UI). Voir § **D8** — **obligatoire avant production**. |
-| 9 | **Post-D8 — nettoyage, doc, secrets** | **Après D8 validé** : Lot H (réorg dépôt), Lot E (doc `.md` à jour), audit secrets (`.env` / `.env.example` seuls endroits autorisés pour valeurs réelles). Voir **`docs/pilotage/PILOTAGE.md`** § « Phase post-D8 ». **Ne pas démarrer en parallèle de D8.** |
+| B1 | **Validations porteur Lot D** | File stricte `TODOS_A_VALIDER.md` à partir ligne 317 (inscription, navigation, agent, intérim…) |
+| B2 | **D8 — Hub tests backoffice** | UI `/backoffice/mobile-emulator` + lancement smokes depuis admin (CLI socle déjà amorcé) |
+| B3 | **Batterie complète optionnelle** | `smoke-run-mobile-validation.js` (27 tests, ~45 min) — rejeu avant merge majeur seulement |
 
-Backlog détaillé : **Lot D — Mobile & observabilité** plus bas dans ce fichier.
+### Phase C — Déploiement rapide (après B validé porteur)
+
+| # | Sujet | Prochaine action |
+|---|--------|------------------|
+| C1 | **Builds mobile** | APK debug/release, variables env, doc `mobile/PROCESSUS_APPLICATION_MOBILE_ET_API.md` |
+| C2 | **SMTP `@jobbingtrack.com`** | Action **porteur** OVH (MX Plan) — checklist `docs/emails/OVH_MX_PLAN_JOBBINGTRACK.md` |
+| C3 | **Gate préprod** | `docs/production/A_VALIDER_AVANT_PRODUCTION.md` (9 étapes) |
+| C4 | **Analytics D4/D5** | Remontée mobile → `/backoffice/user-analytics` (déjà partiellement livré) |
+
+### Phase D — POST-D8 / triage / hygiène (**BLOQUÉ — ne pas commencer**)
+
+| # | Sujet | Quand |
+|---|--------|-------|
+| D1 | **Lot H** — réorg `scripts/`, `tests/`, `tools/`, doublons | Après D8 validé |
+| D2 | **Lot E** — revue `.md`, doc mobile/hub/env | Après D8 |
+| D3 | **Lot H bis** — audit secrets (`.env` seule source valeurs réelles) | Avant prod |
+| D4 | **Triage dépôt** — `flutter-mobile-app/` vs `mobile/`, credentials `tests/`, wrappers npm muets | Phase D |
+| D5 | **Backoffice secondaire** — Statistics P1B, Performances P1C, responsive, moteurs UI | Phase D (validations dans `TODOS_A_VALIDER.md` lignes P1B/P1C) |
+| D6 | **Versionnement semver** | Phase D / gate prod |
+
+Backlog détaillé historique : sections **Lot A–H** plus bas dans ce fichier (ne pas dérouler linéairement).
+
+## Priorités mobile — archive (17/06)
+
+> Remplacé par la **Feuille de route** ci-dessus. Conservé pour référence rapide.
+
+| # | Sujet | Phase |
+|---|--------|-------|
+| 1–7 | App Flutter, API, BDD, déploiements, analytics, MAJ, workflow | A–C |
+| 8 | Hub tests backoffice D8 | B |
+| 9 | Post-D8 Lot H + E + secrets | D |
 
 ## Pilotage (comment utiliser ce fichier)
 
@@ -33,7 +70,11 @@ Backlog détaillé : **Lot D — Mobile & observabilité** plus bas dans ce fich
 
 | Bloc | Statut | Prochaine action concrète |
 |------|--------|---------------------------|
-| **CI / PR / déploiement préprod** | **15/06 clôturé** : PR #8 mergée (`73dea552`), PR #7 fermée, PR #9 mergée (`e6e5cb90`) — CVE full-scope, jobs pollés, Jest CI **42/179**, Playwright **7/7**. Préprod : `deploy-preprod.yml` + `docs/deployment/VPS_PORTAINER_NPM_OVH.md` §5.1. Mail récap P1D **3/3 SENT** (`EmailLog`, miroir SMTP OK). | Reprendre **Statistics — onglet Sécurité** (`docs/pilotage/TODOS_A_VALIDER.md` première ligne P1B). |
+| **Phase A — Mobile Lot D** | **EN COURS** | Smokes rapides + agent `/agent` + hub admin — voir feuille de route en tête de fichier. **Ne pas** ouvrir Lot H / triage dépôt. |
+| **Phase B — Gate pré-prod** | Après A | Validations porteur `TODOS_A_VALIDER.md` L317+ ; D8 hub tests UI. |
+| **Phase C — Déploiement** | Après B | Builds, SMTP OVH (porteur), `A_VALIDER_AVANT_PRODUCTION.md`. |
+| **Phase D — Post-D8 / triage** | **BLOQUÉ** | Lot H, Lot E, audit secrets, P1B/P1C backoffice en masse. |
+| **CI / PR / déploiement préprod** | **15/06 clôturé** | PR #8/#9 mergées ; préprod Portainer cadrée. |
 | **Agent email / tâches recherche emploi** | **09/06 cadrage porteur** + **12/06 socle tests digest/classification** + récupération Apps Script v4 ; **15/06 précision** : besoin de connecter aussi des boîtes **IMAP**, détecter candidatures/entretiens/relances faites ou à faire, et consulter l’historique de communication pour éviter les doublons (emails, réponses, relances, appels planifiés/passés si tracés). Fiche dédiée : `docs/features/EMAIL_TRIAGE_AGENT.md`. | **À garder pour la fin de séquence**, après finalisation des logs/observabilité et P0/P1 bloquants : espace utilisateur `/` distinct du backoffice `/b4ck0ff1ce`, accès réservé au compte personnel non-admin explicitement autorisé, worker planifié, Gmail OAuth + IMAP lecture seule, boîtes configurées hors Git, stockage interne, règles déterministes, digest 18h + récap hebdo via SMTP JobbingTrack, Google Tasks/Calendar obligatoires sans horaire inventé à `00:00`, ni événement auto avant `05:00` ou après `23:00`, IA locale en renfort, suites de tests/rapports dédiées. |
 | **Performances — plages temporelles** | Synthèse validée 21/05 ; sous-pages Réseau/Disque/Conteneurs/Latence validées en Playwright (`performances-range-smoke.spec.ts`, transitions 24 h ↔ 7 j, pas d’overlay Network Error). | Validation porteur navigateur optionnelle ; sticky période et disque BDD approfondi restent ouverts. |
 | **Performances — UI graphes / logo** | **12/06** : tooltips Recharts alignés avec la couleur réelle des séries, lien sous-nav Latence corrigé vers `/performances/latency`, nouveau logo JobbingTrack branché sur web/backoffice/mobile. **13/06** : moteur UI Performances (`PerformancePageShell`, `PerformanceChartCard`, états loading/empty/info) appliqué à Réseau + Latence. **15/06** : Réseau vérifié avec graphes RX/TX rendus, garde explicite si RX/TX non alimenté ; Corrélation affiche un squelette de chargement puis les graphes ; panneau P1B Vue d’ensemble retire Postgres du temps de réponse HTTP. **Suite retour porteur 15/06** : longues plages 30 j corrigées côté API/graphes : le backend échantillonne toute la fenêtre au lieu de renvoyer seulement les derniers points, et le front ne recadre plus silencieusement l’axe sur les données présentes. Constat local : `system_metrics` commence le 12/06 et `container_metrics` le 15/06, donc l’absence de vrais points sur 30 j est une limite d’historique disponible, pas seulement un bug d’affichage. **Conteneurs multi-séries** : couleurs seules insuffisantes, donc palette locale ordonnée très contrastée + codes `C#`, formes distinctives étendues, styles de trait, marqueurs `C#` sur courbes + sélection/désélection indépendante par graphique CPU et Mémoire. **Palette partagée** : `seriesColors` durcie pour les autres graphes multi-séries (CPU & Mémoire, etc.) avec une palette ordonnée fortement contrastée au lieu d’un départ par hash. Correctifs précédents acceptés provisoirement par le porteur ; validation partielle 15/06 des nouveaux éléments et de la résolution frontend, mais lot complet non clôturé. Suite perf frontend : budgets de points rendus réduits sur Conteneurs, CPU & Mémoire, Réseau, Disque, avec marqueurs `C#` moins denses quand beaucoup de séries. Corrélation doit rester ultra fluide même avec beaucoup de services : démarrage léger, sélection/filtre service clair, chargement multi-services explicite, auto-refresh maîtrisé, corrélation incidents/logs/sécurité vérifiée. | Validation porteur dans `docs/pilotage/TODOS_A_VALIDER.md` : pages Réseau/Corrélation visibles + panneau P1B sans `postgres`/`Santé Docker`, puis tester 24h → 7j → 30j sur Synthèse, Latence, CPU & Mémoire, Conteneurs, Réseau, Disque. Sur Conteneurs, vérifier palette vraiment différenciée + codes/formes/marqueurs + sélection indépendante CPU/Mémoire ; sur CPU & Mémoire, vérifier que les couleurs de services sont moins proches qu’avant. Étendre ensuite progressivement si un graphe reste vide ou illisible. |

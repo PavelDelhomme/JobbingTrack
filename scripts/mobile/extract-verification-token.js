@@ -8,7 +8,7 @@ const { resolveEmailTriageEnv } = require('./resolve-email-triage-env');
 const { waitForImapVerificationToken } = require('./fetch-imap-verification');
 const { loadRootEnv, resolveWorkingAdminCredentials, GATEWAY_URL } = require('./resolve-admin-credentials');
 
-async function waitForMailHogToken(email, timeoutMs = 45000) {
+async function waitForMailHogToken(email, timeoutMs = 45000, sinceMs = 0) {
   const mailhogUrl =
     process.env.MAILHOG_API_URL ||
     process.env.NEXT_PUBLIC_MAILHOG_UI_URL?.replace(/\/$/, '') ||
@@ -23,6 +23,8 @@ async function waitForMailHogToken(email, timeoutMs = 45000) {
         const json = await res.json();
         const items = json.items || [];
         for (const item of items) {
+          const created = item?.Created ? new Date(item.Created).getTime() : 0;
+          if (sinceMs && created && created < sinceMs - 5000) continue;
           const body =
             item?.Content?.Body ||
             item?.MIME?.Parts?.map((p) => p.Body).join('\n') ||
@@ -35,6 +37,8 @@ async function waitForMailHogToken(email, timeoutMs = 45000) {
       if (allRes.ok) {
         const all = await allRes.json();
         for (const item of all.items || []) {
+          const created = item?.Created ? new Date(item.Created).getTime() : 0;
+          if (sinceMs && created && created < sinceMs - 5000) continue;
           const to = (item?.Content?.Headers?.To || []).join(' ').toLowerCase();
           if (!to.includes(target)) continue;
           const body = item?.Content?.Body || '';
@@ -50,7 +54,7 @@ async function waitForMailHogToken(email, timeoutMs = 45000) {
   return null;
 }
 
-async function waitForEmailLogToken(email, timeoutMs = 45000) {
+async function waitForEmailLogToken(email, timeoutMs = 45000, sinceMs = 0) {
   const { email: adminEmail, password } = await resolveWorkingAdminCredentials();
   const loginRes = await fetch(`${GATEWAY_URL}/api/v1/auth/login`, {
     method: 'POST',
@@ -71,6 +75,8 @@ async function waitForEmailLogToken(email, timeoutMs = 45000) {
       const json = await res.json();
       const rows = json.data || [];
       for (const row of rows) {
+        const sentAt = row.sentAt || row.createdAt;
+        if (sinceMs && sentAt && new Date(sentAt).getTime() < sinceMs - 3000) continue;
         const to = String(row.to || '').toLowerCase();
         if (to !== target && !to.includes(target.split('@')[0])) continue;
         const content = row.emailContent || row.metadata?.verificationUrl || JSON.stringify(row.metadata || {});
@@ -112,29 +118,66 @@ function fetchPostgresToken(email) {
   return { token: out, source: 'postgres' };
 }
 
-async function resolveVerificationToken(email, { allowPostgresFallback = false } = {}) {
-  const fromMailhog = await waitForMailHogToken(email);
-  if (fromMailhog) return fromMailhog;
+async function resolveVerificationToken(email, { allowPostgresFallback = false, sinceMs = 0 } = {}) {
+  const target = email.toLowerCase();
+  console.log(`\n🔍 Token vérif pour « ${email} » (depuis ${sinceMs ? new Date(sinceMs).toISOString() : 'maintenant'})`);
+
+  const fromLog = await waitForEmailLogToken(email, 35000, sinceMs);
+  if (fromLog) {
+    console.log(`✅ Token via EmailLog API (${fromLog.source})`);
+    return fromLog;
+  }
+  console.log('   EmailLog : rien encore — MailHog…');
+
+  const fromMailhog = await waitForMailHogToken(email, 25000, sinceMs);
+  if (fromMailhog) {
+    console.log(`✅ Token via MailHog (${fromMailhog.source})`);
+    return fromMailhog;
+  }
+  console.log('   MailHog : rien — IMAP…');
 
   const triage = resolveEmailTriageEnv();
+  if (triage.gmailImap) {
+    console.log(`   IMAP Gmail → ${triage.gmailImap.email} (INBOX)`);
+  }
+  if (triage.ovhImap) {
+    console.log(`   IMAP OVH → ${triage.ovhImap.email} (INBOX)`);
+  }
   if (triage.gmailImap || triage.ovhImap) {
     try {
-      const fromImap = await waitForImapVerificationToken(email, triage, { timeoutMs: 60000 });
-      if (fromImap) return fromImap;
+      const fromImap = await waitForImapVerificationToken(email, triage, {
+        timeoutMs: 55000,
+        pollMs: 3000,
+        sinceMs,
+      });
+      if (fromImap) {
+        console.log(`✅ Token via ${fromImap.source} (boîte ${fromImap.mailbox})`);
+        return fromImap;
+      }
     } catch (err) {
-      console.warn(`IMAP vérif email : ${err.message}`);
+      console.warn(`   IMAP KO : ${err.message}`);
+    }
+  } else {
+    console.log('   IMAP : aucune boîte configurée (.env EMAIL_GMAIL_PRO_* / EMAIL_TRIAGE_*)');
+  }
+
+  if (allowPostgresFallback) {
+    const fromDb = fetchPostgresToken(email);
+    if (fromDb) {
+      console.log(`✅ Token via Postgres (${fromDb.source}) — fallback dev`);
+      return fromDb;
     }
   }
 
-  const fromLog = await waitForEmailLogToken(email);
-  if (fromLog) return fromLog;
-  if (allowPostgresFallback) {
-    const fromDb = fetchPostgresToken(email);
-    if (fromDb) return fromDb;
-  }
-  throw new Error(
-    `Token introuvable pour ${email} (MailHog + IMAP + EmailLog). Vérifiez SMTP, EMAIL_GMAIL_PRO_* / EMAIL_TRIAGE_* et auth-service.`,
-  );
+  const diag = [
+    `Token introuvable pour ${email}.`,
+    'Vérifications :',
+    '  • SMTP auth-service envoie-t-il (EmailLog SENT) ?',
+    '  • Bonne boîte IMAP (forward Gmail pro vs OVH candidatures@) ?',
+    '  • Pas d’autre smoke register en parallèle (verrou /tmp/jobbingtrack-smoke-*) ?',
+    `  • Destinataire attendu exact : ${target}`,
+  ].join('\n');
+  throw new Error(diag);
 }
 module.exports = {
   extractTokenFromText,

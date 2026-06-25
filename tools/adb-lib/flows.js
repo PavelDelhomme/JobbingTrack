@@ -61,24 +61,87 @@ async function dismissPermissionsGate(adb) {
   return true;
 }
 
+async function clearSecureStorageForSmoke(adb) {
+  const pkg = 'com.example.jobbingtrack_mobile';
+  try {
+    await adb.shellCommand(`run-as ${pkg} rm -f shared_prefs/FlutterSecureStorage.xml`);
+  } catch {
+    /* pas de stockage chiffré ou app non debug */
+  }
+}
+
+/** Ferme le BiometricPrompt Samsung — BACK uniquement si overlay système détecté. */
+async function dismissSystemBiometricPrompt(adb) {
+  if (await adb.uiContains('Email') || (await adb.uiContains('Bonjour'))) {
+    return true;
+  }
+  if (await adb.uiContains('Connexion par empreinte')) {
+    for (const label of [
+      'Se connecter avec le mot de passe',
+      'Utiliser un autre compte',
+    ]) {
+      if (!(await adb.uiContains(label))) continue;
+      try {
+        await adb.tap(label);
+        await adb.wait(1500);
+        adb._invalidateUi();
+        return true;
+      } catch {
+        /* label suivant */
+      }
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    let xml = '';
+    try {
+      xml = await adb.uiDump(true);
+    } catch {
+      xml = '';
+    }
+    if (
+      (await adb.uiContains('Email')) ||
+      (await adb.uiContains('Se connecter avec le mot de passe')) ||
+      (await adb.uiContains('Bonjour'))
+    ) {
+      return true;
+    }
+    if (!xml.includes('biometrics.app.setting')) {
+      await adb.wait(600);
+      continue;
+    }
+    await adb.back();
+    await adb.wait(ADB_FAST ? 350 : 700);
+  }
+  return false;
+}
+
 async function prepareSmokeSession(adb, opts = {}) {
   const { skipBiometric = true, keepLoggedIn = true, restart = false } = opts;
+  if (skipBiometric) {
+    await adb.setFlutterPrefBool('test_automation_skip_biometric', true);
+    await adb.setFlutterPrefBool('auth_biometric_unlock', false);
+  }
   if (keepLoggedIn) {
     await adb.setFlutterPrefBool('auth_keep_logged_in', true);
   }
   if (skipBiometric) {
-    await adb.setFlutterPrefBool('test_automation_skip_biometric', true);
+    await clearSecureStorageForSmoke(adb);
   }
   await grantSmokePermissions(adb);
   if (restart) {
     await restartApp(adb);
-    await adb.wait(ADB_FAST ? 1500 : 3500);
+    await adb.wait(ADB_FAST ? 3500 : 5000);
     await dismissPermissionsGate(adb);
+    await ensureFullLoginForm(adb);
   }
   return 'Smoke session prefs OK';
 }
 
 async function ensureAuthenticatedShell(adb, email, password) {
+  if (process.env.SMOKE_SHARED_SHELL === '1' && (await isShellVisible(adb))) {
+    return 'Shell OK (session partagée)';
+  }
+  await prepareSmokeSession(adb, { restart: false, skipBiometric: true });
   const creds = resolveTestCredentials({ email, password });
   email = creds.email;
   password = creds.password;
@@ -133,6 +196,7 @@ async function isSmokeAutomation(adb) {
 
 async function dismissBiometricUnlock(adb, opts = {}) {
   const { password } = opts;
+  await dismissSystemBiometricPrompt(adb);
   if (await dismissPermissionsGate(adb)) return true;
   const smokeAuto = await isSmokeAutomation(adb);
   let xml = '';
@@ -142,13 +206,24 @@ async function dismissBiometricUnlock(adb, opts = {}) {
     xml = '';
   }
   if (!xml || xml.length < 50 || xml.includes('biometrics.app.setting')) {
-    for (let i = 0; i < 3; i++) {
-      await adb.back();
-      await adb.wait(ADB_FAST ? 200 : 800);
+    for (let i = 0; i < 12; i++) {
+      if (
+        (await adb.uiContains('Email')) ||
+        (await adb.uiContains('Bonjour')) ||
+        (await adb.uiContains('Se connecter avec le mot de passe'))
+      ) {
+        break;
+      }
       try {
         xml = await adb.uiDump(true);
       } catch {
         xml = '';
+      }
+      if (xml.includes('biometrics.app.setting')) {
+        await adb.back();
+        await adb.wait(ADB_FAST ? 250 : 600);
+      } else {
+        await adb.wait(500);
       }
       if (xml && !xml.includes('biometrics.app.setting') && xml.length > 100) break;
     }
@@ -200,6 +275,23 @@ async function dismissBiometricUnlock(adb, opts = {}) {
       await adb.tap('Se connecter avec le mot de passe');
       await adb.wait(2500);
       return true;
+    }
+  }
+
+  if (
+    smokeAuto &&
+    (await adb.uiContains('Connexion par empreinte')) &&
+    !(await adb.uiContains('Email'))
+  ) {
+    for (const label of ['Se connecter avec le mot de passe', 'Utiliser un autre compte']) {
+      if (!(await adb.uiContains(label))) continue;
+      try {
+        await adb.tap(label);
+        await adb.wait(1500);
+        return true;
+      } catch {
+        /* suivant */
+      }
     }
   }
   return false;
@@ -398,11 +490,22 @@ function resolveTestCredentials(overrides = {}) {
     process.env.TEST_USER_EMAIL ||
     process.env.TEST_ADMIN_EMAIL ||
     process.env.ADMIN_EMAIL;
-  const password =
-    overrides.password ||
-    process.env.TEST_USER_PASSWORD ||
-    process.env.TEST_ADMIN_PASSWORD ||
-    process.env.ADMIN_PASSWORD;
+  let password = overrides.password;
+  if (!password) {
+    const adminEmails = [
+      process.env.TEST_ADMIN_EMAIL,
+      process.env.ADMIN_EMAIL,
+    ].filter(Boolean);
+    if (adminEmails.includes(email)) {
+      password =
+        process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD;
+    } else {
+      password =
+        process.env.TEST_USER_PASSWORD ||
+        process.env.TEST_ADMIN_PASSWORD ||
+        process.env.ADMIN_PASSWORD;
+    }
+  }
   if (!email || !password) {
     throw new Error(
       'Credentials mobile manquants: definir TEST_USER_EMAIL/TEST_USER_PASSWORD ou TEST_ADMIN_EMAIL/TEST_ADMIN_PASSWORD',
@@ -440,86 +543,78 @@ async function ensureLoginFormScreen(adb) {
   }
 }
 
+async function fillPasswordAfterEmail(adb, password) {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    adb._invalidateUi();
+    await adb.wait(attempt === 0 ? 500 : 700);
+    try {
+      await adb.tab();
+      await adb.wait(450);
+      await adb.typeText(password);
+      return;
+    } catch {
+      /* fallback label / index */
+    }
+    try {
+      await adb.typeInEditTextByIndex(1, password, { isPassword: true });
+      return;
+    } catch {
+      /* dump UI instable */
+    }
+    try {
+      await adb.typeInLabeledField('Mot de passe', password, {
+        editIndex: 1,
+        isPassword: true,
+        hints: ['Mot de passe'],
+      });
+      return;
+    } catch {
+      /* « Mot de passe oublié » peut polluer le hint — retry */
+    }
+    await adb.scrollDown(400);
+    await adb.wait(400);
+    await adb.tapXY(540, 1320);
+    await adb.wait(400);
+  }
+  throw new Error('Champ mot de passe introuvable');
+}
+
 async function fillLoginFields(adb, email, password) {
   for (const label of ['Se connecter avec le mot de passe', 'Utiliser un autre compte']) {
     if (!(await adb.uiContains(label))) continue;
     try {
       await adb.tap(label);
-      await adb.wait(1000);
+      await adb.wait(1200);
       adb._invalidateUi();
       break;
     } catch {
       /* label suivant */
     }
   }
-  let edits = await adb.listEditTexts();
-  if (edits.length >= 2) {
-    await adb.typeInEditTextByIndex(0, email, { isEmail: true });
-    await adb.wait(300);
-    await adb.typeInEditTextByIndex(1, password, { isPassword: true });
-    return;
-  }
-  if (edits.length === 1) {
-    await adb.typeInEditTextByIndex(0, email, { isEmail: true });
-    await adb.wait(500);
-    await adb.tab();
-    await adb.wait(400);
-    adb._invalidateUi();
-    edits = await adb.listEditTexts();
-    if (edits.length >= 2) {
-      await adb.typeInEditTextByIndex(1, password, { isPassword: true });
-      return;
-    }
-    for (const label of ['Mot de passe', 'Password']) {
-      if (!(await adb.uiContains(label))) continue;
-      try {
-        await adb.typeInField(label, password, { isPassword: true });
-        return;
-      } catch {
-        /* fallback index */
-      }
-    }
-    await adb.scrollDown(450);
-    await adb.wait(400);
-    adb._invalidateUi();
-    edits = await adb.listEditTexts();
-    if (edits.length >= 2) {
-      await adb.typeInEditTextByIndex(1, password, { isPassword: true });
-      return;
-    }
-    await adb.tapXY(540, 1320);
-    await adb.wait(500);
-    adb._invalidateUi();
-    edits = await adb.listEditTexts();
-    const pwdIdx = edits.length >= 2 ? 1 : edits.length === 1 ? 0 : null;
-    if (pwdIdx == null) {
-      throw new Error('Champ mot de passe introuvable');
-    }
-    await adb.typeInEditTextByIndex(pwdIdx, password, { isPassword: true });
-    return;
-  }
+
   try {
-    await adb.typeInField('Email', email);
+    await adb.typeInLabeledField('Email', email, {
+      editIndex: 0,
+      isEmail: true,
+      hints: ['Email', 'email'],
+    });
   } catch {
-    throw new Error('Champ email introuvable');
+    const edits = await adb.listEditTexts();
+    if (edits.length >= 1) {
+      await adb.typeInEditTextByIndex(0, email, { isEmail: true });
+    } else {
+      throw new Error('Champ email introuvable');
+    }
   }
-  await adb.wait(300);
-  edits = await adb.listEditTexts();
-  if (edits.length >= 2) {
-    await adb.typeInEditTextByIndex(1, password, { isPassword: true });
-  } else if (edits.length === 1) {
-    await adb.tapXY(540, 1320);
-    await adb.wait(300);
-    await adb.typeInEditTextByIndex(0, password, { isPassword: true });
-  } else {
-    throw new Error('Champ mot de passe introuvable');
-  }
+
+  await fillPasswordAfterEmail(adb, password);
 }
 
 async function login(adb, email, password) {
   const creds = resolveTestCredentials({ email, password });
   email = creds.email;
   password = creds.password;
+  await dismissSystemBiometricPrompt(adb);
   await dismissPermissionsGate(adb);
   await dismissBiometricUnlock(adb, { password });
   await ensureLoginFormScreen(adb);
@@ -527,6 +622,13 @@ async function login(adb, email, password) {
     await ensureFullLoginForm(adb);
   }
   await ensureLoginFormScreen(adb);
+  for (let i = 0; i < 12; i++) {
+    adb._invalidateUi();
+    const edits = await adb.listEditTexts();
+    if (edits.length >= 1 || (await adb.uiContains('Email'))) break;
+    await ensureFullLoginForm(adb);
+    await adb.wait(800);
+  }
   await adb.wait(300);
 
   await fillLoginFields(adb, email, password);
@@ -658,6 +760,7 @@ async function loginWithoutKeepLoggedIn(adb, email, password) {
 // ─── Registration ────────────────────────────────────────────────
 
 async function ensureFullLoginForm(adb) {
+  await dismissSystemBiometricPrompt(adb);
   await dismissBiometricUnlock(adb);
   if (
     (await adb.uiContains('Connexion par empreinte')) ||

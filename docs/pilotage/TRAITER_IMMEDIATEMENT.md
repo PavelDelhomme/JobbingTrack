@@ -2,7 +2,20 @@
 
 **À lire en début de chaque nouvelle demande utilisateur** (conversation Cursor ou agent).
 
-Dernière mise à jour : 21 mai 2026.
+Dernière mise à jour : 17 juin 2026 (feuille de route phases A–D).
+
+---
+
+## 0. Feuille de route (juin 2026)
+
+| Phase | Agent peut travailler ? | Contenu |
+|-------|-------------------------|---------|
+| **A — Mobile Lot D** | **Oui — seul chantier actif** | Smokes rapides, biométrie smoke, `/agent` consentements, hub admin, parcours Flutter |
+| **B — Gate pré-prod** | Après A | Validations porteur Lot D, D8 hub tests UI |
+| **C — Déploiement** | Après B | Builds, gate préprod, SMTP (porteur OVH) |
+| **D — Post-D8 / triage** | **Non — bloqué** | Lot H réorg, Lot E doc, audit secrets, P1B/P1C massif, doublons dépôt |
+
+Détail : `PILOTAGE.md` + `TODOS.md` § « Feuille de route ».
 
 ---
 
@@ -26,7 +39,8 @@ Thèmes détaillés : `docs/operations/DEV_HTTPS.md`, `docs/configuration/STRICT
 
 Cocher mentalement (ou dans la réponse si utile) :
 
-- [ ] **Pilotage** : si `TODOS_A_VALIDER.md` contient un P0 ouvert, ne pas démarrer une nouvelle feature.
+- [ ] **Pilotage** : phase **A mobile** en cours — ne pas démarrer triage/réorg/Lot H (phase D).
+- [ ] **Pilotage** : si `TODOS_A_VALIDER.md` contient une ligne Lot D ouverte, la traiter avant toute nouvelle feature hors phase A.
 - [ ] **Branche** : `git branch --show-current` — respecter `docs/development/BRANCHES.md` (`docs/...`, `fix/...`, `feat/...`, `security/...`) et finir sur `dev`.
 - [ ] **Périmètre** : une demande = un objectif ; pas de refactor hors sujet.
 - [ ] **Secrets** : ne jamais committer `.env`, mots de passe, tokens ; ne pas recopier `ADMIN_PASSWORD` dans le chat.

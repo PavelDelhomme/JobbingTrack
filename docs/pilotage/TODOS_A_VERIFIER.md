@@ -1,12 +1,34 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 25 juin 2026 (navigation mobile ligne 318 — smokes ADB Samsung)
+Dernière mise à jour : 17 juin 2026 (feuille de route mobile — phase A)
 
 ## Rôle
 
 Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander une validation porteur. Une ligne vérifiée par l’agent ne vaut pas validation produit.
 
-## Vérifications ouvertes
+## Phase A — Mobile Lot D (travail agent EN COURS)
+
+> **Ne pas démarrer** Lot H, réorg fichiers, audit secrets dépôt, ni campagne validations backoffice P1C tant que cette section n’est pas clôturée (OK porteur phase B).
+
+| Priorité | Vérification agent | Preuve attendue | Statut |
+|----------|--------------------|-----------------|--------|
+| A1 | Smokes rapides — gate par défaut | `node scripts/mobile/smoke-run-mobile-fast.js` OK Samsung ; pré-vol `smoke-preflight.js` (verrou ADB, `SMOKE_SHARED_SHELL=1`) ; pas de scripts parallèles sur le même appareil | [ ] |
+| A2 | Attente email smokes — bonne boîte + diagnostic | Helper IMAP poll avec timeout ; ordre EmailLog → MailHog → Gmail → OVH ; logs indiquent boîte et tentative ; échec = message actionnable (mauvaise boîte, token absent, délai) | [ ] |
+| A3 | Bypass biométrie smokes (pas produit) | Pref `test_automation_skip_biometric` ; smokes sans prompt Samsung/Aegis ; biométrie porteur inchangée hors mode test | [ ] |
+| A4 | Hub admin ADB multi-comptes | `smoke-mobile-admin-hub-adb.js` OK : admin visible → hub → retour TEST_USER sans blocage login | [ ] |
+| A5 | Consentements agent `/agent` — sync mobile→web | Consentements sauvés mobile visibles sur `/agent` (même compte) ; UI switches statut OK/KO + `grantedAt` ; `hasRequiredConsents` cohérent | [ ] UI switches + badges OK/KO + dates `grantedAt`/`revokedAt` dans `AgentEmailContent.tsx` ; `./node_modules/.bin/tsc --noEmit` frontend **OK** (17/06). **Reste** : preuve sync même compte mobile→BDD→web + validation porteur |
+| A6 | Comptes test prêts | `ensure-test-accounts-ready.js` : `TEST_USER` + `TEST_ADMIN` login API + `emailVerified=true` | [x] |
+
+Commandes utiles (directes, sans Make) :
+
+```bash
+node scripts/mobile/ensure-test-accounts-ready.js
+node scripts/mobile/smoke-preflight.js
+node scripts/mobile/smoke-run-mobile-fast.js
+ADB_FAST=1 node scripts/mobile/smoke-mobile-admin-hub-adb.js
+```
+
+## Vérifications ouvertes (historique / autres lots)
 
 | Priorité | Vérification agent | Preuve attendue | Statut |
 |----------|--------------------|-----------------|--------|

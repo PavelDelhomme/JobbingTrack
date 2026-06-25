@@ -170,6 +170,9 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      if (kDebugMode && await ApiConfigStore.loadTestAutomationSkipBiometric()) {
+        enableBiometric = false;
+      }
       final response = await ApiService.login(email, password);
 
       if (response['success'] == true) {
