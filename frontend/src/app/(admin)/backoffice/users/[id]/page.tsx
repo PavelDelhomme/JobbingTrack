@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import axios from "axios";
+import { setUserAgentEnabled } from "@/lib/services/emailAgentService";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -46,6 +47,7 @@ interface User {
   role: string;
   isActive: boolean;
   emailVerified: boolean;
+  jobSearchAgentEnabled?: boolean;
   createdAt: string;
   updatedAt: string;
   lastLogin?: string;
@@ -66,6 +68,7 @@ export default function UserDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
+  const [togglingAgent, setTogglingAgent] = useState(false);
   const [creating, setCreating] = useState(false);
   const isCreateMode = userId === "new";
 
@@ -417,6 +420,34 @@ export default function UserDetailPage() {
     } catch (error: any) {
       console.error("Erreur changement rôle:", error);
       alert(error.response?.data?.error || "Erreur lors du changement de rôle");
+    }
+  };
+
+  const isAdminViewer =
+    currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN";
+
+  const handleToggleJobSearchAgent = async () => {
+    if (!user || !isAdminViewer) return;
+    const next = !user.jobSearchAgentEnabled;
+    if (
+      !confirm(
+        `${next ? "Activer" : "Désactiver"} l'agent email recherche pour ${user.email} ?`,
+      )
+    ) {
+      return;
+    }
+    setTogglingAgent(true);
+    try {
+      await setUserAgentEnabled(user.id, next);
+      await loadUser();
+    } catch (error: unknown) {
+      const msg =
+        error instanceof Error
+          ? error.message
+          : "Erreur lors du changement agent email";
+      alert(msg);
+    } finally {
+      setTogglingAgent(false);
     }
   };
 
@@ -817,6 +848,50 @@ export default function UserDetailPage() {
                   )}
                 </div>
               </div>
+
+              {isAdminViewer && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Agent email recherche
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                        user.jobSearchAgentEnabled
+                          ? "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200"
+                          : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                      }`}
+                    >
+                      {user.jobSearchAgentEnabled ? "Activé" : "Désactivé"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleToggleJobSearchAgent}
+                      disabled={togglingAgent}
+                      className="flex items-center gap-1 px-3 py-1 rounded-lg text-sm bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                    >
+                      {togglingAgent
+                        ? "…"
+                        : user.jobSearchAgentEnabled
+                          ? "Désactiver l'agent"
+                          : "Activer l'agent"}
+                    </button>
+                    {user.jobSearchAgentEnabled && (
+                      <Link
+                        href="/agent"
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        Ouvrir l’agent (compte connecté)
+                      </Link>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Flag <code>jobSearchAgentEnabled</code> — requis pour connecter
+                    une boîte IMAP/Gmail et utiliser le triage email.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">

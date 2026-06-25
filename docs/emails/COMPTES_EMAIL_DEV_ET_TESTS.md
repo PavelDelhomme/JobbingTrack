@@ -95,6 +95,16 @@ node scripts/mobile/sync-test-env.js --write
 
 ---
 
+## Cible SMTP produit — `@jobbingtrack.com`
+
+L’expéditeur applicatif (vérif compte, reset MDP, digest) doit finir sur **`@jobbingtrack.com`**, pas `@maily.ovh`.
+
+**État OVH (25/06/2026)** : le MX Plan sur `jobbingtrack.com` est en offre **`redirect`** (quota comptes **0/0**) — pas de boîte créable tant que l’offre n’est pas upgradée. Voir **[OVH_MX_PLAN_JOBBINGTRACK.md](OVH_MX_PLAN_JOBBINGTRACK.md)**.
+
+En dev, continuer `maily.ovh` ou MailHog ; **refaire tous les smokes mail** après migration domaine (checklist dans ce doc).
+
+---
+
 ## Compte principal mobile — `paul.delhomme@pm.me`
 
 Dans `.env` local (exemple porteur — **ne pas committer**) :

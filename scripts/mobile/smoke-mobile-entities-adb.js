@@ -7,15 +7,23 @@
  */
 
 const adbLib = require('../../tools/adb-lib');
-const { ensureUserShell, typeInLabeledField, openProfileEdit, openAppDrawer } = require('./adb-smoke-helpers');
+const {
+  ensureUserShell,
+  typeInLabeledField,
+  openProfileEdit,
+  openAppDrawer,
+} = require('./adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const { loadRootEnv } = require('./resolve-admin-credentials');
+const {
+  loginSmokeToken,
+  ensureSmokeApplication,
+  openSmokeApplicationDetail,
+  tapCompanyCard,
+  nodeLabel,
+} = require('./smoke-application-target');
 
 loadRootEnv();
-
-function nodeLabel(n) {
-  return `${n.text || ''}\n${n.contentDesc || ''}`.trim();
-}
 
 async function ensureLoggedIn(phone, email, password) {
   return ensureUserShell(phone, email, password);
@@ -31,37 +39,8 @@ async function openDrawerItemWithScroll(phone, label) {
   await phone.wait(2500);
 }
 
-async function openFirstApplicationDetail(phone) {
-  await adbLib.flows.goToTab(phone, 2, { shell: true });
-  await phone.wait(2000);
-  try {
-    await phone.tap('Tab 1 of 5');
-  } catch {
-    try {
-      await phone.tap('Candidatures', 0);
-    } catch {
-      /* déjà sur sous-onglet candidatures */
-    }
-  }
-  await phone.wait(2000);
-  let card = null;
-  for (let i = 0; i < 15; i++) {
-    const nodes = await phone.uiNodes();
-    card = nodes.find((n) => n.clickable && nodeLabel(n).includes('Postulé'));
-    if (card) break;
-    await phone.wait(1000);
-  }
-  if (!card) throw new Error('Aucune candidature pour créer un contact');
-  const m = card.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
-  await phone.tapXY(
-    Math.floor((+m[1] + +m[3]) / 2),
-    Math.floor((+m[2] + +m[4]) / 2),
-  );
-  await phone.wait(2500);
-}
-
-async function createContactFromApplicationDetail(phone, contactName) {
-  await openFirstApplicationDetail(phone);
+async function createContactFromApplicationDetail(phone, target, contactName) {
+  await openSmokeApplicationDetail(phone, target);
   try {
     await phone.tap('Ajouter');
   } catch {
@@ -99,34 +78,6 @@ async function createContactFromApplicationDetail(phone, contactName) {
   await phone.wait(1500);
 }
 
-async function tapFirstCompanyCard(phone) {
-  const nodes = await phone.uiNodes();
-  const card = nodes.find(
-    (n) =>
-      n.clickable &&
-      nodeLabel(n).length > 2 &&
-      !nodeLabel(n).includes('Tab ') &&
-      !nodeLabel(n).includes('Rechercher') &&
-      !nodeLabel(n).includes('Entreprises') &&
-      !nodeLabel(n).includes('Notifications'),
-  );
-  if (card) {
-    const label = nodeLabel(card).split('\n')[0];
-    try {
-      await phone.tap(label.slice(0, 24));
-      return;
-    } catch {
-      const m = card.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
-      await phone.tapXY(
-        Math.floor((+m[1] + +m[3]) / 2),
-        Math.floor((+m[2] + +m[4]) / 2),
-      );
-      return;
-    }
-  }
-  await phone.tapXY(540, 700);
-}
-
 async function tapFirstContact(phone, preferName) {
   const nodes = await phone.uiNodes();
   let tile = null;
@@ -162,8 +113,11 @@ async function tapFirstContact(phone, preferName) {
 
 (async () => {
   const { email, password } = await resolveWorkingUserCredentials();
+  const token = await loginSmokeToken(email, password);
+  const target = await ensureSmokeApplication(token);
   const phone = await adbLib.connect();
   console.log('User:', email);
+  console.log('Candidature cible:', target.position, '→', target.companyName);
 
   await ensureLoggedIn(phone, email, password);
 
@@ -208,7 +162,12 @@ async function tapFirstContact(phone, preferName) {
   }
 
   if (!(await phone.uiContains('Aucune entreprise'))) {
-    await tapFirstCompanyCard(phone);
+    await typeInLabeledField(phone, 'Rechercher', target.companyName, {
+      hints: ['Rechercher une entreprise', 'Rechercher'],
+      editIndex: 0,
+    });
+    await phone.wait(1500);
+    await tapCompanyCard(phone, target.companyName);
     await phone.wait(2500);
     const detailOk =
       (await phone.uiContains('Contacts')) ||
@@ -234,7 +193,7 @@ async function tapFirstContact(phone, preferName) {
   console.log('✅ Contacts : liste shell OK');
 
   const contactName = `Smoke${Date.now().toString().slice(-6)}`;
-  await createContactFromApplicationDetail(phone, contactName);
+  await createContactFromApplicationDetail(phone, target, contactName);
   const created =
     (await phone.uiContains('Contact créé')) ||
     (await phone.uiContains(contactName)) ||

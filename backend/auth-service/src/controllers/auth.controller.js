@@ -678,7 +678,8 @@ const getAllUsers = async (req, res, next) => {
         createdAt: true,
         updatedAt: true,
         emailVerified: true,
-        lastLoginAt: true
+        lastLoginAt: true,
+        jobSearchAgentEnabled: true
       };
 
       const [foundUsers, count] = await Promise.all([

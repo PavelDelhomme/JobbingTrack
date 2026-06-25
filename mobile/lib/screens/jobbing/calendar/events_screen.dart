@@ -4,6 +4,7 @@ import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
+import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 
 /// Calendrier et événements (API event-service).
 class EventsScreen extends StatefulWidget {
@@ -43,6 +44,7 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text('Événements & Rappels'),
         actions: const [MobileNotificationCenter()],

@@ -1,16 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/main_shell_screen.dart';
 
+/// Onglet shell courant (barre basse) — lu par le drawer pour le retour « page précédente ».
+class ShellTabRegistry {
+  static int currentTab = 0;
+  static int currentApplicationsSubTab = 0;
+
+  static void setCurrentTab(int tab, {int? applicationsSubTab}) {
+    currentTab = tab.clamp(0, 3);
+    if (applicationsSubTab != null) {
+      currentApplicationsSubTab = applicationsSubTab.clamp(0, 4);
+    }
+  }
+}
+
 /// Arguments pour ouvrir le shell principal sur un onglet précis.
 class MainShellArgs {
   final int initialTab;
   final int applicationsTabIndex;
   final String? applicationStatusFilter;
+  /// Onglet shell à restaurer au bouton retour système (ex. Profil → Calendrier drawer).
+  final int? returnTabOnBack;
 
   const MainShellArgs({
     this.initialTab = 0,
     this.applicationsTabIndex = 0,
     this.applicationStatusFilter,
+    this.returnTabOnBack,
   });
 }
 
@@ -36,6 +52,7 @@ class ShellNavigation {
         initialTab: args.initialTab,
         applicationsTabIndex: args.applicationsTabIndex,
         applicationStatusFilter: args.applicationStatusFilter,
+        returnTabOnBack: args.returnTabOnBack,
       );
     }
     final fb = fallback ?? const MainShellArgs();
@@ -43,6 +60,7 @@ class ShellNavigation {
       initialTab: fb.initialTab,
       applicationsTabIndex: fb.applicationsTabIndex,
       applicationStatusFilter: fb.applicationStatusFilter,
+      returnTabOnBack: fb.returnTabOnBack,
     );
   }
 
@@ -52,10 +70,19 @@ class ShellNavigation {
 
     final shellArgs = _shellRoutes[route];
     if (shellArgs != null) {
+      final currentTab = ShellTabRegistry.currentTab;
+      final targetTab = shellArgs.initialTab;
+      final enriched = MainShellArgs(
+        initialTab: shellArgs.initialTab,
+        applicationsTabIndex: shellArgs.applicationsTabIndex,
+        applicationStatusFilter: shellArgs.applicationStatusFilter,
+        returnTabOnBack:
+            currentTab != targetTab ? currentTab : null,
+      );
       Navigator.of(context).pushNamedAndRemoveUntil(
         '/home',
         (r) => r.isFirst,
-        arguments: shellArgs,
+        arguments: enriched,
       );
       return;
     }

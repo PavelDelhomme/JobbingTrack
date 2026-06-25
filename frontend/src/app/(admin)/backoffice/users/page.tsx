@@ -63,6 +63,7 @@ interface User {
   role: string;
   isActive: boolean;
   isTestData?: boolean;
+  jobSearchAgentEnabled?: boolean;
   createdAt: string;
   lastLogin?: string;
 }
@@ -661,6 +662,14 @@ export default function UsersManagementPage() {
                             Test
                           </span>
                         )}
+                      {user.jobSearchAgentEnabled && (
+                        <span
+                          className="ml-1 px-2 py-0.5 text-xs rounded-full bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200"
+                          title="Agent email recherche activé"
+                        >
+                          Agent
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button

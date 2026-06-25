@@ -2,7 +2,7 @@
 
 [← Emails](README.md) | [Cadrage produit](../features/EMAIL_TRIAGE_AGENT.md) | [Comptes dev porteur](COMPTES_EMAIL_DEV_ET_TESTS.md) | [Tests agent](../../tests/email-triage/README.md)
 
-Dernière mise à jour : 22 juin 2026
+Dernière mise à jour : 25 juin 2026
 
 ## Réponse courte
 
@@ -30,6 +30,7 @@ Ce qui existe aujourd’hui :
 | **UI « Connecter ma boîte »** | **OK** | `/agent` — Gmail OAuth + formulaire IMAP |
 | **Table BDD comptes mail / tokens** | **OK** | `UserMailbox`, tokens chiffrés `credentialsEnc` |
 | **Consentement RGPD mail (UI)** | **OK** | 6 consentements versionnés ; audit BDD |
+| **Activation agent par admin** | **OK UI 25/06** | `PUT /email-agent/users/:id/agent-enabled` ; toggle fiche `/backoffice/users/[id]` ; badge « Agent » liste users ; `/agent` — bouton « Activer pour mon compte » si admin |
 | **Relier email → candidature (auto)** | **Partiel** | suggestions + auto-link score unique ≥10 ; UI liaison manuelle `/agent` |
 | **Google Tasks / Calendar** | **Partiel** | API `/triage/:id/actions/*` + boutons UI ; requiert Gmail OAuth + consentements dédiés |
 

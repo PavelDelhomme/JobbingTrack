@@ -27,6 +27,40 @@ async function isShellVisible(adb) {
   return false;
 }
 
+async function grantSmokePermissions(adb) {
+  const pkg = 'com.example.jobbingtrack_mobile';
+  try {
+    await adb.shellCommand(`pm grant ${pkg} android.permission.POST_NOTIFICATIONS`);
+  } catch {
+    /* Android < 13 ou déjà accordé */
+  }
+}
+
+async function dismissPermissionsGate(adb) {
+  const onGate =
+    (await adb.uiContains('Autorisations requises')) ||
+    (await adb.uiContains('Autoriser les notifications'));
+  if (!onGate) return false;
+  try {
+    await adb.tap('Autoriser les notifications');
+  } catch {
+    return false;
+  }
+  await adb.wait(ADB_FAST ? 800 : 1500);
+  for (const label of ['Autoriser', 'Allow', 'ALLOW', 'Toujours autoriser']) {
+    if (await adb.uiContains(label)) {
+      try {
+        await adb.tap(label);
+        await adb.wait(ADB_FAST ? 1200 : 2500);
+        break;
+      } catch {
+        /* suivant */
+      }
+    }
+  }
+  return true;
+}
+
 async function prepareSmokeSession(adb, opts = {}) {
   const { skipBiometric = true, keepLoggedIn = true, restart = false } = opts;
   if (keepLoggedIn) {
@@ -35,9 +69,11 @@ async function prepareSmokeSession(adb, opts = {}) {
   if (skipBiometric) {
     await adb.setFlutterPrefBool('test_automation_skip_biometric', true);
   }
+  await grantSmokePermissions(adb);
   if (restart) {
     await restartApp(adb);
     await adb.wait(ADB_FAST ? 1500 : 3500);
+    await dismissPermissionsGate(adb);
   }
   return 'Smoke session prefs OK';
 }
@@ -51,6 +87,7 @@ async function ensureAuthenticatedShell(adb, email, password) {
   if (!smokeAuto) {
     await dismissBiometricUnlock(adb, { password });
   }
+  await dismissPermissionsGate(adb);
   if (await isShellVisible(adb)) return 'Shell OK';
   if (await adb.uiContains('Bonjour')) {
     try {
@@ -70,6 +107,7 @@ async function ensureAuthenticatedShell(adb, email, password) {
   }
   await loginFresh(adb, email, password);
   await dismissBiometricUnlock(adb, { password });
+  await dismissPermissionsGate(adb);
   if (!(await isShellVisible(adb))) {
     throw new Error('Shell mobile introuvable après connexion');
   }
@@ -95,6 +133,7 @@ async function isSmokeAutomation(adb) {
 
 async function dismissBiometricUnlock(adb, opts = {}) {
   const { password } = opts;
+  if (await dismissPermissionsGate(adb)) return true;
   const smokeAuto = await isSmokeAutomation(adb);
   let xml = '';
   try {
@@ -460,6 +499,12 @@ async function login(adb, email, password) {
     } catch {
       await adb.enter();
     }
+    home =
+      (await adb.waitFor('Bonjour', ADB_FAST ? 8000 : 12000)) ||
+      (await adb.waitFor(`Tab 1 of ${SHELL_TAB_COUNT}`, ADB_FAST ? 5000 : 8000));
+  }
+  if (!home) {
+    await dismissPermissionsGate(adb);
     home =
       (await adb.waitFor('Bonjour', ADB_FAST ? 8000 : 12000)) ||
       (await adb.waitFor(`Tab 1 of ${SHELL_TAB_COUNT}`, ADB_FAST ? 5000 : 8000));

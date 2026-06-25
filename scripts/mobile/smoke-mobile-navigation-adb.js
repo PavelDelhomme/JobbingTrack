@@ -13,10 +13,8 @@ const { loadRootEnv } = require('./resolve-admin-credentials');
 loadRootEnv();
 
 async function ensureLoggedIn(phone, email, password) {
-  await adbLib.flows.dismissBiometricUnlock(phone, { password });
-  if (await phone.uiContains('Bonjour')) return;
-  await adbLib.flows.loginFresh(phone, email, password);
-  await phone.assertVisible('Bonjour');
+  await adbLib.flows.prepareSmokeSession(phone, { restart: false });
+  await adbLib.flows.ensureAuthenticatedShell(phone, email, password);
 }
 
 (async () => {
@@ -61,10 +59,66 @@ async function ensureLoggedIn(phone, email, password) {
   }
   console.log('✅ Retour Paramètres → Profil OK');
 
-  // ── Admin masqué pour compte USER
-  if (await phone.uiContains('Accueil') && (await phone.uiContains('Tab 1 of 4'))) {
-    /* déjà sur shell */
+  // ── Retour Calendrier (onglet shell) → Profil (pas accueil forcé)
+  await adbLib.flows.goToTab(phone, 4, { shell: true });
+  await phone.wait(1200);
+  await phone.assertVisible('Profil');
+
+  await adbLib.flows.goToTab(phone, 3, { shell: true });
+  await phone.wait(2000);
+  const onCalendar =
+    (await phone.uiContains('Événements & Rappels')) ||
+    (await phone.uiContains('Calendrier')) ||
+    (await phone.uiContains('Tab 3 of 4'));
+  if (!onCalendar) {
+    throw new Error('Écran Calendrier introuvable (onglet shell 3)');
   }
+  console.log('✅ Onglet Calendrier OK');
+
+  await phone.back();
+  await phone.wait(1500);
+  await phone.assertVisible('Profil');
+  if (await phone.uiContains('Bonjour') && !(await phone.uiContains('Profil'))) {
+    throw new Error('Retour Calendrier → Profil échoué (accueil forcé)');
+  }
+  console.log('✅ Retour Calendrier → Profil OK');
+
+  // ── Admin : retour hub → écran précédent (si compte admin)
+  await phone.openDrawer();
+  await phone.wait(1200);
+  const hasAdminHub = await phone.uiContains('Hub administration');
+  if (hasAdminHub) {
+    await phone.drawerScrollDown();
+    await phone.wait(600);
+    await phone.tap('Hub administration');
+    await phone.wait(2500);
+    const onAdmin =
+      (await phone.uiContains('Administration')) ||
+      (await phone.uiContains('Utilisateurs')) ||
+      (await phone.uiContains('Hub'));
+    if (!onAdmin) {
+      throw new Error('Hub administration introuvable');
+    }
+    console.log('✅ Hub administration ouvert');
+
+    await phone.back();
+    await phone.wait(1500);
+    if (await phone.uiContains('Accès refusé')) {
+      throw new Error('Compte admin refusé sur hub — vérifier AdminAccess');
+    }
+    const backOk =
+      (await phone.uiContains('Profil')) ||
+      (await phone.uiContains('Bonjour')) ||
+      (await phone.uiContains('Tab'));
+    if (!backOk) {
+      throw new Error('Retour hub admin → écran précédent échoué');
+    }
+    console.log('✅ Retour hub admin OK');
+  } else {
+    console.log('✅ Section admin absente — skip retour hub');
+  }
+
+  // ── Admin masqué pour compte USER (drawer)
   await phone.openDrawer();
   await phone.wait(1200);
   const adminVisible =

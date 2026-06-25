@@ -8,12 +8,13 @@
 const adbLib = require('../../tools/adb-lib');
 const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const { loadRootEnv } = require('./resolve-admin-credentials');
+const {
+  loginSmokeToken,
+  ensureSmokeApplication,
+  openSmokeApplicationDetail,
+} = require('./smoke-application-target');
 
 loadRootEnv();
-
-function nodeLabel(n) {
-  return `${n.text || ''}\n${n.contentDesc || ''}`.trim();
-}
 
 async function ensureLoggedIn(phone, email, password) {
   await adbLib.flows.dismissBiometricUnlock(phone, { password });
@@ -25,39 +26,16 @@ async function ensureLoggedIn(phone, email, password) {
   await phone.assertVisible('Bonjour');
 }
 
-async function openFirstApplicationDetail(phone) {
-  await adbLib.flows.goToTab(phone, 2, { shell: true });
-  await phone.wait(2000);
-  try {
-    await phone.tap('Tab 1 of 5');
-  } catch {
-    /* ok */
-  }
-  await phone.wait(2000);
-  let card = null;
-  for (let i = 0; i < 15; i++) {
-    card = (await phone.uiNodes()).find(
-      (n) => n.clickable && nodeLabel(n).includes('Postulé'),
-    );
-    if (card) break;
-    await phone.wait(1000);
-  }
-  if (!card) throw new Error('Aucune candidature pour FAB relance');
-  const m = card.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
-  await phone.tapXY(
-    Math.floor((+m[1] + +m[3]) / 2),
-    Math.floor((+m[2] + +m[4]) / 2),
-  );
-  await phone.wait(2500);
-}
-
 (async () => {
   const { email, password } = await resolveWorkingUserCredentials();
+  const token = await loginSmokeToken(email, password);
+  const target = await ensureSmokeApplication(token);
   const phone = await adbLib.connect();
   console.log('User:', email);
+  console.log('Candidature cible:', target.position);
 
   await ensureLoggedIn(phone, email, password);
-  await openFirstApplicationDetail(phone);
+  await openSmokeApplicationDetail(phone, target);
 
   try {
     await phone.tap('Ajouter');

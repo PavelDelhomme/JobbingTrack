@@ -8,12 +8,13 @@
 const adbLib = require('../../tools/adb-lib');
 const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const { loadRootEnv } = require('./resolve-admin-credentials');
+const {
+  loginSmokeToken,
+  ensureSmokeApplication,
+  nodeLabel,
+} = require('./smoke-application-target');
 
 loadRootEnv();
-
-function nodeLabel(n) {
-  return `${n.text || ''}\n${n.contentDesc || ''}`.trim();
-}
 
 async function isInApp(phone) {
   return (
@@ -42,7 +43,7 @@ async function ensureLoggedIn(phone, email, password) {
   }
 }
 
-async function openFirstFollowupDetail(phone) {
+async function openFirstFollowupDetail(phone, target) {
   await openDrawerRelances(phone);
   if (await phone.uiContains('Aucune relance')) {
     throw new Error('Aucune relance — lancer smoke FAB relance ou parcours API avant');
@@ -55,12 +56,10 @@ async function openFirstFollowupDetail(phone) {
       !nodeLabel(n).includes('Tab ') &&
       !nodeLabel(n).includes('Relances') &&
       !nodeLabel(n).includes('Open navigation') &&
-      (nodeLabel(n).includes('Email') ||
+      (nodeLabel(n).includes(target.position) ||
+        nodeLabel(n).includes('Email') ||
         nodeLabel(n).includes('Canal') ||
-        nodeLabel(n).includes('Postulé') ||
-        nodeLabel(n).includes('relance') ||
-        nodeLabel(n).includes('Smoke') ||
-        /\d/.test(nodeLabel(n))),
+        nodeLabel(n).includes('relance')),
   );
   if (!relanceTile) {
     await phone.tapXY(540, 900);
@@ -93,8 +92,11 @@ async function openDrawerRelances(phone) {
 
 (async () => {
   const { email, password } = await resolveWorkingUserCredentials();
+  const token = await loginSmokeToken(email, password);
+  const target = await ensureSmokeApplication(token);
   const phone = await adbLib.connect();
   console.log('User:', email);
+  console.log('Candidature cible:', target.position, '→', target.companyName);
 
   await ensureLoggedIn(phone, email, password);
 
@@ -102,7 +104,7 @@ async function openDrawerRelances(phone) {
     (await phone.uiContains('Candidature liée')) &&
     ((await phone.uiContains('Type')) || (await phone.uiContains('Notes')));
   if (!onFollowupDetail) {
-    await openFirstFollowupDetail(phone);
+    await openFirstFollowupDetail(phone, target);
   } else {
     console.log('✅ Déjà sur détail relance');
   }
@@ -139,6 +141,7 @@ async function openDrawerRelances(phone) {
       ) {
         return false;
       }
+      if (!label.includes(target.position)) return false;
       const bm = n.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
       if (!bm) return false;
       const y1 = +bm[2];

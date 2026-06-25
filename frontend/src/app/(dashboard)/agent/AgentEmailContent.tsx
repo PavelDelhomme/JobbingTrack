@@ -21,6 +21,7 @@ import {
   ProposedAgentActions,
   reviewTriageMessage,
   revokeMailbox,
+  setUserAgentEnabled,
   startGoogleOAuth,
   syncMailboxesNow,
   TriageMessage,
@@ -37,7 +38,7 @@ const CONSENT_ORDER: AgentConsentType[] = [
 ];
 
 export default function AgentEmailContent() {
-  const { isAuthenticated, loading: authLoading, token } = useAuth();
+  const { isAuthenticated, loading: authLoading, token, isAdmin, user: authUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const oauthResult = searchParams.get("oauth");
@@ -60,6 +61,22 @@ export default function AgentEmailContent() {
   const [linkSuggestions, setLinkSuggestions] = useState<Record<string, ApplicationLinkSuggestion[]>>({});
   const [proposedActions, setProposedActions] = useState<Record<string, ProposedAgentActions>>({});
   const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null);
+  const [selfActivating, setSelfActivating] = useState(false);
+
+  const activateAgentForSelf = async () => {
+    if (!authUser?.id) return;
+    setSelfActivating(true);
+    setError(null);
+    try {
+      await setUserAgentEnabled(authUser.id, true);
+      await loadAll();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Activation agent échouée";
+      setError(msg);
+    } finally {
+      setSelfActivating(false);
+    }
+  };
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -341,7 +358,13 @@ export default function AgentEmailContent() {
             <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
               <li>
                 Agent activé :{" "}
-                <strong>{status.agentEnabled ? "Oui" : "Non (demandez l’activation à un admin)"}</strong>
+                <strong>
+                  {status.agentEnabled
+                    ? "Oui"
+                    : isAdmin
+                      ? "Non — activez-le ci-dessous ou depuis la fiche utilisateur"
+                      : "Non (demandez l’activation à un admin)"}
+                </strong>
               </li>
               <li>
                 Email JobbingTrack vérifié :{" "}
@@ -356,10 +379,30 @@ export default function AgentEmailContent() {
               </li>
             </ul>
             {!status.agentEnabled && (
-              <p className="text-xs text-amber-700 dark:text-amber-300">
-                Flag produit <code>JOB_SEARCH_AGENT_ENABLED</code> — activable par un administrateur
-                depuis la fiche utilisateur.
-              </p>
+              <div className="text-xs text-amber-700 dark:text-amber-300 space-y-2">
+                <p>
+                  Flag produit <code>jobSearchAgentEnabled</code> — chaque utilisateur
+                  doit être activé individuellement (RGPD / consentement boîte mail).
+                </p>
+                {isAdmin && (
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <button
+                      type="button"
+                      onClick={activateAgentForSelf}
+                      disabled={selfActivating}
+                      className="px-3 py-1.5 rounded-lg bg-teal-600 text-white text-sm hover:bg-teal-700 disabled:opacity-50"
+                    >
+                      {selfActivating ? "Activation…" : "Activer pour mon compte"}
+                    </button>
+                    <a
+                      href="/backoffice/users"
+                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Gérer les agents des utilisateurs →
+                    </a>
+                  </div>
+                )}
+              </div>
             )}
           </section>
         )}

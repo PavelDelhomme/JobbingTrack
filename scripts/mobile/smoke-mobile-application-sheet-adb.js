@@ -8,12 +8,13 @@
 const adbLib = require('../../tools/adb-lib');
 const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const { loadRootEnv } = require('./resolve-admin-credentials');
+const {
+  loginSmokeToken,
+  ensureSmokeApplication,
+  openSmokeApplicationDetail,
+} = require('./smoke-application-target');
 
 loadRootEnv();
-
-function nodeLabel(n) {
-  return `${n.text || ''}\n${n.contentDesc || ''}`.trim();
-}
 
 async function ensureLoggedIn(phone, email, password) {
   await adbLib.flows.dismissBiometricUnlock(phone, { password });
@@ -50,39 +51,13 @@ async function openCreateSheetFromHome(phone) {
   await phone.wait(2500);
 }
 
-async function openFirstApplicationDetail(phone) {
-  await adbLib.flows.goToTab(phone, 2, { shell: true });
-  await phone.wait(2000);
-  try {
-    await phone.tap('Tab 1 of 5');
-  } catch {
-    try {
-      await phone.tap('Candidatures', 0);
-    } catch {
-      /* ok */
-    }
-  }
-  await phone.wait(2000);
-  let card = null;
-  for (let i = 0; i < 15; i++) {
-    const nodes = await phone.uiNodes();
-    card = nodes.find((n) => n.clickable && nodeLabel(n).includes('Postulé'));
-    if (card) break;
-    await phone.wait(1000);
-  }
-  if (!card) throw new Error('Aucune candidature pour tester le statut FR');
-  const m = card.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
-  await phone.tapXY(
-    Math.floor((+m[1] + +m[3]) / 2),
-    Math.floor((+m[2] + +m[4]) / 2),
-  );
-  await phone.wait(2500);
-}
-
 (async () => {
   const { email, password } = await resolveWorkingUserCredentials();
+  const token = await loginSmokeToken(email, password);
+  const target = await ensureSmokeApplication(token);
   const phone = await adbLib.connect();
   console.log('User:', email);
+  console.log('Candidature cible:', target.position);
 
   await ensureLoggedIn(phone, email, password);
 
@@ -112,18 +87,21 @@ async function openFirstApplicationDetail(phone) {
   }
   await phone.wait(2000);
   const frStatus =
-    (await phone.uiContains('Candidaté et en attente')) ||
-    (await phone.uiContains('En attente')) ||
-    (await phone.uiContains('Relancé')) ||
-    (await phone.uiContains('Refusée')) ||
-    (await phone.uiContains('Retenue'));
+    (await phone.uiContains(target.position)) &&
+    ((await phone.uiContains('Candidaté et en attente')) ||
+      (await phone.uiContains('En attente')) ||
+      (await phone.uiContains('Relancé')) ||
+      (await phone.uiContains('Refusée')) ||
+      (await phone.uiContains('Retenue')));
   if (!frStatus) {
-    throw new Error('Libellé statut candidature FR introuvable sur la liste');
+    throw new Error(
+      `Libellé statut FR introuvable sur la carte « ${target.position} »`,
+    );
   }
   console.log('✅ Candidatures : statut affiché en français');
 
   // ── Détail : picker « Résultat / statut »
-  await openFirstApplicationDetail(phone);
+  await openSmokeApplicationDetail(phone, target);
   if (!(await phone.uiContains('Résultat / statut'))) {
     throw new Error('Bouton « Résultat / statut » introuvable');
   }

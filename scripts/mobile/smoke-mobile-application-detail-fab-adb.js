@@ -8,20 +8,13 @@
 const adbLib = require('../../tools/adb-lib');
 const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const { loadRootEnv } = require('./resolve-admin-credentials');
+const {
+  loginSmokeToken,
+  ensureSmokeApplication,
+  openSmokeApplicationDetail,
+} = require('./smoke-application-target');
 
 loadRootEnv();
-
-const SKIP_LIST_LABELS = new Set([
-  'Candidatures',
-  'Toutes',
-  'En cours',
-  'Terminées',
-  'Refusées',
-  'Archivées',
-  'Nouvelle candidature',
-  'Créer ma première candidature',
-  'Rechercher',
-]);
 
 async function ensureLoggedIn(phone, email, password) {
   await adbLib.flows.dismissBiometricUnlock(phone, { password });
@@ -39,54 +32,17 @@ async function ensureLoggedIn(phone, email, password) {
   await phone.assertVisible('Bonjour');
 }
 
-function nodeLabel(n) {
-  return `${n.text || ''}\n${n.contentDesc || ''}`.trim();
-}
+(async () => {
+  const { email, password } = await resolveWorkingUserCredentials();
+  const token = await loginSmokeToken(email, password);
+  const target = await ensureSmokeApplication(token);
+  const phone = await adbLib.connect();
+  console.log('Device:', phone.device);
+  console.log('User:', email);
+  console.log('Candidature cible:', target.position, '→', target.companyName);
 
-async function waitApplicationsTabReady(phone, timeoutMs = 30000) {
-  const t0 = Date.now();
-  while (Date.now() - t0 < timeoutMs) {
-    if (await phone.uiContains('Aucune candidature')) return 'empty';
-    if (await phone.uiContains('Impossible de charger les candidatures')) return 'error';
-    const nodes = await phone.uiNodes();
-    const hasCard = nodes.some(
-      (n) => n.clickable && nodeLabel(n).includes('Postulé'),
-    );
-    if (hasCard) return 'list';
-    await phone.wait(1000);
-  }
-  return 'timeout';
-}
-
-async function tapFirstApplicationCard(phone) {
-  const nodes = await phone.uiNodes();
-  const card = nodes.find((n) => n.clickable && nodeLabel(n).includes('Postulé'));
-  if (card) {
-    const m = card.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
-    const cx = Math.floor((+m[1] + +m[3]) / 2);
-    const cy = Math.floor((+m[2] + +m[4]) / 2);
-    await phone.tapXY(cx, cy);
-    return;
-  }
-  await phone.tapXY(540, 1000);
-}
-
-async function openFirstApplicationDetail(phone) {
-  await adbLib.flows.goToTab(phone, 2, { shell: true });
-  await phone.wait(2000);
-  const state = await waitApplicationsTabReady(phone);
-  if (state === 'empty') {
-    throw new Error('Aucune candidature — impossible de tester le FAB détail');
-  }
-  if (state === 'error') {
-    throw new Error('Erreur chargement candidatures sur l’appareil');
-  }
-  if (state === 'timeout') {
-    throw new Error('Liste candidatures : timeout chargement');
-  }
-
-  await tapFirstApplicationCard(phone);
-  await phone.wait(2500);
+  await ensureLoggedIn(phone, email, password);
+  await openSmokeApplicationDetail(phone, target);
 
   const onDetail =
     (await phone.uiContains('Ajouter')) ||
@@ -96,16 +52,6 @@ async function openFirstApplicationDetail(phone) {
   if (!onDetail) {
     throw new Error('Écran détail candidature introuvable après tap liste');
   }
-}
-
-(async () => {
-  const { email, password } = await resolveWorkingUserCredentials();
-  const phone = await adbLib.connect();
-  console.log('Device:', phone.device);
-  console.log('User:', email);
-
-  await ensureLoggedIn(phone, email, password);
-  await openFirstApplicationDetail(phone);
   console.log('✅ Détail candidature : écran ouvert');
 
   try {

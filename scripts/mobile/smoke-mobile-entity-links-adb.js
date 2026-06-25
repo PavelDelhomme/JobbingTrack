@@ -8,12 +8,15 @@
 const adbLib = require('../../tools/adb-lib');
 const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
 const { loadRootEnv } = require('./resolve-admin-credentials');
+const {
+  loginSmokeToken,
+  ensureSmokeApplication,
+  openSmokeApplicationDetail,
+  findApplicationCardNode,
+  nodeLabel,
+} = require('./smoke-application-target');
 
 loadRootEnv();
-
-function nodeLabel(n) {
-  return `${n.text || ''}\n${n.contentDesc || ''}`.trim();
-}
 
 async function ensureLoggedIn(phone, email, password) {
   await adbLib.flows.dismissBiometricUnlock(phone, { password });
@@ -73,8 +76,11 @@ async function tapFirstContact(phone) {
 
 (async () => {
   const { email, password } = await resolveWorkingUserCredentials();
+  const token = await loginSmokeToken(email, password);
+  const target = await ensureSmokeApplication(token);
   const phone = await adbLib.connect();
   console.log('User:', email);
+  console.log('Candidature cible:', target.position);
 
   await ensureLoggedIn(phone, email, password);
 
@@ -117,12 +123,7 @@ async function tapFirstContact(phone) {
 
   // Navigation candidature liée si présente
   const nodes = await phone.uiNodes();
-  const appLink = nodes.find(
-    (n) =>
-      n.clickable &&
-      nodeLabel(n).includes('Postulé') &&
-      !nodeLabel(n).includes('Tab '),
-  );
+  const appLink = findApplicationCardNode(nodes, target);
   if (appLink) {
     const m = appLink.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
     await phone.tapXY(
@@ -146,28 +147,8 @@ async function tapFirstContact(phone) {
   await phone.wait(1500);
 
   // ── Détail candidature → sections métier
-  await adbLib.flows.goToTab(phone, 2, { shell: true });
-  await phone.wait(2000);
-  try {
-    await phone.tap('Tab 1 of 5');
-  } catch {
-    try {
-      await phone.tap('Candidatures', 0);
-    } catch {
-      /* ok */
-    }
-  }
-  await phone.wait(2000);
-  const appCard = (await phone.uiNodes()).find(
-    (n) => n.clickable && nodeLabel(n).includes('Postulé'),
-  );
-  if (!appCard) throw new Error('Aucune candidature pour liens détail');
-  const m = appCard.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
-  await phone.tapXY(
-    Math.floor((+m[1] + +m[3]) / 2),
-    Math.floor((+m[2] + +m[4]) / 2),
-  );
-  await phone.wait(2500);
+  await openSmokeApplicationDetail(phone, target);
+  await phone.wait(1600);
 
   const detailSections =
     (await phone.uiContains('Contacts')) ||

@@ -17,8 +17,9 @@ Ce document décrit l’ensemble du système mail : objectif, infra OVH (jobbing
 
 ## 2. Infra OVH (envoi SMTP)
 
-- **Option recommandée** : **redacted@example.invalid** — MX Plan **maily.ovh** actif (offre MX Plan 5), compte « noreply » créé. On utilise ce compte pour l’authentification SMTP ; on met `SMTP_FROM=JobbingTrack <redacted@example.invalid>` pour que le destinataire voie jobbingtrack.com comme expéditeur.
-- **Option alternative** : **redacted@example.invalid** — si un MX Plan ou un compte existe sur jobbingtrack.com (champs MX 1/5/100 → mx1/mx2/mx3.mail.ovh.net), tu peux mettre ce compte en `SMTP_USER` / `SMTP_PASS`.
+> **Investigation 25/06/2026** : `jobbingtrack.com` — offre MX Plan **`redirect`** (quota **0/0**). Détail : **[OVH_MX_PLAN_JOBBINGTRACK.md](OVH_MX_PLAN_JOBBINGTRACK.md)**.
+
+- **Transition** : SMTP auth via **maily.ovh** ; cible prod **@jobbingtrack.com** après upgrade OVH ou relais transactionnel.
 - **Stockage** : tous les envois sont loggés dans **notre BDD** (EmailLog, stats), pas dans la boîte mail OVH.
 
 ---
