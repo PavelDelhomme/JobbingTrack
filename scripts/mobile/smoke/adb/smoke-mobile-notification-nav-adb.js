@@ -3,7 +3,7 @@
  * Smoke : tap notification in-app → écran détail candidature (ou entité liée).
  *   node scripts/mobile/smoke/adb/smoke-mobile-notification-nav-adb.js
  */
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 const { ensureUserShell } = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');

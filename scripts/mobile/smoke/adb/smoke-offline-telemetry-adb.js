@@ -1,14 +1,10 @@
 #!/usr/bin/env node
 /**
- * Smoke télémétrie offline mobile (Samsung / ADB) :
- * 1. login utilisateur test
- * 2. réseau OFF (wifi+data) → navigation → événements en file
- * 3. réseau ON → flush
- *
- *   node scripts/mobile/smoke/adb/smoke-offline-telemetry-adb.js
+ * Smoke télémétrie offline mobile (Samsung / ADB).
+ * @used-by scripts/mobile/smoke/run/smoke-run-mobile-validation.js (batterie complète)
  */
 
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 
 async function readTelemetryPending(phone) {

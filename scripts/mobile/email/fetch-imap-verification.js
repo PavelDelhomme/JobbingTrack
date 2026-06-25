@@ -1,10 +1,10 @@
 /**
  * Récupère le corps d'un email récent via IMAP (Gmail app password ou OVH).
- * Implémentation minimale sans dépendance npm (TLS + protocole IMAP).
+ * @used-by scripts/mobile/email/extract-verification-token.js, scripts/mobile/lib/bluemail-setup-flow.js
  */
 
 const tls = require('tls');
-const { extractTokenFromText } = require('../../email/extract-token-from-text');
+const { extractTokenFromText } = require('./extract-token-from-text');
 
 class ImapSession {
   constructor({ host, port, email, password }) {

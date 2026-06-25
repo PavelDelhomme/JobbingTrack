@@ -5,7 +5,7 @@
  *   node scripts/mobile/smoke/adb/smoke-mobile-profile-save-adb.js
  */
 
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 const { ensureUserShell, openProfileEdit, typeInLabeledField } = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');

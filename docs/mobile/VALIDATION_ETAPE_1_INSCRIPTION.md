@@ -15,7 +15,13 @@ Technique : [`INSCRIPTION_VERIFICATION_EMAIL.md`](INSCRIPTION_VERIFICATION_EMAIL
 | B | Samsung USB + débogage | `adb devices` → `R5CT7263YJL device` |
 | C | Redirection API vers le PC | `adb reverse tcp:5002 tcp:5002` |
 | D | APK debug à jour | `bash scripts/mobile/setup/build-apk-debug.sh` puis install Success |
-| E | Choisir un **email neuf** que tu consultes (pas déjà inscrit) | ex. alias `@delhomme.ovh` ou Proton |
+| E | Choisir un **email neuf** que tu consultes (pas déjà inscrit) | ex. alias `test+porteur20260617@delhomme.ovh` — voir [`BOITE_MAIL_INSCRIPTION_TESTS.md`](BOITE_MAIL_INSCRIPTION_TESTS.md) |
+
+**Important — où lire le mail :**
+
+- Les vérifs partent vers **l'adresse saisie à l'inscription**, pas vers `candidatures@delhomme.ovh` (boîte **agent email** uniquement).
+- Avec `TEST_REAL_EMAIL=test@delhomme.ovh`, les alias `test+…@delhomme.ovh` arrivent sur la **boîte `test@…`** (plus-addressing OVH).
+- Diagnostic : `node scripts/mobile/setup/diagnose-registration-email.js`
 
 Si tu es déjà connecté sur l’app : **Profil → Déconnexion** (ou Paramètres) avant de tester l’inscription.
 
@@ -46,12 +52,14 @@ Si tu es déjà connecté sur l’app : **Profil → Déconnexion** (ou Paramèt
 
 ### Test C — Mail réel (point bloquant porteur)
 
-1. Sur le PC ou le téléphone, ouvrir **ta boîte mail** (Proton, OVH, etc.)
+1. Ouvrir la boîte **`test@delhomme.ovh`** (ou la base de ton alias `test+…@delhomme.ovh`) — **pas** `candidatures@delhomme.ovh` (agent email uniquement)
 2. Attendre **≤ 5 min** (vérifier spam)
 
 **Attendu** : email JobbingTrack (vérif inscription) avec **lien web** et/ou lien **`jobbingtrack://verify-email`**.
 
-**Preuve** : sujet du mail + adresse destinataire (pas le corps complet si sensible).
+**Preuve** : sujet du mail + adresse destinataire (ex. `test+porteur20260617@delhomme.ovh`).
+
+Voir [`BOITE_MAIL_INSCRIPTION_TESTS.md`](BOITE_MAIL_INSCRIPTION_TESTS.md) si la boîte est vide alors que l'écran « Vérifiez votre email » s'affiche.
 
 ### Test D — Clic lien → compte activé
 
@@ -101,13 +109,14 @@ L’agent archive ensuite dans `TODOS_DONE.md` et débloque l’**étape 2** (li
 | Cause fréquente | Vérification |
 |-----------------|--------------|
 | SMTP `.env` | `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` — mails partent-ils en `EmailLog` **SENT** ? |
-| Mauvaise boîte | Le mail part vers l’adresse **saisie à l’inscription**, pas MailHog seul |
+| Mauvaise boîte | Le mail part vers l'adresse **saisie à l'inscription** — lire **`test@…`** pour les alias `test+…`, **pas** `candidatures@…` | voir [`BOITE_MAIL_INSCRIPTION_TESTS.md`](BOITE_MAIL_INSCRIPTION_TESTS.md) |
 | Compte déjà existant | Utiliser un **autre** alias email |
 | Gateway | `adb reverse` actif ; app en debug pointe bien `127.0.0.1:5002` |
 
 Diagnostic agent (toi ou moi) :
 
 ```bash
+node scripts/mobile/setup/diagnose-registration-email.js
 node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 # Backoffice → Email Monitor, filtre vérification
 ```
@@ -119,7 +128,7 @@ Ne pas passer à l’étape 2 tant que le **Test C + D** ne sont pas OK sur **ta
 ## 5. Ce que l’agent a déjà validé (tu n’as pas à refaire)
 
 - Smokes API renvoi vérif
-- Smoke ADB deep link (Samsung)
+- **`smoke-etape1-inscription-adb.js`** — batterie **A→E** sur Samsung (25/06) : refus télémétrie, inscription alias réel, renvoi, token EmailLog, deep link, login mobile
 - EmailLog SENT côté serveur
 
-**Ta validation** = recevoir le mail **chez toi** et cliquer le lien **comme un utilisateur réel**.
+**Validation porteur optionnelle** si tu veux confirmer manuellement ; sinon répondre `OK Mobile — Inscription + télémétrie obligatoire + vérif email` après lecture des preuves agent ci-dessus.

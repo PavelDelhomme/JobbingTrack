@@ -1,4 +1,7 @@
 #!/bin/bash
+# Vérifications rapides Make (env + db-push + metrics) — outil ops permanent, pas legacy.
+# Usage: bash scripts/ops/fix-all.sh
+# @used-by dépannage local documenté dans scripts/ops/README.md
 
 set -euo pipefail
 

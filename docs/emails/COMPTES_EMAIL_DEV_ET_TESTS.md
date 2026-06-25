@@ -21,7 +21,8 @@ Les identifiants email réels (**mots de passe compte**, **mots de passe d'appli
 |------|--------------|-------------------|------------------|
 | **Compte principal porteur** | `paul.delhomme@pm.me` (Proton Mail) | Utilisateur mobile de référence, smokes ADB/API, analytics test | `TEST_USER_EMAIL`, `NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL` |
 | **Gmail pro porteur** | ex. `pauldelhomme.pro@gmail.com` | AVD Android, IMAP agent email, digest, forward OVH | `EMAIL_GMAIL_PRO_*`, `TEST_EMAIL_TRIAGE_GMAIL_*` |
-| **Boîte candidatures OVH** | ex. `candidatures@delhomme.ovh` | Lecture IMAP agent email (forward vers Gmail pro) | `EMAIL_TRIAGE_READ_ACCOUNT`, `TEST_EMAIL_TRIAGE_IMAP_*` |
+| **Boîte candidatures OVH** | ex. `candidatures@delhomme.ovh` | Lecture IMAP **agent email** uniquement (forward vers Gmail pro) — **ne reçoit pas** les vérifs inscription | `EMAIL_TRIAGE_READ_ACCOUNT`, `TEST_EMAIL_TRIAGE_IMAP_*` |
+| **Boîte tests inscription** | ex. `test@delhomme.ovh` + alias `test+…` | Smokes API + validation porteur étape 1 — mails vérif **SENT** vers l'alias, lus sur la boîte de base | `TEST_REAL_EMAIL`, `TEST_REAL_EMAIL_PASSWORD` — voir [`BOITE_MAIL_INSCRIPTION_TESTS.md`](../mobile/BOITE_MAIL_INSCRIPTION_TESTS.md) |
 | **Alias tests inscription mobile** | ex. `test+mob@delhomme.ovh` | Smokes inscription / vérif email sans polluer le compte principal | scripts `smoke-register-adb.js`, etc. |
 
 > **Legacy** : certains smokes ou `.env` locaux mentionnent encore `paul.delhomme@proton.me`. Le compte de référence documenté est **`paul.delhomme@pm.me`** — aligner le `.env` local puis `node scripts/mobile/sync-test-env.js --write`.

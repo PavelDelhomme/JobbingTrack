@@ -1,8 +1,9 @@
 /**
  * Extrait le token de réinitialisation mot de passe depuis MailHog ou EmailLog.
+ * @used-by scripts/mobile/smoke/api/smoke-auth-password-flows-e2e.js
  */
 
-const { extractTokenFromText } = require('../../email/extract-verification-token');
+const { extractTokenFromText } = require('./extract-token-from-text');
 const { loadRootEnv, resolveWorkingAdminCredentials, GATEWAY_URL } = require('../lib/resolve-admin-credentials');
 
 function extractResetTokenFromText(text) {

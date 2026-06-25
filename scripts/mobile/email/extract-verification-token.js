@@ -1,11 +1,12 @@
 /**
  * Extrait le token de vérification depuis MailHog, EmailLog (API) ou Postgres (dernier recours).
+ * @used-by scripts/mobile/smoke/adb/smoke-verify-email-adb.js, scripts/mobile/smoke/api/smoke-auth-password-flows-e2e.js
  */
 
 const { execFileSync } = require('child_process');
-const { extractTokenFromText } = require('../../email/extract-token-from-text');
+const { extractTokenFromText } = require('./extract-token-from-text');
 const { resolveEmailTriageEnv } = require('../lib/resolve-email-triage-env');
-const { waitForImapVerificationToken } = require('../../email/fetch-imap-verification');
+const { waitForImapVerificationToken } = require('./fetch-imap-verification');
 const { loadRootEnv, resolveWorkingAdminCredentials, GATEWAY_URL } = require('../lib/resolve-admin-credentials');
 
 async function waitForMailHogToken(email, timeoutMs = 45000, sinceMs = 0) {

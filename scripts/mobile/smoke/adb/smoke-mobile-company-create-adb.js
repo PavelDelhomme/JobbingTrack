@@ -6,7 +6,7 @@
  *   node scripts/mobile/smoke/adb/smoke-mobile-company-create-adb.js
  */
 
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 const { ensureUserShell, typeInLabeledField } = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');

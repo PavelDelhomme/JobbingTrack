@@ -1,6 +1,6 @@
 /**
  * Cible smoke mobile : candidature identifiée par poste + entreprise (nom exact UI).
- * Évite les faux positifs (« Postulé », « Jobbing », widgets voisins).
+ * @used-by scripts/mobile/lib/adb-smoke-helpers.js, scripts/mobile/smoke/adb/smoke-mobile-entities-adb.js, scripts/mobile/smoke/adb/smoke-mobile-application-sheet-adb.js, scripts/mobile/smoke/adb/smoke-mobile-entity-links-adb.js
  */
 
 const { GATEWAY_URL } = require('../lib/resolve-user-credentials');

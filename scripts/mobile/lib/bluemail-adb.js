@@ -1,3 +1,4 @@
+/** Helpers ADB BlueMail (install APK, Play Store). @used-by scripts/mobile/lib/bluemail-setup-flow.js, scripts/mobile/setup/install-emulator-bluemail.js, scripts/mobile/setup/setup-emulator-bluemail.js */
 const fs = require('fs');
 const path = require('path');
 const { BLUEMAIL_PACKAGES, PLAY_STORE_PACKAGE } = require('./bluemail-packages');

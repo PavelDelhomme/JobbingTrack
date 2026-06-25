@@ -30,6 +30,36 @@ Objectif : ne pas supprimer de script de depannage sans decision explicite. Les 
 | `scripts/utils/test-table-check.sh` | Debug minimal de connexion/tables Postgres. | Legacy DB debug. | Faible : remplace par `make test-database`. | Archiver avec `debug-tables.sh`. |
 | `scripts/utils/translate-french-to-english.sh` | Remplacements `sed` de textes FR -> EN dans le code. | Legacy dangereux. | Faible si supprime, mais risque eleve si execute sans revue. | Ne pas executer ; archiver ou supprimer apres validation explicite. |
 
+## Lot mobile — 17/06/2026 (inventaire 250 scripts)
+
+Controle `node scripts/ops/inventory-scripts.cjs` : **18 scripts** classes `non-reference`, dont **17 sous `scripts/mobile/`**. Ce sont surtout des **modules lib** (`require()` interne) ou smokes manuels non grepables par l'inventaire.
+
+| Script | Role probable | Decision | Action |
+| --- | --- | --- | --- |
+| `scripts/mobile/lib/*.js` (7 fichiers) | Credentials `.env`, helpers ADB/BlueMail, cible smoke | **Garder** — dependances des smokes | Ne pas supprimer ; option H2 : commentaire `@used-by` en tete de fichier |
+| `scripts/mobile/email/extract-*.js` (2) | Parse token depuis texte mail | **Garder** — outils manuels email | Documentes dans `scripts/mobile/README.md` |
+| `scripts/mobile/smoke/adb/smoke-mobile-email-agent*.js` (2) | Smokes agent email ADB | **Garder** — execution manuelle porteur | References docs mobile validation |
+| `scripts/mobile/smoke/adb/smoke-offline-telemetry-adb.js` | Smoke télémétrie offline | **Garder** — batterie Lot D | Appeler depuis batterie ou doc |
+| `scripts/mobile/smoke/api/smoke-email-agent-api.js` | Smoke API agent email | **Garder** | Idem |
+| `scripts/mobile/smoke/run/smoke-lock.js` | Verrou ADB partage | **Garder** — utilise par preflight | Module interne |
+| `scripts/mobile/setup/ensure-device-api-ready.sh` | Attente gateway avant smoke | **Garder** | Shell helper setup |
+| `scripts/mobile/test/test-crash-email-enriched.js` | Test crash enrichi | **Garder** — QA manuelle | Hors CI |
+| `scripts/ops/send-test-agent-digest.cjs` | Envoi digest test agent | **Auditer** — peut etre obsolete si remplace par smoke seed | Verifier usage porteur avant archivage |
+
+## Archivage legacy — 17/06/2026
+
+Scripts déplacés vers `scripts/legacy/` (voir `scripts/legacy/README.md`) :
+
+| Ancien chemin | Nouveau |
+|---------------|---------|
+| `scripts/fixes/*` | `scripts/legacy/fixes/` |
+| `scripts/utils/debug-tables.sh`, `test-*table*` | `scripts/legacy/utils/` |
+| `scripts/database/migration-phase*.js` | `scripts/legacy/database/` |
+| `scripts/ops/run-*-validation-with-report.sh` | `scripts/legacy/ops/campaigns/` |
+| `scripts/ops/recap-*.html` | `scripts/legacy/ops/reports/` |
+
+**Conservé actif** : `scripts/database/seed-statuses.js` (CI).
+
 ## Suite
 
 1. Garder les scripts `manuel/documente` en l'etat tant qu'ils rendent un service de diagnostic ponctuel.

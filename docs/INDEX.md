@@ -198,9 +198,10 @@ La racine de `docs/` garde les **hubs** : `README.md`, **`STATUS.md`**, `INDEX.m
 - **[README.md](scripts/)** - Documentation des scripts
 
 **Scripts Principaux** :
+- [`scripts/README.md`](../scripts/README.md) — index scripts (env, mobile, ops)
+- [`scripts/legacy/README.md`](../scripts/legacy/README.md) — archives (fixes, campagnes ops)
+- [`scripts/mobile/README.md`](../scripts/mobile/README.md) — smokes Samsung / ADB
 - `scripts/testing/verify-user-journey.sh` - Vérification automatique
-- `START_TESTS.sh` - Démarrage rapide des tests
-- `scripts/monitoring/` - Scripts de monitoring
 
 ---
 

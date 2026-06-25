@@ -737,11 +737,21 @@ Chantier **transversal** (hors périmètre fonctionnel A–G seul) : rangement, 
 - [ ] Chaque script déplacé (H1–H3) : MAJ doc + ligne `make help` ou README domaine.
 - [ ] Parallèle **make help ↔ markdown** : une procédure = une source de vérité sous `docs/` ou `scripts/*/README.md`.
 
-### H1 — Dossier **`scripts/`** (~90 fichiers à la racine du dossier + sous-dossiers `db/`, `monitoring/`, `testing/`, etc.)
+## Lot H2 bis — Agent email & télémétrie (dette notée 17/06/2026)
 
+- [ ] **MAILBOX_ACCESS backoffice** : statut « Incomplet » alors que compte test semble OK — consentements agent = BDD serveur, pas prefs mobile. Voir [`docs/emails/AGENT_EMAIL_ETAT_ET_ROADMAP.md`](../emails/AGENT_EMAIL_ETAT_ET_ROADMAP.md) § dette consentements.
+- [ ] **Télémétrie toggles** : defaults perf/trace `?? true` vs consent `?? false` ; inscription force tout à true. Voir [`docs/mobile/TELEMETRIE_ET_CONSENTEMENTS.md`](../mobile/TELEMETRIE_ET_CONSENTEMENTS.md).
+- [ ] **Fix produit** : opt-in inscription agent → `upsertConsents(MAILBOX_ACCESS)` ; bootstrap test user ; aligner mobile ↔ `/agent`.
+
+### H1 — Dossier **`scripts/`**
+
+- [x] **Wrappers env racine supprimés** (17/06) — canonique `scripts/env/` ; Make migré.
+- [x] **`scripts/legacy/`** (17/06) — `fixes/`, utils debug, migrations one-shot, campagnes ops, HTML récap.
+- [x] **`@used-by`** sur `scripts/mobile/lib/` + smokes email + inventaire mis à jour.
+- [x] **`scripts/legacy/`** archivé ; **`fix-all.sh`** documenté (ops permanent).
 - [ ] **Cartographie** : pour chaque script référencé par **`Makefile`** / **`package.json`** / CI / doc, noter l’appelant dans un **`scripts/README.md`** (table *script → usage*).
 - [ ] **Sous-dossiers** : regrouper les scripts « one-shot » ou par domaine (**`scripts/legacy/`**, **`scripts/one-off/`**) sans casser les chemins **`Makefile`** ; grep des références avant déplacement.
-- [ ] **Morts ou doublons** : scripts jamais cités — archiver ou supprimer après confirmation (ne pas supprimer à l’aveugle).
+- [ ] **Morts ou doublons** : scripts jamais cités — archiver ou supprimer après confirmation (ne pas supprimer à l’aveugle). **18 non-ref mobile** : modules internes — pas de suppression sans validation porteur.
 
 ### H2 — Dossier **`tools/`** (`adb-lib`, `emulator-controller`, etc.)
 

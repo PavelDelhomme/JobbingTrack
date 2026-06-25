@@ -308,7 +308,7 @@ Menu **Statistics** → sous-onglets en haut de page.
 ## File de validation porteur — ordre strict (juin 2026)
 
 > **Règle absolue** : tant que l’étape **N** n’est pas validée (`Décision porteur` = `OK …` + ligne archivée dans `TODOS_DONE.md`), **ne pas** passer à l’étape **N+1**.  
-> **Pause porteur 17/06/2026** : triage repo/scripts sur branche `chore/repo-scripts-docs-hygiene` — **reprendre l’étape 1** après ce chantier (guide [`VALIDATION_ETAPE_1_INSCRIPTION.md`](../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md)).
+> **Reprise 17/06/2026** : triage repo **clos** — **étape 1 Samsung active**. Guide : [`VALIDATION_ETAPE_1_INSCRIPTION.md`](../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md).
 
 | Étape | Ligne tableau | Sujet | Bloque |
 |-------|---------------|-------|--------|
@@ -336,30 +336,36 @@ En cas de `KO` : décrire **exactement** ce qui bloque (écran, message, boîte 
 
 **Environnement** : Samsung `R5CT7263YJL` (ou AVD) + stack locale (`gateway` `127.0.0.1:5002`, `adb reverse tcp:5002 tcp:5002`). APK debug installé (`bash scripts/mobile/setup/build-apk-debug.sh`).
 
-**Prérequis agent (déjà faits — ne pas re-valider toi)** :
+**Prérequis agent (17/06 reprise — ne pas refaire toi)** :
 
-- `node scripts/mobile/smoke/api/smoke-resend-verification-api.js` → OK
-- `node scripts/mobile/smoke/adb/smoke-verify-email-adb.js` → OK (deep link + API)
-- EmailLog : vérif **SENT** (SMTP Python port **587** STARTTLS)
+- Gateway `127.0.0.1:5002` → **200** ; Samsung `R5CT7263YJL` + `adb reverse tcp:5002 tcp:5002`
+- `node scripts/mobile/ensure-test-accounts-ready.js` → TEST_USER + TEST_ADMIN **OK**
+- `node scripts/mobile/smoke/api/smoke-resend-verification-api.js` → **OK** (~26 s, EmailLog + renvoi + verify)
+- Correctifs chemins `scripts/mobile/email/` + `adb-lib` (`../../../../tools/adb-lib` sous `smoke/adb/`)
+- Smoke ADB refus télémétrie : à confirmer **manuellement** (Test A ci-dessous) si l’UI inscription a changé
+- **`node scripts/mobile/smoke/adb/smoke-etape1-inscription-adb.js`** → **OK 25/06** Samsung : Tests **A→E** autonomes (alias `test+mob…@delhomme.ovh`, EmailLog, deep link, login). Fix validateur email alias `+` dans l’app.
 
 **Toi — à tester sur appareil** :
 
 | # | Action | Résultat attendu | Preuve à noter |
 |---|--------|------------------|----------------|
-| 1 | Ouvrir app → **Créer un compte** (alias **réel** que tu consultes, ex. `@delhomme.ovh` ou Proton) | Formulaire visible | compte test utilisé |
+| 1 | Ouvrir app → **Créer un compte** (alias **réel** que tu consultes) | Formulaire visible | ex. `test+porteur20260617@delhomme.ovh` — voir [`BOITE_MAIL_INSCRIPTION_TESTS.md`](../mobile/BOITE_MAIL_INSCRIPTION_TESTS.md) |
 | 2 | Case **télémétrie** : cochée par défaut | cochée | capture ou « cochée OK » |
 | 3 | Décocher télémétrie → **Créer** | **Bloqué** — message explicite | texte du message |
 | 4 | Recocher télémétrie → remplir champs → **Créer** | Écran **« Vérifiez votre email »** + bouton renvoi | capture |
-| 5 | Ouvrir **ta boîte mail réelle** (pas MailHog seul) | Mail JobbingTrack reçu (< 5 min) | sujet + destinataire |
+| 5 | Ouvrir la boîte **`test@delhomme.ovh`** (alias `test+…`) — **pas** `candidatures@…` | Mail JobbingTrack reçu (< 5 min) | sujet + destinataire exact |
 | 6 | Cliquer le **lien web** OU `jobbingtrack://verify-email?token=…` | App ouvre écran vérif → **login possible** | « lien web OK » / « deep link OK » |
 | 7 | (Option) Bouton **renvoi** sur écran attente | Second mail ou message succès | si testé |
 
 **Commandes utiles (diagnostic si mail absent)** :
 
 ```bash
+node scripts/mobile/setup/diagnose-registration-email.js
 node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 # EmailLog : scripts/ops/list-email-logs.cjs ou backoffice Email Monitor
 ```
+
+**Note smoke ADB « Telemetry »** : le script `smoke-register-telemetry-refuse-adb.js` remplit des **noms de test** (ex. RefuseTel) — ce n'est pas un blocage produit. Il utilise `@example.com` volontairement (Test A UI sans mail réel).
 
 **Décision** : `OK Mobile — Inscription + télémétrie obligatoire + vérif email` **ou** `KO …` + détail.
 

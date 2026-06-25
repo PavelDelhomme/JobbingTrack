@@ -2,9 +2,9 @@
 /**
  * Compare les clés de .env avec .env.example (racine du dépôt).
  * Usage:
- *   node scripts/env-align-with-example.cjs
- *   node scripts/env-align-with-example.cjs --write-append-snippet /chemin/.env.append-from-example.txt
- *   node scripts/env-align-with-example.cjs --strict   # exit 1 si des clés manquent dans .env
+ *   node scripts/env/env-align-with-example.cjs
+ *   node scripts/env/env-align-with-example.cjs --write-append-snippet /chemin/.env.append-from-example.txt
+ *   node scripts/env/env-align-with-example.cjs --strict   # exit 1 si des clés manquent dans .env
  *
  * Ne modifie jamais .env automatiquement.
  */
@@ -88,7 +88,7 @@ function main() {
   if (outPath && missingInEnv.length) {
     const header =
       '# ---------------------------------------------------------------------------\n' +
-      '# Fragment généré par : node scripts/env-align-with-example.cjs --write-append-snippet …\n' +
+      '# Fragment généré par : node scripts/env/env-align-with-example.cjs --write-append-snippet …\n' +
       `# Date : ${new Date().toISOString()}\n` +
       '# À fusionner manuellement dans .env (revoir les valeurs sensibles).\n' +
       '# ---------------------------------------------------------------------------\n\n';

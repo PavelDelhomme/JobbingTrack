@@ -1,9 +1,9 @@
 /**
- * Parcours BlueMail documenté (UI AVD API 34, package me.bluemail.mail).
- * Continue → email → Manual Setup ×2 → IMAP → formulaire → Next → (SMTP) → Done.
+ * Parcours BlueMail documenté (UI AVD API 34).
+ * @used-by scripts/mobile/setup/setup-emulator-bluemail.js
  */
 
-const { ImapSession } = require('../fetch-imap-verification');
+const { ImapSession } = require('../email/fetch-imap-verification');
 
 async function verifyOvhImap(cfg) {
   const mailbox = cfg.ovhImap;

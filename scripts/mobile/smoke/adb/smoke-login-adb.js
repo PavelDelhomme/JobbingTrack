@@ -32,7 +32,7 @@ function loadRootEnv() {
 
 loadRootEnv();
 
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 
 (async () => {
   const phone = await adbLib.connect();

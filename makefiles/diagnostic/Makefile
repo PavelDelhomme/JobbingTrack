@@ -313,7 +313,7 @@ env-append-missing: ## Écrit .env.append-from-example.txt (clés absentes de .e
 	@node "$(ROOT_DIR)/scripts/env/env-align-with-example.cjs" --write-append-snippet "$(ROOT_DIR)/.env.append-from-example.txt"
 	@echo "👉 Fusionnez manuellement le contenu dans .env puis supprimez le fichier si besoin."
 
-env-reorder: ## Réordonne .env comme .env.example en conservant tes valeurs (voir scripts/reorder-env-from-example.cjs)
+env-reorder: ## Réordonne .env comme .env.example en conservant tes valeurs (voir scripts/env/reorder-env-from-example.cjs)
 	@node "$(ROOT_DIR)/scripts/env/reorder-env-from-example.cjs" --write
 
 waf-enable: ## Active WAF_ENABLED=true dans .env puis redémarre api-gateway si elle tourne

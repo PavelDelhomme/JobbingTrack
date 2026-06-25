@@ -60,6 +60,7 @@ const slowAdbTests = [
   'scripts/mobile/smoke/adb/smoke-register-adb.js',
   'scripts/mobile/smoke/adb/smoke-verify-email-adb.js',
   'scripts/mobile/smoke/adb/smoke-register-telemetry-refuse-adb.js',
+  'scripts/mobile/smoke/adb/smoke-etape1-inscription-adb.js',
 ];
 
 function runScript(relPath, label) {

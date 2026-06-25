@@ -20,7 +20,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const SCHEMA_PATH = path.join(__dirname, '../../backend/prisma/schema.prisma');
+const SCHEMA_PATH = path.join(__dirname, '../../../backend/prisma/schema.prisma');
 
 // Définitions des statuts système par défaut
 const APPLICATION_STATUSES = [
@@ -171,7 +171,7 @@ async function addStatusModelsToSchema() {
 }
 
 async function generateSeedScript() {
-  const seedPath = path.join(__dirname, '../../scripts/database/seed-statuses.js');
+  const seedPath = path.join(__dirname, '../../../scripts/database/seed-statuses.js');
   
   const seedContent = `#!/usr/bin/env node
 

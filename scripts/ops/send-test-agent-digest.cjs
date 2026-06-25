@@ -2,6 +2,7 @@
 /**
  * Rejeu digest agent quotidien (porteur) — supprime l'anti-doublon du jour puis cron.
  * Usage: node scripts/ops/send-test-agent-digest.cjs
+ * @used-by docs/pilotage/TODOS_A_VERIFIER.md, validation digest agent manuelle
  */
 
 const path = require('node:path');

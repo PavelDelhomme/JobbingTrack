@@ -120,3 +120,40 @@ Suivi détaillé : [`docs/pilotage/TODOS.md`](../pilotage/TODOS.md) § Agent ema
 | Porteur + comptes test seulement | Generalisation progressive après validation porteur |
 
 Voir aussi [`COMPTES_EMAIL_DEV_ET_TESTS.md`](COMPTES_EMAIL_DEV_ET_TESTS.md) pour la politique **comptes autorisés en local**.
+
+---
+
+## Dette connue — consentements backoffice « MAILBOX_ACCESS requis » (noté porteur 17/06/2026)
+
+### Symptôme
+
+Sur `/agent` (backoffice), statut agent : **« Consentements requis : Incomplet — MAILBOX_ACCESS requis »** alors que le compte test semble autorisé.
+
+### Cause probable (deux systèmes distincts)
+
+| Système | Stockage | Déclencheur |
+|---------|----------|-------------|
+| **Télémétrie mobile** (Paramètres › Confidentialité) | `SharedPreferences` local appareil | Inscription : `enableTelemetryOnSignup()` — **≠** consentements agent |
+| **Agent email `MAILBOX_ACCESS`** | BDD `user_agent_consents` (auth-service) | **Uniquement** après `PUT /email-agent/consents` (mobile `_saveConsents` ou switches `/agent`) |
+
+Le backoffice lit `hasRequiredConsents()` dans `agentAccessPolicy.js` : il faut une ligne **`MAILBOX_ACCESS` + `granted: true`** pour la version courante (`CONSENT_VERSION`), en base **serveur**.
+
+L’opt-in inscription « Agent email » (`_interestedInEmailAgent`) **n’écrit pas** encore `MAILBOX_ACCESS` côté API.
+
+### Piste de correction (chantier agent — plus tard)
+
+1. À l’inscription ou activation agent : appeler `upsertConsents` avec `MAILBOX_ACCESS: true` si opt-in explicite.
+2. Smoke / bootstrap : `bootstrap-admin-email-agent.cjs` pourrait seed les consentements requis pour TEST_USER.
+3. Aligner affichage mobile ↔ backoffice (même compte, refresh après save).
+4. Tests : étendre smoke consentements RGPD (ligne 323 file porteur).
+
+### Télémétrie mobile — toggles toujours cochés
+
+Fichiers : `api_config_store.dart`, `register_screen.dart`, `settings_screen.dart`.
+
+- Inscription : `_acceptTelemetry = true` par défaut ; `enableTelemetryOnSignup()` force consent + perf + trace à **true**.
+- Defaults prefs : `loadPerformanceTelemetryEnabled()` et `loadActivityTraceEnabled()` retournent **`true`** si clé absente (`?? true`) alors que `loadAnalyticsConsent()` retourne **`false`** — incohérence pour comptes anciens ; après inscription récente tout est coché **volontairement** (gate inscription).
+- **À vérifier porteur** : compte créé avant cette logique vs après ; désactiver toggles et confirmer persistance après redémarrage app.
+
+Voir [`../mobile/TELEMETRIE_ET_CONSENTEMENTS.md`](../mobile/TELEMETRIE_ET_CONSENTEMENTS.md).
+

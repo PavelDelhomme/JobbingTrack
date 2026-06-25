@@ -6,7 +6,7 @@
  *   node scripts/mobile/smoke/adb/smoke-mobile-entities-adb.js
  */
 
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 const {
   ensureUserShell,
   typeInLabeledField,

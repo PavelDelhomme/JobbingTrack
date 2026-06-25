@@ -1,6 +1,6 @@
 /**
  * Résout des identifiants utilisateur test valides pour les smokes mobile ADB.
- * Utilise TEST_USER_EMAIL / TEST_USER_PASSWORD via POST /api/v1/auth/login.
+ * @used-by scripts/mobile/lib/smoke-application-target.js, scripts/mobile/smoke/adb/*.js, scripts/mobile/smoke/api/smoke-push-register-api.js
  */
 
 const { loadRootEnv, probeLogin, GATEWAY_URL } = require('../lib/resolve-admin-credentials');

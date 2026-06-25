@@ -1,6 +1,6 @@
 # Scripts Env
 
-Les implémentations de configuration runtime vivent ici. Les anciens chemins à la racine de `scripts/` restent comme wrappers temporaires pour ne pas casser les commandes externes.
+Toute la configuration runtime **`.env`** vit ici. Il n’y a plus de wrappers à la racine de `scripts/` (supprimés 17/06/2026) : Make et la doc pointent directement vers ce dossier.
 
 ## Entrées
 

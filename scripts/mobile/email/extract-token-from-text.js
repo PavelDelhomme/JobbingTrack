@@ -1,5 +1,6 @@
 /**
  * Extrait un token verify-email depuis le corps HTML/texte d'un email.
+ * @used-by scripts/mobile/email/extract-verification-token.js, scripts/mobile/email/extract-reset-token.js, scripts/mobile/email/fetch-imap-verification.js
  */
 
 function extractTokenFromText(text) {

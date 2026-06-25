@@ -7,7 +7,7 @@
 
 const { resolveWorkingAdminCredentials, GATEWAY_URL } = require('../../lib/resolve-admin-credentials');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 
 async function loginAdminViaApi(email, password) {
   const res = await fetch(`${GATEWAY_URL}/api/v1/auth/login`, {

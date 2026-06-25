@@ -14,10 +14,28 @@ Standards rédaction : [`DOCUMENTATION_STANDARDS.md`](DOCUMENTATION_STANDARDS.md
 
 | Symptôme | Exemple | Action cible |
 |----------|---------|--------------|
-| Shim racine quasi vide | `scripts/env-align-with-example.cjs` → délègue à `scripts/env/` | Garder shim **documenté** ou supprimer après grep Makefile/CI |
+| Shim racine env | ~~9 wrappers~~ supprimés 17/06 | Make + docs → **`scripts/env/`** uniquement |
 | Dossier `scripts/` surchargé | ~90 fichiers mélangés | Sous-dossiers par domaine (voir Lot H `TODOS.md`) |
 | Doc obsolète | Chemins `scripts/…` vs `scripts/mobile/…` | MAJ au déplacement, pas après |
 | Doublons | Wrappers Make + script npm + copie shell | Une source de vérité + wrapper minimal |
+
+## État après Lot H1 (17/06)
+
+| Zone | Fichiers | Verdict |
+|------|----------|---------|
+| Racine `scripts/` | `README.md` + `run-all-tests-with-reports.sh` | OK — plus de doublons env |
+| `scripts/env/` | 11 fichiers (`.cjs` + `.js` + `.sh`) | **Canonique** pour `.env` |
+| `scripts/mobile/` | ~90 fichiers | Le plus gros volume ; sous-dossiers `lib/setup/smoke/email/test` |
+| `scripts/db/` vs `database/` | 16 shell/SQL vs 3 Node legacy | Ne pas fusionner — rôles différents |
+| `scripts/ops/` | 30 fichiers | Bootstrap agent, rapports HTML, inventaire — candidat tri H2 |
+| `scripts/fixes/` | ~~5 correctifs~~ | **Archivé** → `scripts/legacy/fixes/` |
+| `scripts/utils/` | 13 utilitaires | Plusieurs `debug-*` / `test-*` legacy DB |
+
+### Prochain lot (reste — avant prod)
+
+1. Lot H bis — audit secrets (`scripts/security/secrets-scan.sh`).
+2. Lot E — revue doc complète.
+3. Pas de fusion `database/` → `db/` sans revue migration Node.
 
 ## Arborescence cible (scripts/)
 
@@ -49,11 +67,12 @@ Pendant **triage repo** : pas de nouvelle feature mobile ; corrections KO valida
 
 | # | Lot | Contenu | Preuve |
 |---|-----|---------|--------|
-| 1 | H0 | Inventaire `scripts/` + `SCRIPTS_INVENTORY.md` à jour | grep + tableau README |
-| 2 | H1 | Regrouper / supprimer morts ; shims documentés | CI smoke ciblés |
-| 3 | H0 | Doc : hubs ≤ 150 lignes, liens INDEX/navigation | `DOCUMENTATION_STANDARDS.md` |
-| 4 | H bis | Audit secrets (`.env` seule source) | secrets-scan |
-| 5 | — | **Reprise** validation mobile étape 1 (`VALIDATION_ETAPE_1_INSCRIPTION.md`) | OK porteur ligne 319 |
+| 1 | H0 | Inventaire `scripts/` + `SCRIPTS_INVENTORY.md` à jour | **17/06** : `inventory-scripts.cjs` 250 scripts ; wrappers env/mobile documentés ; audit § mobile dans `NON_REFERENCED_SCRIPTS_AUDIT.md` |
+| 2 | H1 | Regrouper / supprimer morts ; shims documentés | **17/06** : wrappers env supprimés ; Make → `scripts/env/` |
+| 2b | H2 | Archivage legacy + tri ops | **17/06** : `scripts/legacy/` (fixes, utils debug, migrations, campagnes ops, HTML) ; `@used-by` mobile/lib ; inventaire `@used-by` |
+| 3 | H0 | Doc : hubs ≤ 150 lignes, liens INDEX/navigation | **17/06** : INDEX scripts + legacy ; détail hubs = lot avant prod |
+| 4 | H bis | Audit secrets (`.env` seule source) | secrets-scan — **avant prod** |
+| 5 | — | **Reprise** validation mobile étape 1 | **EN COURS** — porteur Samsung |
 
 ## Fichiers pilotage liés
 

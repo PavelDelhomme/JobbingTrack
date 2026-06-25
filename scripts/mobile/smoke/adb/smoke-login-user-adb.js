@@ -6,7 +6,7 @@
  */
 
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 
 (async () => {
   const { email, password, source } = await resolveWorkingUserCredentials();

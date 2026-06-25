@@ -14,7 +14,7 @@ La comparaison porte sur deux états Git :
 Commande de benchmark réutilisable :
 
 ```bash
-bash scripts/perf/benchmark-performance-commits.sh
+bash scripts/performance/benchmark-performance-commits.sh
 ```
 
 Le script ne passe pas par `make`, recrée seulement le conteneur `frontend`, borne les attentes avec `timeout`, puis restaure la branche de départ.

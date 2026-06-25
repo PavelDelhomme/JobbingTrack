@@ -3,7 +3,7 @@
  * Smoke shell mobile (4 onglets) + navigation candidatures sans loginFresh bloquant.
  * Usage : node scripts/mobile/smoke/adb/smoke-mobile-shell-adb.js
  */
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 const { ensureUserShell } = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');

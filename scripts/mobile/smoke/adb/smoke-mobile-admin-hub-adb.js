@@ -6,7 +6,7 @@
  *   node scripts/mobile/smoke/adb/smoke-mobile-admin-hub-adb.js
  */
 
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 const {
   resolveWorkingAdminCredentials,
   GATEWAY_URL,

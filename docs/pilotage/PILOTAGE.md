@@ -1,22 +1,23 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 17 juin 2026 (pause validation mobile → triage repo/scripts)
+Dernière mise à jour : 17 juin 2026 (triage repo clos → reprise validation mobile étape 1)
 
 ## Feuille de route — ordre strict (juin 2026)
 
 | Phase | Contenu | Statut | Règle |
 |-------|---------|--------|-------|
-| **A — Mobile Lot D** | App Flutter, smokes, agent `/agent`, hub admin | **PAUSE** (code sur `dev`) | Reprise après triage repo — validation porteur **étape 1 / 5** non faite. |
-| **B — Gate pré-prod mobile** | Validations porteur `TODOS_A_VALIDER.md` étapes **1→5** | **PAUSE** | Reprendre sur `feat/…` ou branche mobile après `chore/repo-scripts-docs-hygiene`. |
+| **A — Mobile Lot D** | App Flutter, smokes, agent `/agent`, hub admin | **REPRISE** | Validation porteur **étape 1 / 5** — guide [`VALIDATION_ETAPE_1_INSCRIPTION.md`](../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md). |
+| **B — Gate pré-prod mobile** | Validations porteur `TODOS_A_VALIDER.md` étapes **1→5** | **EN COURS** (étape 1) | Une étape à la fois ; OK explicite porteur. |
 | **C — Déploiement rapide** | Builds, SMTP `@jobbingtrack.com`, gate prod | Après B | Inchangé. |
-| **D — Triage repo / scripts / docs** | Lot H + Lot E + `REPO_ORGANIZATION.md` | **EN COURS** | Branche **`chore/repo-scripts-docs-hygiene`**. Décision porteur 17/06 : prioriser hygiène dépôt avant validation Samsung étape 1. |
+| **D — Triage repo / scripts / docs** | Lot H + Lot E + `REPO_ORGANIZATION.md` | **CLOS (H0/H1/H2)** | Branche `chore/repo-scripts-docs-hygiene` — merge puis reprise mobile. Lot H bis secrets + Lot E doc = avant prod. |
 
-**Travail agent en cours (phase D — triage)** :
+**Travail agent en cours (phase B — étape 1 Samsung)** :
 
-1. Inventaire et réorg **`scripts/`** (supprimer morts, shims documentés, sous-dossiers domaine).
-2. Réduire duplication code/scripts ; aligner **`make help`** et **`docs/development/`**.
-3. Appliquer [`DOCUMENTATION_STANDARDS.md`](../development/DOCUMENTATION_STANDARDS.md).
-4. **Puis** reprise validation mobile étape 1 ([`VALIDATION_ETAPE_1_INSCRIPTION.md`](../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md)).
+1. Preuves agent : gateway, comptes test, smokes API renvoi vérif.
+2. **Porteur** : [`VALIDATION_ETAPE_1_INSCRIPTION.md`](../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md) — mail réel + clic lien.
+3. OK ligne 319 → débloquer étape 2 (ligne 320).
+
+Triage repo (phase D) **clos** : `scripts/legacy/`, env canonique `scripts/env/`, inventaire à jour — voir `REPO_ORGANIZATION.md`.
 
 ## Phase post-D8 — nettoyage global (gate obligatoire — phase D)
 

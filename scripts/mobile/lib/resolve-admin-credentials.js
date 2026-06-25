@@ -1,6 +1,6 @@
 /**
  * Résout des identifiants admin valides pour les smokes mobile ADB.
- * Essaie TEST_ADMIN_* puis ADMIN_* via POST /api/v1/auth/login.
+ * @used-by scripts/mobile/lib/resolve-user-credentials.js, scripts/mobile/lib/resolve-test-email-env.js, scripts/mobile/lib/resolve-email-triage-env.js, scripts/mobile/lib/smoke-application-target.js, scripts/mobile/smoke/run/, scripts/mobile/smoke/adb/, scripts/mobile/smoke/api/, scripts/mobile/setup/sync-test-env.js
  */
 
 const fs = require('fs');

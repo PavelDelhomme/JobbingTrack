@@ -1,5 +1,6 @@
 /**
  * Restaure les prefs appareil après une batterie smoke (biométrie produit).
+ * @used-by scripts/mobile/smoke/run/smoke-run-mobile-fast.js, scripts/mobile/smoke/run/smoke-run-mobile-validation.js
  */
 
 const adbLib = require('../../../tools/adb-lib');

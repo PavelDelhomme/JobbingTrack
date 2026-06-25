@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Smoke curl : retour bug avec capture PNG + diagnostic → vérifie MailHog. */
+/** Smoke curl : retour bug avec capture PNG + diagnostic → vérifie MailHog. @used-by validation manuelle crash reporter mobile */
 const http = require('http');
 const zlib = require('zlib');
 

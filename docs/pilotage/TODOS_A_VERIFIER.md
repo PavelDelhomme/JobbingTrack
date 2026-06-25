@@ -12,8 +12,8 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 
 | Priorité | Vérification agent | Preuve attendue | Statut |
 |----------|--------------------|-----------------|--------|
-| A1 | Smokes rapides — gate par défaut | `node scripts/mobile/smoke-run-mobile-fast.js` OK Samsung ; pré-vol `smoke-preflight.js` (verrou ADB, `SMOKE_SHARED_SHELL=1`) ; pas de scripts parallèles sur le même appareil | [ ] |
-| A2 | Attente email smokes — bonne boîte + diagnostic | Helper IMAP poll avec timeout ; ordre EmailLog → MailHog → Gmail → OVH ; logs indiquent boîte et tentative ; échec = message actionnable (mauvaise boîte, token absent, délai) | [ ] |
+| A1 | Smokes rapides — gate par défaut | `node scripts/mobile/smoke-run-mobile-fast.js` OK Samsung ; pré-vol `smoke-preflight.js` (verrou ADB, `SMOKE_SHARED_SHELL=1`) ; pas de scripts parallèles sur le même appareil | [ ] reprise étape 1 |
+| A2 | Attente email smokes — bonne boîte + diagnostic | Helper IMAP poll avec timeout ; ordre EmailLog → MailHog → Gmail → OVH ; logs indiquent boîte et tentative ; échec = message actionnable (mauvaise boîte, token absent, délai). **25/06** : doc [`BOITE_MAIL_INSCRIPTION_TESTS.md`](../../mobile/BOITE_MAIL_INSCRIPTION_TESTS.md) + `diagnose-registration-email.js` — `candidatures@…` ≠ inbox vérif inscription ; lire **`test@delhomme.ovh`** pour alias `test+…`. EmailLog **SENT** vers `test+mob…@delhomme.ovh` confirmé. | [x] doc + diagnostic |
 | A3 | Bypass biométrie smokes (pas produit) | Pref `test_automation_skip_biometric` (debug APK) ; smokes sans prompt Samsung ; **restauration auto** fin batterie + `clear-smoke-device-adb.js` ; biométrie porteur inchangée hors pref | [x] |
 | A4 | Hub admin ADB multi-comptes | `smoke-mobile-admin-hub-adb.js` OK : admin visible → hub → retour TEST_USER sans blocage login | [ ] |
 | A5 | Consentements agent `/agent` — sync mobile→web | Consentements sauvés mobile visibles sur `/agent` (même compte) ; UI switches statut OK/KO + `grantedAt` ; `hasRequiredConsents` cohérent | [ ] UI switches OK ; **porteur 17/06** : à revoir plus tard. **Reste** : preuve sync même compte si besoin |
@@ -21,11 +21,11 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 
 ### File porteur — en attente (ne pas passer à la suite)
 
-> **Pause 17/06** : validation mobile **étape 1 / 5** suspendue — triage `scripts/` / docs sur `chore/repo-scripts-docs-hygiene`. Reprise : [`VALIDATION_ETAPE_1_INSCRIPTION.md`](../../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md).
+> **Reprise 17/06** : validation mobile **étape 1 / 5** **ACTIVE** — guide [`VALIDATION_ETAPE_1_INSCRIPTION.md`](../../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md).
 
 | Étape | Ligne | Statut agent | Statut porteur | Action porteur |
 |-------|-------|--------------|----------------|----------------|
-| 1 | 319 Inscription + vérif email | smokes API/ADB OK | **[ ] PAUSE** | Reprendre après triage repo |
+| 1 | 319 Inscription + vérif email | `smoke-etape1-inscription-adb.js` **OK** Samsung A→E (25/06) | **[ ] EN COURS** | Confirmer `OK Mobile — Inscription…` ou laisser agent clôturer |
 | 2 | 320 Navigation + FAB | smokes ADB OK | bloquée par 319 | § étape 2 |
 | 3 | 321 OVH SMTP `@jobbingtrack.com` | doc + diagnostic OK | bloquée par 320 | MX Plan OVH — § étape 3 |
 | 4 | 322 Agent admin `/agent` | UI + API OK | bloquée par 321 | § étape 4 |
@@ -41,6 +41,7 @@ Commandes utiles (directes, sans Make) :
 
 ```bash
 node scripts/mobile/ensure-test-accounts-ready.js
+node scripts/mobile/setup/diagnose-registration-email.js
 node scripts/mobile/smoke-preflight.js
 node scripts/mobile/smoke-run-mobile-fast.js
 ADB_FAST=1 node scripts/mobile/smoke/adb/smoke-mobile-admin-hub-adb.js
@@ -49,6 +50,17 @@ node scripts/mobile/clear-smoke-device-adb.js   # si usage porteur après smokes
 
 Index scripts : `scripts/mobile/README.md`.
 
+## Phase D — Lot H triage scripts (17/06)
+
+| Priorité | Vérification agent | Preuve attendue | Statut |
+|----------|--------------------|-----------------|--------|
+| H0 | Inventaire `scripts/` | `node scripts/ops/inventory-scripts.cjs` — 250 scripts, 18 non-ref audités | [x] |
+| H1 | Nettoyage racine env | 9 wrappers supprimés ; Make → `scripts/env/env-get-key.cjs` ; docs migrées | [x] |
+| H1 | Fusion dossiers redondants | `scripts/perf/` → `performance/` ; `frontend/` vide supprimé | [x] |
+| H2 | Archivage legacy + tri ops | `scripts/legacy/` ; `@used-by` mobile/lib ; `ops/README.md` | [x] |
+| H2 | Suite triage | Tag `@used-by` smokes email + `fix-all.sh` documenté | [x] |
+| Étape 1 Samsung | Preuves agent reprise | **25/06** : `smoke-etape1-inscription-adb.js` **OK** Samsung — Tests **A→E** (refus télémétrie, inscription `test+mob…@delhomme.ovh`, renvoi, EmailLog, deep link, login mobile). Fix validateur email `+` alias (`register_screen.dart`). Doc [`BOITE_MAIL_INSCRIPTION_TESTS.md`](../../mobile/BOITE_MAIL_INSCRIPTION_TESTS.md). **Porteur** : OK agent suffisant si indisponible — sinon Tests A–E manuels guide étape 1. | [x] agent |
+
 ## Vérifications ouvertes (historique / autres lots)
 
 | Priorité | Vérification agent | Preuve attendue | Statut |
@@ -56,6 +68,7 @@ Index scripts : `scripts/mobile/README.md`.
 | Infra | `up-full` — plus d’ERROR Postgres `log_collector_logs does not exist` au boot | **23/06** : cause = `log-collector-rs` démarré **avant** `db-push-all`. Correctifs Makefile : `db-ensure-bootstrap-tables` après Postgres ; pré-démarrage = `security-service` seul ; idem `make up` / `up-no-check` / `up-monitoring`. **Rust** : `store_log_entry_resilient` recrée la table au 1er INSERT (code `42P01`). Tests : bootstrap puis restart collecteur → **0 ERROR** ; drop table + recreate image sans bootstrap → **39 lignes**, **0 ERROR** Postgres. Image `log-collector-rs` rebuild OK. | [x] |
 | Agent email | Digest quotidien 18h (phase 2) | **23/06** : smoke `seed-email-agent-digest-smoke.sql` → **`sent:1`, `items:3`**, `EmailLog` **SENT**, anti-doublon OK. **Porteur 23/06** : digest reçu sur **Proton** (`paul.delhomme@proton.me`). **17/06 suite** : section digest **« Changements de statut (24 h) »** (`ApplicationStatusHistory` → libellés FR + lien candidature web). | [x] |
 | Infra tests | IMAP OVH candidatures@ — connexion live | **24/06** : smoke `--ovh-only` **OK** (`imap.mail.ovh.net:993`, AUTH PLAIN). **Bootstrap admin** `scripts/ops/bootstrap-admin-email-agent.cjs` **OK** : agent activé sur `paul.delhomme@proton.me`, boîte `candidatures@delhomme.ovh` liée, sync OK, **3 messages PENDING** triage. Digest cible `.env` : `pauldelhomme.pro@gmail.com`. | [x] |
+| Agent email | Dette consentements MAILBOX_ACCESS + télémétrie toggles | **17/06 porteur** : backoffice « Incomplet — MAILBOX_ACCESS requis » ; toggles confidentialité mobile toujours cochés après inscription. Doc : [`AGENT_EMAIL_ETAT_ET_ROADMAP.md`](../emails/AGENT_EMAIL_ETAT_ET_ROADMAP.md) § dette ; [`TELEMETRIE_ET_CONSENTEMENTS.md`](../mobile/TELEMETRIE_ET_CONSENTEMENTS.md). **Fix produit reporté** — chantier agent. | [ ] doc |
 | Agent email | Découverte auto serveur IMAP + bootstrap porteur | **24/06** : `imapDiscoveryService.js` (domain hints OVH/Gmail/Outlook/Proton/Yahoo/iCloud, MX, Thunderbird autoconfig, fallback `imap.{domain}`) ; API `GET /email-agent/mailboxes/imap/discover` ; UI `/agent` auto-remplit hôte/port au blur email. Mobile inscription : opt-in informatif agent email. | [x] |
 | Mobile | Agent email — écran mobile complet | **24/06** : `EmailAgentScreen` ; smoke API **OK**. | [x] |
 | Agent email | Digest — traçabilité + destinataire porteur | **24/06** : digest 23/06 retrouvé en `EmailLog` (`SENT` → `paul.delhomme@proton.me`, kind `email_agent_daily_digest`) — **pas MailHog** car SMTP réel. Fix : `EMAIL_TRIAGE_DIGEST_OVERRIDE_EMAILS` + `RECIPIENT` → Gmail pro pour porteur ; metadata `accountEmail` ; filtre backoffice « Digest agent » ; `list-email-logs.cjs`. | [x] |
@@ -63,7 +76,7 @@ Index scripts : `scripts/mobile/README.md`.
 | Mobile | Agent email — triage expand 3 emails seed (ADB) | **24/06** : smoke ADB expand **OK** ; fix PATCH `DISMISSED`→`REJECTED`. **Reset seed** : `node scripts/ops/reset-email-agent-triage-seed.cjs` → **3 PENDING**. Carte « Suite » retirée mobile. | [x] |
 | Mobile | Paramètres — persistance télémétrie / toggles | **24/06** : `_load()` ne remet plus les toggles à `false` avant prefs ; `reloadFromStore()` resync service. Consentement = **local appareil** (`SharedPreferences`), pas compte serveur. | [x] |
 | Mobile | Inscription — renvoi email vérification (API) | **25/06** : script `smoke-resend-verification-api.js` recréé (token post-renvoi via BDD) ; **OK** (~3 min, EmailLog + postgres). `smoke-auth-password-flows-e2e.js --skip-adb` **13/13 OK**. Stack up, gateway **200**. | [x] |
-| Mobile | Inscription ligne 317 — prêt validation porteur | **25/06** : fix SMTP Python port **587** (STARTTLS, plus SSL direct) → emails vérif **SENT** ; deep link `jobbingtrack://verify-email` dans mail + smoke ADB **OK** ; `smoke-resend-verification-api.js` **OK**. **Reste porteur** : recevoir mail sur boîte réelle (alias `@delhomme.ovh` ou Proton) et cliquer lien mobile. | [ ] |
+| Mobile | Inscription ligne 317 — prêt validation porteur | **25/06** : `smoke-etape1-inscription-adb.js` **OK** Samsung A→E ; fix regex email alias `+` (`register_screen.dart`) ; doc boîtes [`BOITE_MAIL_INSCRIPTION_TESTS.md`](../../mobile/BOITE_MAIL_INSCRIPTION_TESTS.md). **Reste porteur** : réponse chat `OK Mobile — Inscription…` (optionnel si preuves agent suffisantes). | [x] agent |
 | Mobile | Auth — déverrouillage MDP, profil email, permissions notif | **25/06** : écran `/biometric-password` (plein écran + oubli MDP + retour biométrie) ; profil : email double saisie + vérif mail ; MDP via lien email depuis profil ; gate `/permissions-gate` post-login ; creds biométriques resync après MDP. **Reste** : FCM réel (`google-services.json`) pour push barre système — token actuel `dev-push-*`. | [ ] |
 | Mobile | Navigation retour + relances + FAB appel/entretien (ligne 318) | **25/06** : fix retour shell (`ShellTabRegistry` + `returnTabOnBack` drawer ; `_previousTabIndex` barre basse) ; smokes ADB Samsung **OK** : `smoke-mobile-navigation-adb.js` (Paramètres→Profil, Calendrier→Profil, relances sans FAB global) ; `smoke-mobile-application-detail-fab-adb.js` ; `smoke-mobile-fab-relance-adb.js` ; `smoke-mobile-fab-call-entretien-adb.js` (dialogues date/lieu/notes + contact appel). APK debug rebuild (`~/.local/flutter`) + install Samsung. `adb-lib` : `pm grant POST_NOTIFICATIONS` + dismiss gate permissions smokes. **25/06 suite** : ciblage candidature **nom exact** (`scripts/mobile/smoke-application-target.js` — poste `SmokeADB-*` + entreprise `SmokeCoADB-*` via API ; plus de match `Postulé` / apps voisines « Jobbing »). Smokes FAB/entités/liens/sheet/followup mis à jour. **Reste porteur** : retour hub admin (compte `TEST_ADMIN_*`) ; création appel/entretien réelle depuis FAB. | [ ] |
 | Email / OVH | Migration SMTP `jobbingtrack.com` (MX Plan redirect) | **25/06** : diagnostic porteur — offre OVH **`redirect`**, quota comptes **0/0**, MX/SPF DNS OK mais pas de boîte `@jobbingtrack.com`. Doc **[OVH_MX_PLAN_JOBBINGTRACK.md](../emails/OVH_MX_PLAN_JOBBINGTRACK.md)** : upgrade MX Plan ou relais Brevo/SendGrid, DKIM/DMARC, matrice tests à refaire préprod/prod. Transition actuelle : `maily.ovh`. | [ ] |

@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Prépare l'appareil ADB + API locale (adb reverse, Redis rate-limit, health).
-# Ne modifie pas .env — charge les variables existantes via Node.
-#
-#   ./scripts/mobile/ensure-device-api-ready.sh
+# Usage: bash scripts/mobile/setup/ensure-device-api-ready.sh
+# @used-by scripts/mobile/smoke/run/smoke-preflight.js
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"

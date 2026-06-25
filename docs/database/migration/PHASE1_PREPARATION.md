@@ -25,8 +25,8 @@ La Phase 1 consiste à **préparer** la migration en créant :
 
 | Fichier | Description | Usage |
 |---------|-------------|-------|
-| `scripts/database/migration-phase1-backup.js` | Crée un backup complet de la BDD avant migration | `node scripts/database/migration-phase1-backup.js` |
-| `scripts/database/migration-phase2-create-tables.js` | Crée les modèles dans le schéma Prisma | `node scripts/database/migration-phase2-create-tables.js` |
+| `scripts/legacy/database/migration-phase1-backup.js` | Crée un backup complet de la BDD avant migration | `node scripts/legacy/database/migration-phase1-backup.js` |
+| `scripts/legacy/database/migration-phase2-create-tables.js` | Crée les modèles dans le schéma Prisma | `node scripts/legacy/database/migration-phase2-create-tables.js` |
 | `scripts/database/seed-statuses.js` | Seed des statuts système par défaut | `node scripts/database/seed-statuses.js` |
 
 ### Documentation
@@ -46,7 +46,7 @@ La Phase 1 consiste à **préparer** la migration en créant :
 
 ```bash
 # Via script Node.js
-node scripts/database/migration-phase1-backup.js
+node scripts/legacy/database/migration-phase1-backup.js
 
 # Ou via Makefile (si créé)
 make db-backup-before-migration
@@ -69,7 +69,7 @@ make db-backup-before-migration
 
 ```bash
 # Via script Node.js
-node scripts/database/migration-phase2-create-tables.js
+node scripts/legacy/database/migration-phase2-create-tables.js
 
 # Ou manuellement (voir section suivante)
 ```

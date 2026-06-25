@@ -23,7 +23,7 @@ function adbDeviceArgs(deviceId) {
 }
 
 (async () => {
-  const adbLib = require('../../../tools/adb-lib');
+  const adbLib = require('../../../../tools/adb-lib');
   const phone = await adbLib.connect();
   const deviceId = phone.deviceId;
 

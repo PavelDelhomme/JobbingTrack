@@ -251,7 +251,7 @@ Les fichiers **`PLAN.md`**, **`TODOS.md`**, **`BACKLOG.md`**, **`RESOLUTIONS.md`
 
 ## 14 juin 2026 — preuve benchmark avant/après performance
 
-- **Méthode** : comparaison Git bornée entre `34fc84f4` (avant les correctifs mémoire frontend) et `69ec0b0d` (état courant `dev`). Script ajouté : `scripts/perf/benchmark-performance-commits.sh`. Rapport détaillé : `docs/performance/PERFORMANCE_BENCHMARK_2026-06-14.md`.
+- **Méthode** : comparaison Git bornée entre `34fc84f4` (avant les correctifs mémoire frontend) et `69ec0b0d` (état courant `dev`). Script ajouté : `scripts/performance/benchmark-performance-commits.sh`. Rapport détaillé : `docs/performance/PERFORMANCE_BENCHMARK_2026-06-14.md`.
 - **Résultat mémoire frontend** : avant, Next démarre en **Turbopack**, idle **1.733 GiB / 2 GiB**, puis atteint **2.000 GiB / 2 GiB** après `test-performance.js PERF_LIGHT=1`. Après, Next démarre en **webpack**, idle **454.9 MiB / 2 GiB**, puis **409.5 MiB / 2 GiB** après la même charge API légère.
 - **Résultat Statistics** : plage 7j avant = **10080** points demandés ; après = plafond **2000** points (`MAX_CHART_API_POINTS`), soit environ **-80,2 %** de points API/état/rendu.
 - **Non-régression** : `test-performance.js PERF_LIGHT=1` reste **15/15** avec score **100/100** ; API mobile authentifiée après correctif **9/9** endpoints + **10/10** charge légère ; smoke Playwright Statistics après correctif **4 passed** en **33 s**.

@@ -253,7 +253,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             if (RegExp(r'[0-9]$').hasMatch(trimmed)) {
                               return 'L\'email ne doit pas se terminer par un chiffre. Corrigez la saisie (caractère parasite).';
                             }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(trimmed)) {
+                            if (!RegExp(r'^[\w\.\+\-]+@([\w-]+\.)+[\w-]{2,}$').hasMatch(trimmed)) {
                               return 'Email invalide';
                             }
                             return null;

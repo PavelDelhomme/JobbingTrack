@@ -2,7 +2,7 @@
 
 Ce document fixe **l’ordre de travail** : (1) capacité à faire évoluer le projet, (2) audit **très détaillé** des variables et secrets **hors dépôt Git**, (3) durcissement continu (**security-service**, dépendances, images).
 
-**Fichiers liés** : **`.env.example`** (source de vérité **versionnée** pour les **noms** de variables — pas les secrets réels), **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`docs/deployment/VPS_PORTAINER_NPM_OVH.md`**, **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**, **`scripts/reorder-env-from-example.cjs`**, **`make env-check`** / **`make env-reorder`**.
+**Fichiers liés** : **`.env.example`** (source de vérité **versionnée** pour les **noms** de variables — pas les secrets réels), **`docs/security/COMPOSE_RUNTIME_HARDENING.md`**, **`docs/deployment/VPS_PORTAINER_NPM_OVH.md`**, **`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`**, **`scripts/env/reorder-env-from-example.cjs`**, **`make env-check`** / **`make env-reorder`**.
 
 ---
 
@@ -59,7 +59,7 @@ Tu peux coller dans une conversation **un extrait du rapport** avec **valeurs ma
 - **Référence versionnée** : **`.env.example`** (sections + **ordre alphabétique** des clés dans chaque bloc, pour retrouver vite les variables dans Portainer).
 - Après mise à jour d’**`.env.example`**, régénérer la structure de ton **`.env`** **sans écraser tes valeurs** :  
   `make env-reorder`  
-  (script : **`scripts/reorder-env-from-example.cjs --write`**).
+  (script : **`scripts/env/reorder-env-from-example.cjs --write`**).
 - Puis : **`make env-check`** pour les clés manquantes / orphelines.
 
 ---

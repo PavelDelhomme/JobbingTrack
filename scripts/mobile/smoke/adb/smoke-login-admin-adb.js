@@ -6,7 +6,7 @@
  */
 
 const { resolveWorkingAdminCredentials } = require('../../lib/resolve-admin-credentials');
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 
 (async () => {
   const { email, password, source } = await resolveWorkingAdminCredentials();

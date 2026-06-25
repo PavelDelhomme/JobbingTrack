@@ -100,8 +100,8 @@ Convertir les enums Prisma en tables de statuts personnalisables pour permettre 
 
 | Script | Description | Usage |
 |-------|-------------|-------|
-| `migration-phase1-backup.js` | Backup complet de la BDD | `node scripts/database/migration-phase1-backup.js` |
-| `migration-phase2-create-tables.js` | Crée les modèles dans le schéma | `node scripts/database/migration-phase2-create-tables.js` |
+| `migration-phase1-backup.js` | Backup complet de la BDD | `node scripts/legacy/database/migration-phase1-backup.js` |
+| `migration-phase2-create-tables.js` | Crée les modèles dans le schéma | `node scripts/legacy/database/migration-phase2-create-tables.js` |
 | `seed-statuses.js` | Seed des statuts système | `node scripts/database/seed-statuses.js` |
 
 ---

@@ -5,7 +5,7 @@
  *   node scripts/mobile/smoke/adb/smoke-mobile-interview-nav-adb.js
  */
 
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 const { ensureUserShell } = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');

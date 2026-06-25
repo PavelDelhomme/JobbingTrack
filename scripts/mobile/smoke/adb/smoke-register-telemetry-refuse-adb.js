@@ -1,11 +1,65 @@
 #!/usr/bin/env node
 /**
- * Smoke inscription : refus télémétrie bloque la création (Lot D ligne 317).
+ * Smoke inscription : refus télémétrie bloque la création (Test A — étape 1 porteur).
+ * Usage: node scripts/mobile/smoke/adb/smoke-register-telemetry-refuse-adb.js
+ * @used-by docs/mobile/VALIDATION_ETAPE_1_INSCRIPTION.md
  *
- *   node scripts/mobile/smoke/adb/smoke-register-telemetry-refuse-adb.js
+ * Prénom/Nom = libellés de test automation (pas un état produit « bloqué sur Telemetry »).
+ * Email @example.com = pas de mail réel (test UI blocage télémétrie uniquement).
  */
 
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
+
+async function registerFormWithTelemetry(adb, { firstName, lastName, email, password, telemetryChecked }) {
+  await adb.typeInEditTextByIndex(0, firstName);
+  await adb.wait(400);
+  await adb.typeInEditTextByIndex(1, lastName);
+  await adb.wait(400);
+  await adb.typeInEditTextByIndex(2, email, { isEmail: true });
+  await adb.wait(400);
+  await adb.typeInEditTextByIndex(3, password);
+  await adb.wait(400);
+  await adb.typeInEditTextByIndex(4, password);
+  await adb.wait(400);
+  await adb.closeKeyboard();
+  await adb.scrollDown(400);
+  await adb.wait(400);
+
+  try {
+    await adb.tap('conditions');
+  } catch {
+    try {
+      await adb.tap("J'accepte les conditions");
+    } catch {
+      /* CGU */
+    }
+  }
+  await adb.wait(400);
+  await adb.scrollDown(400);
+  await adb.wait(400);
+
+  if (!telemetryChecked) {
+    try {
+      await adb.tap('collecte anonyme');
+    } catch {
+      try {
+        await adb.tap('Accepter la collecte anonyme');
+      } catch {
+        await adb.tap('données techniques');
+      }
+    }
+    await adb.wait(600);
+  }
+
+  await adb.scrollDown(600);
+  await adb.wait(500);
+  try {
+    await adb.tap('inscrire');
+  } catch {
+    await adb.tap("S'inscrire");
+  }
+  await adb.wait(4000);
+}
 
 (async () => {
   const phone = await adbLib.connect();
@@ -23,53 +77,13 @@ const adbLib = require('../../../tools/adb-lib');
   await adbLib.flows.goToRegister(phone);
   await phone.wait(2000);
 
-  await phone.typeInField('Prénom', 'Refuse');
-  await phone.typeInField('Nom', 'Telemetry');
-  await phone.typeInField('Email', email);
-  await phone.scrollDown(400);
-  await phone.wait(500);
-  try {
-    await phone.typeInField('Mot de passe', 'Test123!');
-    await phone.typeInField('Confirmer', 'Test123!');
-  } catch {
-    await phone.typeInEditTextByIndex(3, 'Test123!');
-    await phone.typeInEditTextByIndex(4, 'Test123!');
-  }
-  await phone.closeKeyboard();
-  await phone.scrollDown(500);
-  await phone.wait(500);
-  try {
-    await phone.tap('conditions');
-  } catch {
-    try {
-      await phone.tap("J'accepte les conditions");
-    } catch {
-      /* CGU */
-    }
-  }
-  await phone.wait(400);
-  await phone.scrollDown(500);
-  await phone.wait(500);
-
-  try {
-    await phone.tap('collecte anonyme');
-  } catch {
-    try {
-      await phone.tap('Accepter la collecte anonyme');
-    } catch {
-      await phone.tap('données techniques');
-    }
-  }
-  await phone.wait(600);
-
-  await phone.scrollDown(600);
-  await phone.wait(500);
-  try {
-    await phone.tap('inscrire');
-  } catch {
-    await phone.tap("S'inscrire");
-  }
-  await phone.wait(4000);
+  await registerFormWithTelemetry(phone, {
+    firstName: 'Test',
+    lastName: 'RefuseTel',
+    email,
+    password: 'Test123!',
+    telemetryChecked: false,
+  });
 
   const registered =
     (await phone.uiContains('Vérifiez votre email')) ||
@@ -81,13 +95,12 @@ const adbLib = require('../../../tools/adb-lib');
   const blocked =
     (await phone.uiContains('collecte anonyme de données techniques est requise')) ||
     (await phone.uiContains('requis pour créer un compte')) ||
-    (await phone.uiContains('Obligatoire pour créer')) ||
-    (await phone.uiContains("S'inscrire"));
+    (await phone.uiContains('Obligatoire pour créer'));
 
   if (!blocked) {
-    throw new Error('État inconnu après refus télémétrie (ni blocage ni succès détecté)');
+    throw new Error('État inconnu après refus télémétrie (ni blocage snackbar ni succès détecté)');
   }
-  console.log('✅ Refus télémétrie : création bloquée');
+  console.log('✅ Refus télémétrie : création bloquée (snackbar attendu)');
 
   console.log('\nSmoke refus télémétrie inscription OK');
 })().catch((err) => {

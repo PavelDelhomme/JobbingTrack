@@ -1,5 +1,6 @@
 /**
  * Helpers partagés smokes ADB — session shell réutilisée, champs labelText Flutter.
+ * @used-by scripts/mobile/smoke/adb/smoke-mobile-*.js, scripts/mobile/smoke/adb/smoke-login-*.js
  */
 
 const adbLib = require('../../../tools/adb-lib');

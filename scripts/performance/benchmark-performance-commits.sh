@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Benchmark performance avant/après — court et borné.
-# Usage : bash scripts/perf/benchmark-performance-commits.sh
+# Usage : bash scripts/performance/benchmark-performance-commits.sh
 # Ne pas utiliser via make.
 
 set -euo pipefail

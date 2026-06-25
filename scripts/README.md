@@ -2,27 +2,51 @@
 
 Ce dossier contient les scripts d'exploitation, de diagnostic, de tests et de maintenance du dépôt.
 
-Règle simple : les nouveaux scripts doivent aller dans un sous-dossier métier. La racine reste réservée aux points d'entrée historiques appelés par `make`, la CI ou les rapports de tests.
+Règle simple : les nouveaux scripts vont dans un sous-dossier métier. À la racine de `scripts/` : **`README.md`**, **`run-all-tests-with-reports.sh`** (orchestrateur multi-domaines), et les **raccourcis CLI** sous `scripts/mobile/*.js` (voir [`mobile/README.md`](mobile/README.md)). Tout le reste — dont **`.env`** — vit dans un sous-dossier.
 
 ## Arborescence
 
 ```text
 scripts/
 ├── core/          # Points d'entrée généraux et compatibilité Make
+├── ci/            # Helpers CI (Docker Node, checks pipeline)
 ├── database/      # Scripts Node de migration/seed historiques
 ├── db/            # Scripts shell PostgreSQL / Prisma / métriques DB
 ├── docker/        # Vérifications et nettoyage Docker
-├── env/           # Configuration runtime, validation stricte, secrets, bypass tests WAF (voir `scripts/env/README.md`)
-├── fixes/         # Correctifs ponctuels encore utiles
+├── legacy/          # Archives (fixes, debug DB, campagnes ops, migrations one-shot)
+├── env/           # .env uniquement ici (voir scripts/env/README.md)
 ├── health/        # Vérifications .env et services
+├── mobile/        # Smokes, setup ADB/APK, email test (voir `scripts/mobile/README.md`)
 ├── monitoring/    # Monitoring, métriques, budget ressources
-├── ops/           # Diagnostics et inventaires opérationnels
+├── ops/           # Diagnostics, inventaires, bootstrap agent email
+├── performance/   # Benchmarks backoffice/API + benchmark commits Git
 ├── reports/       # Rapports de tests/performance et nettoyage de rapports
 ├── security/      # Firewall, WAF, CVE, menaces de test
 ├── setup/         # Installation machine/outillage
 ├── testing/       # Helpers de tests
 └── utils/         # Utilitaires transverses
 ```
+
+### `database/` vs `db/`
+
+| Dossier | Rôle | Appel typique |
+|---------|------|---------------|
+| `scripts/db/` | Shell Make/Prisma/Postgres (push, seed, backup) | `make db-push-all`, `make db-seed` |
+| `scripts/database/` | Node historique (migrations données ponctuelles) | Manuel, pas Make par défaut |
+
+### Extensions `.js` / `.cjs`
+
+- **`.cjs`** : modules Node CommonJS appelés en CLI (`node scripts/env/….cjs`).
+- **`.js`** : scripts Node ou helpers importés ; smokes mobile et tests API.
+- **`.sh`** : wrappers shell Make et ops.
+
+### Raccourcis `scripts/mobile/` (CLI stable)
+
+| Raccourci | Canonique |
+|-----------|-----------|
+| `mobile/ensure-test-accounts-ready.js` | `mobile/setup/ensure-test-accounts-ready.js` |
+| `mobile/smoke-preflight.js` | `mobile/smoke/run/smoke-preflight.js` |
+| `mobile/smoke-run-mobile-*.js` | `mobile/smoke/run/` |
 
 ## Points d'entrée principaux
 
@@ -33,7 +57,8 @@ scripts/
 | `scripts/db/seed.sh` | Wrapper stable vers `make seed-auth`, utilisé par `make db-seed`. |
 | `scripts/db/backup.sh` | Backup PostgreSQL vers `backups/database/`, utilisé par `make db-backup`. |
 | `scripts/db/create-prisma-tables-safe.sh` | Reconstruction Prisma manuelle en préservant les tables monitoring-c. |
-| `scripts/env-get-key.cjs` | Lecture silencieuse d'une clé `.env` pour Make/scripts, sans sourcer le fichier. |
+| `scripts/env/env-get-key.cjs` | Lecture silencieuse d'une clé `.env` pour Make/scripts, sans sourcer le fichier. |
+| `scripts/env/env-align-with-example.cjs` | Compare `.env` / `.env.example` — `make env-check`. |
 | `scripts/ops/dev-https-certs.sh` | Génération et installation navigateur de la CA HTTPS dev, utilisé par `make dev-https-*`. |
 | `scripts/ops/inventory-scripts.cjs` | Inventaire des scripts et références, utilisé par `make scripts-inventory`. |
 | `scripts/ops/color-logs.sh` | Coloration des logs Docker. |
@@ -147,6 +172,19 @@ sudo systemctl restart docker
 ```
 
 Si `modprobe veth` échoue après une mise à jour kernel, redémarrer sur le kernel installé ou réinstaller les modules (`sudo pacman -Syu linux linux-headers`, puis `reboot`).
+
+### Mobile
+
+`scripts/mobile/` regroupe setup appareil, smokes API/ADB, helpers email et modules partagés. Index détaillé : [`scripts/mobile/README.md`](mobile/README.md).
+
+Commandes utiles :
+
+```bash
+node scripts/mobile/ensure-test-accounts-ready.js
+node scripts/mobile/smoke-preflight.js
+node scripts/mobile/smoke-run-mobile-fast.js
+node scripts/mobile/clear-smoke-device-adb.js
+```
 
 ### Tests
 

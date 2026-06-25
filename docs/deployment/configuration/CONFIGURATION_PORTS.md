@@ -119,7 +119,7 @@ ports:
 Un script est disponible pour générer automatiquement le fichier `.env.example` :
 
 ```bash
-./scripts/generate-env-example.sh
+./scripts/env/generate-env-example.sh
 ```
 
 ## ⚙️ Modification des Ports

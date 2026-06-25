@@ -1,5 +1,6 @@
 /**
  * Verrou fichier — un seul smoke ADB à la fois par appareil.
+ * @used-by scripts/mobile/smoke/run/smoke-preflight.js
  */
 
 const fs = require('fs');

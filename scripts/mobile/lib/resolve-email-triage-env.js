@@ -7,6 +7,7 @@
  *   EMAIL_TRIAGE_READ_ACCOUNT = boîte OVH lue (IMAP)
  *   EMAIL_GMAIL_PRO_ACCOUNT   = Gmail pro porteur (AVD + IMAP app password + digest)
  *   TEST_USER_EMAIL           = compte principal porteur (ex. paul.delhomme@pm.me)
+ * @used-by scripts/mobile/lib/resolve-test-email-env.js, scripts/mobile/setup/sync-test-env.js, scripts/mobile/setup/setup-emulator-bluemail.js
  */
 
 const { loadRootEnv } = require('../lib/resolve-admin-credentials');

@@ -9,7 +9,7 @@
  *   node scripts/mobile/smoke/adb/smoke-offline-business-adb.js
  */
 
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 const { ensureUserShell, typeInLabeledField } = require('../../lib/adb-smoke-helpers');
 const { execSync } = require('child_process');
 const { resolveWorkingUserCredentials, GATEWAY_URL } = require('../../lib/resolve-user-credentials');

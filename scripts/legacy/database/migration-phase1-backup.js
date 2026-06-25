@@ -20,7 +20,7 @@ const { execSync } = require('child_process');
 
 const prisma = new PrismaClient();
 
-const BACKUP_DIR = path.join(__dirname, '../../backups/migrations');
+const BACKUP_DIR = path.join(__dirname, '../../../backups/migrations');
 const TIMESTAMP = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' + 
                   new Date().toTimeString().split(' ')[0].replace(/:/g, '-');
 

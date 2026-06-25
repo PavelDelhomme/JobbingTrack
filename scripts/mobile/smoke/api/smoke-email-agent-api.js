@@ -2,6 +2,7 @@
 /**
  * Smoke API agent email (mobile + web) — login TEST_USER, statut, triage, discover.
  * Usage: node scripts/mobile/smoke/api/smoke-email-agent-api.js
+ * @used-by docs/mobile/EMULATEUR_ADB.md, validation agent email manuelle
  */
 
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');

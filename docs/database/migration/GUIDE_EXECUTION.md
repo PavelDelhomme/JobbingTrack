@@ -39,7 +39,7 @@ docker-compose up -d postgres
 
 ```bash
 # Depuis la racine du projet
-node scripts/database/migration-phase1-backup.js
+node scripts/legacy/database/migration-phase1-backup.js
 ```
 
 **Ce que ça fait** :
@@ -58,7 +58,7 @@ node scripts/database/migration-phase1-backup.js
 
 ```bash
 # Exécuter le script qui modifie le schéma Prisma
-node scripts/database/migration-phase2-create-tables.js
+node scripts/legacy/database/migration-phase2-create-tables.js
 ```
 
 **Ce que ça fait** :

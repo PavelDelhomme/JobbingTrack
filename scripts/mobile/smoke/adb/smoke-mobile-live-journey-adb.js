@@ -5,7 +5,7 @@
  *   node scripts/mobile/smoke/adb/smoke-mobile-live-journey-adb.js
  */
 
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 const {
   ensureApplicationsListTab,
   waitApplicationsTabReady,

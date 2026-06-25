@@ -5,7 +5,7 @@
  *   node scripts/mobile/smoke/adb/smoke-mobile-offline-telemetry-adb.js
  */
 
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 const { execSync } = require('child_process');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');

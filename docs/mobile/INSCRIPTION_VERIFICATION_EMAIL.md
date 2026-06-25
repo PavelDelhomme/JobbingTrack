@@ -22,8 +22,18 @@ Dernière mise à jour : 25 juin 2026
 
 | Variable | Usage |
 |----------|--------|
+| `TEST_REAL_EMAIL` | Base alias smokes API (`test+mob…@domaine`) — **boîte à lire** = adresse de base (ex. `test@delhomme.ovh`) |
 | `TEST_USER_EMAIL` / `TEST_USER_PASSWORD` | Compte courant mobile |
 | `TEST_ADMIN_EMAIL` / `TEST_ADMIN_PASSWORD` | Login admin rapide |
+| `EMAIL_TRIAGE_READ_ACCOUNT` | **Agent email uniquement** — ne reçoit **pas** les vérifs inscription sauf si tu t'inscris avec cette adresse |
+
+**Boîtes mail** : voir [`BOITE_MAIL_INSCRIPTION_TESTS.md`](BOITE_MAIL_INSCRIPTION_TESTS.md) — `candidatures@…` ≠ inbox inscription.
+
+Diagnostic :
+
+```bash
+node scripts/mobile/setup/diagnose-registration-email.js
+```
 
 ## Smokes ADB
 

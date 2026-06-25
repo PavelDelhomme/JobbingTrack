@@ -187,7 +187,7 @@ tests-reset:
 	@echo "    Puis ouvrir : http://localhost:8080/backoffice/user-journey"
 	@echo ""
 	@echo "🔑 Identifiants :"
-	@ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+	@ADMIN_EMAIL="$$(node scripts/env/env-get-key.cjs ADMIN_EMAIL)"; \
 		echo "   Email:    $${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
 		echo "   Password: valeur ADMIN_PASSWORD chargée depuis .env (masquée)"
 	@echo ""

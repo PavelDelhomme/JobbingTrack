@@ -5,7 +5,7 @@
  *   node scripts/mobile/smoke/adb/smoke-register-adb.js
  */
 
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 
 (async () => {
   const phone = await adbLib.connect();

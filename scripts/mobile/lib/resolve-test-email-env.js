@@ -1,7 +1,6 @@
 /**
  * Résout email/mot de passe pour les smokes inscription + vérif email mobile.
- * Priorité mot de passe : TEST_VERIFICATION_PASSWORD → TEST_USER_PASSWORD → TEST_REAL_EMAIL_PASSWORD
- * Email unique : alias +mob{timestamp} sur TEST_REAL_EMAIL (ex. dev+mob…@delhomme.ovh)
+ * @used-by scripts/mobile/setup/sync-test-env.js, scripts/mobile/smoke/api/smoke-auth-password-flows-e2e.js
  */
 
 const fs = require('fs');

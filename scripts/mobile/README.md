@@ -2,6 +2,18 @@
 
 Organisation par rôle. Les **raccourcis à la racine** (`smoke-preflight.js`, etc.) redirigent vers les dossiers ci-dessous.
 
+## Raccourcis racine (wrappers)
+
+| Raccourci | Canonique |
+|-----------|-----------|
+| `ensure-test-accounts-ready.js` | `setup/ensure-test-accounts-ready.js` |
+| `prepare-smoke-device-adb.js` | `setup/prepare-smoke-device-adb.js` |
+| `clear-smoke-device-adb.js` | `setup/clear-smoke-device-adb.js` |
+| `sync-test-env.js` | `setup/sync-test-env.js` |
+| `smoke-preflight.js` | `smoke/run/smoke-preflight.js` |
+| `smoke-run-mobile-fast.js` | `smoke/run/smoke-run-mobile-fast.js` |
+| `smoke-run-mobile-validation.js` | `smoke/run/smoke-run-mobile-validation.js` |
+
 ## Structure
 
 | Dossier | Contenu |

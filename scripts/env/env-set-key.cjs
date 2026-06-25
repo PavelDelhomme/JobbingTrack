@@ -2,8 +2,8 @@
 /**
  * Modifie une clé .env sans afficher les autres valeurs.
  * Usage:
- *   node scripts/env-set-key.cjs WAF_ENABLED true
- *   printf '%s' "$SECRET" | node scripts/env-set-key.cjs JWT_SECRET --stdin
+ *   node scripts/env/env-set-key.cjs WAF_ENABLED true
+ *   printf '%s' "$SECRET" | node scripts/env/env-set-key.cjs JWT_SECRET --stdin
  */
 
 const fs = require('fs');

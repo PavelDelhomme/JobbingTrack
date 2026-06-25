@@ -96,15 +96,25 @@ function suggestedTarget(relPath) {
   return match ? match.target : 'à classer';
 }
 
+function readUsedByMarkers(relPath) {
+  const fullPath = path.join(ROOT, relPath);
+  if (!fs.existsSync(fullPath)) return [];
+  const head = fs.readFileSync(fullPath, 'utf8').slice(0, 2500);
+  const match = head.match(/@used-by\s+([^\n*]+)/i);
+  if (!match) return [];
+  return match[1]
+    .split(/[,;]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 function statusFor(relPath, references) {
+  if (relPath.includes('/legacy/')) return 'legacy';
   if (references.some((ref) => ref.startsWith('makefiles/') || ref.startsWith('.github/workflows/'))) {
     return 'actif';
   }
   if (references.some((ref) => ref.startsWith('docs/') || ref === 'scripts/README.md' || ref === 'TODOS.md')) {
     return 'manuel/documente';
-  }
-  if (relPath.includes('/legacy/') || relPath.includes('/fixes/')) {
-    return 'legacy';
   }
   return references.length > 0 ? 'manuel' : 'non-reference';
 }
@@ -121,9 +131,11 @@ function main() {
 
   const rows = scripts.map((rel) => {
     const baseName = path.basename(rel);
+    const usedBy = readUsedByMarkers(rel);
     const refs = contents
       .filter(({ rel: candidate, content }) => candidate !== rel && (content.includes(rel) || content.includes(baseName)))
       .map(({ rel: candidate }) => candidate)
+      .concat(usedBy.length ? ['@used-by'] : [])
       .sort();
     return {
       script: rel,

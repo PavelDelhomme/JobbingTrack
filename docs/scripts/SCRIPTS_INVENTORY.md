@@ -3,16 +3,20 @@
 Ce fichier documente le statut attendu des scripts. L'inventaire automatique se lance avec :
 
 ```bash
-make scripts-inventory
+node scripts/ops/inventory-scripts.cjs
 ```
+
+(Cible Make documentée : `scripts-inventory`.)
 
 La commande ne supprime rien. Elle classe les scripts selon les références trouvées dans Makefiles, CI, tests et documentation.
 
 ## Dernier Contrôle
 
-Contrôle local du 13/05/2026 : `make scripts-inventory` OK, **122 scripts** détectés, dont **60 actifs**, **0 sans référence automatique** et **0 encore à la racine** après audit documentaire des 21 scripts auparavant non référencés dans `docs/scripts/NON_REFERENCED_SCRIPTS_AUDIT.md`. L'inventaire signale maintenant aussi une cible de rangement probable pour les scripts racine afin de préparer des déplacements par lots avec wrappers de compatibilité quand un Makefile, la CI ou une doc référence l'ancien chemin. Suite du 13/05 : `scripts/testing/verify-all-metrics.sh` modernisé et validé en réel ; il reste manuel/documenté, pas un script CI. Ajout de `scripts/env-get-key.cjs` pour lire une clé `.env` sans sourcer le fichier ni afficher de secrets. Suite structure : les anciens scripts racine de test/Playwright/rapports ont été rangés sous `scripts/testing/`, `scripts/monitoring/`, `scripts/performance/`, `scripts/reports/` et `scripts/setup/`; les références Make, routes front de test et docs actives pointent vers les nouveaux chemins.
+Contrôle local du **17/06/2026** (branche `chore/repo-scripts-docs-hygiene`) : `node scripts/ops/inventory-scripts.cjs` OK (~108 s), **250 scripts**, **69 actifs**, **150 manuel/documente**, **5 legacy**, **8 manuel**, **18 non-reference**. **Lot H1** : wrappers env racine supprimés. **Lot H2** : `scripts/legacy/` (fixes, utils debug, migrations, campagnes ops, HTML) ; `@used-by` sur `mobile/lib/` et modules email/smoke ; inventaire reconnaît `@used-by`.
 
-Suite du 12/05 : la logique des anciens scripts d'environnement racine `sync-env.js`, `verify-env-usage.js` et `generate-env-example.sh` vit maintenant sous `scripts/env/`; les chemins racine restent des wrappers de compatibilité.
+Contrôle précédent du 13/05/2026 : `make scripts-inventory` OK, **122 scripts** détectés, dont **60 actifs**, **0 sans référence automatique** et **0 encore à la racine** après audit documentaire des 21 scripts auparavant non référencés dans `docs/scripts/NON_REFERENCED_SCRIPTS_AUDIT.md`. L'inventaire signale maintenant aussi une cible de rangement probable pour les scripts racine afin de préparer des déplacements par lots avec wrappers de compatibilité quand un Makefile, la CI ou une doc référence l'ancien chemin. Suite du 13/05 : `scripts/testing/verify-all-metrics.sh` modernisé et validé en réel ; il reste manuel/documenté, pas un script CI. Ajout de `scripts/env-get-key.cjs` pour lire une clé `.env` sans sourcer le fichier ni afficher de secrets. Suite structure : les anciens scripts racine de test/Playwright/rapports ont été rangés sous `scripts/testing/`, `scripts/monitoring/`, `scripts/performance/`, `scripts/reports/` et `scripts/setup/`; les références Make, routes front de test et docs actives pointent vers les nouveaux chemins.
+
+Suite du 12/05 : la logique env vit sous `scripts/env/` ; les wrappers racine ont été supprimés le 17/06 après migration Make/docs.
 
 Suite du 12/05 soir : premiers déplacements sans wrapper racine quand les références étaient migrables directement : `scripts/setup/setup-ports.sh`, `scripts/db/create-prisma-tables-safe.sh`, `scripts/reports/show-mobile-report.sh`, `scripts/reports/clean-all-reports-docker.sh`.
 
@@ -37,11 +41,11 @@ Suite finale du 12/05 : les scripts maintenance/diagnostic/performance restants 
 | `scripts/db/db-push-all.sh` | actif | Synchronisation Prisma multi-services. |
 | `scripts/db/seed.sh` | actif | Seed stable via Make. |
 | `scripts/db/backup.sh` | actif | Backup PostgreSQL local. |
-| `scripts/env-align-with-example.cjs` | actif | Wrapper historique vers l'outillage env. |
-| `scripts/env-generate-secrets.cjs` | actif | Génération locale de secrets sans affichage. |
-| `scripts/env-set-key.cjs` | actif | Mise à jour ciblée d'une clé `.env`. |
-| `scripts/env-validate-runtime.cjs` | actif | Validation dev/prod de la configuration runtime. |
-| `scripts/reorder-env-from-example.cjs` | actif | Réordonnancement `.env` selon `.env.example`. |
+| `scripts/env/env-align-with-example.cjs` | actif | Compare `.env` / `.env.example` — `make env-check`. |
+| `scripts/env/env-generate-secrets.cjs` | actif | Génération locale de secrets sans affichage. |
+| `scripts/env/env-set-key.cjs` | actif | Mise à jour ciblée d'une clé `.env`. |
+| `scripts/env/env-validate-runtime.cjs` | actif | Validation dev/prod de la configuration runtime. |
+| `scripts/env/reorder-env-from-example.cjs` | actif | Réordonnancement `.env` selon `.env.example`. |
 | `scripts/run-all-tests-with-reports.sh` | actif | Orchestration complète tests + rapports. |
 | `scripts/security/cve-scan.py` | actif | Scan CVE Node/Rust/Docker. |
 | `scripts/security/secrets-scan.sh` | actif | Scan secrets Git. |

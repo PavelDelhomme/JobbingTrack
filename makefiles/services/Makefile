@@ -93,7 +93,7 @@ setup: ## Setup complet du projet (installation initiale)
 	@echo "  - API Gateway: http://localhost:5002"
 	@echo ""
 	@echo "🔑 Identifiants Admin :"
-	@ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+	@ADMIN_EMAIL="$$(node scripts/env/env-get-key.cjs ADMIN_EMAIL)"; \
 		echo "  Email:    $${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
 		echo "  Password: valeur ADMIN_PASSWORD chargée depuis .env (masquée)"
 	@echo ""
@@ -286,7 +286,7 @@ up: ## Démarrer services essentiels (postgres, redis, api-gateway, frontend, au
 	@echo "   Metrics:            http://localhost:5004"
 	@echo ""
 	@echo "🔑 Identifiants de connexion :"
-	@ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+	@ADMIN_EMAIL="$$(node scripts/env/env-get-key.cjs ADMIN_EMAIL)"; \
 		echo "   Email:    $${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
 		echo "   Password: valeur ADMIN_PASSWORD chargée depuis .env (masquée)"
 	@echo ""
@@ -386,7 +386,7 @@ up-for-tests: ## Démarrer UNIQUEMENT les services nécessaires pour les tests d
 	@echo "   📊 Statistiques  : http://localhost:5003/backoffice"
 	@echo ""
 	@echo "🔑 Identifiants :"
-	@ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+	@ADMIN_EMAIL="$$(node scripts/env/env-get-key.cjs ADMIN_EMAIL)"; \
 		echo "   Email:    $${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
 		echo "   Password: valeur ADMIN_PASSWORD chargée depuis .env (masquée)"
 	@echo ""
@@ -462,7 +462,7 @@ up-with-mobile: ## Démarrer TOUT le projet (Backend + Frontend + Mobile sur sma
 	@echo "   - OU utilisez l'émulateur intégré dans le backoffice"
 	@echo ""
 	@echo "🔑 Identifiants de connexion :"
-	@ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+	@ADMIN_EMAIL="$$(node scripts/env/env-get-key.cjs ADMIN_EMAIL)"; \
 		echo "   Email:    $${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
 		echo "   Password: valeur ADMIN_PASSWORD chargée depuis .env (masquée)"
 	@echo ""
@@ -589,7 +589,7 @@ _up-full-internal:
 	# Vérification utilisateur admin (résultat trimmé pour éviter faux négatifs)
 	@echo "🔍 Vérification de l'utilisateur administrateur..."
 	@POSTGRES_CONTAINER=$$(docker ps -q -f name=jobbingtrack-postgres 2>/dev/null | head -1); \
-	ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL 2>/dev/null || echo admin@jobbingtrack.test)"; \
+	ADMIN_EMAIL="$$(node scripts/env/env-get-key.cjs ADMIN_EMAIL 2>/dev/null || echo admin@jobbingtrack.test)"; \
 	if [ -n "$$POSTGRES_CONTAINER" ]; then \
 		ADMIN_COUNT=$$(docker exec $$POSTGRES_CONTAINER psql -U jobbingtrack -d jobbingtrack -t -A -c "SELECT COUNT(*) FROM \"User\" WHERE email = '$${ADMIN_EMAIL}';" 2>/dev/null | tr -d ' \n\r\t' || echo ""); \
 		if [ -z "$$ADMIN_COUNT" ]; then \
@@ -604,12 +604,12 @@ _up-full-internal:
 				echo ""; \
 				echo "💡 Pour créer l'admin: make create-admin-user"; \
 				echo "   (désactiver auto-création: CREATE_ADMIN_IF_MISSING=0 make up-full)"; \
-				ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+				ADMIN_EMAIL="$$(node scripts/env/env-get-key.cjs ADMIN_EMAIL)"; \
 				echo "🔑 Identifiants: $${ADMIN_EMAIL:-admin@jobbingtrack.test} / mot de passe .env masqué"; \
 			fi; \
 		else \
 			echo "✅ Utilisateur administrateur existe"; \
-			ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+			ADMIN_EMAIL="$$(node scripts/env/env-get-key.cjs ADMIN_EMAIL)"; \
 			echo "   🔑 $${ADMIN_EMAIL:-admin@jobbingtrack.test} / mot de passe .env masqué"; \
 		fi; \
 	else \

@@ -5,8 +5,8 @@
  * Les clés présentes uniquement dans .env sont ajoutées en fin de fichier (tri A→Z).
  *
  * Usage:
- *   node scripts/reorder-env-from-example.cjs           # dry-run (écrit sur stdout)
- *   node scripts/reorder-env-from-example.cjs --write # réécrit .env
+ *   node scripts/env/reorder-env-from-example.cjs           # dry-run (écrit sur stdout)
+ *   node scripts/env/reorder-env-from-example.cjs --write # réécrit .env
  *
  * Ne modifie jamais .env.example.
  */

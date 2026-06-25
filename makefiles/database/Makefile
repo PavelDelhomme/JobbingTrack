@@ -54,7 +54,7 @@ help-database: ## Afficher l'aide base de données
 	@echo "  make db-replicate-schema-to-test - Copier le schéma (sans données) de la base principale vers la base de test"
 	@echo ""
 	@echo "🔑 Identifiants Admin:"
-	@ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+	@ADMIN_EMAIL="$$(node scripts/env/env-get-key.cjs ADMIN_EMAIL)"; \
 		echo "  📧 Email:    $${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
 		echo "  🔑 Password: valeur ADMIN_PASSWORD chargée depuis .env (masquée)"
 	@echo ""
@@ -192,12 +192,12 @@ seed-auth: ## Créer ou mettre à jour l'admin (emailVerified=true) pour pouvoir
 	@echo "🌱 Seed auth : création/mise à jour de l'utilisateur admin (emailVerified=true)..."
 	@docker exec jobbingtrack-postgres pg_isready -U jobbingtrack > /dev/null 2>&1 || (echo "❌ PostgreSQL n'est pas démarré. Lancez 'make up-full'." && exit 1)
 	@if docker ps --format '{{.Names}}' | grep -q '^jobbingtrack-auth-service$$'; then \
-		ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
-		ADMIN_PASSWORD="$$(node scripts/env-get-key.cjs ADMIN_PASSWORD)"; \
-		ADMIN_FIRST_NAME="$$(node scripts/env-get-key.cjs ADMIN_FIRST_NAME)"; \
-		ADMIN_LAST_NAME="$$(node scripts/env-get-key.cjs ADMIN_LAST_NAME)"; \
-		TEST_USER_EMAIL="$$(node scripts/env-get-key.cjs TEST_USER_EMAIL)"; \
-		TEST_USER_PASSWORD="$$(node scripts/env-get-key.cjs TEST_USER_PASSWORD)"; \
+		ADMIN_EMAIL="$$(node scripts/env/env-get-key.cjs ADMIN_EMAIL)"; \
+		ADMIN_PASSWORD="$$(node scripts/env/env-get-key.cjs ADMIN_PASSWORD)"; \
+		ADMIN_FIRST_NAME="$$(node scripts/env/env-get-key.cjs ADMIN_FIRST_NAME)"; \
+		ADMIN_LAST_NAME="$$(node scripts/env/env-get-key.cjs ADMIN_LAST_NAME)"; \
+		TEST_USER_EMAIL="$$(node scripts/env/env-get-key.cjs TEST_USER_EMAIL)"; \
+		TEST_USER_PASSWORD="$$(node scripts/env/env-get-key.cjs TEST_USER_PASSWORD)"; \
 		ADMIN_EMAIL="$${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
 		ADMIN_FIRST_NAME="$${ADMIN_FIRST_NAME:-Admin}"; \
 		ADMIN_LAST_NAME="$${ADMIN_LAST_NAME:-JobbingTrack}"; \
@@ -305,7 +305,7 @@ create-admin-user: ## Créer/Réinitialiser l'utilisateur super administrateur
 	if [ $$EXIT_CODE -eq 0 ]; then \
 		echo ""; \
 		echo "✅ Utilisateur créé/vérifié !"; \
-		ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL)"; \
+		ADMIN_EMAIL="$$(node scripts/env/env-get-key.cjs ADMIN_EMAIL)"; \
 		echo "📧 Email: $${ADMIN_EMAIL:-admin@jobbingtrack.test}"; \
 		echo "🔑 Password: valeur ADMIN_PASSWORD chargée depuis .env (masquée)"; \
 	else \
@@ -318,7 +318,7 @@ create-admin-user: ## Créer/Réinitialiser l'utilisateur super administrateur
 
 recreate-admin-user: ## Supprimer et recréer l'utilisateur administrateur
 	@echo "🔄 Recréation de l'utilisateur administrateur..."
-	@ADMIN_EMAIL="$$(node scripts/env-get-key.cjs ADMIN_EMAIL 2>/dev/null || echo admin@jobbingtrack.test)"; \
+	@ADMIN_EMAIL="$$(node scripts/env/env-get-key.cjs ADMIN_EMAIL 2>/dev/null || echo admin@jobbingtrack.test)"; \
 	docker exec jobbingtrack-postgres psql -U jobbingtrack -d jobbingtrack -c "DELETE FROM \"User\" WHERE email = '$${ADMIN_EMAIL}';" 2>/dev/null || true
 	@echo "✅ Utilisateur existant supprimé"
 	@$(MAKE) create-admin-user

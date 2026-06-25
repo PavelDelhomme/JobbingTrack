@@ -10,7 +10,7 @@
 
 ```bash
 # Exécuter le script qui modifie le schéma Prisma
-node scripts/database/migration-phase2-create-tables.js
+node scripts/legacy/database/migration-phase2-create-tables.js
 ```
 
 **Résultat** : Le schéma Prisma est modifié avec les nouveaux modèles.

@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 /**
  * Smoke écran Agent email mobile (Paramètres → Agent email).
- *   node scripts/mobile/prepare-smoke-device-adb.js   # une fois par session
- *   node scripts/mobile/smoke/adb/smoke-mobile-email-agent-adb.js
+ * @used-by validation porteur agent email Samsung, docs/pilotage/TODOS_A_VERIFIER.md
  */
 
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');
 

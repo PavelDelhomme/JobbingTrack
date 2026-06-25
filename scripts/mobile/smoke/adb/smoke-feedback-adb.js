@@ -5,7 +5,7 @@
  *   node scripts/mobile/smoke/adb/smoke-feedback-adb.js
  */
 const http = require('http');
-const adbLib = require('../../../tools/adb-lib');
+const adbLib = require('../../../../tools/adb-lib');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');
 
