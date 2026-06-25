@@ -1465,6 +1465,7 @@ class ApiService {
     String? videoLink,
     String? notes,
     int? estimatedDuration,
+    List<String>? contactIds,
     String? token,
   }) async {
     const path = '/api/v1/interviews';
@@ -1475,6 +1476,7 @@ class ApiService {
       if (videoLink != null && videoLink.isNotEmpty) 'videoLink': videoLink,
       if (notes != null && notes.isNotEmpty) 'notes': notes,
       if (estimatedDuration != null) 'estimatedDuration': estimatedDuration,
+      if (contactIds != null && contactIds.isNotEmpty) 'contactIds': contactIds,
     };
     return OfflineMutationHelper.execute(
       method: 'POST',

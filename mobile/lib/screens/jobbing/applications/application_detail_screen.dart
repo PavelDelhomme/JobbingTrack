@@ -14,8 +14,11 @@ import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_sc
 import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
+import 'package:jobbingtrack_mobile/providers/notification_provider.dart';
+import 'package:jobbingtrack_mobile/utils/contact_name_utils.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/contact_picker_sheet.dart';
+import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_detail_field.dart';
 
 /// Détail complet d'une candidature : entreprise, contacts, relances, entretiens, appels.
@@ -167,6 +170,105 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   }
 
   Application get app => _application ?? widget.application;
+
+  Future<void> _openContactDetail(Map<String, dynamic> contact) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ContactDetailScreen(contact: contact)),
+    );
+    if (mounted) _load();
+  }
+
+  void _showCreatedSnack(String message, {VoidCallback? onOpen}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 5),
+        action: onOpen != null ? SnackBarAction(label: 'Voir', onPressed: onOpen) : null,
+      ),
+    );
+  }
+
+  void _mergeContactIntoList(Map<String, dynamic> contact) {
+    final id = contact['id']?.toString();
+    if (id == null || id.isEmpty) return;
+    if (_contacts.any((c) => c['id']?.toString() == id)) return;
+    setState(() => _contacts = [..._contacts, contact]);
+  }
+
+  Future<Map<String, dynamic>> _createAndLinkContact({
+    required String firstName,
+    required String lastName,
+    String? email,
+    String? phone,
+    String? notes,
+    required String? token,
+  }) async {
+    final created = await ApiService.createContact(
+      firstName: capitalizePersonName(firstName),
+      lastName: capitalizePersonName(lastName),
+      email: email ?? '',
+      phone: phone ?? '',
+      notes: notes,
+      companyId: app.company.id.isNotEmpty ? app.company.id : null,
+      token: token,
+    );
+    await ApiService.linkContactToApplication(
+      contactId: created['id'].toString(),
+      applicationId: app.id,
+      token: token,
+    );
+    if (mounted) _mergeContactIntoList(created);
+    return created;
+  }
+
+  void _notifyStatusIfChanged(String? previousStatus) {
+    final current = app.status;
+    if (previousStatus == null || current == previousStatus || !mounted) return;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    Provider.of<NotificationProvider>(context, listen: false)
+        .loadNotifications(token: auth.token)
+        .catchError((_) {});
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Statut mis à jour : ${applicationStatusLabel(current)}'),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'Notifications',
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            MobileNotificationCenter.openSheet(context);
+          },
+        ),
+      ),
+    );
+  }
+
+  Set<String> get _applicationLinkedIds =>
+      _contacts.map((c) => c['id']?.toString()).whereType<String>().where((id) => id.isNotEmpty).toSet();
+
+  Future<({List<Map<String, dynamic>> candidates, Set<String> companyIds})> _loadContactPickerData(
+    String? token,
+  ) async {
+    final candidates = <Map<String, dynamic>>[..._contacts];
+    final companyIds = <String>{};
+    if (app.company.id.isNotEmpty) {
+      try {
+        final byCompany = await ApiService.getContactsByCompany(app.company.id, token: token);
+        for (final c in byCompany) {
+          final id = c['id']?.toString();
+          if (id != null) companyIds.add(id);
+          if (!candidates.any((x) => x['id'] == c['id'])) candidates.add(c);
+        }
+      } catch (_) {}
+    }
+    try {
+      final all = await ApiService.getContacts(token: token);
+      for (final c in all) {
+        if (!candidates.any((x) => x['id'] == c['id'])) candidates.add(c);
+      }
+    } catch (_) {}
+    return (candidates: candidates, companyIds: companyIds);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -472,8 +574,8 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: firstName, decoration: const InputDecoration(labelText: 'Prénom *')),
-              TextField(controller: lastName, decoration: const InputDecoration(labelText: 'Nom *')),
+              TextField(controller: firstName, decoration: const InputDecoration(labelText: 'Prénom *'), textCapitalization: TextCapitalization.words),
+              TextField(controller: lastName, decoration: const InputDecoration(labelText: 'Nom *'), textCapitalization: TextCapitalization.words),
               TextField(controller: email, decoration: const InputDecoration(labelText: 'Email')),
               TextField(controller: phone, decoration: const InputDecoration(labelText: 'Téléphone')),
               TextField(
@@ -492,29 +594,30 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
       ),
     );
     if (ok != true || !mounted) return;
-    if (firstName.text.trim().isEmpty || lastName.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Prénom et nom requis')));
+    firstName.text = capitalizePersonName(firstName.text.trim());
+    lastName.text = capitalizePersonName(lastName.text.trim());
+    if (firstName.text.isEmpty || lastName.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Prénom et nom sont requis.')),
+      );
       return;
     }
     try {
       final token = Provider.of<AuthProvider>(context, listen: false).token;
-      final created = await ApiService.createContact(
+      final created = await _createAndLinkContact(
         firstName: firstName.text.trim(),
         lastName: lastName.text.trim(),
         email: email.text.trim(),
         phone: phone.text.trim(),
         notes: notes.text.trim(),
-        companyId: app.company.id.isNotEmpty ? app.company.id : null,
-        token: token,
-      );
-      await ApiService.linkContactToApplication(
-        contactId: created['id'].toString(),
-        applicationId: app.id,
         token: token,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contact ajouté')));
-        _load();
+        await _load();
+        _showCreatedSnack(
+          'Contact ajouté',
+          onOpen: () => _openContactDetail(created),
+        );
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
@@ -526,50 +629,44 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
       await ApiService.prepareForLogin();
     }
     final token = Provider.of<AuthProvider>(context, listen: false).token;
-    List<Map<String, dynamic>> candidates = [];
-    if (app.company.id.isNotEmpty) {
-      try {
-        candidates = await ApiService.getContactsByCompany(app.company.id, token: token);
-      } catch (_) {
-        // fallback si endpoint entreprise indisponible
-      }
-    }
-    try {
-      if (candidates.isEmpty) {
-        candidates = await ApiService.getContacts(token: token);
-      }
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
-      return;
-    }
-    final linkedIds = _contacts.map((c) => c['id']).toSet();
-    candidates = candidates.where((c) => !linkedIds.contains(c['id'])).toList();
+    final data = await _loadContactPickerData(token);
+    final linkedIds = _applicationLinkedIds;
+    final available = data.candidates.where((c) => !linkedIds.contains(c['id']?.toString())).toList();
     if (!mounted) return;
-    if (candidates.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aucun contact disponible à lier')));
+    if (available.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucun autre contact à lier — créez-en un nouveau.')),
+      );
       return;
     }
-    final picked = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        builder: (_, controller) => ListView.builder(
-          controller: controller,
-          itemCount: candidates.length,
-          itemBuilder: (_, i) {
-            final c = candidates[i];
-            return ListTile(
-              title: Text(contactDisplayName(c)),
-              subtitle: Text(c['email']?.toString() ?? ''),
-              onTap: () => Navigator.pop(ctx, c),
-            );
-          },
-        ),
-      ),
+    final picked = await showContactPickerSheet(
+      context,
+      candidates: available,
+      applicationLinkedIds: linkedIds,
+      companyLinkedIds: data.companyIds,
+      companyName: app.company.name,
+      onCreateContact: ({
+        required String firstName,
+        required String lastName,
+        String? email,
+        String? phone,
+        String? notes,
+      }) =>
+          _createAndLinkContact(
+            firstName: firstName,
+            lastName: lastName,
+            email: email,
+            phone: phone,
+            notes: notes,
+            token: token,
+          ),
     );
     if (picked == null || !mounted) return;
+    if (linkedIds.contains(picked['id']?.toString())) {
+      await _load();
+      _showCreatedSnack('Contact déjà lié', onOpen: () => _openContactDetail(picked));
+      return;
+    }
     try {
       await ApiService.linkContactToApplication(
         contactId: picked['id'].toString(),
@@ -577,8 +674,11 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         token: token,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contact lié')));
-        _load();
+        await _load();
+        _showCreatedSnack(
+          'Contact lié',
+          onOpen: () => _openContactDetail(picked),
+        );
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
@@ -647,26 +747,28 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                         )
                       : const Icon(Icons.person_search),
                   onTap: () async {
+                    final data = await _loadContactPickerData(token);
                     final picked = await showContactPickerSheet(
                       ctx,
-                      candidates: _contacts,
-                      onCreateContact: ({required String firstName, required String lastName, String? email, String? phone, String? notes}) async {
-                        final created = await ApiService.createContact(
-                          firstName: firstName,
-                          lastName: lastName,
-                          email: email ?? '',
-                          phone: phone ?? '',
-                          notes: notes,
-                          companyId: app.company.id.isNotEmpty ? app.company.id : null,
-                          token: token,
-                        );
-                        await ApiService.linkContactToApplication(
-                          contactId: created['id'].toString(),
-                          applicationId: app.id,
-                          token: token,
-                        );
-                        return created;
-                      },
+                      candidates: data.candidates,
+                      applicationLinkedIds: _applicationLinkedIds,
+                      companyLinkedIds: data.companyIds,
+                      companyName: app.company.name,
+                      onCreateContact: ({
+                        required String firstName,
+                        required String lastName,
+                        String? email,
+                        String? phone,
+                        String? notes,
+                      }) =>
+                          _createAndLinkContact(
+                            firstName: firstName,
+                            lastName: lastName,
+                            email: email,
+                            phone: phone,
+                            notes: notes,
+                            token: token,
+                          ),
                     );
                     if (picked != null) setDialogState(() => selectedContact = picked);
                   },
@@ -694,11 +796,12 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
       ),
     );
     if (ok != true || !mounted) return;
+    final previousStatus = app.status;
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final noteParts = <String>['[Canal: $channel]'];
       if (notesController.text.trim().isNotEmpty) noteParts.add(notesController.text.trim());
-      await ApiService.createFollowUp(
+      final created = await ApiService.createFollowUp(
         applicationId: app.id,
         followUpDate: date,
         notes: noteParts.join('\n'),
@@ -706,8 +809,17 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         token: auth.token,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Relance créée')));
-        _load();
+        await _load();
+        _notifyStatusIfChanged(previousStatus);
+        _showCreatedSnack(
+          'Relance créée',
+          onOpen: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: created)),
+            );
+            if (mounted) _load();
+          },
+        );
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
@@ -715,13 +827,15 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   }
 
   Future<void> _showAddEntretien(BuildContext context) async {
-    DateTime date = DateTime.now().add(const Duration(days: 7));
+    DateTime date = DateTime.now();
     final locationController = TextEditingController();
     final videoLinkController = TextEditingController();
     final durationController = TextEditingController(text: '60');
     final notesController = TextEditingController();
     String style = 'Présentiel';
     const styles = ['Présentiel', 'Distanciel', 'Hybride'];
+    List<Map<String, dynamic>> selectedContacts = [];
+    final token = Provider.of<AuthProvider>(context, listen: false).token;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -777,6 +891,56 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.people_outline),
+                  title: Text(
+                    selectedContacts.isEmpty
+                        ? 'Contacts (optionnel)'
+                        : '${selectedContacts.length} contact(s) sélectionné(s)',
+                  ),
+                  subtitle: Text(
+                    selectedContacts.isEmpty
+                        ? 'Lier un ou plusieurs contacts à l\'entretien'
+                        : selectedContacts.map(contactDisplayName).join(', '),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: selectedContacts.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => setDialogState(() => selectedContacts = []),
+                        )
+                      : const Icon(Icons.person_search),
+                  onTap: () async {
+                    final data = await _loadContactPickerData(token);
+                    final picked = await showMultiContactPickerSheet(
+                      ctx,
+                      candidates: data.candidates,
+                      applicationLinkedIds: _applicationLinkedIds,
+                      companyLinkedIds: data.companyIds,
+                      companyName: app.company.name,
+                      initialSelection: selectedContacts,
+                      onCreateContact: ({
+                        required String firstName,
+                        required String lastName,
+                        String? email,
+                        String? phone,
+                        String? notes,
+                      }) =>
+                          _createAndLinkContact(
+                            firstName: firstName,
+                            lastName: lastName,
+                            email: email,
+                            phone: phone,
+                            notes: notes,
+                            token: token,
+                          ),
+                    );
+                    if (picked != null) setDialogState(() => selectedContacts = picked);
+                  },
+                ),
+                const SizedBox(height: 8),
                 TextField(
                   controller: notesController,
                   decoration: const InputDecoration(
@@ -798,23 +962,40 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
       ),
     );
     if (ok != true || !mounted) return;
+    final duration = int.tryParse(durationController.text.trim());
+    if (duration != null && duration <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La durée doit être un nombre positif.')),
+      );
+      return;
+    }
+    final previousStatus = app.status;
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      final duration = int.tryParse(durationController.text.trim());
       final noteParts = <String>['[Format: $style]'];
       if (notesController.text.trim().isNotEmpty) noteParts.add(notesController.text.trim());
-      await ApiService.createInterview(
+      final created = await ApiService.createInterview(
         applicationId: app.id,
         interviewDate: date,
         location: locationController.text.trim().isEmpty ? null : locationController.text.trim(),
         videoLink: videoLinkController.text.trim().isEmpty ? null : videoLinkController.text.trim(),
         estimatedDuration: duration,
         notes: noteParts.join('\n'),
+        contactIds: selectedContacts.map((c) => c['id'].toString()).toList(),
         token: auth.token,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Entretien créé')));
-        _load();
+        await _load();
+        _notifyStatusIfChanged(previousStatus);
+        _showCreatedSnack(
+          'Entretien créé',
+          onOpen: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => InterviewDetailScreen(interview: created)),
+            );
+            if (mounted) _load();
+          },
+        );
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
@@ -887,30 +1068,26 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                         )
                       : const Icon(Icons.person_search),
                   onTap: () async {
-                    final candidates = await _loadContactCandidates(token);
+                    final data = await _loadContactPickerData(token);
                     final picked = await showContactPickerSheet(
                       ctx,
                       allowWithoutContact: true,
                       withoutContactLabel: app.company.name.isNotEmpty
                           ? 'Appel sans contact · ${app.company.name}'
                           : 'Appel sans contact',
-                      candidates: candidates,
+                      candidates: data.candidates,
+                      applicationLinkedIds: _applicationLinkedIds,
+                      companyLinkedIds: data.companyIds,
+                      companyName: app.company.name,
                       onCreateContact: ({required String firstName, required String lastName, String? email, String? phone, String? notes}) async {
-                        final created = await ApiService.createContact(
+                        return _createAndLinkContact(
                           firstName: firstName,
                           lastName: lastName,
-                          email: email ?? '',
-                          phone: phone ?? '',
+                          email: email,
+                          phone: phone,
                           notes: notes,
-                          companyId: app.company.id.isNotEmpty ? app.company.id : null,
                           token: token,
                         );
-                        await ApiService.linkContactToApplication(
-                          contactId: created['id'].toString(),
-                          applicationId: app.id,
-                          token: token,
-                        );
-                        return created;
                       },
                     );
                     if (picked == null) return;
@@ -955,7 +1132,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     }
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      await ApiService.createCall(
+      final created = await ApiService.createCall(
         applicationId: app.id,
         callDate: date,
         subject: subjectController.text.trim(),
@@ -964,30 +1141,20 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         token: auth.token,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appel créé')));
-        _load();
+        await _load();
+        _showCreatedSnack(
+          'Appel créé',
+          onOpen: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => CallDetailScreen(call: created)),
+            );
+            if (mounted) _load();
+          },
+        );
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
   }
 
-  Future<List<Map<String, dynamic>>> _loadContactCandidates(String? token) async {
-    final candidates = <Map<String, dynamic>>[..._contacts];
-    try {
-      if (app.company.id.isNotEmpty) {
-        try {
-          final byCompany = await ApiService.getContactsByCompany(app.company.id, token: token);
-          for (final c in byCompany) {
-            if (!candidates.any((x) => x['id'] == c['id'])) candidates.add(c);
-          }
-        } catch (_) {}
-      }
-      final all = await ApiService.getContacts(token: token);
-      for (final c in all) {
-        if (!candidates.any((x) => x['id'] == c['id'])) candidates.add(c);
-      }
-    } catch (_) {}
-    return candidates;
-  }
 }

@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 17 juin 2026 (feuille de route mobile — phase A)
+Dernière mise à jour : 17 juin 2026 (feuille de route mobile — phase A ; suite picker/calendrier/isolation)
 
 ## Rôle
 
@@ -16,8 +16,12 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | A2 | Attente email smokes — bonne boîte + diagnostic | Helper IMAP poll avec timeout ; ordre EmailLog → MailHog → Gmail → OVH ; logs indiquent boîte et tentative ; échec = message actionnable (mauvaise boîte, token absent, délai) | [ ] |
 | A3 | Bypass biométrie smokes (pas produit) | Pref `test_automation_skip_biometric` (debug APK) ; smokes sans prompt Samsung ; **restauration auto** fin batterie + `clear-smoke-device-adb.js` ; biométrie porteur inchangée hors pref | [x] |
 | A4 | Hub admin ADB multi-comptes | `smoke-mobile-admin-hub-adb.js` OK : admin visible → hub → retour TEST_USER sans blocage login | [ ] |
-| A5 | Consentements agent `/agent` — sync mobile→web | Consentements sauvés mobile visibles sur `/agent` (même compte) ; UI switches statut OK/KO + `grantedAt` ; `hasRequiredConsents` cohérent | [ ] UI switches + badges OK/KO + dates `grantedAt`/`revokedAt` dans `AgentEmailContent.tsx` ; `./node_modules/.bin/tsc --noEmit` frontend **OK** (17/06). **Reste** : preuve sync même compte mobile→BDD→web + validation porteur |
+| A5 | Consentements agent `/agent` — sync mobile→web | Consentements sauvés mobile visibles sur `/agent` (même compte) ; UI switches statut OK/KO + `grantedAt` ; `hasRequiredConsents` cohérent | [ ] UI switches OK ; **porteur 17/06** : à revoir plus tard. **Reste** : preuve sync même compte si besoin |
 | A6 | Comptes test prêts | `ensure-test-accounts-ready.js` : `TEST_USER` + `TEST_ADMIN` login API + `emailVerified=true` | [x] |
+| A7 | FAB détail candidature — picker contact unifié | **17/06** : `contact_picker_sheet.dart` — sections liés candidature / entreprise / autres, recherche, scroll, « Créer nouveau contact », import téléphone ; `showMultiContactPickerSheet` entretien ; relance/appel via `_loadContactPickerData` ; `capitalizePersonName` à la création ; messages validation FR. `flutter analyze` ciblé **0 erreur** ; `flutter test test/contact_name_utils_test.dart` **4/4 OK**. | [x] |
+| A8 | Calendrier — Planning par défaut + drawer dédié | **17/06** : `events_screen.dart` vue **Planning** (bandeau semaine + créneaux jour) ; `calendar_drawer.dart` filtres + bascule liste ; prefs `ApiConfigStore` ; drawer principal sans **Profil** ni **Événements**. `flutter analyze` ciblé **0 erreur**. **Reste porteur** : validation visuelle Planning + filtres drawer. | [ ] |
+| A9 | Isolation données utilisateur (API) | **17/06** : `node scripts/mobile/smoke/api/smoke-user-data-isolation-api.js` **OK** — contact + candidature USER invisibles / GET **404** pour TEST_ADMIN. | [x] |
+| A10 | Notif changement statut — in-app (pas mail instantané) | **17/06** : `_notifyStatusIfChanged` recharge `NotificationProvider` + snackbar action « Notifications » ; pas d’email par changement (digest 18h section statuts 24 h OK). Push barre système = FCM prod (`dev-push-*` en dev). **Reste porteur** : créer relance/entretien et vérifier cloche. | [ ] |
 
 Commandes utiles (directes, sans Make) :
 
@@ -36,7 +40,7 @@ Index scripts : `scripts/mobile/README.md`.
 | Priorité | Vérification agent | Preuve attendue | Statut |
 |----------|--------------------|-----------------|--------|
 | Infra | `up-full` — plus d’ERROR Postgres `log_collector_logs does not exist` au boot | **23/06** : cause = `log-collector-rs` démarré **avant** `db-push-all`. Correctifs Makefile : `db-ensure-bootstrap-tables` après Postgres ; pré-démarrage = `security-service` seul ; idem `make up` / `up-no-check` / `up-monitoring`. **Rust** : `store_log_entry_resilient` recrée la table au 1er INSERT (code `42P01`). Tests : bootstrap puis restart collecteur → **0 ERROR** ; drop table + recreate image sans bootstrap → **39 lignes**, **0 ERROR** Postgres. Image `log-collector-rs` rebuild OK. | [x] |
-| Agent email | Digest quotidien 18h (phase 2) | **23/06** : smoke `seed-email-agent-digest-smoke.sql` → **`sent:1`, `items:3`**, `EmailLog` **SENT**, anti-doublon OK. **Porteur 23/06** : digest reçu sur **Proton** (`paul.delhomme@proton.me`). Script rejeu : `scripts/db/seed-email-agent-digest-smoke.sql`. | [x] |
+| Agent email | Digest quotidien 18h (phase 2) | **23/06** : smoke `seed-email-agent-digest-smoke.sql` → **`sent:1`, `items:3`**, `EmailLog` **SENT**, anti-doublon OK. **Porteur 23/06** : digest reçu sur **Proton** (`paul.delhomme@proton.me`). **17/06 suite** : section digest **« Changements de statut (24 h) »** (`ApplicationStatusHistory` → libellés FR + lien candidature web). | [x] |
 | Infra tests | IMAP OVH candidatures@ — connexion live | **24/06** : smoke `--ovh-only` **OK** (`imap.mail.ovh.net:993`, AUTH PLAIN). **Bootstrap admin** `scripts/ops/bootstrap-admin-email-agent.cjs` **OK** : agent activé sur `paul.delhomme@proton.me`, boîte `candidatures@delhomme.ovh` liée, sync OK, **3 messages PENDING** triage. Digest cible `.env` : `pauldelhomme.pro@gmail.com`. | [x] |
 | Agent email | Découverte auto serveur IMAP + bootstrap porteur | **24/06** : `imapDiscoveryService.js` (domain hints OVH/Gmail/Outlook/Proton/Yahoo/iCloud, MX, Thunderbird autoconfig, fallback `imap.{domain}`) ; API `GET /email-agent/mailboxes/imap/discover` ; UI `/agent` auto-remplit hôte/port au blur email. Mobile inscription : opt-in informatif agent email. | [x] |
 | Mobile | Agent email — écran mobile complet | **24/06** : `EmailAgentScreen` ; smoke API **OK**. | [x] |

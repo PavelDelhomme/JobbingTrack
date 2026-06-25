@@ -172,4 +172,44 @@ class ApiConfigStore {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(key, value);
   }
+
+  // ——— Calendrier mobile ———
+  static const _keyCalendarViewMode = 'calendar_view_mode';
+  static const _keyCalendarFilterInterviews = 'calendar_filter_interviews';
+  static const _keyCalendarFilterFollowups = 'calendar_filter_followups';
+  static const _keyCalendarFilterEvents = 'calendar_filter_events';
+  static const _keyCalendarFilterInterim = 'calendar_filter_interim';
+
+  static Future<String> loadCalendarViewMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyCalendarViewMode) ?? 'planner';
+  }
+
+  static Future<void> saveCalendarViewMode(String mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyCalendarViewMode, mode);
+  }
+
+  static Future<({bool interviews, bool followups, bool events, bool interim})> loadCalendarFilters() async {
+    final prefs = await SharedPreferences.getInstance();
+    return (
+      interviews: prefs.getBool(_keyCalendarFilterInterviews) ?? true,
+      followups: prefs.getBool(_keyCalendarFilterFollowups) ?? true,
+      events: prefs.getBool(_keyCalendarFilterEvents) ?? true,
+      interim: prefs.getBool(_keyCalendarFilterInterim) ?? true,
+    );
+  }
+
+  static Future<void> saveCalendarFilters({
+    required bool showInterviews,
+    required bool showFollowups,
+    required bool showEvents,
+    required bool showInterim,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyCalendarFilterInterviews, showInterviews);
+    await prefs.setBool(_keyCalendarFilterFollowups, showFollowups);
+    await prefs.setBool(_keyCalendarFilterEvents, showEvents);
+    await prefs.setBool(_keyCalendarFilterInterim, showInterim);
+  }
 }

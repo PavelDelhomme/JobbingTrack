@@ -46,6 +46,7 @@ function renderDigestHtml(summary = {}, options = {}) {
   const appUrl = options.appUrl || summary.appUrl || DEFAULT_APP_URL;
   const sections = [
     renderStatsBlock(summary.stats),
+    renderSection('Changements de statut (24 h)', summary.statusChanges, appUrl),
     renderSection('Emails importants', summary.importantEmails, appUrl),
     renderSection('Entretiens à préparer', summary.interviewsToPrepare, appUrl),
     renderSection('Relances recommandées', summary.recommendedFollowups, appUrl),
@@ -86,6 +87,7 @@ function renderDigestText(summary = {}, options = {}) {
   }
 
   const blocks = [
+    ['Changements de statut (24 h)', summary.statusChanges],
     ['Emails importants', summary.importantEmails],
     ['Entretiens à préparer', summary.interviewsToPrepare],
     ['Relances recommandées', summary.recommendedFollowups],
@@ -106,6 +108,7 @@ function renderDigestText(summary = {}, options = {}) {
 
 function countDigestItems(summary = {}) {
   return (
+    (summary.statusChanges?.length || 0) +
     (summary.importantEmails?.length || 0) +
     (summary.interviewsToPrepare?.length || 0) +
     (summary.recommendedFollowups?.length || 0) +

@@ -10,6 +10,44 @@ const logger = require('../utils/logger');
 const DIGEST_SUBJECT_PREFIX = 'Digest recherche emploi JobbingTrack';
 const WEEKLY_DIGEST_SUBJECT_PREFIX = 'Récap hebdomadaire recherche emploi JobbingTrack';
 const { isWeeklyDigestDay } = require('../lib/digestSchedulePolicy');
+const { applicationStatusLabel } = require('../lib/applicationStatusLabels');
+
+function statusChangeItem(row, appUrl) {
+  const company = row.application?.company?.name || '';
+  const position = row.application?.position || 'Candidature';
+  const title = company ? `${company} — ${position}` : position;
+  const from = applicationStatusLabel(row.previousStatus?.code);
+  const to = applicationStatusLabel(row.newStatus?.code);
+  const appId = row.application?.id;
+  return {
+    label: `${title} : ${from} → ${to}`,
+    href: appId ? `${appUrl}/applications/applications/${appId}` : `${appUrl}/applications/applications`,
+  };
+}
+
+async function fetchRecentStatusChanges(userId, appUrl, hours = 24) {
+  const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+  const rows = await prisma.applicationStatusHistory.findMany({
+    where: {
+      changedAt: { gte: since },
+      application: { userId, deletedAt: null },
+    },
+    include: {
+      application: {
+        select: {
+          id: true,
+          position: true,
+          company: { select: { name: true } },
+        },
+      },
+      previousStatus: { select: { code: true } },
+      newStatus: { select: { code: true } },
+    },
+    orderBy: { changedAt: 'desc' },
+    take: 12,
+  });
+  return rows.map((row) => statusChangeItem(row, appUrl));
+}
 
 function triageItem(message, appUrl) {
   const subject = String(message.subject || '(sans objet)').slice(0, 120);
@@ -59,7 +97,10 @@ async function buildUserDigestSummary(userId) {
     interviewsToPrepare: [],
     recommendedFollowups: [],
     needsConfirmation: [],
+    statusChanges: [],
   };
+
+  summary.statusChanges = await fetchRecentStatusChanges(userId, appUrl, 24);
 
   for (const message of messages) {
     const bucket = classifyForDigest(message);
@@ -94,7 +135,10 @@ async function buildUserWeeklyDigestSummary(userId) {
     interviewsToPrepare: [],
     recommendedFollowups: [],
     needsConfirmation: [],
+    statusChanges: [],
   };
+
+  summary.statusChanges = await fetchRecentStatusChanges(userId, appUrl, 24 * 7);
 
   for (const message of messages.filter((m) => m.reviewStatus === 'PENDING')) {
     const bucket = classifyForDigest(message);

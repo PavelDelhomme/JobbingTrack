@@ -9,21 +9,23 @@ import 'package:jobbingtrack_mobile/utils/notification_navigation.dart';
 class MobileNotificationCenter extends StatelessWidget {
   const MobileNotificationCenter({super.key});
 
-  Future<void> _openSheet(BuildContext context) async {
+  static Future<void> openSheet(BuildContext context) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final provider = Provider.of<NotificationProvider>(context, listen: false);
     try {
       await provider.loadNotifications(token: auth.token);
     } catch (_) {}
-
     if (!context.mounted) return;
-
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (ctx) => const _NotificationSheet(),
     );
+  }
+
+  Future<void> _openSheet(BuildContext context) async {
+    await openSheet(context);
   }
 
   @override

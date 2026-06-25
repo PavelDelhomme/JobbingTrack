@@ -1,6 +1,6 @@
 # TODOS — chantier backoffice / API / doc (JobbingTrack)
 
-**Dernière mise à jour : 17 juin 2026** — feuille de route réorganisée (mobile d’abord, triage post-D8 bloqué).
+**Dernière mise à jour : 17 juin 2026** — feuille de route réorganisée (mobile d’abord, triage post-D8 bloqué) ; **suite 17/06** : A7–A10 picker FAB, calendrier Planning, isolation user, notif statut in-app.
 
 ## Feuille de route — ordre de travail (juin 2026)
 
@@ -16,6 +16,10 @@
 | A4 | **Hub admin mobile** | Switch `TEST_ADMIN_*` → hub → restauration `TEST_USER` sans `pm clear` répété | `smoke-mobile-admin-hub-adb.js` |
 | A5 | **Agent email `/agent`** | Sync consentements mobile → BDD → web ; UI **switches** statut RGPD (grantedAt) ; même `userId` que session mobile | `AgentEmailContent.tsx`, API `/email-agent/consents` |
 | A6 | **Auth / vérif email smokes** | `ensure-test-accounts-ready.js` ; renvoi vérif API ; deep link ADB | `smoke-verify-email-adb.js`, `smoke-resend-verification-api.js` |
+| A7 | **FAB détail candidature — picker contact unifié** | Sections candidature → entreprise → autres ; recherche scrollable ; « Créer nouveau contact » + import téléphone ; multi-contacts entretien ; validations FR prénom/nom (majuscule auto) | `contact_picker_sheet.dart`, `application_detail_screen.dart` ; smokes FAB existants |
+| A8 | **Calendrier — vue Planning + drawer dédié** | Vue **Planning** par défaut (semaine/jour) ; drawer calendrier (filtres types, bascule liste) ; retirer **Profil** et **Événements** du drawer principal (doublon barre basse) | `events_screen.dart`, `calendar_drawer.dart`, `app_drawer.dart` |
+| A9 | **Isolation données par utilisateur** | Contacts, candidatures, notifications scopés `userId` — smoke API 2 comptes | `smoke-user-data-isolation-api.js` |
+| A10 | **Changement statut candidature — notif in-app (pas mail instantané)** | Snackbar + centre notifications (pas email séparé ; digest 18h section statuts OK) ; FCM prod = chantier distinct (`dev-push-*`) | `NotificationProvider`, `_notifyStatusIfChanged` ; doc `NOTIFICATION_CENTER.md` |
 
 ### Phase B — Gate pré-prod mobile (après A)
 

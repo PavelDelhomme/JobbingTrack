@@ -127,11 +127,6 @@ class _AppDrawerState extends State<AppDrawer> {
                 title: 'Relances',
                 route: '/followups',
               ),
-              _DrawerItem(
-                icon: Icons.calendar_month,
-                title: 'Événements & Rappels',
-                route: '/events',
-              ),
             ],
           ),
 
@@ -183,11 +178,6 @@ class _AppDrawerState extends State<AppDrawer> {
             context,
             title: 'COMPTE',
             items: [
-              _DrawerItem(
-                icon: Icons.person,
-                title: 'Profil',
-                route: '/profile',
-              ),
               _DrawerItem(
                 icon: Icons.settings,
                 title: 'Paramètres',

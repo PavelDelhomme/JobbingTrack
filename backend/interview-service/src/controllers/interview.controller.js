@@ -159,6 +159,20 @@ const createInterview = async (req, res, next) => {
       }
     });
 
+    const rawContactIds = Array.isArray(req.body.contactIds)
+      ? req.body.contactIds
+      : req.body.contactId
+        ? [req.body.contactId]
+        : [];
+    const contactIds = [...new Set(rawContactIds.map(String).filter(Boolean))];
+    for (const contactId of contactIds) {
+      const contact = await prisma.contact.findFirst({ where: { id: contactId, userId } });
+      if (!contact) continue;
+      await prisma.interviewContact.create({
+        data: { interviewId: interview.id, contactId },
+      }).catch(() => null);
+    }
+
     logger.info(`Entretien ${interview.id} créé pour l'utilisateur ${userId}`);
 
     const interviewDateObj = new Date(interviewDate);
