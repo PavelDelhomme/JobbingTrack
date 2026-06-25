@@ -445,12 +445,32 @@ async function fillLoginFields(adb, email, password) {
   }
   if (edits.length === 1) {
     await adb.typeInEditTextByIndex(0, email, { isEmail: true });
-    await adb.wait(300);
-    await adb.tapXY(540, 1320);
-    await adb.wait(300);
+    await adb.wait(500);
+    for (const label of ['Mot de passe', 'Password']) {
+      if (!(await adb.uiContains(label))) continue;
+      try {
+        await adb.typeInField(label, password, { isPassword: true });
+        return;
+      } catch {
+        /* fallback index */
+      }
+    }
+    await adb.scrollDown(450);
+    await adb.wait(400);
     adb._invalidateUi();
     edits = await adb.listEditTexts();
-    const pwdIdx = edits.length >= 2 ? 1 : 0;
+    if (edits.length >= 2) {
+      await adb.typeInEditTextByIndex(1, password, { isPassword: true });
+      return;
+    }
+    await adb.tapXY(540, 1320);
+    await adb.wait(500);
+    adb._invalidateUi();
+    edits = await adb.listEditTexts();
+    const pwdIdx = edits.length >= 2 ? 1 : edits.length === 1 ? 0 : null;
+    if (pwdIdx == null) {
+      throw new Error('Champ mot de passe introuvable');
+    }
     await adb.typeInEditTextByIndex(pwdIdx, password, { isPassword: true });
     return;
   }
