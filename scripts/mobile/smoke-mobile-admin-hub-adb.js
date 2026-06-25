@@ -67,8 +67,7 @@ async function restorePorteurSession(phone, email, password) {
     /* déjà déconnecté */
   }
   await adbLib.flows.clearAppDataForSmoke(phone);
-  await adbLib.flows.prepareSmokeSession(phone, { restart: true });
-  await adbLib.flows.ensureFullLoginForm(phone);
+  await adbLib.flows.prepareSmokeSession(phone, { restart: false });
   await adbLib.flows.login(phone, email, password);
   await phone.wait(2500);
   await adbLib.flows.dismissBiometricUnlock(phone, { password });
@@ -84,8 +83,7 @@ async function restorePorteurSession(phone, email, password) {
 
   await loginAdminViaApi(admin.email, admin.password);
   await adbLib.flows.clearAppDataForSmoke(phone);
-  await adbLib.flows.prepareSmokeSession(phone, { restart: true });
-  await adbLib.flows.ensureFullLoginForm(phone);
+  await adbLib.flows.prepareSmokeSession(phone, { restart: false });
   await adbLib.flows.login(phone, admin.email, admin.password);
   await phone.wait(3000);
   await adbLib.flows.dismissBiometricUnlock(phone, { password: admin.password });

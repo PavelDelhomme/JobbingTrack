@@ -492,10 +492,33 @@ async function fillLoginFields(adb, email, password) {
   }
 }
 
+async function awaitLoginFormReady(adb, password, timeoutMs = 25000) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeoutMs) {
+    await dismissPermissionsGate(adb);
+    await dismissBiometricUnlock(adb, { password });
+    if (await isPasswordLoginForm(adb)) return true;
+    if (
+      (await adb.uiContains('Connexion par empreinte')) ||
+      (await adb.uiContains('Compte enregistré'))
+    ) {
+      await ensureFullLoginForm(adb);
+    } else if (
+      (await adb.uiContains('Se connecter')) ||
+      (await adb.uiContains('Créer un compte'))
+    ) {
+      await ensureFullLoginForm(adb);
+    }
+    await adb.wait(800);
+  }
+  return isPasswordLoginForm(adb);
+}
+
 async function login(adb, email, password) {
   const creds = resolveTestCredentials({ email, password });
   email = creds.email;
   password = creds.password;
+  await awaitLoginFormReady(adb, password);
   await ensureLoginFormScreen(adb);
   if (!(await isPasswordLoginForm(adb)) && !(await adb.uiContains('Email'))) {
     await ensureFullLoginForm(adb);
