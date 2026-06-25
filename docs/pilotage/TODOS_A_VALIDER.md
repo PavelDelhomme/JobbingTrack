@@ -1,6 +1,6 @@
 # TODOs à valider par le porteur
 
-Dernière mise à jour : 17 juin 2026 (feuille de route — mobile d’abord)
+Dernière mise à jour : 17 juin 2026 (file de validation porteur stricte — étapes 1→5 avant suite Lot D)
 
 ## Règle
 
@@ -303,6 +303,159 @@ Menu **Statistics** → sous-onglets en haut de page.
 
 **Réponses** : `OK <nom exact ligne tableau>` ou `KO <nom exact>` + ce que tu vois.
 
+---
+
+## File de validation porteur — ordre strict (juin 2026)
+
+> **Règle absolue** : tant que l’étape **N** n’est pas validée (`Décision porteur` = `OK …` + ligne archivée dans `TODOS_DONE.md`), **ne pas** passer à l’étape **N+1**, **ne pas** merger vers `dev`, **ne pas** traiter les lignes Lot D plus bas (324+, dont picker/planning ligne 332).  
+> L’agent ne développe **aucune nouvelle feature** hors correction d’un `KO` sur l’étape courante.
+
+| Étape | Ligne tableau | Sujet | Bloque |
+|-------|---------------|-------|--------|
+| **1** | **319** | Inscription + télémétrie + vérif email | tout le reste |
+| **2** | **320** | Navigation retour, admin, relances, FAB candidature | étapes 3–5 + lignes 324+ |
+| **3** | **321** | Migration SMTP `@jobbingtrack.com` (OVH) | étapes 4–5 + agent email complet |
+| **4** | **322** | Agent email — activation admin + gestion | étape 5 |
+| **5** | **323** | Agent email — consentements RGPD `/agent` (sync mobile) | lignes Lot D suivantes (324+, 332 picker…) |
+
+**Format de réponse porteur** (chat ou colonnes du tableau) :
+
+```text
+OK Mobile — Inscription + télémétrie obligatoire + vérif email
+Notes : mail reçu sur paul.delhomme@proton.me, deep link OK
+Preuves : capture écran « Vérifiez votre email » + login après clic lien
+```
+
+En cas de `KO` : décrire **exactement** ce qui bloque (écran, message, boîte mail, compte). L’agent corrige, met à jour `TODOS_A_VERIFIER.md`, puis tu re-testes **la même étape**.
+
+---
+
+### Étape 1 — Ligne 319 : Inscription + télémétrie + vérif email (**BLOQUANTE**)
+
+**Environnement** : Samsung `R5CT7263YJL` (ou AVD) + stack locale (`gateway` `127.0.0.1:5002`, `adb reverse tcp:5002 tcp:5002`). APK debug installé (`bash scripts/mobile/setup/build-apk-debug.sh`).
+
+**Prérequis agent (déjà faits — ne pas re-valider toi)** :
+
+- `node scripts/mobile/smoke/api/smoke-resend-verification-api.js` → OK
+- `node scripts/mobile/smoke/adb/smoke-verify-email-adb.js` → OK (deep link + API)
+- EmailLog : vérif **SENT** (SMTP Python port **587** STARTTLS)
+
+**Toi — à tester sur appareil** :
+
+| # | Action | Résultat attendu | Preuve à noter |
+|---|--------|------------------|----------------|
+| 1 | Ouvrir app → **Créer un compte** (alias **réel** que tu consultes, ex. `@delhomme.ovh` ou Proton) | Formulaire visible | compte test utilisé |
+| 2 | Case **télémétrie** : cochée par défaut | cochée | capture ou « cochée OK » |
+| 3 | Décocher télémétrie → **Créer** | **Bloqué** — message explicite | texte du message |
+| 4 | Recocher télémétrie → remplir champs → **Créer** | Écran **« Vérifiez votre email »** + bouton renvoi | capture |
+| 5 | Ouvrir **ta boîte mail réelle** (pas MailHog seul) | Mail JobbingTrack reçu (< 5 min) | sujet + destinataire |
+| 6 | Cliquer le **lien web** OU `jobbingtrack://verify-email?token=…` | App ouvre écran vérif → **login possible** | « lien web OK » / « deep link OK » |
+| 7 | (Option) Bouton **renvoi** sur écran attente | Second mail ou message succès | si testé |
+
+**Commandes utiles (diagnostic si mail absent)** :
+
+```bash
+node scripts/mobile/smoke/api/smoke-resend-verification-api.js
+# EmailLog : scripts/ops/list-email-logs.cjs ou backoffice Email Monitor
+```
+
+**Décision** : `OK Mobile — Inscription + télémétrie obligatoire + vérif email` **ou** `KO …` + détail.
+
+---
+
+### Étape 2 — Ligne 320 : Navigation retour, admin, relances, ajouts candidature
+
+**Prérequis** : étape **1** validée et archivée dans `TODOS_DONE.md`.
+
+**Comptes** (`.env`) : `TEST_USER_*` (user normal) + `TEST_ADMIN_*` (admin mobile).
+
+| # | Action | Résultat attendu | Preuve à noter |
+|---|--------|------------------|----------------|
+| 1 | **Profil** → Paramètres → bouton **retour** | Retour **Profil**, pas Accueil forcé | OK/KO retour profil |
+| 2 | Drawer → **Calendrier** (barre basse) → **Profil** → retour | Retour Calendrier ou onglet précédent | OK/KO retour shell |
+| 3 | Login **TEST_USER** → drawer | Section **Administration absente** | capture drawer USER |
+| 4 | Logout → login **TEST_ADMIN** → drawer **Administration** → hub | Hub + sous-pages accessibles | liste pages OK |
+| 5 | Onglet **Relances** | Liste charge **sans crash date** ; **pas** de FAB + global | OK relances |
+| 6 | **Candidature** → détail → FAB **Ajouter** → **Relance** → Créer | Snackbar + **Voir** → détail relance | OK FAB relance |
+| 7 | Idem → **Appel** : picker contact (sections) ou sans contact | Appel créé ; **Voir** → détail | OK FAB appel |
+| 8 | Idem → **Entretien** : date du jour, lieu, notes, contacts optionnels | Entretien créé ; **Voir** → détail | OK FAB entretien |
+| 9 | Idem → **Contact** : création ou liaison | Contact visible sur détail candidature | OK FAB contact |
+
+**Smokes agent (référence)** : `smoke-mobile-navigation-adb.js`, `smoke-mobile-application-detail-fab-adb.js`, `smoke-mobile-admin-hub-adb.js`.
+
+**Décision** : `OK Mobile — navigation retour, admin, relances, ajouts candidature` **ou** `KO …`.
+
+---
+
+### Étape 3 — Ligne 321 : Email migration SMTP `@jobbingtrack.com` (OVH)
+
+**Prérequis** : étapes **1–2** validées. **Action porteur OVH** — l’agent ne peut pas la faire à ta place.
+
+**Checklist** (`docs/emails/OVH_MX_PLAN_JOBBINGTRACK.md`) :
+
+| # | Action porteur | Preuve à noter |
+|---|--------------|----------------|
+| 1 | Upgrader **MX Plan** (offre actuelle redirect → plan avec boîtes) | capture espace client OVH |
+| 2 | Créer `noreply@jobbingtrack.com` + `security@jobbingtrack.com` | adresses créées |
+| 3 | Configurer **DKIM** + **DMARC** (DNS) | captures DNS / test mail-tester |
+| 4 | Mettre à jour `.env` **préprod/prod** : `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` `@jobbingtrack.com` | **sans** coller les secrets dans le chat |
+| 5 | Rejouer smokes mail | résultats ci-dessous |
+
+**Smokes à lancer après config** (agent ou toi) :
+
+```bash
+node scripts/mobile/smoke/api/smoke-resend-verification-api.js
+node scripts/mobile/smoke/api/smoke-auth-password-flows-e2e.js --skip-adb
+# + digest agent, reset MDP, alertes sécurité selon checklist OVH
+```
+
+**Transition actuelle** : envoi via `maily.ovh` jusqu’à MX Plan actif.
+
+**Décision** : `OK Email — migration SMTP @jobbingtrack.com (OVH)` **ou** `KO …` (ex. « MX Plan pas encore commandé »).
+
+---
+
+### Étape 4 — Ligne 322 : Agent email — activation admin + gestion
+
+**Prérequis** : étapes **1–3** validées (étape 3 peut rester `KO` si MX Plan en cours — **sauf** si tu décides de valider l’agent en dev avec boîte IMAP actuelle ; par défaut **attendre SMTP** si mails agent bloqués).
+
+**Environnement** : navigateur → `http://localhost:5003/agent` (ou HTTPS local) — compte **`admin@jobbingtrack.com`**.
+
+| # | Action | Résultat attendu | Preuve |
+|---|--------|------------------|--------|
+| 1 | Login admin → `/agent` | Bouton **Activer pour mon compte** visible | capture |
+| 2 | Activer agent pour ton compte admin | `agentEnabled=true` | message succès |
+| 3 | `/backoffice/users` → fiche user → toggle **Agent email** | Badge **Agent** sur liste | capture |
+| 4 | Activer un user test → `/agent` avec ce compte → connecter **IMAP** (OVH/Gmail) | Sync triage ≥ 1 message ou état PENDING | capture triage |
+| 5 | (Option) Triage : expand email seed, accepter/refuser | Pas de crash UI | OK triage |
+
+**Décision** : `OK Backoffice — Agent email — activation admin + gestion` **ou** `KO …`.
+
+---
+
+### Étape 5 — Ligne 323 : Consentements RGPD `/agent` (sync mobile)
+
+**Prérequis** : étapes **1–4** validées.
+
+**Même compte** sur mobile et web (ex. `paul.delhomme@proton.me`).
+
+| # | Action | Résultat attendu | Preuve |
+|---|--------|------------------|--------|
+| 1 | Mobile → **Paramètres** ou écran agent → accorder consentements (dont **MAILBOX_ACCESS** si proposé) | Sauvegarde OK | date/heure |
+| 2 | Web → `/agent` (même compte) | Chaque consentement : badge **Actif/Inactif**, switch, **`grantedAt`** cohérent | capture |
+| 3 | Bandeau **Consentements requis** | **OK** si MAILBOX_ACCESS accordé mobile | capture |
+| 4 | Révoquer un consentement mobile → refresh `/agent` | Web reflète **Inactif** + date révocation | OK sync |
+
+**Décision** : `OK Lot D — Agent email — consentements RGPD /agent (sync mobile)` **ou** `KO …`.
+
+---
+
+### Après les étapes 1–5
+
+Seulement alors : lignes **324+** (intérim, entities, notifications, picker/planning **332**, etc.) et merge `feat/lot-d-mobile-validation` → `dev`.
+
+---
+
 ## À valider maintenant — Lot D mobile (phase B — ordre strict)
 
 > **Première ligne ouverte = file de validation.** Lignes P1B/P1C backoffice plus bas = **phase D**, ne pas prioriser avant clôture mobile.
@@ -316,11 +469,11 @@ Menu **Statistics** → sous-onglets en haut de page.
 | Lot D | Mobile — Paramètres : télémétrie anonyme + Aide/retours | appareil + local | Dans **Paramètres** : (1) toggle “Partager des données anonymes” active/désactive (RGPD) ; (2) toggles “Performances anonymes” + “Trace d’activité” ; (3) “Diagnostic local” affiche un résumé ; (4) Aide & retours : **Bug / Suggestion / Signalement** → formulaire, option “Joindre diagnostic”, envoi OK. Vérifier qu’en mode **sans consentement**, seuls les retours manuels sont envoyés (pas de traces auto). | clavier OK ; toggles OK | Samsung | OK paramètres télémétrie aide retours | [x] | **Preuve agent 17–18/06** : `MobileAnalyticsService` ; formulaire retour clavier corrigé ; `smoke-feedback-adb.js` **OK**. **Validation porteur 18/06** : OK (déjà validé clavier + paramètres). Archivé `TODOS_DONE.md`. |
 | Lot D | Mobile — déconnexion drawer/menu (régression 19/06) | Samsung R5CT7263YJL | (1) Drawer → **Déconnexion** → confirmer → écran **Connexion** en ~2 s (session effacée). (2) Menu **⋮** → **Déconnexion** → idem. (3) Écran empreinte → **Se déconnecter** → idem. (4) Après déconnexion : cold start → login (pas d’accueil direct). | OK logout | Samsung R5CT7263YJL | OK déconnexion drawer menu | [x] | **Validation porteur 19/06** : OK. Archivé `TODOS_DONE.md`. **Preuve agent 19/06** : `appNavigatorKey`, smoke ADB drawer **OK**. |
 | Lot D | Mobile — biométrie (login, déverrouillage, reconnexion empreinte) | Samsung R5CT7263YJL | (1) Login : cocher biométrie → déverrouillage immédiat sans fermer app. (2) Cold start : empreinte → accueil. (3) Après déconnexion : compte enregistré + **Connexion par empreinte**. (4) Paramètres : activation biométrie. (5) **Fallback mot de passe** : formulaire visible + « Se connecter avec le mot de passe » si empreinte refusée/changée. | biométrie OK | Samsung R5CT7263YJL | OK biométrie mobile | [x] | **Validation porteur 19/06** : « biométrie carrément OK ». Archivé `TODOS_DONE.md`. **Suite agent 19/06** : fallback mot de passe + smokes `TEST_USER_*` **OK** ADB sans empreinte. |
-| Lot D | Mobile — Inscription + télémétrie obligatoire + vérif email | appareil + local | **Inscription** : case télémétrie cochée par défaut, refus bloque la création ; après OK → écran « Vérifiez votre email » + bouton renvoi. **Deep link** : `jobbingtrack://verify-email?token=…` ou lien mail → écran vérification → login. **Admin rapide** : `TEST_ADMIN_*` dans `.env`. | | | | [ ] | **Preuve agent 25/06** : fix SMTP Python (587 STARTTLS) — vérif **SENT** EmailLog ; `smoke-resend-verification-api.js` **OK** ; `smoke-verify-email-adb.js` deep link + API **OK** Samsung. Mail contient lien web + `jobbingtrack://`. **Reste porteur** : recevoir le mail sur sa boîte et valider le clic réel. |
-| Lot D | Mobile — navigation retour, admin, relances, ajouts candidature | appareil + local | (1) **Retour** : depuis Profil/Paramètres/Admin/Événements → retour = page précédente (pas accueil forcé). (2) **Admin** : compte USER → section Administration invisible ou accès refusé ; compte ADMIN → hub admin + utilisateurs/analytics/logs/statistiques/corbeille OK. (3) **Relances** : liste sans crash date ; pas de bouton + global ; création depuis **détail candidature** uniquement. (4) **Appel** : choix contact existant ou création rapide (nom seul ou prénom nom). (5) **Entretien** : date + lieu + notes depuis détail candidature. | biométrie OK porteur 17/06 | | | [ ] | **Preuve agent 25/06** : smokes ADB navigation/FAB **OK**. **17/06 suite** : FAB détail candidature — après création contact/relance/entretien/appel → `_load()` + snackbar **Voir** ouvre le détail ; contact inline picker met à jour la liste ; snackbar si statut auto changé (relance/entretien). **Reste porteur** : valider sur Samsung (FAB → chaque type → Voir → détail OK) ; hub admin `TEST_ADMIN_*`.
-| Infra | Email — migration SMTP `@jobbingtrack.com` (OVH) | OVH + préprod | (1) Upgrader MX Plan `jobbingtrack.com` (offre actuelle **redirect**, 0 compte). (2) Créer `noreply@` + `security@`. (3) DKIM/DMARC. (4) Mettre à jour `.env` prod (`SMTP_USER` `@jobbingtrack.com`). (5) Rejouer smokes mail (vérif, reset, digest, alertes) — checklist `docs/emails/OVH_MX_PLAN_JOBBINGTRACK.md`. | | | | [ ] | **Preuve agent 25/06** : diagnostic porteur documenté ; DNS MX/SPF OK ; blocage = offre OVH sans boîtes. Transition : `maily.ovh`.
-| Backoffice | Agent email — activation admin + gestion | local | (1) Connecté `admin@jobbingtrack.com` → `/agent` : bouton **Activer pour mon compte** ou fiche user → toggle agent. (2) Liste users : badge **Agent** si activé. (3) Activer un utilisateur test → connecter boîte IMAP → triage OK. | | | | [ ] | **Preuve agent 25/06** : UI toggle fiche user + self-activate admin sur `/agent` ; API `PUT …/agent-enabled` existante. **Reste porteur** : activer son compte admin et valider le flux complet.
-| Lot D | Agent email — consentements RGPD `/agent` (sync mobile) | local | Connecté **même compte** que sur mobile (ex. `paul.delhomme@proton.me`) → `/agent` : chaque consentement affiche badge **Actif/Inactif**, switch (lecture seule si agent non activé), date d’accord ; bandeau **Consentements requis** = OK si `MAILBOX_ACCESS` accordé sur mobile. | | | | [ ] | **Preuve agent 17/06** : switches + `grantedAt`/`revokedAt` dans `AgentEmailContent.tsx` ; `tsc --noEmit` frontend OK. **Reste porteur** : enregistrer consentements sur mobile puis vérifier affichage web même compte.
+| Lot D | Mobile — Inscription + télémétrie obligatoire + vérif email | appareil + local | **Étape 1 file stricte** — voir § « File de validation porteur » ci-dessus. | | | | **[ ] BLOQUANT** | **Preuve agent 25/06** : fix SMTP Python (587 STARTTLS) — vérif **SENT** EmailLog ; `smoke-resend-verification-api.js` **OK** ; `smoke-verify-email-adb.js` deep link + API **OK** Samsung. **Reste porteur obligatoire** : mail réel + clic lien. **Ne pas passer à la ligne 320 avant OK explicite.**
+| Lot D | Mobile — navigation retour, admin, relances, ajouts candidature | appareil + local | **Étape 2** — après OK ligne 319. (1) Retour shell. (2) Admin USER/ADMIN. (3) Relances sans FAB global. (4–5) FAB appel/entretien/contact depuis détail candidature. | biométrie OK porteur 17/06 | | | **[ ] bloquée par 319** | **Preuve agent 25/06** : smokes ADB navigation/FAB **OK**. **Reste porteur** : Samsung FAB → chaque type → **Voir** → détail OK.
+| Infra | Email — migration SMTP `@jobbingtrack.com` (OVH) | OVH + préprod | **Étape 3** — après OK ligne 320. Checklist `docs/emails/OVH_MX_PLAN_JOBBINGTRACK.md`. | | | | **[ ] bloquée par 320** | **Preuve agent 25/06** : diagnostic documenté ; MX/SPF OK ; blocage = offre redirect. Transition : `maily.ovh`.
+| Backoffice | Agent email — activation admin + gestion | local | **Étape 4** — après OK ligne 321 (ou dérogation porteur si IMAP dev suffit). | | | | **[ ] bloquée par 321** | **Preuve agent 25/06** : UI toggle + API `PUT …/agent-enabled`. **Reste porteur** : activer admin + triage IMAP.
+| Lot D | Agent email — consentements RGPD `/agent` (sync mobile) | local | **Étape 5** — après OK ligne 322. Même compte mobile + `/agent`. | | | | **[ ] bloquée par 322** | **Preuve agent 17/06** : switches `AgentEmailContent.tsx`. **Reste porteur** : sync mobile→web.
 | Lot D | Mobile — intérim, biométrie, admin sécurisé | appareil + local | (1) **Paramètres** → activer « Mode intérim » : menu Intérim visible, champ agence sur nouvelle candidature, calendrier ambre pour événements intérim. (2) **Connexion** : cocher « Garder la connexion » + « Déverrouiller biométrie » → fermer app → rouvrir → écran empreinte puis accueil. (3) **Admin** : user normal ne voit pas ADMIN ; admin voit hub + sous-pages. (4) Sans « garder connexion » : cold start → écran login. | biométrie OK porteur 19/06 | | | [ ] | **Preuve agent 19/06** : `smoke-mobile-settings-interim-adb.js` **OK** ; `smoke-mobile-interim-home-adb.js` **OK** ; `smoke-mobile-interim-calendar-adb.js` **OK** — event API `#F59E0B` visible calendrier. **Reste porteur** : confirmer visuellement icône ambre sur l’appareil.
 | Lot D | Mobile — entreprises, contacts, édition profil | appareil + local | (1) **Entreprises** : liste non vide (si données), recherche, tap → détail. (2) **Contacts** : liste, recherche, **+** créer contact minimal, tap → détail. (3) **Profil** → Modifier : changer prénom/nom/téléphone → Enregistrer → retour profil à jour. (4) **Admin → Données de test** : message renvoi backoffice (pas de générateur sur mobile). | | | | [ ] | **Preuve agent 19/06** : `smoke-mobile-entities-adb.js` enrichi — recherche, création contact, détails ; `smoke-mobile-accounts-adb.js` — Données de test → backoffice. **Preuve agent 19/06** : `smoke-mobile-profile-save-adb.js` **OK** — téléphone persisté. **Reste porteur** : validation visuelle profil.
 | Lot D | Mobile — notifications, à venir, biométrie D6, création entreprise | appareil + local | (1) **Cloche** : liste notifications **métier uniquement** (candidatures, relances, entretiens, appels, rappels push) — **pas** de crash/erreurs techniques ; marquer lu / tout marquer lu / supprimer (swipe ou ✕) ; badge **uniquement** si non-lues (icône toujours visible). Même règle compte **admin** sur mobile. (2) **Accueil** : bloc « À venir » (entretiens + relances). (3) **Entretiens** : onglets À venir / Passés. (4) **Biométrie** : activer dans Paramètres (mot de passe) → kill app → empreinte → accueil ; si session expirée, reconnexion auto. (5) **Entreprises** : **+** créer entreprise (option agence intérim si mode intérim). | biométrie OK porteur 19/06 | OK ligne 321 centre notifs | connexion OK ; cloche sans crash | OK ligne 321 (centre) | [ ] | **Preuve agent 19/06** : `smoke-mobile-notification-nav-adb.js` **OK** ; `smoke-mobile-company-create-adb.js` **OK** ; cold-start **OK**. **Preuve agent 19/06** : `smoke-mobile-home-upcoming-adb.js` **OK** — bloc « À venir » visible. **Reste porteur** : validation visuelle bloc À venir.
@@ -329,7 +482,7 @@ Menu **Statistics** → sous-onglets en haut de page.
 | Lot D | Mobile — télémétrie erreurs login/CRUD (FK analytics corrigée) | appareil + local | (1) Login `TEST_USER_*` → parcourir candidatures/détail (CRUD). (2) Logs Docker : **aucun** `user_errors_sessionId_fkey` sur `POST /analytics/errors`. (3) `/backoffice/user-analytics` : erreurs/latence API visibles (7 j, user test). (4) Paramètres → Diagnostic : flush sans erreur réseau. | | | | [ ] | **Preuve agent 22/06** : `ensureAnalyticsSession()` avant insert erreurs/perf ; smokes analytics + parcours API **19/19** ; login émulateur **OK** ; doc `EMULATEUR_ADB.md`. **Reste porteur** : vérif visuelle backoffice.
 | Lot D7 | Mobile — workflow API + push dev + offline métier | appareil + API | (1) `node scripts/mobile/smoke-workflow-api.js` → status + trigger dev OK. (2) Login app → token push enregistré (`smoke-push-register-api.js` OK). (3) **Offline métier** : réseau OFF → nouvelle candidature → message file → réseau ON → candidature visible API + liste app. (4) Réseau toujours rétabli après test. | | | | [ ] | **Preuve agent 19/06 (re-run)** : `smoke-workflow-api.js` + `smoke-push-register-api.js` + `smoke-offline-business-adb.js` **OK**.
 | Lot D | Mobile — FAB détail candidature + navigation liens entités | appareil | (1) **Détail candidature** : FAB « Ajouter » → contact / relance / entretien / appel (plus de boutons par section). (2) **Détail contact** : entreprises, candidatures liées (API), relances et appels. (3) **Détail entretien/relance/appel** : candidature, entreprise, contacts navigables. (4) Analytics test user : sessions actives visibles pour `TEST_USER_EMAIL`. | | | | [ ] | **Preuve agent 19/06** : FAB + analytics **OK** ; `smoke-mobile-entity-links-adb.js` **OK** ; `smoke-mobile-followup-nav-adb.js` **OK** — relance → candidature ; `smoke-mobile-interview-nav-adb.js` **OK** — entretien → candidature. **Reste porteur** : navigation appel → candidature.
-| Lot D | Mobile — picker contact, entretien multi-contacts, calendrier Planning, drawer | appareil | (1) **FAB candidature** : picker contact avec sections (liés candidature → entreprise → autres), recherche, scroll ; « Créer nouveau contact » + **Importer depuis le téléphone** (appel, relance, entretien, lier contact). (2) Prénom/nom : **majuscule auto** ; messages si champs manquants. (3) **Entretien** : date du jour par défaut + **un ou plusieurs contacts**. (4) **Calendrier** (onglet bas) : vue **Planning** par défaut ; drawer calendrier (filtres + liste) ; drawer principal **sans Profil** ni Événements (barre basse). (5) Changement statut candidature → **notification in-app** (cloche), pas mail instantané. | | | | [ ] | **Preuve agent 17/06** : `contact_picker_sheet.dart`, `calendar_drawer.dart`, `events_screen.dart` Planning ; `_notifyStatusIfChanged` + centre notifs. **Reste porteur** : validation visuelle picker + Planning + notif statut (changer date relance/entretien pour tester).
+| Lot D | Mobile — picker contact, entretien multi-contacts, calendrier Planning, drawer | appareil | **Après étapes 1–5** (file stricte 319→323). Voir § « File de validation porteur ». | | | | **[ ] bloquée par 319–323** | **Preuve agent 17/06** : code livré sur `feat/lot-d-mobile-validation` (`f118e492`). **Validation porteur** : uniquement après OK étapes 1–5.
 | Lot D | Mobile — popup candidature, statuts FR, contacts, édition entités | appareil | (1) **Nouvelle candidature** : FAB ou bouton vide → **popup** (pas page pleine, pas de drawer) → création → liste rafraîchie. (2) **Statut candidature** : libellés **français** ; bouton « Changer statut » → choix manuel → automatismes désactivés (`statusEngineOptOut`). (3) **Contact** : création avec **notes** depuis candidature/entreprise ; visible sur détail entreprise ; archiver / corbeille. (4) **Détail relance/entretien/appel** : bouton modifier conserve les données. (5) Parcours candidature → contact → retour OK. | | | | [ ] | **Preuve agent 19/06** : `smoke-mobile-application-sheet-adb.js` **OK** — popup accueil, statuts FR liste + picker « Résultat / statut ». **Reste porteur** : création complète, notes contact, édition relance.
 | Lot D | Mobile — FAB accueil, plateforme, safe area, lien contact | appareil | (1) **Accueil** : FAB + ouvre popup nouvelle candidature. (2) **Plateforme utilisée** : liste + « + Ajouter une plateforme » (perso utilisateur). (3) Bouton **Créer** visible au-dessus de la barre de navigation basse. (4) Date candidature affiche l’**heure locale** (~14:06 si créée à 14:06). (5) **Lier un contact existant** sur détail candidature : plus d’erreur 500. | | | | [ ] | **Preuve agent 18/06** : fix `getContactsByCompany` ; `PlatformPickerField` ; `shell_layout.dart` ; heure UTC corrigée ; APK install Samsung **Success**. |
 | Lot D | Mobile — statuts auto, entreprise picker, appel, analytics réseau | appareil | (1) Statut manuel = **refus/retenue/offre** uniquement ; pas « 1 relance » sans relance créée. (2) **Relance créée** → statut candidature mis à jour auto. (3) **Entretien** → « Entretien à venir/imminent ». (4) Entreprise : sheet avec sélection visible. (5) Appel : même format dialog que relance. (6) Erreurs réseau visibles dans analytics. | | | | [ ] | **Preuve agent 18/06** : cascade backend followup/interview ; labels FR cycle candidature ; analytics `connection_refused`. |

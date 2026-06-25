@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 17 juin 2026 (feuille de route mobile — phase A ; suite picker/calendrier/isolation)
+Dernière mise à jour : 17 juin 2026 (feuille de route mobile — phase A ; file porteur étapes 1→5)
 
 ## Rôle
 
@@ -18,6 +18,20 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | A4 | Hub admin ADB multi-comptes | `smoke-mobile-admin-hub-adb.js` OK : admin visible → hub → retour TEST_USER sans blocage login | [ ] |
 | A5 | Consentements agent `/agent` — sync mobile→web | Consentements sauvés mobile visibles sur `/agent` (même compte) ; UI switches statut OK/KO + `grantedAt` ; `hasRequiredConsents` cohérent | [ ] UI switches OK ; **porteur 17/06** : à revoir plus tard. **Reste** : preuve sync même compte si besoin |
 | A6 | Comptes test prêts | `ensure-test-accounts-ready.js` : `TEST_USER` + `TEST_ADMIN` login API + `emailVerified=true` | [x] |
+
+### File porteur — en attente (ne pas passer à la suite)
+
+> **Étape courante = 319** (inscription + vérif email réelle). L’agent **ne demande pas** la validation 320+ tant que le porteur n’a pas répondu `OK Mobile — Inscription + télémétrie obligatoire + vérif email`. Guide détaillé : `TODOS_A_VALIDER.md` § « File de validation porteur ».
+
+| Étape | Ligne | Statut agent | Statut porteur | Action porteur |
+|-------|-------|--------------|----------------|----------------|
+| 1 | 319 Inscription + vérif email | smokes API/ADB OK | **[ ] BLOQUANT** | Mail réel + clic lien — § étape 1 |
+| 2 | 320 Navigation + FAB | smokes ADB OK | bloquée par 319 | § étape 2 |
+| 3 | 321 OVH SMTP `@jobbingtrack.com` | doc + diagnostic OK | bloquée par 320 | MX Plan OVH — § étape 3 |
+| 4 | 322 Agent admin `/agent` | UI + API OK | bloquée par 321 | § étape 4 |
+| 5 | 323 Consentements RGPD sync | UI switches OK | bloquée par 322 | § étape 5 |
+
+Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + merge `feat/lot-d-mobile-validation` → `dev`.
 | A7 | FAB détail candidature — picker contact unifié | **17/06** : `contact_picker_sheet.dart` — sections liés candidature / entreprise / autres, recherche, scroll, « Créer nouveau contact », import téléphone ; `showMultiContactPickerSheet` entretien ; relance/appel via `_loadContactPickerData` ; `capitalizePersonName` à la création ; messages validation FR. `flutter analyze` ciblé **0 erreur** ; `flutter test test/contact_name_utils_test.dart` **4/4 OK**. | [x] |
 | A8 | Calendrier — Planning par défaut + drawer dédié | **17/06** : `events_screen.dart` vue **Planning** (bandeau semaine + créneaux jour) ; `calendar_drawer.dart` filtres + bascule liste ; prefs `ApiConfigStore` ; drawer principal sans **Profil** ni **Événements**. `flutter analyze` ciblé **0 erreur**. **Reste porteur** : validation visuelle Planning + filtres drawer. | [ ] |
 | A9 | Isolation données utilisateur (API) | **17/06** : `node scripts/mobile/smoke/api/smoke-user-data-isolation-api.js` **OK** — contact + candidature USER invisibles / GET **404** pour TEST_ADMIN. | [x] |

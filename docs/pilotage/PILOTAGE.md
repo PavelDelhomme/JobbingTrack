@@ -1,13 +1,13 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 17 juin 2026 (réorganisation feuille de route — mobile d’abord)
+Dernière mise à jour : 17 juin 2026 (file validation porteur stricte étapes 1→5)
 
 ## Feuille de route — ordre strict (juin 2026)
 
 | Phase | Contenu | Statut | Règle |
 |-------|---------|--------|-------|
 | **A — Mobile Lot D** | App Flutter, smokes ADB fiables/rapides, agent email utilisateur (`/agent`), sync consentements mobile↔web, hub admin mobile, auth/biométrie smokes | **EN COURS** | Seul chantier agent actif. Voir `TODOS.md` § Phase A. |
-| **B — Gate pré-prod mobile** | Validations porteur `TODOS_A_VALIDER.md` lignes Lot D (317+), D8 hub tests backoffice (UI), batterie `smoke-run-mobile-fast.js` | Après A | Ne pas ouvrir la prod avant OK porteur sur cette gate. |
+| **B — Gate pré-prod mobile** | Validations porteur `TODOS_A_VALIDER.md` **étapes 1→5** (319→323), puis lignes Lot D suivantes | Après A | **File stricte** : inscription vérif email → navigation FAB → OVH SMTP → agent admin → consentements RGPD. Voir `TODOS_A_VALIDER.md` § « File de validation porteur ». |
 | **C — Déploiement rapide** | Builds release, pipeline préprod, SMTP `@jobbingtrack.com` (porteur OVH), `A_VALIDER_AVANT_PRODUCTION.md` | Après B | Infra email = action porteur ; agent prépare smokes/checklists. |
 | **D — Post-D8 / triage** | Lot H (réorg `scripts/`/`tests/`/`tools/`), Lot E doc, audit secrets, doublons dépôt, validations backoffice P1B/P1C en masse | **BLOQUÉ** | **Ne pas démarrer** tant que phase A+B non clôturées. |
 
@@ -94,7 +94,7 @@ Exception porteur 15/06 : lot **P1D CI/PR/déploiement** clôturé le 15/06 — 
 Priorité immédiate stricte (17/06 — réorganisé) :
 
 1. **Phase A — Mobile Lot D** uniquement (smokes, agent `/agent`, auth, parcours métier). Tableau détaillé : [`TODOS.md`](TODOS.md) § « Feuille de route ».
-2. **Phase B** — validations porteur Lot D dans `TODOS_A_VALIDER.md` (première ligne ouverte = file de validation).
+2. **Phase B** — validations porteur **`TODOS_A_VALIDER.md` étapes 1→5** (319 inscription vérif → 320 navigation FAB → 321 OVH SMTP → 322 agent admin → 323 consentements). **Ne pas** merger `dev` ni traiter la ligne 332 (picker/planning) avant clôture de cette file.
 3. **Phases C puis D** — déploiement, puis triage/réorg/Lot H : **interdit** avant clôture A+B.
 4. Backoffice P1B/P1C, Statistics, Performances : **file secondaire** (phase D), sauf correctif bloquant mobile signalé par le porteur.
 

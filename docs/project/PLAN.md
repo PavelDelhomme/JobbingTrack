@@ -8,6 +8,8 @@
 
 **Agent email / tâches recherche emploi** : cadrage produit ajouté le 09/06 dans **`features/EMAIL_TRIAGE_AGENT.md`**. Ce futur lot ne doit pas interrompre les P0 de `TODOS_A_VALIDER.md` : il sera planifié après validation/reclassement des blocages sécurité/rapports.
 
+**Gate porteur mobile (17/06/2026)** : activation agent email (lots web `/agent`) = étapes **4–5** de la file stricte `TODOS_A_VALIDER.md` (319→323). Voir `STATUS.md` et § « File de validation porteur ».
+
 **Plan Cursor (IDE)** : le fichier `.cursor/plans/chantier_securite_data_docs_2c0a63b7.plan.md` peut encore nommer les lots dans l’**ancien** ordre ; **source de vérité** : ce **`PLAN.md`** (lots **A** = monitoring, **B** = sécurité, **G** = backup / continuité, avril 2026).
 
 **`make up-full` / Compose** : la stack documentée est pensée pour le **développement local** (profils Docker, variables d’exemple, montages `src` pour le hot reload). Un déploiement **production** (VPS, secrets, non-root, sauvegardes **lot G**) reste à cadrer séparément — ne pas assimiler « `up-full` vert » à une prod prête sans durcissement.

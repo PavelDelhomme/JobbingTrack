@@ -4,4 +4,4 @@
 
 **Nouveau chemin** : [`project/RESOLUTIONS.md`](project/RESOLUTIONS.md)
 
-Correctifs appliqués et décisions techniques déjà actées.
+**Dernière décision (17/06/2026)** : file validation porteur stricte 319→323 — voir entrée du 17 juin dans `project/RESOLUTIONS.md`.

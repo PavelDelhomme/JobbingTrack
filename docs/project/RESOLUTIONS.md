@@ -1,6 +1,18 @@
 # Resolutions appliquees
 
-**Dernière mise à jour** : 20 mai 2026
+**Dernière mise à jour** : 17 juin 2026
+
+---
+
+## 17 juin 2026 — File validation porteur stricte (Lot D phase B)
+
+### Décision
+Le porteur a confirmé que **rien n’est encore validé** sur la séquence inscription → navigation FAB → OVH SMTP → agent admin → consentements RGPD. L’ordre **319 → 320 → 321 → 322 → 323** est désormais **bloquant** : pas de merge `dev`, pas de validation picker/planning (ligne 332) avant OK explicite des étapes 1–5.
+
+### Documentation
+- Guide pas à pas porteur : `docs/pilotage/TODOS_A_VALIDER.md` § « File de validation porteur — ordre strict »
+- État courant : `docs/STATUS.md` (étape 1 / 5)
+- Agent : `docs/pilotage/TODOS_A_VERIFIER.md` § « File porteur — en attente »
 
 ---
 

@@ -4,4 +4,4 @@
 
 **Nouveau chemin** : [`project/BACKLOG.md`](project/BACKLOG.md)
 
-Sujets reportés, dettes et idées hors file courte (méthode agile).
+**Priorité porteur** : clôturer étapes 1→5 (`TODOS_A_VALIDER.md` 319–323) avant backlog mobile/agent suivant.

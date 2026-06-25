@@ -21,13 +21,16 @@
 | A9 | **Isolation données par utilisateur** | Contacts, candidatures, notifications scopés `userId` — smoke API 2 comptes | `smoke-user-data-isolation-api.js` |
 | A10 | **Changement statut candidature — notif in-app (pas mail instantané)** | Snackbar + centre notifications (pas email séparé ; digest 18h section statuts OK) ; FCM prod = chantier distinct (`dev-push-*`) | `NotificationProvider`, `_notifyStatusIfChanged` ; doc `NOTIFICATION_CENTER.md` |
 
-### Phase B — Gate pré-prod mobile (après A)
+### Phase B — Gate validation porteur (après A)
 
-| # | Sujet | Prochaine action |
-|---|--------|------------------|
-| B1 | **Validations porteur Lot D** | File stricte `TODOS_A_VALIDER.md` à partir ligne 317 (inscription, navigation, agent, intérim…) |
-| B2 | **D8 — Hub tests backoffice** | UI `/backoffice/mobile-emulator` + lancement smokes depuis admin (CLI socle déjà amorcé) |
-| B3 | **Batterie complète optionnelle** | `smoke-run-mobile-validation.js` (27 tests, ~45 min) — rejeu avant merge majeur seulement |
+| # | Sujet | Ordre | Bloquant |
+|---|--------|-------|----------|
+| B0 | **File stricte porteur** | **1→5** lignes 319–323 dans `TODOS_A_VALIDER.md` | **Oui** — merge `dev` interdit avant OK étape 5 |
+| B1 | Validations Lot D restantes | 324+ après B0 | Oui pour clôture phase B |
+| B2 | **D8 — Hub tests backoffice** | UI `/backoffice/mobile-emulator` | Gate pré-prod |
+| B3 | Batterie complète optionnelle | `smoke-run-mobile-validation.js` | Non bloquant merge |
+
+Détail pas à pas porteur : **`TODOS_A_VALIDER.md` § « File de validation porteur — ordre strict »**.
 
 ### Phase C — Déploiement rapide (après B validé porteur)
 

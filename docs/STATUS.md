@@ -1,6 +1,24 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 24 juin 2026 — agent email récap hebdomadaire + fix IMAP AUTH PLAIN.
+**Dernière mise à jour** : 17 juin 2026 — **file validation porteur stricte (étapes 1→5)**.
+
+## Priorité immédiate — ce que le porteur doit faire maintenant
+
+**Étape courante : 1 / 5** — ligne **319** `TODOS_A_VALIDER.md` : **Inscription + télémétrie + vérif email sur boîte réelle**.
+
+| Étape | Sujet | Toi (porteur) | Agent |
+|-------|--------|---------------|-------|
+| **1** | Inscription + vérif email | Créer compte, recevoir mail, cliquer lien | smokes OK — attend `OK` explicite |
+| 2 | Navigation + FAB candidature | Samsung après OK étape 1 | bloqué |
+| 3 | OVH SMTP `@jobbingtrack.com` | MX Plan + boîtes + DKIM | checklist doc |
+| 4 | Agent email admin | `/agent` activation + IMAP | bloqué |
+| 5 | Consentements RGPD sync | mobile → web même compte | bloqué |
+
+**Guide complet** : [`pilotage/TODOS_A_VALIDER.md`](pilotage/TODOS_A_VALIDER.md) § « File de validation porteur — ordre strict ».
+
+**Merge `dev`** : interdit tant que les étapes 1–5 ne sont pas `OK` + archivées dans `TODOS_DONE.md`. Le code picker/planning (commit `f118e492`) attend cette gate.
+
+---
 
 **Chantier structuré (backoffice + API + doc)** : voir **[`project/PLAN.md`](project/PLAN.md)** (lots **A–I**, colonnes **État** + **Validé (porteur)**) et **[`pilotage/TODOS.md`](pilotage/TODOS.md)** (cases à cocher + règles PR / tests).
 

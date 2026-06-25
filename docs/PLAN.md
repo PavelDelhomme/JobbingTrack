@@ -4,4 +4,4 @@
 
 **Nouveau chemin** : [`project/PLAN.md`](project/PLAN.md)
 
-Plan d'exécution par lots (A–H), colonnes État et Validé porteur.
+**Validation porteur (juin 2026)** : file stricte étapes 1→5 dans [`pilotage/TODOS_A_VALIDER.md`](pilotage/TODOS_A_VALIDER.md) — état courant [`STATUS.md`](STATUS.md).
