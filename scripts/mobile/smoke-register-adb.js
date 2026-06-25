@@ -43,6 +43,20 @@ const adbLib = require('../../tools/adb-lib');
     throw new Error('Écran post-inscription introuvable (Vérifiez votre email / Vérification requise)');
   }
   console.log(`Smoke inscription mobile OK (${email})`);
+
+  // Ne pas laisser le porteur bloqué sur un compte fictif @example.com
+  console.log('Restauration session TEST_USER après smoke…');
+  const { resolveWorkingUserCredentials } = require('./resolve-user-credentials');
+  const creds = await resolveWorkingUserCredentials();
+  await adbLib.flows.ensureLoggedOut(phone);
+  await adbLib.flows.login(phone, creds.email, creds.password);
+  await adbLib.flows.dismissBiometricUnlock(phone, { password: creds.password });
+  await phone.wait(3000);
+  if (await phone.uiContains('Bonjour')) {
+    console.log(`Session porteur restaurée (${creds.email})`);
+  } else {
+    console.warn('Session porteur non restaurée — tap « Aller à la connexion » puis login manuel');
+  }
 })().catch((err) => {
   console.error('Smoke inscription mobile KO:', err.message);
   process.exit(1);
