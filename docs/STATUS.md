@@ -1,24 +1,20 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 17 juin 2026 — **file validation porteur stricte (étapes 1→5)**.
+**Dernière mise à jour** : 17 juin 2026 — **triage repo/scripts (phase D)** ; validation mobile **en pause**.
 
-## Priorité immédiate — ce que le porteur doit faire maintenant
+## Priorité immédiate — chantier en cours
 
-**Étape courante : 1 / 5** — ligne **319** : inscription + vérif email sur **ta vraie boîte mail**.
+**Branche active** : `chore/repo-scripts-docs-hygiene`  
+**Objectif** : réorganiser `scripts/`, docs, supprimer duplication/fichiers morts — voir [`development/REPO_ORGANIZATION.md`](development/REPO_ORGANIZATION.md).
 
-**Guide détaillé (Samsung, checklist, texte OK/KO)** : [`mobile/VALIDATION_ETAPE_1_INSCRIPTION.md`](mobile/VALIDATION_ETAPE_1_INSCRIPTION.md)
+**Validation mobile (reprise après triage)** — file étapes 1→5 **en pause** à l’étape **1 / 5** :
 
-| Étape | Sujet | Toi (porteur) | Agent |
-|-------|--------|---------------|-------|
-| **1** | Inscription + vérif email | Créer compte, recevoir mail, cliquer lien | smokes OK — attend `OK` explicite |
-| 2 | Navigation + FAB candidature | Samsung après OK étape 1 | bloqué |
-| 3 | OVH SMTP `@jobbingtrack.com` | MX Plan + boîtes + DKIM | checklist doc |
-| 4 | Agent email admin | `/agent` activation + IMAP | bloqué |
-| 5 | Consentements RGPD sync | mobile → web même compte | bloqué |
+| Étape | Sujet | Statut |
+|-------|--------|--------|
+| **1** | Inscription + vérif email (Samsung, mail réel) | **PAUSE** — guide [`mobile/VALIDATION_ETAPE_1_INSCRIPTION.md`](mobile/VALIDATION_ETAPE_1_INSCRIPTION.md) |
+| 2–5 | Navigation FAB, OVH SMTP, agent admin, consentements | bloquées |
 
-**Guide complet** : [`pilotage/TODOS_A_VALIDER.md`](pilotage/TODOS_A_VALIDER.md) § « File de validation porteur — ordre strict ».
-
-**Merge `dev`** : interdit tant que les étapes 1–5 ne sont pas `OK` + archivées dans `TODOS_DONE.md`. Le code picker/planning (commit `f118e492`) attend cette gate.
+Code mobile Lot D (**merge `dev`** effectué depuis `feat/lot-d-mobile-validation`) — validation porteur à reprendre après triage.
 
 ---
 

@@ -307,8 +307,8 @@ Menu **Statistics** → sous-onglets en haut de page.
 
 ## File de validation porteur — ordre strict (juin 2026)
 
-> **Règle absolue** : tant que l’étape **N** n’est pas validée (`Décision porteur` = `OK …` + ligne archivée dans `TODOS_DONE.md`), **ne pas** passer à l’étape **N+1**, **ne pas** merger vers `dev`, **ne pas** traiter les lignes Lot D plus bas (324+, dont picker/planning ligne 332).  
-> L’agent ne développe **aucune nouvelle feature** hors correction d’un `KO` sur l’étape courante.
+> **Règle absolue** : tant que l’étape **N** n’est pas validée (`Décision porteur` = `OK …` + ligne archivée dans `TODOS_DONE.md`), **ne pas** passer à l’étape **N+1**.  
+> **Pause porteur 17/06/2026** : triage repo/scripts sur branche `chore/repo-scripts-docs-hygiene` — **reprendre l’étape 1** après ce chantier (guide [`VALIDATION_ETAPE_1_INSCRIPTION.md`](../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md)).
 
 | Étape | Ligne tableau | Sujet | Bloque |
 |-------|---------------|-------|--------|

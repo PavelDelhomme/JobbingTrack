@@ -21,11 +21,11 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 
 ### File porteur — en attente (ne pas passer à la suite)
 
-> **Étape courante = 319** (inscription + vérif email réelle). L’agent **ne demande pas** la validation 320+ tant que le porteur n’a pas répondu `OK Mobile — Inscription + télémétrie obligatoire + vérif email`. Guide détaillé : `TODOS_A_VALIDER.md` § « File de validation porteur ».
+> **Pause 17/06** : validation mobile **étape 1 / 5** suspendue — triage `scripts/` / docs sur `chore/repo-scripts-docs-hygiene`. Reprise : [`VALIDATION_ETAPE_1_INSCRIPTION.md`](../../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md).
 
 | Étape | Ligne | Statut agent | Statut porteur | Action porteur |
 |-------|-------|--------------|----------------|----------------|
-| 1 | 319 Inscription + vérif email | smokes API/ADB OK | **[ ] BLOQUANT** | Guide : [`docs/mobile/VALIDATION_ETAPE_1_INSCRIPTION.md`](../../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md) |
+| 1 | 319 Inscription + vérif email | smokes API/ADB OK | **[ ] PAUSE** | Reprendre après triage repo |
 | 2 | 320 Navigation + FAB | smokes ADB OK | bloquée par 319 | § étape 2 |
 | 3 | 321 OVH SMTP `@jobbingtrack.com` | doc + diagnostic OK | bloquée par 320 | MX Plan OVH — § étape 3 |
 | 4 | 322 Agent admin `/agent` | UI + API OK | bloquée par 321 | § étape 4 |

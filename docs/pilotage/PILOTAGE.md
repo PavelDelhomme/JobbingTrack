@@ -1,22 +1,22 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 17 juin 2026 (file validation porteur stricte étapes 1→5)
+Dernière mise à jour : 17 juin 2026 (pause validation mobile → triage repo/scripts)
 
 ## Feuille de route — ordre strict (juin 2026)
 
 | Phase | Contenu | Statut | Règle |
 |-------|---------|--------|-------|
-| **A — Mobile Lot D** | App Flutter, smokes ADB fiables/rapides, agent email utilisateur (`/agent`), sync consentements mobile↔web, hub admin mobile, auth/biométrie smokes | **EN COURS** | Seul chantier agent actif. Voir `TODOS.md` § Phase A. |
-| **B — Gate pré-prod mobile** | Validations porteur `TODOS_A_VALIDER.md` **étapes 1→5** (319→323), puis lignes Lot D suivantes | Après A | **File stricte** : inscription vérif email → navigation FAB → OVH SMTP → agent admin → consentements RGPD. Voir `TODOS_A_VALIDER.md` § « File de validation porteur ». |
-| **C — Déploiement rapide** | Builds release, pipeline préprod, SMTP `@jobbingtrack.com` (porteur OVH), `A_VALIDER_AVANT_PRODUCTION.md` | Après B | Infra email = action porteur ; agent prépare smokes/checklists. |
-| **D — Post-D8 / triage** | Lot H (réorg `scripts/`/`tests/`/`tools/`), Lot E doc, audit secrets, doublons dépôt, validations backoffice P1B/P1C en masse | **BLOQUÉ** | **Ne pas démarrer** tant que phase A+B non clôturées. |
+| **A — Mobile Lot D** | App Flutter, smokes, agent `/agent`, hub admin | **PAUSE** (code sur `dev`) | Reprise après triage repo — validation porteur **étape 1 / 5** non faite. |
+| **B — Gate pré-prod mobile** | Validations porteur `TODOS_A_VALIDER.md` étapes **1→5** | **PAUSE** | Reprendre sur `feat/…` ou branche mobile après `chore/repo-scripts-docs-hygiene`. |
+| **C — Déploiement rapide** | Builds, SMTP `@jobbingtrack.com`, gate prod | Après B | Inchangé. |
+| **D — Triage repo / scripts / docs** | Lot H + Lot E + `REPO_ORGANIZATION.md` | **EN COURS** | Branche **`chore/repo-scripts-docs-hygiene`**. Décision porteur 17/06 : prioriser hygiène dépôt avant validation Samsung étape 1. |
 
-**Travail agent en cours (phase A)** — détail et preuves dans `TODOS_A_VERIFIER.md` § « Phase mobile en cours » :
+**Travail agent en cours (phase D — triage)** :
 
-1. Smokes ultra-rapides mais fiables (`smoke-run-mobile-fast.js`, `smoke-preflight.js`, verrou ADB, attente email/IMAP diagnostiquée).
-2. Bypass biométrie Samsung pour smokes (Flutter + `tools/adb-lib`, sans bloquer la biométrie produit porteur).
-3. Consentements agent RGPD : sync mobile → BDD → `/agent` web (switches statut, pas checkboxes trompeuses).
-4. Smoke hub admin multi-comptes (`smoke-mobile-admin-hub-adb.js`).
+1. Inventaire et réorg **`scripts/`** (supprimer morts, shims documentés, sous-dossiers domaine).
+2. Réduire duplication code/scripts ; aligner **`make help`** et **`docs/development/`**.
+3. Appliquer [`DOCUMENTATION_STANDARDS.md`](../development/DOCUMENTATION_STANDARDS.md).
+4. **Puis** reprise validation mobile étape 1 ([`VALIDATION_ETAPE_1_INSCRIPTION.md`](../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md)).
 
 ## Phase post-D8 — nettoyage global (gate obligatoire — phase D)
 

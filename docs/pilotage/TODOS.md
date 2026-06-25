@@ -4,7 +4,8 @@
 
 ## Feuille de route — ordre de travail (juin 2026)
 
-> **Règle porteur** : ne pas démarrer triage dépôt, réorganisation fichiers, Lot H/E, audit secrets ni campagne validations backoffice P1C tant que les **phases A + B** ne sont pas clôturées. Voir `PILOTAGE.md`.
+> **Règle porteur** : ne pas démarrer triage dépôt, réorganisation fichiers, Lot H/E, audit secrets ni campagne validations backoffice P1C tant que les **phases A + B** ne sont pas clôturées. Voir `PILOTAGE.md`.  
+> **Exception porteur 17/06/2026** : triage repo/scripts/docs autorisé sur **`chore/repo-scripts-docs-hygiene`** ; validation mobile étape 1 **en pause** — reprise après Lot H0/H1 initial.
 
 ### Phase A — EN COURS (mobile + agent utilisateur)
 
@@ -41,16 +42,17 @@ Détail pas à pas porteur : **`TODOS_A_VALIDER.md` § « File de validation por
 | C3 | **Gate préprod** | `docs/production/A_VALIDER_AVANT_PRODUCTION.md` (9 étapes) |
 | C4 | **Analytics D4/D5** | Remontée mobile → `/backoffice/user-analytics` (déjà partiellement livré) |
 
-### Phase D — POST-D8 / triage / hygiène (**BLOQUÉ — ne pas commencer**)
+### Phase D — POST-D8 / triage / hygiène (**EN COURS — branche `chore/repo-scripts-docs-hygiene`**)
 
 | # | Sujet | Quand |
 |---|--------|-------|
-| D1 | **Lot H** — réorg `scripts/`, `tests/`, `tools/`, doublons | Après D8 validé |
-| D2 | **Lot E** — revue `.md`, doc mobile/hub/env | Après D8 |
+| D1 | **Lot H** — réorg `scripts/`, `tests/`, `tools/`, doublons | **Maintenant** — voir `docs/development/REPO_ORGANIZATION.md` |
+| D2 | **Lot E** — revue `.md`, doc mobile/hub/env | Après H0 inventaire scripts |
 | D3 | **Lot H bis** — audit secrets (`.env` seule source valeurs réelles) | Avant prod |
-| D4 | **Triage dépôt** — `flutter-mobile-app/` vs `mobile/`, credentials `tests/`, wrappers npm muets | Phase D |
-| D5 | **Backoffice secondaire** — Statistics P1B, Performances P1C, responsive, moteurs UI | Phase D (validations dans `TODOS_A_VALIDER.md` lignes P1B/P1C) |
+| D4 | **Triage dépôt** — `flutter-mobile-app/` vs `mobile/`, credentials `tests/` | Phase D |
+| D5 | **Backoffice secondaire** — Statistics P1B, Performances P1C | Phase D (validations dans `TODOS_A_VALIDER.md` lignes P1B/P1C) |
 | D6 | **Versionnement semver** | Phase D / gate prod |
+| **—** | **Reprise validation mobile** étapes 1→5 | **Après** triage scripts/docs initial (porteur) |
 
 Backlog détaillé historique : sections **Lot A–H** plus bas dans ce fichier (ne pas dérouler linéairement).
 
