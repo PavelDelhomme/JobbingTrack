@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/services/biometric_credential_store.dart';
+import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String token;
@@ -39,6 +41,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.resetPassword(widget.token, _passwordController.text);
+      await BiometricCredentialStore.clear();
+      await ApiConfigStore.saveBiometricUnlockEnabled(false);
 
       if (mounted) {
         setState(() {

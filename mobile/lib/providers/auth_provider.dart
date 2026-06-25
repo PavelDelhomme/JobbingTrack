@@ -318,6 +318,7 @@ class AuthProvider with ChangeNotifier {
     CrashReporter.setToken(_token);
     await MobileAnalyticsService.instance.updateAuthToken(_token);
     await _persistSession();
+    await BiometricCredentialStore.save(email: _user!.email, password: trimmed);
     notifyListeners();
   }
 
@@ -381,6 +382,7 @@ class AuthProvider with ChangeNotifier {
     required String firstName,
     required String lastName,
     String? phone,
+    String? email,
   }) async {
     if (_user == null || _token == null) {
       throw Exception('Non connecté');
@@ -393,6 +395,7 @@ class AuthProvider with ChangeNotifier {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         phone: phone?.trim(),
+        email: email?.trim(),
         token: _token,
       );
       _user = updated;
@@ -404,6 +407,12 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+  }
+
+  /// Demande un lien de réinitialisation de mot de passe pour le compte connecté.
+  Future<void> requestPasswordResetForCurrentUser() async {
+    if (_user == null) throw Exception('Non connecté');
+    await forgotPassword(_user!.email);
   }
 
   Future<void> verifyEmail(String token) async {

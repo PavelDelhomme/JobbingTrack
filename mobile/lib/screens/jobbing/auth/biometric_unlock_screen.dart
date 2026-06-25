@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/utils/auth_logout.dart';
+import 'package:jobbingtrack_mobile/utils/post_auth_navigation.dart';
 
 /// Écran de déverrouillage : biométrie / code appareil puis session JWT (tous appareils).
 class BiometricUnlockScreen extends StatefulWidget {
@@ -71,7 +72,7 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> {
     final sessionOk = await auth.ensureSessionAfterBiometric();
     if (!mounted) return;
     if (sessionOk) {
-      Navigator.of(context).pushReplacementNamed('/home');
+      await PostAuthNavigation.go(context, '/home');
       return;
     }
     setState(() {
@@ -81,62 +82,7 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> {
   }
 
   Future<void> _unlockWithPassword() async {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final user = auth.user;
-    if (user == null) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-      return;
-    }
-
-    final controller = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Mot de passe JobbingTrack'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Compte : ${user.email}',
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              obscureText: true,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Mot de passe',
-                border: OutlineInputBorder(),
-              ),
-              onSubmitted: (_) => Navigator.pop(ctx, true),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Déverrouiller')),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) return;
-
-    setState(() {
-      _unlocking = true;
-      _error = null;
-    });
-    try {
-      await auth.verifyPasswordForBiometric(controller.text.trim());
-      if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed('/home');
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _unlocking = false;
-        _error = e.toString().replaceAll('Exception: ', '');
-      });
-    }
+    Navigator.of(context).pushNamed('/biometric-password');
   }
 
   @override

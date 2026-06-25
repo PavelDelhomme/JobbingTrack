@@ -8,6 +8,7 @@ class User {
   final bool isActive;
   final bool isDeleted;
   final bool isArchived;
+  final bool emailVerified;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -21,6 +22,7 @@ class User {
     required this.isActive,
     required this.isDeleted,
     required this.isArchived,
+    this.emailVerified = true,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -36,6 +38,7 @@ class User {
       isActive: json['isActive'] ?? true,
       isDeleted: json['isDeleted'] ?? false,
       isArchived: json['isArchived'] ?? false,
+      emailVerified: json['emailVerified'] ?? true,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
     );
@@ -52,6 +55,7 @@ class User {
       'isActive': isActive,
       'isDeleted': isDeleted,
       'isArchived': isArchived,
+      'emailVerified': emailVerified,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };

@@ -31,6 +31,9 @@ import 'package:jobbingtrack_mobile/screens/jobbing/auth/forgot_password_screen.
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/reset_password_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/verify_email_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/biometric_unlock_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/auth/biometric_password_unlock_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/auth/permissions_gate_screen.dart';
+import 'package:jobbingtrack_mobile/utils/post_auth_navigation.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/interim/interim_screen.dart';
 import 'package:jobbingtrack_mobile/screens/admin/admin_screen.dart';
 import 'package:jobbingtrack_mobile/widgets/admin_guard.dart';
@@ -39,6 +42,7 @@ import 'package:jobbingtrack_mobile/widgets/telemetry_dev_status_banner.dart';
 import 'package:jobbingtrack_mobile/navigation/app_navigator.dart';
 import 'package:jobbingtrack_mobile/utils/locale_init.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
+import 'package:jobbingtrack_mobile/utils/post_auth_navigation.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 
 Route<dynamic>? resolveAppRoute(RouteSettings settings) {
@@ -204,6 +208,11 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/calls': (context) => const CallsScreen(),
           '/interim': (context) => const InterimScreen(),
           '/biometric-unlock': (context) => const BiometricUnlockScreen(),
+          '/biometric-password': (context) => const BiometricPasswordUnlockScreen(),
+          '/permissions-gate': (context) {
+            final next = ModalRoute.of(context)?.settings.arguments;
+            return PermissionsGateScreen(nextRoute: next is String ? next : '/home');
+          },
           '/admin': (context) => const AdminGuard(child: AdminScreen()),
         },
         ),
@@ -250,7 +259,7 @@ class _SplashScreenState extends State<_SplashScreen> {
         Navigator.of(context).pushReplacementNamed('/biometric-unlock');
         return;
       }
-      Navigator.of(context).pushReplacementNamed('/home');
+      await PostAuthNavigation.go(context, '/home');
     } else {
       Navigator.of(context).pushReplacementNamed('/login');
     }

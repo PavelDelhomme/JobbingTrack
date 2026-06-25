@@ -162,4 +162,14 @@ class ApiConfigStore {
     await prefs.setString(_keyDeviceId, id);
     return id;
   }
+
+  static Future<bool?> prefsGetBool(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(key);
+  }
+
+  static Future<void> prefsSetBool(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
 }

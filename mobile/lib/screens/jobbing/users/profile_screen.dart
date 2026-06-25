@@ -7,6 +7,40 @@ import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  static Future<void> _requestPasswordReset(BuildContext context, AuthProvider auth) async {
+    final email = auth.user?.email ?? '';
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Changer le mot de passe'),
+        content: Text(
+          'Un lien de réinitialisation sera envoyé à :\n\n$email\n\n'
+          'Vous pourrez définir un nouveau mot de passe depuis le mail (lien mobile ou web).',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Envoyer le lien')),
+        ],
+      ),
+    );
+    if (confirm != true || !context.mounted) return;
+    try {
+      await auth.requestPasswordResetForCurrentUser();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Email de réinitialisation envoyé — consultez votre boîte mail'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
@@ -65,11 +99,19 @@ class ProfileScreen extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.edit_outlined),
                     title: const Text('Modifier le profil'),
-                    subtitle: const Text('Prénom, nom, téléphone'),
+                    subtitle: const Text('Prénom, nom, téléphone, email'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const ProfileEditScreen()),
                     ),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.lock_reset),
+                    title: const Text('Changer le mot de passe'),
+                    subtitle: const Text('Recevoir un lien par email'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _requestPasswordReset(context, auth),
                   ),
                   const Divider(height: 1),
                   ListTile(

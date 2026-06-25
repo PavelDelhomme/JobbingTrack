@@ -517,6 +517,7 @@ class ApiService {
     required String firstName,
     required String lastName,
     String? phone,
+    String? email,
     String? token,
   }) async {
     try {
@@ -524,6 +525,7 @@ class ApiService {
         'firstName': firstName,
         'lastName': lastName,
         if (phone != null) 'phone': phone,
+        if (email != null && email.trim().isNotEmpty) 'email': email.trim().toLowerCase(),
       };
       final response = await _put(
         '/api/v1/auth/users/${Uri.encodeComponent(userId)}',

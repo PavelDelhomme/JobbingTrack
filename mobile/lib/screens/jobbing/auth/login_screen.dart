@@ -7,6 +7,7 @@ import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/services/biometric_credential_store.dart';
+import 'package:jobbingtrack_mobile/utils/post_auth_navigation.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -72,7 +73,11 @@ class _LoginScreenState extends State<LoginScreen> {
     final showUnlock = !skipUnlockScreen && _keepLoggedIn && biometricEnabled;
     final route = showUnlock ? '/biometric-unlock' : '/home';
     debugPrint('[LOGIN] Succès, navigation vers $route');
-    Navigator.of(context).pushReplacementNamed(route);
+    if (showUnlock) {
+      Navigator.of(context).pushReplacementNamed(route);
+    } else {
+      await PostAuthNavigation.go(context, route);
+    }
   }
 
   Future<void> _loginWithBiometric({bool auto = false}) async {

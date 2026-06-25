@@ -4,6 +4,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/services/app_permissions_service.dart';
 
 /// Enregistrement token push (FCM/APNs) côté backend.
 /// Sans `google-services.json` / certificats APNs, un token dev est envoyé pour valider la chaîne API.
@@ -20,6 +21,11 @@ class PushNotificationService {
 
   Future<void> registerAfterLogin({String? authToken}) async {
     if (authToken == null || authToken.isEmpty) return;
+    final permsOk = await AppPermissionsService.instance.areRequiredPermissionsGranted();
+    if (!permsOk) {
+      debugPrint('[PUSH] Enregistrement reporté — notifications non autorisées');
+      return;
+    }
     try {
       final deviceId = await ApiConfigStore.getOrCreateDeviceId();
       final platform = _resolvePlatform();
