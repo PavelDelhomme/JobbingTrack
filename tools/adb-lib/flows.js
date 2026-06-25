@@ -254,15 +254,18 @@ async function clearAppDataForSmoke(adb) {
   await adb.wait(5000);
   await dismissBiometricUnlock(adb);
   for (let i = 0; i < 12; i++) {
+    await dismissPermissionsGate(adb);
+    await dismissBiometricUnlock(adb);
     if (
       (await adb.uiContains('Email')) ||
       (await adb.uiContains('Se connecter')) ||
       (await adb.uiContains('Connexion par empreinte')) ||
-      (await adb.uiContains('Créer un compte'))
+      (await adb.uiContains('Créer un compte')) ||
+      (await adb.uiContains('Connexion'))
     ) {
+      await ensureFullLoginForm(adb);
       return 'App reset OK';
     }
-    await dismissBiometricUnlock(adb);
     await adb.wait(1500);
   }
   throw new Error('Ecran login introuvable après pm clear');
@@ -415,8 +418,10 @@ async function isPasswordLoginForm(adb) {
     return false;
   }
   if (await adb.uiContains('Email')) return true;
+  if (await adb.uiContains('Mot de passe')) return true;
   const edits = await adb.listEditTexts();
-  return edits.length >= 2 && (await adb.uiContains('Se connecter'));
+  if (edits.length >= 2) return true;
+  return edits.length >= 1 && (await adb.uiContains('Se connecter'));
 }
 
 /** Écran « mot de passe oublié » ou reset — revenir au formulaire login. */
@@ -436,6 +441,17 @@ async function ensureLoginFormScreen(adb) {
 }
 
 async function fillLoginFields(adb, email, password) {
+  for (const label of ['Se connecter avec le mot de passe', 'Utiliser un autre compte']) {
+    if (!(await adb.uiContains(label))) continue;
+    try {
+      await adb.tap(label);
+      await adb.wait(1000);
+      adb._invalidateUi();
+      break;
+    } catch {
+      /* label suivant */
+    }
+  }
   let edits = await adb.listEditTexts();
   if (edits.length >= 2) {
     await adb.typeInEditTextByIndex(0, email, { isEmail: true });
@@ -446,6 +462,14 @@ async function fillLoginFields(adb, email, password) {
   if (edits.length === 1) {
     await adb.typeInEditTextByIndex(0, email, { isEmail: true });
     await adb.wait(500);
+    await adb.tab();
+    await adb.wait(400);
+    adb._invalidateUi();
+    edits = await adb.listEditTexts();
+    if (edits.length >= 2) {
+      await adb.typeInEditTextByIndex(1, password, { isPassword: true });
+      return;
+    }
     for (const label of ['Mot de passe', 'Password']) {
       if (!(await adb.uiContains(label))) continue;
       try {
@@ -492,33 +516,12 @@ async function fillLoginFields(adb, email, password) {
   }
 }
 
-async function awaitLoginFormReady(adb, password, timeoutMs = 25000) {
-  const t0 = Date.now();
-  while (Date.now() - t0 < timeoutMs) {
-    await dismissPermissionsGate(adb);
-    await dismissBiometricUnlock(adb, { password });
-    if (await isPasswordLoginForm(adb)) return true;
-    if (
-      (await adb.uiContains('Connexion par empreinte')) ||
-      (await adb.uiContains('Compte enregistré'))
-    ) {
-      await ensureFullLoginForm(adb);
-    } else if (
-      (await adb.uiContains('Se connecter')) ||
-      (await adb.uiContains('Créer un compte'))
-    ) {
-      await ensureFullLoginForm(adb);
-    }
-    await adb.wait(800);
-  }
-  return isPasswordLoginForm(adb);
-}
-
 async function login(adb, email, password) {
   const creds = resolveTestCredentials({ email, password });
   email = creds.email;
   password = creds.password;
-  await awaitLoginFormReady(adb, password);
+  await dismissPermissionsGate(adb);
+  await dismissBiometricUnlock(adb, { password });
   await ensureLoginFormScreen(adb);
   if (!(await isPasswordLoginForm(adb)) && !(await adb.uiContains('Email'))) {
     await ensureFullLoginForm(adb);
@@ -564,6 +567,15 @@ async function login(adb, email, password) {
   return `Connecte avec ${email}`;
 }
 
+async function drawerShowsEmail(adb, email) {
+  if (!email) return false;
+  const local = String(email).split('@')[0];
+  return (
+    (await adb.uiContains(email)) ||
+    (local.length >= 4 && (await adb.uiContains(local)))
+  );
+}
+
 async function loginFresh(adb, email, password) {
   const creds = resolveTestCredentials({ email, password });
   email = creds.email;
@@ -572,7 +584,20 @@ async function loginFresh(adb, email, password) {
   for (let i = 0; i < 15; i++) {
     await dismissBiometricUnlock(adb, { password });
     if (await adb.uiContains('Bonjour')) {
-      return `Deja connecte (${email})`;
+      try {
+        await goToTab(adb, 1, { shell: true });
+        await adb.openNavigationDrawer();
+        await adb.wait(800);
+        const sameUser = await drawerShowsEmail(adb, email);
+        await adb.back();
+        await adb.wait(500);
+        if (sameUser) return `Deja connecte (${email})`;
+      } catch {
+        /* forcer logout */
+      }
+      await tapLogout(adb);
+      await adb.wait(2000);
+      continue;
     }
     if (
       (await adb.uiContains('Email')) ||

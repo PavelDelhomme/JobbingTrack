@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Smoke hub admin mobile + retour (Lot D lignes 318/321).
- * Compte TEST_ADMIN_* — session propre (pm clear) pour éviter TEST_USER resté connecté.
+ * Compte TEST_ADMIN_* — logout si session user, login admin, restauration porteur.
  *
  *   node scripts/mobile/smoke-mobile-admin-hub-adb.js
  */
@@ -31,7 +31,7 @@ async function loginAdminViaApi(email, password) {
   return data;
 }
 
-async function assertAdminDrawer(phone, adminEmail) {
+async function openAdminHubFromDrawer(phone, adminEmail) {
   await adbLib.flows.goToTab(phone, 1, { shell: true });
   await phone.wait(1200);
   await phone.openNavigationDrawer();
@@ -48,30 +48,52 @@ async function assertAdminDrawer(phone, adminEmail) {
     );
   }
 
-  let foundHub = await phone.uiContains('Hub administration');
-  for (let i = 0; i < 8 && !foundHub; i++) {
+  let hubVisible = await phone.uiContains('Hub administration');
+  for (let i = 0; i < 8 && !hubVisible; i++) {
     await phone.drawerScrollDown();
     await phone.wait(600);
-    foundHub = await phone.uiContains('Hub administration');
+    hubVisible = await phone.uiContains('Hub administration');
   }
-  if (!foundHub && !(await phone.uiContains('ADMINISTRATION'))) {
+  if (!hubVisible && !(await phone.uiContains('ADMINISTRATION'))) {
     throw new Error('Section Administration / Hub introuvable pour compte admin');
   }
-  return true;
+  console.log('✅ Drawer admin : identité + Hub administration visibles');
+
+  if (!(await phone.uiContains('Hub administration'))) {
+    throw new Error('Hub administration absent du drawer après scroll');
+  }
+  await phone.tapReliable('Hub administration');
+  await phone.wait(2500);
 }
 
 async function restorePorteurSession(phone, email, password) {
-  try {
-    await adbLib.flows.ensureLoggedOut(phone);
-  } catch {
-    /* déjà déconnecté */
-  }
-  await adbLib.flows.clearAppDataForSmoke(phone);
+  await switchToAccount(phone, email, password);
   await adbLib.flows.prepareSmokeSession(phone, { restart: false });
-  await adbLib.flows.login(phone, email, password);
-  await phone.wait(2500);
-  await adbLib.flows.dismissBiometricUnlock(phone, { password });
   await phone.assertVisible('Bonjour');
+}
+
+async function switchToAccount(phone, email, password, { force = false } = {}) {
+  if (!force && (await phone.uiContains('Bonjour'))) {
+    try {
+      await adbLib.flows.goToTab(phone, 1, { shell: true });
+      await phone.openNavigationDrawer();
+      await phone.wait(800);
+      const local = email.split('@')[0];
+      const same =
+        (await phone.uiContains(email)) ||
+        (local.length >= 4 && (await phone.uiContains(local)));
+      await phone.back();
+      await phone.wait(500);
+      if (same) return;
+    } catch {
+      /* logout ci-dessous */
+    }
+  }
+  if (await phone.uiContains('Bonjour')) {
+    await adbLib.flows.ensureLoggedOut(phone);
+    await phone.wait(1500);
+  }
+  await adbLib.flows.login(phone, email, password);
 }
 
 (async () => {
@@ -85,27 +107,10 @@ async function restorePorteurSession(phone, email, password) {
   await adbLib.flows.clearAppDataForSmoke(phone);
   await adbLib.flows.prepareSmokeSession(phone, { restart: false });
   await adbLib.flows.login(phone, admin.email, admin.password);
-  await phone.wait(3000);
   await adbLib.flows.dismissBiometricUnlock(phone, { password: admin.password });
   await phone.assertVisible('Bonjour');
 
-  await assertAdminDrawer(phone, admin.email);
-  console.log('✅ Drawer admin : identité + Hub administration visibles');
-
-  let hubOpened = false;
-  for (let i = 0; i < 8; i++) {
-    if (await phone.uiContains('Hub administration')) {
-      await phone.tapReliable('Hub administration');
-      hubOpened = true;
-      break;
-    }
-    await phone.drawerScrollDown();
-    await phone.wait(600);
-  }
-  if (!hubOpened) {
-    throw new Error('Hub administration introuvable après scroll drawer');
-  }
-  await phone.wait(2500);
+  await openAdminHubFromDrawer(phone, admin.email);
 
   if (await phone.uiContains('Accès refusé')) {
     throw new Error('Compte admin refusé sur hub — vérifier AdminAccess / rôle JWT');
