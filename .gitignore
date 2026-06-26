@@ -94,6 +94,11 @@ frontend/.cache-playwright/
 tests/test-results/
 tests/e2e/test-results/
 tests/results/security/cve-*/
+# Rapports campagnes générés localement (ne pas versionner)
+tests/results/20*/
+tests/results/*.log
+tests/results/security-report*.json
+!tests/results/README.md
 reports/security/*
 !reports/security/README.md
 

@@ -1,6 +1,0 @@
-{
-  "testName": "Relations BDD",
-  "status": "skipped",
-  "reason": "Service auth-service non démarré",
-  "timestamp": "2026-02-24T16:47:24+01:00"
-}
