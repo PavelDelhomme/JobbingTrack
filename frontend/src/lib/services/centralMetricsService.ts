@@ -579,7 +579,7 @@ class CentralMetricsService {
     try {
       // Liste des services : metrics-aggregator (docker/services/all ou /api/v1/metrics)
       const dockerRes = await fetch(
-        buildMetricsAggregatorUrl("docker/services/all"),
+        `${buildMetricsAggregatorUrl("docker/services/all")}?light=1`,
         {
           headers: {
             Accept: "application/json",

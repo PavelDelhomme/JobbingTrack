@@ -2,10 +2,14 @@ import "./globals.css";
 import "@/styles/customization.css";
 import Script from "next/script";
 import { Inter } from "next/font/google";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { AppProviders } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
+
+export const viewport: Viewport = {
+  themeColor: "#111827",
+};
 
 export const metadata: Metadata = {
   title: {
@@ -17,7 +21,6 @@ export const metadata: Metadata = {
     icon: "/brand/jobbingtrack-logo.png",
     apple: "/brand/jobbingtrack-logo.png",
   },
-  themeColor: "#111827",
 };
 
 export default function RootLayout({

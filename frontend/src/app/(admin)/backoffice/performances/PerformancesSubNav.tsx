@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { analyticsService } from "@/lib/api/analytics.service";
 
 const TABS = [
   {
@@ -33,6 +35,11 @@ const TABS = [
 
 export function PerformancesSubNav() {
   const pathname = usePathname();
+
+  // Pré-chauffe la liste conteneurs (cache client 30 s) dès l’entrée section Performances.
+  useEffect(() => {
+    void analyticsService.getContainersList({ light: true }).catch(() => {});
+  }, []);
 
   const isActive = (tab: (typeof TABS)[number]) => {
     if (tab.href === "/backoffice/performances") {

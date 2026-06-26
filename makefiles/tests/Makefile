@@ -214,7 +214,7 @@ tests-user-journey:
 	@echo "   ✓ Gestion Interviews"
 	@echo "   ✓ Gestion Calls & Followups"
 	@echo ""
-	@bash scripts/verify-user-journey.sh
+	@bash scripts/testing/verify-user-journey.sh
 
 # ================================================================
 # 🌐 INTERFACE WEB - Test manuel via navigateur

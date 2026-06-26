@@ -7,7 +7,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { isAxiosError } from "axios";
 import {
   TimeRangeSelector,
   beginUserRangeFetch,
@@ -30,6 +29,14 @@ import { chartXDomainFromDataRange } from "@/lib/charts/chartTimeDomain";
 import { useSyncedChartBrushRange } from "@/lib/charts/useSyncedChartBrushRange";
 import type { SystemPercentSeriesRow } from "@/lib/charts/systemMetricsSeriesModel";
 import { analyticsService } from "@/lib/api/analytics.service";
+import {
+  containerCpu,
+  containerMemory,
+  formatLivePercent,
+  resolvePerformancesLiveCards,
+  type LiveContainerRow,
+} from "@/lib/metrics/liveContainerStats";
+import { usePerformancesContainersList } from "@/lib/metrics/usePerformancesContainersList";
 import {
   formatLocalChartAxisTick,
   formatLocalDateTime,
@@ -59,15 +66,7 @@ const VIEWS = [
 
 type CpuMemoryView = (typeof VIEWS)[number]["id"];
 
-interface ContainerInfo {
-  name: string;
-  cpu_percent?: number;
-  memory_percent?: number;
-  memory_limit_mb?: number;
-  memory_usage_mb?: number;
-  health_status?: string;
-  [key: string]: unknown;
-}
+interface ContainerInfo extends LiveContainerRow {}
 
 interface ContainerMetric {
   timestamp: string;
@@ -176,63 +175,13 @@ function sampleRows<T>(rows: T[], targetMax: number): T[] {
   return rows.filter((_, index) => index % step === 0);
 }
 
-function average(values: Array<number | undefined>): number | null {
-  const nums = values.filter(
-    (n): n is number => typeof n === "number" && Number.isFinite(n),
-  );
-  if (!nums.length) return null;
-  return nums.reduce((sum, n) => sum + n, 0) / nums.length;
-}
-
-function formatPercent(value: number | null): string {
-  return value == null ? "—" : `${value.toFixed(1)} %`;
-}
-
-function numberFromKeys(
-  source: Record<string, unknown>,
-  keys: string[],
-): number | undefined {
-  for (const key of keys) {
-    const value = source[key];
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-    if (typeof value === "string" && value.trim() !== "") {
-      const parsed = Number(value.replace("%", "").trim());
-      if (Number.isFinite(parsed)) return parsed;
-    }
-  }
-  return undefined;
-}
-
-function containerCpu(container: ContainerInfo): number | undefined {
-  return numberFromKeys(container, [
-    "cpu_percent",
-    "cpuPercent",
-    "cpu_usage_percent",
-    "cpuUsagePercent",
-    "cpu",
-  ]);
-}
-
-function containerMemory(container: ContainerInfo): number | undefined {
-  return numberFromKeys(container, [
-    "memory_percent",
-    "memoryPercent",
-    "memory_usage_percent",
-    "memoryUsagePercent",
-    "memory",
-  ]);
-}
-
 export default function CpuMemoryPerformancePage() {
-  const [containers, setContainers] = useState<ContainerInfo[]>([]);
   const [rawSystemMetrics, setRawSystemMetrics] = useState<SystemMetric[]>([]);
   const [rawMetricsByContainer, setRawMetricsByContainer] = useState<
     Record<string, ContainerMetric[]>
   >({});
   const [activeView, setActiveView] = useState<CpuMemoryView>("overview");
   const [selectedServiceKeys, setSelectedServiceKeys] = useState<string[]>([]);
-  const [loadingList, setLoadingList] = useState(true);
-  const [listError, setListError] = useState<string | null>(null);
   const [loadingSystemMetrics, setLoadingSystemMetrics] = useState(false);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRangeOption>("24h");
@@ -240,6 +189,20 @@ export default function CpuMemoryPerformancePage() {
   const [followLive, setFollowLive] = useState(true);
   const [softTick, setSoftTick] = useState(0);
   const silentNextFetch = useRef(false);
+  const { containers, loadingList, listError } = usePerformancesContainersList(
+    softTick,
+    {
+      onFirstList: (list) => {
+        setSelectedServiceKeys((current) =>
+          current.length
+            ? current
+            : list
+                .slice(0, DEFAULT_SELECTED_SERVICE_COUNT)
+                .map((container) => serviceKey(container.name)),
+        );
+      },
+    },
+  );
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [customStart, setCustomStart] = useState(() => {
     const d = new Date();
@@ -285,40 +248,6 @@ export default function CpuMemoryPerformancePage() {
       rangeEnd: end,
     };
   }, [timeRange, windowEnd, useCustomRange, customStart, customEnd]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoadingList(true);
-      setListError(null);
-      try {
-        const list = await analyticsService.getContainersList();
-        if (!cancelled) {
-          setContainers(list);
-          setSelectedServiceKeys((current) =>
-            current.length
-              ? current
-              : list
-                  .slice(0, DEFAULT_SELECTED_SERVICE_COUNT)
-                  .map((container) => serviceKey(container.name)),
-          );
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setContainers([]);
-          const status = isAxiosError(e) ? e.response?.status : undefined;
-          setListError(
-            `Impossible de charger les conteneurs${status ? ` (HTTP ${status})` : ""}. Vérifiez metrics-aggregator, Docker et le proxy HTTPS dev si vous êtes sur :5443.`,
-          );
-        }
-      } finally {
-        if (!cancelled) setLoadingList(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (!rangeHydrated) return;
@@ -474,18 +403,17 @@ export default function CpuMemoryPerformancePage() {
   );
 
   const liveSystemChartData = useMemo<SystemPercentSeriesRow[]>(() => {
-    const cpu = average(containers.map(containerCpu));
-    const memory = average(containers.map(containerMemory));
-    if (cpu == null && memory == null) return [];
+    const live = resolvePerformancesLiveCards(rawSystemMetrics, containers);
+    if (live.liveCpu == null && live.liveMemory == null) return [];
     const now = Date.now();
     const previous = now - 60_000;
     return [previous, now].map((timeMs) => ({
       timeMs,
       timestamp: new Date(timeMs).toISOString(),
-      cpu,
-      memory,
+      cpu: live.liveCpu,
+      memory: live.liveMemory,
     }));
-  }, [containers]);
+  }, [containers, rawSystemMetrics]);
 
   const effectiveSystemChartData =
     systemChartData.length > 0 ? systemChartData : liveSystemChartData;
@@ -654,11 +582,16 @@ export default function CpuMemoryPerformancePage() {
   const { brushStart, brushEnd, onBrushChange, resetBrush, hasCustomBrush } =
     useSyncedChartBrushRange(overviewSeriesLength, 80);
 
-  const liveCpuAvg = average(containers.map(containerCpu));
-  const liveMemoryAvg = average(containers.map(containerMemory));
-  const runningCount = containers.filter(
-    (container) => container.health_status !== "exited",
-  ).length;
+  const liveCards = useMemo(
+    () => resolvePerformancesLiveCards(rawSystemMetrics, containers),
+    [rawSystemMetrics, containers],
+  );
+  const liveCardHint =
+    liveCards.source === "system"
+      ? liveCards.recordedAt
+        ? `Système (dernier point graphique, ${formatLocalDateTime(liveCards.recordedAt)})`
+        : "Système (dernier point graphique, ~30–45 s)"
+      : "Moyenne conteneurs Docker (repli)";
 
   const toggleService = (key: string) => {
     setSelectedServiceKeys((current) =>
@@ -762,15 +695,21 @@ export default function CpuMemoryPerformancePage() {
             CPU moyen live
           </p>
           <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            {formatPercent(liveCpuAvg)}
+            {formatLivePercent(liveCards.liveCpu)}
+          </p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {liveCardHint}
           </p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Mémoire moyenne live
+            Mémoire système live
           </p>
           <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            {formatPercent(liveMemoryAvg)}
+            {formatLivePercent(liveCards.liveMemory)}
+          </p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            {liveCardHint}
           </p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -778,7 +717,7 @@ export default function CpuMemoryPerformancePage() {
             Services suivis
           </p>
           <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
-            {runningCount}/{containers.length || "—"}
+            {liveCards.runningCount}/{liveCards.totalCount || "—"}
           </p>
         </div>
       </div>

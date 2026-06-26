@@ -14,25 +14,49 @@ Format recommande :
 <type>/<sujet-court-kebab-case>
 ```
 
-Types autorises :
+Types autorises (Conventional Branch — preferer `feature/` ou alias court `feat/`) :
 
-- `feat/` : nouvelle fonctionnalite.
-- `fix/` : correction de bug ou regression.
-- `docs/` : documentation, audit, plan, rapport.
+- `feature/` ou `feat/` : nouvelle fonctionnalite.
+- `bugfix/` ou `fix/` : correction de bug ou regression non critique.
+- `hotfix/` : correction urgente en production.
+- `release/` : preparation de version (ex. `release/v1.4.0`).
+- `docs/` ou `doc/` : documentation, audit, plan, rapport.
 - `chore/` : maintenance repository, scripts non fonctionnels, hygiene.
 - `test/` : tests uniquement.
 - `refactor/` : refactor sans changement fonctionnel attendu.
+- `perf/` : optimisation de performance.
+- `style/` : formatage, lint, conventions de code.
+- `ci/` : pipelines CI/CD, workflows GitHub Actions.
+- `design/` : UI/UX, maquettes visuelles.
 - `security/` : changement securite important ou campagne audit dediee.
+
+Format recommande (ticket optionnel) :
+
+```text
+<type>/<ticket-id-optionnel>-<sujet-court-kebab-case>
+```
 
 Exemples :
 
+- `feature/bl26-user-authentication`
+- `bugfix/gateway-rate-limit-headers`
+- `hotfix/sec-001-patch-login-bypass`
 - `docs/monitoring-security-audit`
 - `fix/admin-login-env-password`
 - `feat/security-alert-email-ui`
 - `chore/reports-artifact-cleanup`
 - `test/backend-service-centralization`
 
-## Branches terminees
+## Branches principales
+
+- `main` : code stable deploye en production.
+- `dev` : integration continue ; toutes les features passent par PR/merge ici.
+- `release/*` : stabilisation avant merge vers `main`.
+- `hotfix/*` : correctifs prod merges dans `main` **et** `dev`.
+
+Regle : ne jamais committer directement sur `main` ou `dev` ; toujours une branche prefixee puis PR.
+
+## Branches terminees (archive GitHub)
 
 Quand une branche de travail est deja integree dans `dev` mais doit rester visible sur GitHub pour historique, la renommer avec le prefixe :
 
@@ -64,6 +88,11 @@ Types autorises :
 - `chore:` maintenance sans changement produit direct.
 - `test:` ajout ou correction de tests.
 - `refactor:` refactor sans changement fonctionnel.
+- `perf:` optimisation de performance.
+- `style:` formatage, lint, CSS.
+- `ci:` pipelines CI/CD.
+- `build:` scripts de build ou export.
+- `revert:` annulation d'un commit precedemment merge.
 - `misc:` changement transversal difficile a classer, a eviter si un type plus precis existe.
 
 Scopes utiles :

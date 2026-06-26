@@ -260,13 +260,11 @@ db-seed: ## Insérer des données de test
 
 # Même logique que POST /api/v1/admin/clear-test-data : lignes isTestData=true uniquement (backoffice propre, admin intact)
 datas-remove-tests-tags: ## Supprimer les données marquées test (isTestData), sans toucher ADMIN_EMAIL ni PROTECTED_USER_EMAILS
-	@echo "🧹 Suppression des enregistrements isTestData=true (DATABASE_URL depuis .env racine)..."
-	@if [ -f "$(ROOT_DIR)/.env" ]; then set -a && . "$(ROOT_DIR)/.env" && set +a; fi
+	@echo "🧹 Suppression des enregistrements isTestData=true (DATABASE_URL via dotenv Node, pas source shell .env)..."
 	@cd "$(ROOT_DIR)/backend" && node scripts/database/clear-isTestData.js
 	@echo "✅ Terminé. Prévisualisation sans écriture : make datas-remove-tests-tags-dry-run"
 
 datas-remove-tests-tags-dry-run: ## Comptage seulement (aucune suppression)
-	@if [ -f "$(ROOT_DIR)/.env" ]; then set -a && . "$(ROOT_DIR)/.env" && set +a; fi
 	@cd "$(ROOT_DIR)/backend" && node scripts/database/clear-isTestData.js --dry-run
 
 # Sauvegarde de la base de données

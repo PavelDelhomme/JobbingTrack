@@ -4,6 +4,10 @@ import {
   buildMetricsAggregatorUrl,
   getMetricsAggregatorClientBase,
 } from "@/lib/metrics/metricsAggregatorClient";
+import {
+  getContainersListCached,
+  type ContainersListCacheEntry,
+} from "@/lib/metrics/containersListClientCache";
 import { normalizeMetricTimestampToIso } from "@/lib/utils/date";
 
 /** @deprecated Préférer buildMetricsAggregatorUrl — conservé pour tests existants. */
@@ -424,10 +428,15 @@ export class AnalyticsService {
 
   /**
    * Récupérer la liste des conteneurs (depuis metrics-aggregator docker/services/all)
+   * @param options.light — true (défaut) : sans sondes HTTP (~2 s plus rapide) pour graphes Performances
    */
   async getContainersList(options?: {
     timeoutMs?: number;
     signal?: AbortSignal;
+    /** Mode rapide : stats Docker + health inspect, sans probe HTTP par service. */
+    light?: boolean;
+    /** Ignorer le cache client partagé (30 s). */
+    skipClientCache?: boolean;
   }): Promise<
     {
       name: string;
@@ -436,48 +445,72 @@ export class AnalyticsService {
       [key: string]: unknown;
     }[]
   > {
-    try {
-      const timeout = options?.timeoutMs ?? 15000;
-      const response = await axios.get(
-        buildMetricsAggregatorUrl("docker/services/all"),
-        { timeout, signal: options?.signal },
-      );
-      if (response.data?.services && Array.isArray(response.data.services)) {
-        return response.data.services.map(
-          (s: {
-            name: string;
-            health_status?: string;
-            [key: string]: unknown;
-          }) => {
-            const name = String(s.name || "")
-              .replace(/^\//, "")
-              .trim();
-            const metrics =
-              s.metrics && typeof s.metrics === "object"
-                ? (s.metrics as Record<string, unknown>)
-                : {};
-            return {
-              ...s,
-              name,
-              health_status: s.health_status,
-              service_type: name.replace(/^jobbingtrack-/, ""),
-              cpu_percent: s.cpu_percent ?? metrics.cpu_percent,
-              memory_percent: s.memory_percent ?? metrics.memory_percent,
-              memory_usage_mb: s.memory_usage_mb ?? metrics.memory_usage_mb,
-              memory_limit_mb: s.memory_limit_mb ?? metrics.memory_limit_mb,
-              pids: s.pids ?? metrics.pids,
-            };
+    const light = options?.light !== false;
+    const fresh = options?.skipClientCache === true;
+    const cacheKey = light
+      ? fresh
+        ? "light=1-fresh"
+        : "light=1"
+      : "light=0";
+
+    const fetchList = async (): Promise<ContainersListCacheEntry[]> => {
+      try {
+        const timeout = options?.timeoutMs ?? 15000;
+        const params: Record<string, string> = light
+          ? { light: "1" }
+          : { httpProbe: "1" };
+        if (fresh) params.refresh = "1";
+        const response = await axios.get(
+          buildMetricsAggregatorUrl("docker/services/all"),
+          {
+            timeout,
+            signal: options?.signal,
+            params,
           },
         );
+        if (response.data?.services && Array.isArray(response.data.services)) {
+          return response.data.services.map(
+            (s: {
+              name: string;
+              health_status?: string;
+              [key: string]: unknown;
+            }) => {
+              const name = String(s.name || "")
+                .replace(/^\//, "")
+                .trim();
+              const metrics =
+                s.metrics && typeof s.metrics === "object"
+                  ? (s.metrics as Record<string, unknown>)
+                  : {};
+              return {
+                ...s,
+                name,
+                health_status: s.health_status,
+                service_type: name.replace(/^jobbingtrack-/, ""),
+                cpu_percent: s.cpu_percent ?? metrics.cpu_percent,
+                memory_percent: s.memory_percent ?? metrics.memory_percent,
+                memory_usage_mb: s.memory_usage_mb ?? metrics.memory_usage_mb,
+                memory_limit_mb: s.memory_limit_mb ?? metrics.memory_limit_mb,
+                pids: s.pids ?? metrics.pids,
+              };
+            },
+          );
+        }
+        return [];
+      } catch (error) {
+        logOptionalMetricsWarning(
+          "Liste conteneurs metrics indisponible:",
+          error,
+        );
+        throw error;
       }
-      return [];
-    } catch (error) {
-      logOptionalMetricsWarning(
-        "Liste conteneurs metrics indisponible:",
-        error,
-      );
-      throw error;
+    };
+
+    if (options?.skipClientCache) {
+      return fetchList();
     }
+
+    return getContainersListCached(cacheKey, fetchList);
   }
 
   /**

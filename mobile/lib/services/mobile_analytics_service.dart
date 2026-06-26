@@ -107,6 +107,7 @@ class MobileAnalyticsService extends ChangeNotifier {
   }
 
   Future<void> initialize({String? authToken}) async {
+    await ApiConfigStore.ensureAnalyticsConsentEnabled();
     await AnalyticsTelemetryQueue.instance.initialize();
     bindAuthTokenResolver();
     OfflineBusinessSyncQueue.instance.initialize();

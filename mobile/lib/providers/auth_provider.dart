@@ -50,6 +50,7 @@ class AuthProvider with ChangeNotifier {
       _user = User.fromJson(userMap);
       _tokenStale = false;
       CrashReporter.setToken(_token);
+      await ApiConfigStore.ensureAnalyticsConsentEnabled();
       MobileAnalyticsService.instance.updateAuthToken(_token);
       notifyListeners();
 
@@ -181,7 +182,9 @@ class AuthProvider with ChangeNotifier {
         _user = User.fromJson(response['user']);
         _tokenStale = false;
         CrashReporter.setToken(_token);
-        MobileAnalyticsService.instance.updateAuthToken(_token);
+        await ApiConfigStore.ensureAnalyticsConsentEnabled();
+        await MobileAnalyticsService.instance.initialize(authToken: _token);
+        await MobileAnalyticsService.instance.updateAuthToken(_token);
         await ApiConfigStore.saveKeepLoggedIn(keepLoggedIn);
         if (keepLoggedIn && enableBiometric) {
           await _persistSession();

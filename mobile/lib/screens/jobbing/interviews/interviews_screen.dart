@@ -8,6 +8,8 @@ import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
+import 'package:jobbingtrack_mobile/utils/shell_layout.dart';
+import 'package:jobbingtrack_mobile/widgets/interview_create_sheet.dart';
 
 class InterviewsScreen extends StatefulWidget {
   const InterviewsScreen({super.key});
@@ -74,6 +76,15 @@ class _InterviewsScreenState extends State<InterviewsScreen> with SingleTickerPr
                   ],
                 ),
               ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_interviews_list',
+        tooltip: 'Nouvel entretien',
+        onPressed: () async {
+          final ok = await showCreateInterviewSheet(context);
+          if (ok) _reload();
+        },
+        child: const Icon(Icons.add),
       ),
     );
   }

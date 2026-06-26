@@ -6,6 +6,7 @@ import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
 
 class CallsScreen extends StatefulWidget {
   const CallsScreen({super.key});
@@ -71,77 +72,13 @@ class _CallsScreenState extends State<CallsScreen> {
                           title: Text(c.subject),
                           subtitle: Text(formatSmartEventDate(c.callDate)),
                           leading: const Icon(Icons.phone, color: Colors.green),
-                          onTap: () => _showCallDetail(context, c),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => CallDetailScreen(call: c)),
+                          ),
                         ),
                       );
                     },
                   ),
-      ),
-    );
-  }
-
-  Future<void> _showCallDetail(BuildContext context, Call call) async {
-    final subjectController = TextEditingController(text: call.subject);
-    final notesController = TextEditingController(text: call.notes ?? '');
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Détail appel'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Date : ${formatSmartEventDate(call.callDate)}'),
-              const SizedBox(height: 8),
-              Text('Cible : ${call.targetLabel}'),
-              const SizedBox(height: 12),
-              TextField(
-                controller: subjectController,
-                decoration: const InputDecoration(labelText: 'Objet', border: OutlineInputBorder()),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: notesController,
-                decoration: const InputDecoration(
-                  labelText: 'Notes',
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                ),
-                maxLines: 4,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Fermer')),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await ApiService.updateCall(
-                  id: call.id,
-                  subject: subjectController.text.trim(),
-                  notes: notesController.text.trim(),
-                  token: auth.token,
-                );
-                if (ctx.mounted) Navigator.pop(ctx);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Appel mis à jour')),
-                  );
-                  _load();
-                }
-              } catch (e) {
-                if (ctx.mounted) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Erreur: $e')));
-                }
-              }
-            },
-            child: const Text('Enregistrer'),
-          ),
-        ],
       ),
     );
   }

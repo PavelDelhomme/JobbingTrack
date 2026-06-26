@@ -1,6 +1,6 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 25 juin 2026 (étape 1 mobile clos → étape 2 active)
+Dernière mise à jour : 26 juin 2026 (étape 2 mobile active ; lot BL-26 performances + mobile sur branche `feat/bl26-backlog-porteur-26juin`)
 
 ## Feuille de route — ordre strict (juin 2026)
 
@@ -21,6 +21,14 @@ Branche active : **`feat/bl26-backlog-porteur-26juin`** (depuis merge `dev` @ `3
 3. OK ligne 320 → débloquer étape 3 (ligne 321 SMTP).
 
 Triage repo (phase D) **clos** : `scripts/legacy/`, env canonique `scripts/env/`, inventaire à jour — voir `REPO_ORGANIZATION.md`.
+
+**Lot BL-26 (26/06, même branche)** — doc : `docs/scripts/AUDIT_CLEANUP_2026-06-26.md`, relation AllInOne : `docs/project/ALLINONE_AND_LOT_P.md` :
+
+- Performances : proxy `/api/mon`, nginx `:5443`, mode `light=1`, cartes CPU/RAM live = dernier point système.
+- Mobile : FAB, appels, entretiens, seed réaliste, analytics ON par défaut.
+- Hygiène : throttle seed API, dégit `tests/results/`, fix Make benchmark.
+
+AllInOne **n’est pas intégré** dans JobbingTrack ; c’est le futur socle réutilisable (Lot P post-prod).
 
 ## Phase post-D8 — nettoyage global (gate obligatoire — phase D)
 

@@ -104,7 +104,18 @@ class ApiConfigStore {
 
   static Future<bool> loadAnalyticsConsent() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_keyAnalyticsConsent) ?? false;
+    // Par défaut ON (porteur 26/06) — l’utilisateur peut désactiver dans Paramètres.
+    return prefs.getBool(_keyAnalyticsConsent) ?? true;
+  }
+
+  /// Réactive la télémétrie si elle avait été laissée OFF sans opt-out explicite récent.
+  static Future<void> ensureAnalyticsConsentEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_keyAnalyticsConsent) != true) {
+      await prefs.setBool(_keyAnalyticsConsent, true);
+      await prefs.setBool(_keyAnalyticsPerformance, true);
+      await prefs.setBool(_keyAnalyticsActivity, true);
+    }
   }
 
   static Future<void> saveAnalyticsConsent(bool enabled) async {

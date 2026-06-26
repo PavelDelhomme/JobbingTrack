@@ -4,6 +4,10 @@ import {
   proxyMetricsAggregatorRequest,
 } from "@/lib/api/metricsAggregatorProxy";
 
+/**
+ * Alias `/api/mon/*` → metrics-aggregator (évite uBlock sur `/api/metrics-*`).
+ * Route App Router explicite : les rewrites next.config seuls ne suffisent pas ici.
+ */
 export async function GET(
   request: NextRequest,
   context: MetricsAggregatorRouteContext,

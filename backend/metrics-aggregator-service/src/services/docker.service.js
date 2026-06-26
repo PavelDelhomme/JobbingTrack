@@ -95,6 +95,38 @@ class DockerService {
   }
 
   /**
+   * Mappe une ligne `docker stats --format "{{json .}}"` vers notre modèle interne.
+   */
+  mapStatsRow(stats) {
+    const containerName = stats.Name || stats.Container;
+    const memUsageParts = String(stats.MemUsage || '0B / 0B').split('/');
+    const memoryUsage = this.parseMemory(memUsageParts[0].trim());
+    const memoryLimitRaw = this.parseMemory(memUsageParts[1]?.trim() || '0B');
+    const normalizedMemory = normalizeDockerMemoryBytes({
+      containerName,
+      usageBytes: memoryUsage,
+      observedLimitBytes: memoryLimitRaw,
+    });
+
+    return {
+      name: containerName,
+      cpu_percent: parseFloat(String(stats.CPUPerc || '0').replace('%', '')),
+      memory_usage: memoryUsage,
+      memory_limit: normalizedMemory.limitBytes,
+      memory_percent: normalizedMemory.percent,
+      memory_limit_source: normalizedMemory.limitSource,
+      memory_raw_limit: memoryLimitRaw,
+      memory_stack_limit_mb: normalizedMemory.stackLimitMb,
+      memory_service_budget_mb: normalizedMemory.serviceBudgetMb,
+      network_rx: this.parseBytes(String(stats.NetIO || '0B / 0B').split('/')[0].trim()),
+      network_tx: this.parseBytes(String(stats.NetIO || '0B / 0B').split('/')[1]?.trim() || '0B'),
+      block_read: this.parseBytes(String(stats.BlockIO || '0B / 0B').split('/')[0].trim()),
+      block_write: this.parseBytes(String(stats.BlockIO || '0B / 0B').split('/')[1]?.trim() || '0B'),
+      pids: parseInt(stats.PIDs || '0', 10),
+    };
+  }
+
+  /**
    * Récupère les statistiques de tous les conteneurs
    * @returns {Promise<Array>} Statistiques de tous les conteneurs
    */
@@ -104,36 +136,35 @@ class DockerService {
       return stdout.trim().split('\n')
         .filter(line => line.length > 0)
         .map(line => JSON.parse(line))
-        .map(stats => {
-          const containerName = stats.Name || stats.Container;
-          const memUsageParts = String(stats.MemUsage || '0B / 0B').split('/');
-          const memoryUsage = this.parseMemory(memUsageParts[0].trim());
-          const memoryLimitRaw = this.parseMemory(memUsageParts[1]?.trim() || '0B');
-          const normalizedMemory = normalizeDockerMemoryBytes({
-            containerName,
-            usageBytes: memoryUsage,
-            observedLimitBytes: memoryLimitRaw,
-          });
-
-          return {
-            name: containerName,
-            cpu_percent: parseFloat(String(stats.CPUPerc || '0').replace('%', '')),
-            memory_usage: memoryUsage,
-            memory_limit: normalizedMemory.limitBytes,
-            memory_percent: normalizedMemory.percent,
-            memory_limit_source: normalizedMemory.limitSource,
-            memory_raw_limit: memoryLimitRaw,
-            memory_stack_limit_mb: normalizedMemory.stackLimitMb,
-            memory_service_budget_mb: normalizedMemory.serviceBudgetMb,
-            network_rx: this.parseBytes(String(stats.NetIO || '0B / 0B').split('/')[0].trim()),
-            network_tx: this.parseBytes(String(stats.NetIO || '0B / 0B').split('/')[1]?.trim() || '0B'),
-            block_read: this.parseBytes(String(stats.BlockIO || '0B / 0B').split('/')[0].trim()),
-            block_write: this.parseBytes(String(stats.BlockIO || '0B / 0B').split('/')[1]?.trim() || '0B'),
-            pids: parseInt(stats.PIDs || '0', 10)
-          };
-        });
+        .map((stats) => this.mapStatsRow(stats));
     } catch (error) {
       console.error('[Docker] Erreur getAllContainersStats:', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Stats Docker limitées aux conteneurs JobbingTrack (plus rapide que tous les conteneurs hôte).
+   */
+  async getJobbingTrackContainersStats() {
+    try {
+      const { stdout: psOut } = await execAsync(
+        'docker ps -q --filter "name=jobbingtrack"',
+      );
+      const ids = psOut.trim().split('\n').filter(Boolean);
+      if (ids.length === 0) return [];
+
+      const { stdout } = await execAsync(
+        `docker stats --no-stream --format "{{json .}}" ${ids.join(' ')}`,
+      );
+      return stdout
+        .trim()
+        .split('\n')
+        .filter((line) => line.length > 0)
+        .map((line) => JSON.parse(line))
+        .map((stats) => this.mapStatsRow(stats));
+    } catch (error) {
+      console.error('[Docker] Erreur getJobbingTrackContainersStats:', error.message);
       return [];
     }
   }

@@ -227,6 +227,8 @@ Voir **`docs/pilotage/PILOTAGE.md`** § « Phase post-D8 ».
 3. Publier en monorepo interne (`@cloudity/admin-shell`, etc.) ou repo OSS ; JobbingTrack consomme en dépendance.
 4. Documenter migration dans `docs/project/PLATFORM_EXTRACTION_PLAN.md` (à créer au kick-off Lot P).
 
+**AllInOne (projet séparé)** : socle en cours d’alignement sur les **contrats API JobbingTrack** (`/persistence/system/metrics`, `docker/services/all?light=1`). JobbingTrack **ne consomme pas** AllInOne aujourd’hui — voir `docs/project/ALLINONE_AND_LOT_P.md`.
+
 **Priorité** : backlog post-prod uniquement — ne pas ralentir mobile étape 2→5 ni gate production.
 
 ## Références

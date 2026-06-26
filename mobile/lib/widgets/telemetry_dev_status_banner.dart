@@ -10,7 +10,7 @@ class TelemetryDevStatusBanner extends StatefulWidget {
 
   const TelemetryDevStatusBanner({super.key, required this.child});
 
-  static bool get isVisible => kDebugMode;
+  static bool get isVisible => false;
 
   static double topInset(BuildContext context) {
     if (!isVisible) return 0;

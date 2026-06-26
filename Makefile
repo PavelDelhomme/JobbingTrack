@@ -79,7 +79,7 @@ fresh-start: ## Arrêt + build + démarrage complet + status (équivalent: make 
 benchmark-backoffice-before: ## Lance le benchmark complet du backoffice AVANT optimisations
 	@echo "📊 Benchmark Backoffice - AVANT optimisations"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@./scripts/benchmark-all-backoffice.sh before
+	@./scripts/performance/benchmark-all-backoffice.sh before
 	@echo ""
 	@echo "✅ Benchmark 'before' terminé !"
 	@echo "💡 Fichiers sauvegardés dans: tests/performance-benchmark/"
@@ -87,7 +87,7 @@ benchmark-backoffice-before: ## Lance le benchmark complet du backoffice AVANT o
 benchmark-backoffice-after: ## Lance le benchmark complet du backoffice APRÈS optimisations
 	@echo "📊 Benchmark Backoffice - APRÈS optimisations"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@./scripts/benchmark-all-backoffice.sh after
+	@./scripts/performance/benchmark-all-backoffice.sh after
 	@echo ""
 	@echo "✅ Benchmark 'after' terminé !"
 	@echo "💡 Fichiers sauvegardés dans: tests/performance-benchmark/"
@@ -95,7 +95,7 @@ benchmark-backoffice-after: ## Lance le benchmark complet du backoffice APRÈS o
 benchmark-backoffice-compare: ## Compare les résultats des benchmarks avant/après
 	@echo "📊 Comparaison des benchmarks Backoffice"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@./scripts/compare-all-backoffice.sh
+	@./scripts/performance/compare-all-backoffice.sh
 	@echo ""
 	@echo "✅ Comparaison terminée !"
 

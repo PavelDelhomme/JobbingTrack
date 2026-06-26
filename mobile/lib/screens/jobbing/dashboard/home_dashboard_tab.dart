@@ -13,7 +13,7 @@ import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
-import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
+import 'package:jobbingtrack_mobile/widgets/home_quick_create.dart';
 import 'package:jobbingtrack_mobile/utils/shell_layout.dart';
 
 /// Contenu onglet Accueil (sans barre de navigation bas — gérée par [MainShellScreen]).
@@ -140,10 +140,10 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
               context,
               child: FloatingActionButton(
                 heroTag: 'fab_home_dashboard',
-                tooltip: 'Nouvelle candidature',
+                tooltip: 'Ajouter',
                 onPressed: () async {
-                  final result = await ApplicationFormScreen.showCreateSheet(context);
-                  if (result == true) _loadData();
+                  final changed = await handleHomeQuickCreate(context);
+                  if (changed) _loadData();
                 },
                 backgroundColor: Colors.blue[600],
                 child: const Icon(Icons.add),

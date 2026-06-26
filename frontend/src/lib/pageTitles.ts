@@ -139,7 +139,6 @@ export const PAGE_TITLE_BY_PATH: Record<string, string> = {
   "/tests/performance": "Tests performance",
   "/tests/performance-backoffice": "Tests performance backoffice",
   "/tests/playwright": "Tests Playwright",
-  "/tests/playwright": "Tests Playwright",
   "/tests/playwright-backoffice": "Tests Playwright backoffice",
   "/user-journey": "Parcours utilisateur",
   "/mobile-emulator": "Émulateur mobile",
