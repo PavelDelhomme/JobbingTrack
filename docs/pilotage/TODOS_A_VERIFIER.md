@@ -25,8 +25,8 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 
 | Étape | Ligne | Statut agent | Statut porteur | Action porteur |
 |-------|-------|--------------|----------------|----------------|
-| 1 | 319 Inscription + vérif email | `smoke-etape1-inscription-adb.js` **OK** Samsung A→E (25/06) | **[ ] EN COURS** | Confirmer `OK Mobile — Inscription…` ou laisser agent clôturer |
-| 2 | 320 Navigation + FAB | smokes ADB OK | bloquée par 319 | § étape 2 |
+| 1 | 319 Inscription + vérif email | `smoke-etape1-inscription-adb.js` **OK** + porteur mail/vérif OK | **[x] OK** | Archivé `TODOS_DONE.md` 25/06 |
+| 2 | 320 Navigation + FAB | smokes ADB OK | **[ ] EN COURS** | § étape 2 — retour shell, admin, FAB candidature |
 | 3 | 321 OVH SMTP `@jobbingtrack.com` | doc + diagnostic OK | bloquée par 320 | MX Plan OVH — § étape 3 |
 | 4 | 322 Agent admin `/agent` | UI + API OK | bloquée par 321 | § étape 4 |
 | 5 | 323 Consentements RGPD sync | UI switches OK | bloquée par 322 | § étape 5 |

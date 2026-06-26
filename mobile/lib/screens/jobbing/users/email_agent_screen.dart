@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
@@ -26,6 +28,11 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
   String? _expandedMessageId;
   final Map<String, bool> _consentDraft = {};
   String? _discoveryHint;
+  String? _lastDiscoveredEmail;
+  String? _lastSmtpHost;
+  int? _lastSmtpPort;
+  Timer? _discoverDebounce;
+  final _emailFocus = FocusNode();
 
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -36,11 +43,18 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
   @override
   void initState() {
     super.initState();
+    _emailFocus.addListener(() {
+      if (!_emailFocus.hasFocus) {
+        unawaited(_discoverImap());
+      }
+    });
     _load();
   }
 
   @override
   void dispose() {
+    _discoverDebounce?.cancel();
+    _emailFocus.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _hostCtrl.dispose();
@@ -103,8 +117,9 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
   Future<void> _discoverImap() async {
     final email = _emailCtrl.text.trim();
     if (!email.contains('@')) return;
+    if (email == _lastDiscoveredEmail && _hostCtrl.text.trim().isNotEmpty) return;
     final token = Provider.of<AuthProvider>(context, listen: false).token;
-    setState(() => _discoveryHint = 'Détection du serveur IMAP…');
+    setState(() => _discoveryHint = 'Détection IMAP/SMTP…');
     try {
       final suggestion = await EmailAgentService.discoverImap(token: token, emailAddress: email);
       if (!mounted) return;
@@ -112,21 +127,34 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
         setState(() => _discoveryHint = 'Aucune suggestion — saisissez l\'hôte manuellement.');
         return;
       }
-      if (_hostCtrl.text.trim().isEmpty) _hostCtrl.text = suggestion.imapHost;
-      if (_portCtrl.text == '993') _portCtrl.text = suggestion.imapPort.toString();
+      _hostCtrl.text = suggestion.imapHost;
+      _portCtrl.text = suggestion.imapPort.toString();
+      _lastSmtpHost = suggestion.smtpHost;
+      _lastSmtpPort = suggestion.smtpPort;
       if (_displayNameCtrl.text.trim().isEmpty) _displayNameCtrl.text = email;
+      _lastDiscoveredEmail = email;
       final note = suggestion.note == 'proton_bridge_required'
           ? ' (Proton Bridge requis)'
           : '';
+      final smtpPart = suggestion.smtpHost != null && suggestion.smtpHost!.isNotEmpty
+          ? ' · SMTP ${suggestion.smtpHost}:${suggestion.smtpPort ?? 587}'
+          : '';
       setState(() {
         _discoveryHint =
-            '${suggestion.provider ?? 'Serveur'} : ${suggestion.imapHost}:${suggestion.imapPort}$note';
+            '${suggestion.provider ?? 'Serveur'} : IMAP ${suggestion.imapHost}:${suggestion.imapPort}$smtpPart$note';
       });
     } catch (e) {
       if (mounted) {
         setState(() => _discoveryHint = 'Détection indisponible — saisie manuelle.');
       }
     }
+  }
+
+  void _scheduleDiscoverImap() {
+    _discoverDebounce?.cancel();
+    _discoverDebounce = Timer(const Duration(milliseconds: 700), () {
+      unawaited(_discoverImap());
+    });
   }
 
   Future<void> _saveConsents() async {
@@ -146,6 +174,11 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
 
   Future<void> _connectImap() async {
     final token = Provider.of<AuthProvider>(context, listen: false).token;
+    if (_hostCtrl.text.trim().isEmpty) {
+      await _discoverImap();
+    }
+    final smtpHost = _lastSmtpHost;
+    final smtpPort = _lastSmtpPort;
     await _runAction(() async {
       await EmailAgentService.connectImap(
         token: token,
@@ -153,11 +186,14 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
         password: _passwordCtrl.text,
         imapHost: _hostCtrl.text.trim(),
         imapPort: int.tryParse(_portCtrl.text.trim()) ?? 993,
+        smtpHost: smtpHost,
+        smtpPort: smtpPort,
         displayName: _displayNameCtrl.text.trim().isEmpty
             ? _emailCtrl.text.trim()
             : _displayNameCtrl.text.trim(),
       );
       _passwordCtrl.clear();
+      _lastDiscoveredEmail = null;
     }, success: 'Boîte IMAP connectée');
   }
 
@@ -429,11 +465,13 @@ class _EmailAgentScreenState extends State<EmailAgentScreen> {
                             children: [
                               TextField(
                                 controller: _emailCtrl,
+                                focusNode: _emailFocus,
                                 decoration: const InputDecoration(
                                   labelText: 'Adresse email',
                                   border: OutlineInputBorder(),
                                 ),
                                 keyboardType: TextInputType.emailAddress,
+                                onChanged: (_) => _scheduleDiscoverImap(),
                                 onEditingComplete: _discoverImap,
                               ),
                               const SizedBox(height: 12),

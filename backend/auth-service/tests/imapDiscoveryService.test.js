@@ -12,6 +12,8 @@ describe('imapDiscoveryService', () => {
   it('propose OVH pour un domaine .ovh', () => {
     const hint = hintFromDomain('delhomme.ovh');
     expect(hint.imapHost).toBe('imap.mail.ovh.net');
+    expect(hint.smtpHost).toBe('smtp.mail.ovh.net');
+    expect(hint.smtpPort).toBe(587);
     expect(hint.provider).toBe('OVH');
   });
 

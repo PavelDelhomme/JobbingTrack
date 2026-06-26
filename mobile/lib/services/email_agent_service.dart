@@ -178,6 +178,9 @@ class ImapDiscoverySuggestion {
   final String imapHost;
   final int imapPort;
   final bool imapUseTls;
+  final String? smtpHost;
+  final int? smtpPort;
+  final bool smtpUseTls;
   final String? provider;
   final String? source;
   final String? note;
@@ -186,6 +189,9 @@ class ImapDiscoverySuggestion {
     required this.imapHost,
     required this.imapPort,
     required this.imapUseTls,
+    this.smtpHost,
+    this.smtpPort,
+    this.smtpUseTls = true,
     this.provider,
     this.source,
     this.note,
@@ -196,6 +202,9 @@ class ImapDiscoverySuggestion {
       imapHost: json['imapHost']?.toString() ?? '',
       imapPort: (json['imapPort'] as num?)?.toInt() ?? 993,
       imapUseTls: json['imapUseTls'] != false,
+      smtpHost: json['smtpHost']?.toString(),
+      smtpPort: (json['smtpPort'] as num?)?.toInt(),
+      smtpUseTls: json['smtpUseTls'] != false,
       provider: json['provider']?.toString(),
       source: json['source']?.toString(),
       note: json['note']?.toString(),
@@ -271,6 +280,9 @@ class EmailAgentService {
     required String imapHost,
     int imapPort = 993,
     bool imapUseTls = true,
+    String? smtpHost,
+    int? smtpPort,
+    bool smtpUseTls = true,
     String? displayName,
   }) async {
     final res = await http
@@ -283,6 +295,9 @@ class EmailAgentService {
             'imapHost': imapHost,
             'imapPort': imapPort,
             'imapUseTls': imapUseTls,
+            if (smtpHost != null && smtpHost.isNotEmpty) 'smtpHost': smtpHost,
+            if (smtpPort != null) 'smtpPort': smtpPort,
+            'smtpUseTls': smtpUseTls,
             if (displayName != null && displayName.isNotEmpty) 'displayName': displayName,
           }),
         )

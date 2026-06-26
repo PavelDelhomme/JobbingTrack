@@ -1,21 +1,21 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 17 juin 2026 (triage repo clos → reprise validation mobile étape 1)
+Dernière mise à jour : 25 juin 2026 (étape 1 mobile clos → étape 2 active)
 
 ## Feuille de route — ordre strict (juin 2026)
 
 | Phase | Contenu | Statut | Règle |
 |-------|---------|--------|-------|
-| **A — Mobile Lot D** | App Flutter, smokes, agent `/agent`, hub admin | **REPRISE** | Validation porteur **étape 1 / 5** — guide [`VALIDATION_ETAPE_1_INSCRIPTION.md`](../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md). |
-| **B — Gate pré-prod mobile** | Validations porteur `TODOS_A_VALIDER.md` étapes **1→5** | **EN COURS** (étape 1) | Une étape à la fois ; OK explicite porteur. |
+| **A — Mobile Lot D** | App Flutter, smokes, agent `/agent`, hub admin | **Étape 2 active** | Validation porteur **étape 2 / 5** — navigation + FAB (ligne 320). |
+| **B — Gate pré-prod mobile** | Validations porteur `TODOS_A_VALIDER.md` étapes **1→5** | **EN COURS** (étape 2) | Une étape à la fois ; OK explicite porteur. |
 | **C — Déploiement rapide** | Builds, SMTP `@jobbingtrack.com`, gate prod | Après B | Inchangé. |
 | **D — Triage repo / scripts / docs** | Lot H + Lot E + `REPO_ORGANIZATION.md` | **CLOS (H0/H1/H2)** | Branche `chore/repo-scripts-docs-hygiene` — merge puis reprise mobile. Lot H bis secrets + Lot E doc = avant prod. |
 
-**Travail agent en cours (phase B — étape 1 Samsung)** :
+**Travail agent en cours (phase B — étape 2 Samsung)** :
 
-1. Preuves agent : gateway, comptes test, smokes API renvoi vérif.
-2. **Porteur** : [`VALIDATION_ETAPE_1_INSCRIPTION.md`](../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md) — mail réel + clic lien.
-3. OK ligne 319 → débloquer étape 2 (ligne 320).
+1. Preuves agent : smokes navigation/FAB déjà **OK** (25/06).
+2. **Porteur** (optionnel) : retour shell, admin USER/ADMIN, FAB candidature sur Samsung.
+3. OK ligne 320 → débloquer étape 3 (ligne 321 SMTP).
 
 Triage repo (phase D) **clos** : `scripts/legacy/`, env canonique `scripts/env/`, inventaire à jour — voir `REPO_ORGANIZATION.md`.
 

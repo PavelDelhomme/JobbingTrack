@@ -57,6 +57,8 @@ export default function AgentEmailContent() {
     password: "",
     imapHost: "",
     imapPort: "993",
+    smtpHost: "",
+    smtpPort: "587",
     displayName: "",
   });
   const [imapDiscoveryHint, setImapDiscoveryHint] = useState<string | null>(null);
@@ -173,18 +175,24 @@ export default function AgentEmailContent() {
       if (discovery.found && discovery.suggested) {
         setImapForm((f) => ({
           ...f,
-          imapHost: f.imapHost || discovery.suggested!.imapHost,
-          imapPort: f.imapPort === "993" ? String(discovery.suggested!.imapPort) : f.imapPort,
+          imapHost: discovery.suggested!.imapHost,
+          imapPort: String(discovery.suggested!.imapPort),
+          smtpHost: discovery.suggested!.smtpHost || f.smtpHost,
+          smtpPort: String(discovery.suggested!.smtpPort ?? 587),
           displayName: f.displayName || email,
         }));
         const provider = discovery.suggested.provider || "serveur détecté";
         const source = discovery.suggested.source || "";
+        const smtpLine =
+          discovery.suggested.smtpHost != null
+            ? ` · SMTP ${discovery.suggested.smtpHost}:${discovery.suggested.smtpPort ?? 587}`
+            : "";
         const note =
           discovery.suggested.note === "proton_bridge_required"
             ? " Proton Mail nécessite Proton Bridge (IMAP local)."
             : "";
         setImapDiscoveryHint(
-          `Détecté : ${provider} (${discovery.suggested.imapHost}:${discovery.suggested.imapPort})${note}${source ? ` · ${source}` : ""}. Vous pouvez corriger manuellement.`,
+          `Détecté : ${provider} — IMAP ${discovery.suggested.imapHost}:${discovery.suggested.imapPort}${smtpLine}${note}${source ? ` · ${source}` : ""}. Corrigez manuellement si besoin.`,
         );
       }
     } catch {
@@ -203,9 +211,19 @@ export default function AgentEmailContent() {
         password: imapForm.password,
         imapHost: imapForm.imapHost,
         imapPort: Number(imapForm.imapPort) || 993,
+        smtpHost: imapForm.smtpHost || undefined,
+        smtpPort: Number(imapForm.smtpPort) || undefined,
         displayName: imapForm.displayName || imapForm.emailAddress,
       });
-      setImapForm({ emailAddress: "", password: "", imapHost: "", imapPort: "993", displayName: "" });
+      setImapForm({
+        emailAddress: "",
+        password: "",
+        imapHost: "",
+        imapPort: "993",
+        smtpHost: "",
+        smtpPort: "587",
+        displayName: "",
+      });
       await loadAll();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Connexion IMAP échouée");

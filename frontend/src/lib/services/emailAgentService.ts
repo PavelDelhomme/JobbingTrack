@@ -139,6 +139,9 @@ export interface ImapDiscoveryResult {
     imapHost: string;
     imapPort: number;
     imapUseTls: boolean;
+    smtpHost?: string | null;
+    smtpPort?: number | null;
+    smtpUseTls?: boolean;
     provider?: string;
     source?: string;
     note?: string | null;

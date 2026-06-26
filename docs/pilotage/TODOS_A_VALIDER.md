@@ -308,11 +308,11 @@ Menu **Statistics** → sous-onglets en haut de page.
 ## File de validation porteur — ordre strict (juin 2026)
 
 > **Règle absolue** : tant que l’étape **N** n’est pas validée (`Décision porteur` = `OK …` + ligne archivée dans `TODOS_DONE.md`), **ne pas** passer à l’étape **N+1**.  
-> **Reprise 17/06/2026** : triage repo **clos** — **étape 1 Samsung active**. Guide : [`VALIDATION_ETAPE_1_INSCRIPTION.md`](../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md).
+> **Reprise 25/06/2026** : **étape 1 clos** (`TODOS_DONE.md`) — **étape 2 active** (navigation + FAB, ligne 320).
 
 | Étape | Ligne tableau | Sujet | Bloque |
 |-------|---------------|-------|--------|
-| **1** | **319** | Inscription + télémétrie + vérif email | tout le reste |
+| **1** | **319** | Inscription + télémétrie + vérif email | ~~tout le reste~~ **OK 25/06** |
 | **2** | **320** | Navigation retour, admin, relances, FAB candidature | étapes 3–5 + lignes 324+ |
 | **3** | **321** | Migration SMTP `@jobbingtrack.com` (OVH) | étapes 4–5 + agent email complet |
 | **4** | **322** | Agent email — activation admin + gestion | étape 5 |
@@ -330,9 +330,9 @@ En cas de `KO` : décrire **exactement** ce qui bloque (écran, message, boîte 
 
 ---
 
-### Étape 1 — Ligne 319 : Inscription + télémétrie + vérif email (**BLOQUANTE**)
+### Étape 1 — Ligne 319 : Inscription + télémétrie + vérif email (**OK 25/06**)
 
-> **Guide porteur pas à pas** : [`docs/mobile/VALIDATION_ETAPE_1_INSCRIPTION.md`](../../mobile/VALIDATION_ETAPE_1_INSCRIPTION.md) ← **commencer ici sur Samsung**.
+> Archivé `TODOS_DONE.md` — décision porteur : **OK Mobile — Inscription + télémétrie obligatoire + vérif email** (smoke agent + mail reçu + page vérifiée).
 
 **Environnement** : Samsung `R5CT7263YJL` (ou AVD) + stack locale (`gateway` `127.0.0.1:5002`, `adb reverse tcp:5002 tcp:5002`). APK debug installé (`bash scripts/mobile/setup/build-apk-debug.sh`).
 
@@ -477,8 +477,8 @@ Seulement alors : lignes **324+** (intérim, entities, notifications, picker/pla
 | Lot D | Mobile — Paramètres : télémétrie anonyme + Aide/retours | appareil + local | Dans **Paramètres** : (1) toggle “Partager des données anonymes” active/désactive (RGPD) ; (2) toggles “Performances anonymes” + “Trace d’activité” ; (3) “Diagnostic local” affiche un résumé ; (4) Aide & retours : **Bug / Suggestion / Signalement** → formulaire, option “Joindre diagnostic”, envoi OK. Vérifier qu’en mode **sans consentement**, seuls les retours manuels sont envoyés (pas de traces auto). | clavier OK ; toggles OK | Samsung | OK paramètres télémétrie aide retours | [x] | **Preuve agent 17–18/06** : `MobileAnalyticsService` ; formulaire retour clavier corrigé ; `smoke-feedback-adb.js` **OK**. **Validation porteur 18/06** : OK (déjà validé clavier + paramètres). Archivé `TODOS_DONE.md`. |
 | Lot D | Mobile — déconnexion drawer/menu (régression 19/06) | Samsung R5CT7263YJL | (1) Drawer → **Déconnexion** → confirmer → écran **Connexion** en ~2 s (session effacée). (2) Menu **⋮** → **Déconnexion** → idem. (3) Écran empreinte → **Se déconnecter** → idem. (4) Après déconnexion : cold start → login (pas d’accueil direct). | OK logout | Samsung R5CT7263YJL | OK déconnexion drawer menu | [x] | **Validation porteur 19/06** : OK. Archivé `TODOS_DONE.md`. **Preuve agent 19/06** : `appNavigatorKey`, smoke ADB drawer **OK**. |
 | Lot D | Mobile — biométrie (login, déverrouillage, reconnexion empreinte) | Samsung R5CT7263YJL | (1) Login : cocher biométrie → déverrouillage immédiat sans fermer app. (2) Cold start : empreinte → accueil. (3) Après déconnexion : compte enregistré + **Connexion par empreinte**. (4) Paramètres : activation biométrie. (5) **Fallback mot de passe** : formulaire visible + « Se connecter avec le mot de passe » si empreinte refusée/changée. | biométrie OK | Samsung R5CT7263YJL | OK biométrie mobile | [x] | **Validation porteur 19/06** : « biométrie carrément OK ». Archivé `TODOS_DONE.md`. **Suite agent 19/06** : fallback mot de passe + smokes `TEST_USER_*` **OK** ADB sans empreinte. |
-| Lot D | Mobile — Inscription + télémétrie obligatoire + vérif email | appareil + local | **Étape 1 file stricte** — voir § « File de validation porteur » ci-dessus. | | | | **[ ] BLOQUANT** | **Preuve agent 25/06** : fix SMTP Python (587 STARTTLS) — vérif **SENT** EmailLog ; `smoke-resend-verification-api.js` **OK** ; `smoke-verify-email-adb.js` deep link + API **OK** Samsung. **Reste porteur obligatoire** : mail réel + clic lien. **Ne pas passer à la ligne 320 avant OK explicite.**
-| Lot D | Mobile — navigation retour, admin, relances, ajouts candidature | appareil + local | **Étape 2** — après OK ligne 319. (1) Retour shell. (2) Admin USER/ADMIN. (3) Relances sans FAB global. (4–5) FAB appel/entretien/contact depuis détail candidature. | biométrie OK porteur 17/06 | | | **[ ] bloquée par 319** | **Preuve agent 25/06** : smokes ADB navigation/FAB **OK**. **Reste porteur** : Samsung FAB → chaque type → **Voir** → détail OK.
+| Lot D | Mobile — Inscription + télémétrie obligatoire + vérif email | appareil + local | **Étape 1 file stricte** — voir § « File de validation porteur » ci-dessus. | mail reçu + vérif OK | Samsung + smoke agent | OK Mobile — Inscription + télémétrie obligatoire + vérif email | [x] | **Validation porteur 25/06** + smoke `smoke-etape1-inscription-adb.js` A→E. Fix alias `+`. Archivé `TODOS_DONE.md`. |
+| Lot D | Mobile — navigation retour, admin, relances, ajouts candidature | appareil + local | **Étape 2** — **ACTIVE** (ligne 320). (1) Retour shell. (2) Admin USER/ADMIN. (3) Relances sans FAB global. (4–5) FAB appel/entretien/contact depuis détail candidature. | biométrie OK porteur 17/06 | | | **[ ] EN COURS** | **Preuve agent 25/06** : smokes ADB navigation/FAB **OK**. **Reste porteur** : Samsung FAB → chaque type → **Voir** → détail OK.
 | Infra | Email — migration SMTP `@jobbingtrack.com` (OVH) | OVH + préprod | **Étape 3** — après OK ligne 320. Checklist `docs/emails/OVH_MX_PLAN_JOBBINGTRACK.md`. | | | | **[ ] bloquée par 320** | **Preuve agent 25/06** : diagnostic documenté ; MX/SPF OK ; blocage = offre redirect. Transition : `maily.ovh`.
 | Backoffice | Agent email — activation admin + gestion | local | **Étape 4** — après OK ligne 321 (ou dérogation porteur si IMAP dev suffit). | | | | **[ ] bloquée par 321** | **Preuve agent 25/06** : UI toggle + API `PUT …/agent-enabled`. **Reste porteur** : activer admin + triage IMAP.
 | Lot D | Agent email — consentements RGPD `/agent` (sync mobile) | local | **Étape 5** — après OK ligne 322. Même compte mobile + `/agent`. | | | | **[ ] bloquée par 322** | **Preuve agent 17/06** : switches `AgentEmailContent.tsx`. **Reste porteur** : sync mobile→web.
