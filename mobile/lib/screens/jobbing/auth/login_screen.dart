@@ -7,6 +7,7 @@ import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/services/biometric_credential_store.dart';
+import 'package:jobbingtrack_mobile/config/debug_test_accounts.dart';
 import 'package:jobbingtrack_mobile/utils/post_auth_navigation.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -68,6 +69,66 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _fillTestCredentials({required bool admin, bool submit = false}) {
+    setState(() {
+      _showFullLoginForm = true;
+      _emailController.text =
+          admin ? DebugTestAccounts.adminEmail : DebugTestAccounts.userEmail;
+      _passwordController.text = admin
+          ? DebugTestAccounts.adminPassword
+          : DebugTestAccounts.userPassword;
+    });
+    if (submit) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _login();
+      });
+    }
+  }
+
+  Widget _buildDebugTestAccountRow({
+    required String label,
+    required String email,
+    required String password,
+    required VoidCallback onFill,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          email,
+          style: TextStyle(fontSize: 12, color: Colors.grey[800]),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Mot de passe : $password',
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: onFill,
+            icon: const Icon(Icons.login, size: 16),
+            label: const Text('Remplir et se connecter'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Future<void> _navigateAfterLogin({
@@ -510,44 +571,90 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 32),
 
-                // Comptes de test
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
+                if (kDebugMode && DebugTestAccounts.isConfigured) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Comptes de test (debug)',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => _fillTestCredentials(
+                                  admin: false,
+                                  submit: true,
+                                ),
+                                child: const Text(
+                                  'Connexion USER',
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => _fillTestCredentials(
+                                  admin: true,
+                                  submit: true,
+                                ),
+                                child: const Text(
+                                  'Connexion ADMIN',
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _buildDebugTestAccountRow(
+                          label: 'Utilisateur (non admin)',
+                          email: DebugTestAccounts.userEmail,
+                          password: DebugTestAccounts.userPassword,
+                          onFill: () =>
+                              _fillTestCredentials(admin: false, submit: true),
+                        ),
+                        const Divider(height: 24),
+                        _buildDebugTestAccountRow(
+                          label: 'Administrateur',
+                          email: DebugTestAccounts.adminEmail,
+                          password: DebugTestAccounts.adminPassword,
+                          onFill: () =>
+                              _fillTestCredentials(admin: true, submit: true),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Comptes de test :',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'user1@jobbingtrack.test • user2@jobbingtrack.test • user3@jobbingtrack.test',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Mot de passe : password123',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 24),
+                ] else if (kDebugMode) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Comptes de test : lancez node scripts/mobile/setup/generate-debug-test-accounts.js (TEST_USER_* / TEST_ADMIN_* dans .env).',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                ),
-
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
+                ],
 
                 // Lien vers l'inscription
                 Row(

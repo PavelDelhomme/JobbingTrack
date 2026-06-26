@@ -11,6 +11,8 @@ type FilterBarProps = {
   onReset: () => void;
   badges?: FilterBadge[];
   sortBadge?: string | null;
+  /** Boutons / badges toggle à côté de « Appliquer les filtres » */
+  toolbarExtra?: ReactNode;
 };
 
 export function FilterBar({
@@ -21,6 +23,7 @@ export function FilterBar({
   onReset,
   badges = [],
   sortBadge = null,
+  toolbarExtra = null,
 }: FilterBarProps) {
   return (
     <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
@@ -40,6 +43,7 @@ export function FilterBar({
         >
           Réinitialiser
         </button>
+        {toolbarExtra}
         {hasDraftChanges && (
           <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
             Filtres modifiés, pas encore appliqués

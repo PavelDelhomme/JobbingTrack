@@ -24,6 +24,15 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **Analytics application & utilisateurs (20/05/2026)** : à reprendre après Statistics. Clarifier deux axes : analytics **application/mobile** (activité, traces, retours, signalements, parcours) et analytics **utilisateurs admin** (comptes, activité, cohortes, rôles, rétention). Ne pas confondre avec performances live infra.
 
+**Backlog porteur 26/06/2026** (détail complet **`docs/pilotage/TODOS.md`** § « Backlog documenté porteur — retours récap session 26/06 ») — **ne pas démarrer avant clôture mobile étape 2** :
+
+| ID | Sujet |
+|----|--------|
+| BL-26-01 | Playwright MailHog : **1 passed / 2 skipped** — SMTP admin + auth-service MailHog |
+| BL-26-02 | IMAP **`candidatures@delhomme.ovh`** : **AUTHENTICATIONFAILED** OVH malgré changement MDP |
+| BL-26-03 | Emails récap agent : template **HTML coloré** normalisé (plus de markdown dans `<pre>`) |
+| BL-26-04→08 | Smokes ADB : `entities-adb`, `profile-save-adb`, `notification-nav-adb`, `company-create-adb`, `offline-business-adb` |
+
 **Agent email / tâches recherche emploi (09/06/2026, précisé 15/06)** : cadrage porteur ajouté dans `docs/features/EMAIL_TRIAGE_AGENT.md`. Objectif : assistant JobbingTrack capable de lire/triager Gmail **et des boîtes IMAP** configurées hors Git, relier les emails aux candidatures/entreprises, détecter candidatures, refus, propositions d’entretien, relances faites/à faire, événements et signaux utiles, puis créer tâches/relances/événements, préparer les entretiens, envoyer un digest quotidien à 18h et un récap hebdomadaire via le socle SMTP JobbingTrack, sans envoi automatique. À traiter comme chantier produit dédié **en fin de séquence**, après finalisation des logs/observabilité et P0/P1 bloquants, avec OAuth/scopes minimaux, IMAP lecture seule, audit, tokens chiffrés, Google Tasks/Calendar obligatoires, worker planifié, stockage interne des emails utiles, moteur déterministe d’abord et IA locale en renfort. Périmètre élargi noté : espace utilisateur connecté sur `/`, backoffice admin sur `/b4ck0ff1ce`, base de composants partagée, option future `user-frontend` / `backoffice-frontend`, interface web/mobile responsive, revalidation PIN, autocomplete accessible, boîte de réception agent, historique de communication par candidature/entreprise/contact (emails, relances, réponses, appels planifiés/passés si tracés), préparation/envoi relance-email contrôlé, calendrier agrégé, programmation manuelle d’appels/tâches/rappels/événements même sans email déclencheur, fiches candidature/entreprise enrichies, suivi intérim, imports Google Contacts CSV/vCard, PDF d’offre depuis URL, enrichissement entreprise et veille salons/job dating par ville/région. Make.com/Zapier ne sont pas le socle.
 
 **Agent email — recherche v2 et Calendar (09/06/2026)** : prévoir après le MVP une barre de recherche réutilisable dans l’espace utilisateur puis dans le backoffice/admin, couvrant emails, candidatures, entreprises, contacts, tâches et événements selon permissions. Côté Google Calendar, ne jamais convertir une date sans heure en événement à `00:00`, ni créer automatiquement avant `05:00` ou après `23:00` : créer une tâche “horaire à confirmer/vérifier”, proposer un événement journée entière ou demander validation utilisateur.
@@ -82,7 +91,7 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 - [x] **Tests backoffice E2E autonomes** : `loginAsAdmin()` dans 6 fichiers.
 - [x] **Rapports avec type d'utilisateur** : badge ADMIN/USER/SYSTEM.
 - [x] **Tests Playwright E2E** : pré-authentification `storageState`.
-- [x] **Tests MailHog** : SMTP_HOST/PORT configurés, 3/3 passent.
+- [ ] **Tests MailHog Playwright** : **26/06** régression constatée — `admin-emails-mailhog.spec.ts` **1 passed / 2 skipped** (SMTP admin + prérequis envoi) ; objectif **3/3** — voir **BL-26-01**. Historique : SMTP_HOST/PORT configurés avaient permis 3/3 passent (archive).
 - [x] **Corbeille (soft delete)** : 7 services, cascade logique.
 - [x] **Cascade archivage + statuts** : auto-events, archiveRelatedElements.
 - [x] **Architecture tests USER/ADMIN** : séparation complète.
@@ -193,6 +202,32 @@ Voir **`docs/pilotage/PILOTAGE.md`** § « Phase post-D8 ».
 1. Script `scripts/release/check-platform-impact.sh` (diff deps, migrations, Compose).
 2. Job CI sur PR release / tag semver.
 3. Notification porteur si changement `pubspec.yaml`, `package.json`, Prisma, `.env.example` breaking.
+
+## Lot P — Plateforme admin réutilisable (Cloudity / OSS) — **après prod stable**
+
+**Décision porteur (26/06/2026)** : extraire le socle backoffice/monitoring en modules réutilisables pour d’autres produits (ex. Cloudity). **Gate absolue** : ne pas démarrer tant que JobbingTrack n’est pas **testé, validé porteur, préprod + prod sur stack déployée** (phases A+B+C de `PILOTAGE.md`).
+
+**Périmètre cible (packages / monorepo futur, noms provisoires)** :
+
+| Module | Contenu JobbingTrack aujourd’hui | Réutilisabilité |
+|--------|----------------------------------|-----------------|
+| **Admin shell** | `AdminLayout`, toasts actions, breadcrumbs, thème | Layout + nav configurable par produit |
+| **Analytics** | `/backoffice/user-analytics`, hub Application, télémétrie | API analytics + UI shell générique |
+| **Performances / monitoring** | Agent Rust, pages Performances, corrélation, Statistics | Connecteurs métriques + graphes partagés |
+| **Services ops** | Santé Docker, restart, hub vue d’ensemble | Catalogue services + health endpoints |
+| **Données admin** | Archive, corbeille, test data generate/clear | CRUD patterns + flags `isTestData` |
+| **Billing** | Shell `/backoffice/billing` | Plans, facturation (à cadrer métier) |
+| **Tests hub** | Menu Développement → Tests, rapports | Runner + agrégation rapports |
+| **Parcours utilisateur** | Hub tests parcours, smokes | Templates scénarios + ADB lib |
+
+**Approche recommandée (quand le gate sera ouvert)** :
+
+1. Inventaire des composants déjà « moteur » (`*PageShell`, `PerformancePageShell`, `EmailBackofficePageShell`, `AgentPageShell`, `adminActionFeedback`, monitoring-agent).
+2. Séparer **contrats API** vs **UI Next.js** vs **scripts ops** ; zéro secret JobbingTrack dans les packages.
+3. Publier en monorepo interne (`@cloudity/admin-shell`, etc.) ou repo OSS ; JobbingTrack consomme en dépendance.
+4. Documenter migration dans `docs/project/PLATFORM_EXTRACTION_PLAN.md` (à créer au kick-off Lot P).
+
+**Priorité** : backlog post-prod uniquement — ne pas ralentir mobile étape 2→5 ni gate production.
 
 ## Références
 

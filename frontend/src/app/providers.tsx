@@ -7,6 +7,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { TrackingProvider } from "@/components/tracking/TrackingProvider";
 import { setupBrowserExtensionCleanup } from "@/utils/cleanBrowserExtensions";
 import { useEffect } from "react";
+import { DocumentTitleManager } from "@/components/layout/DocumentTitleManager";
 
 function HydrationFix() {
   useEffect(() => {
@@ -20,6 +21,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <>
       <HydrationFix />
+      <DocumentTitleManager />
       <ErrorBoundary>
         <ThemeProvider>
           <UiPreferencesProvider>

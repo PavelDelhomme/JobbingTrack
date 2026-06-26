@@ -62,6 +62,7 @@ export function StatisticsErrorAvailabilityCharts({
   periodLabel,
   pointCount,
   source = "empty",
+  fetchFailed = false,
 }: {
   chartData: StatisticsChartPoint[];
   availabilityDomain: [number, number];
@@ -72,15 +73,28 @@ export function StatisticsErrorAvailabilityCharts({
   periodLabel: string;
   pointCount: number;
   source?: StatisticsHistorySource;
+  fetchFailed?: boolean;
 }) {
   if (chartData.length === 0) {
     return (
       <div
         className={`${CHART_CARD_CLASS} border-dashed p-8 text-center text-sm text-gray-500 dark:text-gray-400`}
       >
-        Aucune série persistée sur la période. Vérifier le monitoring et la
-        table <code className="text-xs">system_metrics</code>, ou élargir la
-        fenêtre temporelle via la barre période ci-dessus.
+        {fetchFailed ? (
+          <>
+            Impossible de charger l&apos;historique persisté (proxy monitoring
+            injoignable ou bloqué par une extension navigateur). Vérifiez que{" "}
+            <code className="text-xs">metrics-aggregator</code> est démarré,
+            désactivez uBlock sur ce site, puis actualisez. Les données live
+            peuvent rester visibles en attendant.
+          </>
+        ) : (
+          <>
+            Aucune série persistée sur la période. Vérifier le monitoring et la
+            table <code className="text-xs">system_metrics</code>, ou élargir la
+            fenêtre temporelle via la barre période ci-dessus.
+          </>
+        )}
       </div>
     );
   }

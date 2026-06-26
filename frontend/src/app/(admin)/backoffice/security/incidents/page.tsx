@@ -436,28 +436,6 @@ export default function SecurityIncidentsPage() {
               {label}
             </button>
           ))}
-          <button
-            type="button"
-            onClick={() => {
-              setMobileOnly((prev) => !prev);
-              setPage(1);
-            }}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-              mobileOnly
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
-            }`}
-          >
-            Signaux mobile
-          </button>
-          {mobileOnly ? (
-            <Link
-              href="/backoffice/security/logs?category=mobile"
-              className="rounded-md border border-indigo-200 px-3 py-1.5 text-sm text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-200 dark:hover:bg-indigo-950/40"
-            >
-              Ouvrir logs mobile
-            </Link>
-          ) : null}
         </div>
 
         <FilterBar
@@ -465,6 +443,33 @@ export default function SecurityIncidentsPage() {
           onApply={handleApplyFilters}
           onReset={handleResetFilters}
           badges={filterBadges}
+          toolbarExtra={
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOnly((prev) => !prev);
+                  setPage(1);
+                }}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                  mobileOnly
+                    ? "bg-indigo-600 text-white shadow"
+                    : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200"
+                }`}
+                aria-pressed={mobileOnly}
+              >
+                Signaux mobile{mobileOnly ? " · actif" : ""}
+              </button>
+              {mobileOnly ? (
+                <Link
+                  href="/backoffice/security/logs?category=mobile"
+                  className="rounded-lg border border-indigo-200 px-3 py-1.5 text-sm text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-200 dark:hover:bg-indigo-950/40"
+                >
+                  Logs mobile
+                </Link>
+              ) : null}
+            </>
+          }
         >
           <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             <FilterMultiSelectField

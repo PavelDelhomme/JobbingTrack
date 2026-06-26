@@ -18,14 +18,17 @@ describe("metricsAggregatorClient", () => {
     process.env = previousEnv;
   });
 
-  it("utilise le proxy Next côté navigateur par défaut", () => {
-    expect(getMetricsAggregatorClientBase()).toBe("/api/metrics-aggregator");
+  it("utilise des chemins proxy sans « metrics » côté navigateur (anti uBlock)", () => {
+    const g = globalThis as typeof globalThis & { window?: Window };
+    g.window = {} as Window;
+    expect(getMetricsAggregatorClientBase()).toBe("/api/mon");
     expect(buildMetricsAggregatorUrl("docker/services/all")).toBe(
-      "/api/metrics-aggregator/docker/services/all",
+      "/api/mon/docker/services/all",
     );
     expect(buildMetricsAggregatorUrl("persistence/system/metrics")).toBe(
-      "/api/metrics-aggregator/persistence/system/metrics",
+      "/api/persist/system/metrics",
     );
+    delete g.window;
   });
 
   it("autorise le mode direct explicite", () => {

@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 
 const API_URL = FRONTEND_URLS.api;
 
+const SECURITY_ALERT_SUBJECT_MARK = "[JobbingTrack Security]";
+
 type MirrorMeta = {
   sent?: boolean;
   queued?: boolean;
@@ -76,7 +78,7 @@ export function SecurityAlertEmailDiagnostics() {
 
       const baseParams = new URLSearchParams({
         type: "NOTIFICATION",
-        limit: "8",
+        limit: "24",
         page: "1",
       });
 
@@ -92,7 +94,14 @@ export function SecurityAlertEmailDiagnostics() {
       }
 
       const data = await response.json();
-      setLogs(Array.isArray(data?.data) ? data.data : []);
+      const rows: NotificationEmailLog[] = Array.isArray(data?.data)
+        ? data.data
+        : [];
+      setLogs(
+        rows.filter((log) =>
+          String(log.subject || "").includes(SECURITY_ALERT_SUBJECT_MARK),
+        ),
+      );
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Chargement impossible");
       setLogs([]);
@@ -110,7 +119,7 @@ export function SecurityAlertEmailDiagnostics() {
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
           <Mail className="h-5 w-5" />
-          Derniers envois alertes (diagnostic)
+          Derniers envois alertes sécurité (diagnostic)
         </CardTitle>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
@@ -141,7 +150,8 @@ export function SecurityAlertEmailDiagnostics() {
           </div>
         ) : logs.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Aucun email de notification récent.
+            Aucun email récent avec le sujet{" "}
+            <code className="text-xs">{SECURITY_ALERT_SUBJECT_MARK}</code>.
           </p>
         ) : (
           <div className="space-y-3">

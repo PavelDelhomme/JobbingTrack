@@ -12,6 +12,8 @@ fi
 if [[ -n "${MOBILE_DEV_LAN_HOST:-}" ]]; then
   DART_DEFINES+=(--dart-define="MOBILE_DEV_LAN_HOST=$MOBILE_DEV_LAN_HOST")
 fi
+cd "$ROOT"
+node "$ROOT/scripts/mobile/setup/generate-debug-test-accounts.js"
 cd "$MOBILE_DIR"
 "$FLUTTER_BIN" pub get
 "$FLUTTER_BIN" build apk --debug "${DART_DEFINES[@]}"

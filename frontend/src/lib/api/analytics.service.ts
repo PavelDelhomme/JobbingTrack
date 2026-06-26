@@ -47,6 +47,9 @@ function logOptionalMetricsWarning(context: string, error: unknown): void {
   console.warn(`${context} ${message}`);
 }
 
+/** Dernier échec réseau sur getSystemMetricsHistory (message UI Statistics). */
+export let lastSystemMetricsHistoryFetchFailed = false;
+
 /**
  * Aligne chaque ligne sur un instant unique : d’abord **timestamp** normalisé (ISO UTC),
  * puis **`timestampMs` = Date.parse(ts)`** quand c’est possible. Évite un décalage d’environ
@@ -100,6 +103,7 @@ export class AnalyticsService {
       signal?: AbortSignal;
     } = {},
   ) {
+    lastSystemMetricsHistoryFetchFailed = false;
     try {
       const params = new URLSearchParams();
       if (options.limit) params.append("limit", options.limit.toString());
@@ -107,13 +111,20 @@ export class AnalyticsService {
       if (options.startDate) params.append("startDate", options.startDate);
       if (options.endDate) params.append("endDate", options.endDate);
 
-      const response = await axios.get(
-        `${buildMetricsAggregatorUrl("persistence/system/metrics")}?${params.toString()}`,
-        { timeout: METRICS_HISTORY_AXIOS_TIMEOUT_MS, signal: options.signal },
-      );
-
-      return normalizeMetricRows(response.data.data || []);
+      const url = `${buildMetricsAggregatorUrl("persistence/system/metrics")}?${params.toString()}`;
+      const response = await fetch(url, {
+        signal: options.signal,
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const body = await response.json();
+      return normalizeMetricRows(body.data || []);
     } catch (error) {
+      if (!isBenignAxiosInterrupt(error)) {
+        lastSystemMetricsHistoryFetchFailed = true;
+      }
       logAxiosError("Erreur récupération historique système:", error);
       return [];
     }

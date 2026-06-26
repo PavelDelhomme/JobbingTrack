@@ -140,6 +140,14 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: "/api/persist/:path*",
+        destination: "/api/metrics-aggregator/persistence/:path*",
+      },
+      {
+        source: "/api/mon/:path*",
+        destination: "/api/metrics-aggregator/:path*",
+      },
+      {
         source: "/api/v1/:path*",
         destination: `http://api-gateway:${process.env.API_GATEWAY_INTERNAL_PORT || "3000"}/api/v1/:path*`,
       },

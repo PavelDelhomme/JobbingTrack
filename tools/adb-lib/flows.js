@@ -617,6 +617,25 @@ async function fillLoginFields(adb, email, password) {
   await fillPasswordAfterEmail(adb, password);
 }
 
+async function tryQuickDebugLogin(adb, email) {
+  const adminEmail = process.env.TEST_ADMIN_EMAIL?.trim();
+  const quickLabel =
+    adminEmail && email === adminEmail ? 'Connexion ADMIN' : 'Connexion USER';
+  if (!(await adb.uiContains('Comptes de test (debug)'))) {
+    for (let i = 0; i < 6; i++) {
+      if (await adb.uiContains('Comptes de test (debug)')) break;
+      await adb.scrollDown(700);
+      await adb.wait(500);
+    }
+  }
+  if (!(await adb.uiContains(quickLabel))) return false;
+  await adb.tap(quickLabel);
+  const home =
+    (await adb.waitFor('Bonjour', ADB_FAST ? 15000 : 20000)) ||
+    (await adb.waitFor(`Tab 1 of ${SHELL_TAB_COUNT}`, ADB_FAST ? 6000 : 8000));
+  return Boolean(home);
+}
+
 async function login(adb, email, password) {
   const creds = resolveTestCredentials({ email, password });
   email = creds.email;
@@ -625,6 +644,9 @@ async function login(adb, email, password) {
   await dismissPermissionsGate(adb);
   await dismissBiometricUnlock(adb, { password });
   await ensureLoginFormScreen(adb);
+  if (await tryQuickDebugLogin(adb, email)) {
+    return 'Connecte (debug rapide)';
+  }
   if (!(await isPasswordLoginForm(adb)) && !(await adb.uiContains('Email'))) {
     await ensureFullLoginForm(adb);
   }

@@ -499,6 +499,8 @@ export default function NetworkStatsPage() {
           <NetworkConnectionSourceTable
             connections={connections}
             enrichmentByIp={ipEnrichment}
+            onRefresh={loadStats}
+            refreshing={loading}
             emptyMessage={
               stats?.correlationHint
                 ? stats.correlationHint

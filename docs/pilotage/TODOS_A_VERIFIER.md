@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 17 juin 2026 (feuille de route mobile — phase A ; file porteur étapes 1→5)
+Dernière mise à jour : 26 juin 2026 (feuille de route mobile — phase A ; file porteur étapes 1→5 ; backlog récap 26/06 documenté)
 
 ## Rôle
 
@@ -18,6 +18,7 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | A4 | Hub admin ADB multi-comptes | `smoke-mobile-admin-hub-adb.js` OK : admin visible → hub → retour TEST_USER sans blocage login | [ ] |
 | A5 | Consentements agent `/agent` — sync mobile→web | Consentements sauvés mobile visibles sur `/agent` (même compte) ; UI switches statut OK/KO + `grantedAt` ; `hasRequiredConsents` cohérent | [ ] UI switches OK ; **porteur 17/06** : à revoir plus tard. **Reste** : preuve sync même compte si besoin |
 | A6 | Comptes test prêts | `ensure-test-accounts-ready.js` : `TEST_USER` + `TEST_ADMIN` login API + `emailVerified=true` | [x] |
+| A6b | Login mobile — comptes test réels (debug) | **26/06** : `generate-debug-test-accounts.js` + boutons **Connexion USER/ADMIN** ; smoke `smoke-login-debug-test-accounts-adb.js` Samsung **OK** (USER + ADMIN, emails/mots de passe visibles). APK réinstallé via `build-apk-debug.sh`. | [x] |
 
 ### File porteur — en attente (ne pas passer à la suite)
 
@@ -36,6 +37,21 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | A8 | Calendrier — Planning par défaut + drawer dédié | **17/06** : `events_screen.dart` vue **Planning** (bandeau semaine + créneaux jour) ; `calendar_drawer.dart` filtres + bascule liste ; prefs `ApiConfigStore` ; drawer principal sans **Profil** ni **Événements**. `flutter analyze` ciblé **0 erreur**. **Reste porteur** : validation visuelle Planning + filtres drawer. | [ ] |
 | A9 | Isolation données utilisateur (API) | **17/06** : `node scripts/mobile/smoke/api/smoke-user-data-isolation-api.js` **OK** — contact + candidature USER invisibles / GET **404** pour TEST_ADMIN. | [x] |
 | A10 | Notif changement statut — in-app (pas mail instantané) | **17/06** : `_notifyStatusIfChanged` recharge `NotificationProvider` + snackbar action « Notifications » ; pas d’email par changement (digest 18h section statuts 24 h OK). Push barre système = FCM prod (`dev-push-*` en dev). **Reste porteur** : créer relance/entretien et vérifier cloche. | [ ] |
+
+### Backlog documenté — retours porteur 26/06 (ne pas traiter avant OK étape 2)
+
+> Source : relecture emails récap agent. Détail complet : **`TODOS.md`** § « Backlog documenté porteur — retours récap session 26/06 » (IDs **BL-26-01→08**).
+
+| ID | Sujet | Symptôme / action future | Statut |
+|----|-------|--------------------------|--------|
+| BL-26-01 | Playwright MailHog | `admin-emails-mailhog.spec.ts` : **1 passed, 2 skipped** — login admin + `SMTP_HOST=mailhog` requis | [ ] après étape 2 |
+| BL-26-02 | IMAP OVH candidatures | **AUTHENTICATIONFAILED** malgré changement MDP — `fetch-imap-verification.js --check-only` | [ ] après étape 2 |
+| BL-26-03 | Récap agent HTML | Markdown dans `<pre>` illisible — template HTML coloré normalisé | [ ] après étape 2 |
+| BL-26-04 | smoke `entities-adb` | a11y **Prénom** / **Rechercher** introuvables (dialogue contact) | [ ] après étape 2 |
+| BL-26-05 | smoke `profile-save-adb` | Écran **Modifier** profil non détecté | [ ] après étape 2 |
+| BL-26-06 | smoke `notification-nav-adb` | Tap cloche fallback coords — centre notif non ouvert | [ ] après étape 2 |
+| BL-26-07 | smoke `company-create-adb` | Champ **Nom** introuvable (dialogue entreprise) | [ ] après étape 2 |
+| BL-26-08 | smoke `offline-business-adb` | Option **créer entreprise offline** introuvable | [ ] après étape 2 |
 
 Commandes utiles (directes, sans Make) :
 
@@ -427,6 +443,8 @@ Index scripts : `scripts/mobile/README.md`.
 | P1B | Statistics app-data — script validation Node (login + API) | **16/06 23:34** : remplacement login Python par `load-root-env.cjs` + `smoke-statistics-app-data-api.cjs` ; pages `/backoffice/statistics/...` via `smoke-backoffice-page-urls.cjs` ; précheck `ensure-dashboard-service-ready.sh` (profile compose `dashboard-service`). Rapport `tests/results/statistics-app-data/20260616-233410` **4/4 OK** ; `/api/v1/statistics` **200**, `undefinedHits=0`, timeline **1** point + note fallback ; BDD counts OK. Notes agent ligne 308 `docs/pilotage/TODOS_A_VALIDER.md` enrichie. | [x] |
 | P1B | Statistics vue d’ensemble — revalidation script overview | **16/06 23:34** : `run-statistics-overview-validation-with-report.sh` → `tests/results/statistics-overview/20260616-233410` **4/4 OK** ; history 7 j **45** points ; ranges **24h=91**, **7d=174** ; Jest `statisticsTimeSeries` OK ; pages `/backoffice/statistics` + log-stats + app-data smoke OK. Notes agent ligne 309 `docs/pilotage/TODOS_A_VALIDER.md` enrichie. | [x] |
 | P1C | Lot B10 — filtres FilterBar Menaces + Incidents | **16/06 23:34** : spec Playwright `security-filters-b10.spec.ts` — Menaces (sévérité Haute, apply explicite) + Incidents (gravité Critique, apply explicite). Playwright local **3/3 OK** (~16 s) via `PLAYWRIGHT_BASE_URL=http://localhost:5003` + `playwright-local.sh`. `tsc --noEmit` OK. Branche `fix/statistics-validation-scripts-b10`. | [x] |
+| P1C | Backoffice — toast succès après actions | **25/06** : toast bas d’écran 4,5 s (`AdminActionToast` + `showAdminActionFeedback`) ; intercepteur axios `maybeToastApiSuccess` (POST/PUT/PATCH/DELETE, routes `/backoffice` et `/b4ck0ff1ce` uniquement) ; messages contextuels (génération/suppression données test, etc.) ; actions rapides AdminLayout branchées. Validations sans `make` : `npm run type-check` OK ; `npm run lint` **0 erreur** (1382 warnings préexistants). | [x] |
+| P1C | Agent email `/agent` — harmonisation UI backoffice | **26/06** : `AgentPageShell` + `AgentPanel` (aligné `EmailBackofficePageShell` / analytics) ; sous-nav Agent ↔ Analytics utilisateur ; cartes `rounded-lg shadow`, boutons/champs bleus cohérents. Validations sans `make` : `npm run type-check` + `npm run lint` ciblé agent. | [x] |
 | P1B | Statistics log-stats — migration API smoke Node | **16/06 23:38** : `smoke-statistics-log-stats-api.cjs` remplace bloc Python ; rapport `statistics-log-stats/20260616-233835` **4/4 OK**. Script récap `send-agent-recap-email.cjs` ajouté. **PR #15 mergée** (`09b7f138`). | [x] |
 | P1C | Merge PR #15 + email récap agent Lot B/Statistics | **16/06 23h47** : PR #15 mergée sur `dev` (`09b7f138`) — CI **verte**. Email `[JobbingTrack] Recap agent complet Lot B + Statistics P1B — 16/06/2026 23h40` : **7/7 EmailLog SENT** (`test@delhomme.ovh`, `dev@delhomme.ovh`, `admin@delhomme.ovh`, `admin@jobbingtrack.com`, `security@jobbingtrack.com`, `crash-report@jobbingtrack.com`). | [x] |
 | P1B | Backoffice vue d’ensemble — compteur services trompeur 10/10 | **17/06** : cause — API `docker/services/all` et UI ne comptaient que les conteneurs Docker existants (~10 running), pas le catalogue make status (~21 attendus). Correctif : merge `SERVICE_HEALTH_ENDPOINTS` manquants en `not_deployed` ; `ServiceHealthKpiCards` affiche Actifs X/Y + Non déployés ; hub `/backoffice` « N sains · X/Y actifs » ; résumé `make status` basé catalogue explicite. Jest `serviceHealthOverview` **12/12** ; `tsc` OK. **PR #16 mergée** (`d2101fbe`). | [x] |
@@ -444,6 +462,9 @@ Index scripts : `scripts/mobile/README.md`.
 | P1C | Merge PR #19 — filtres multi Incidents & Menaces | **17/06** : PR [#19](https://github.com/PavelDelhomme/JobbingTrack/pull/19) mergée sur `dev`. Porteur `OK filtres multi Incidents Menaces`. | [x] |
 | P1B | Statistics log-stats — revalidation post-commit Performances Disque | **17/06 16:08** : après commit `b29db2cf` (fix volume disque), `run-statistics-log-stats-validation-with-report.sh` → `tests/results/statistics-log-stats/20260617-160815` **4/4 OK** ; `aggregatedLogs=26829`, **18** services ; persistence stats smoke OK. Ligne 310 `docs/pilotage/TODOS_A_VALIDER.md` enrichie — en attente `OK Statistics log-stats` porteur. | [x] |
 | P1B | Statistics Sécurité vs Analyse — cohérence compteurs + recommandations live | **17/06 retour porteur KO** : somme snapshots persistés gonflait « activités suspectes » (ex. 1049) vs Analyse live (18). Correctifs : backend `getSecuritySummary` **max_per_snapshot** ; Statistics — tableau comparatif persisté/Analyse + lib `securityAnalysisSummary` ; Analyse — stats 30 j, IPs paginées (total meta), recommandations dynamiques, refresh 30 s ; hub Sécurité — total IPs via pagination. Jest `securityAnalysisSummary` + `securityStatisticsComparison` ; backend `securityPersistenceSummary` mis à jour. **Suite 17/06** : score global divergent (ex. 30 Analyse vs 20 Vue d’ensemble) — unification `calculateSecurityScore` + constantes partagées `securityLiveConstants` (30 j, 2000 logs, 200 menaces, refresh 15 s), fetch WAF + pondération locale identique. **Demande porteur** : ignorer faux positifs menaces — API `POST .../threats/:id/ignore|unignore`, exclusion compteurs/score, UI fiche + filtre liste. Jest `firewall-threat-ignore` **2/2**, `threatIgnore` **2/2**. | [x] |
+| P1B | Statistics vue d’ensemble — Network Error historique (uBlock / proxy) | **26/06** : cause probable — extensions bloquant URLs `/api/metrics-*` → `AxiosError: Network Error` alors que metrics-aggregator OK. Correctif : chemins proxy sans « metrics » (`/api/mon/*`, `/api/persist/*` → rewrite Next vers metrics-aggregator) ; `getSystemMetricsHistory` passe en `fetch` ; flag `lastSystemMetricsHistoryFetchFailed` + message UI différencié (bloqueur vs vraie absence). Validations sans `make` : `npm run type-check` OK ; Jest `metricsAggregatorClient` + `centralMetricsService` **4/4** ; `curl http://127.0.0.1:5003/api/persist/system/metrics?limit=1` → **200**. **Reste porteur** : redémarrer conteneur frontend si rewrites pas pris ; vérifier graphes période jour sur `/backoffice/statistics`. | [x] |
+| P1C | Sécurité — Signaux mobile badge toggle + connexions paginées + alertes diagnostic | **26/06** : Incidents — badge **Signaux mobile** dans `FilterBar` (toggle recliquable à côté Appliquer/Réinitialiser). Réseau — `NetworkConnectionSourceTable` : recherche, pagination client, bouton Actualiser. Alertes diagnostic — filtre sujet `[JobbingTrack Security]` (limit 24). Validations sans `make` : `npm run type-check` OK ; `npm run lint` **0 erreur** (warnings préexistants). **Reste porteur** : valider UX badge + pagination connexions ; affinage filtre alertes si besoin. | [x] |
+| P1C | Titres onglet navigateur — toutes les pages | **26/06** : registre central `pageTitles.ts` (~100 routes) ; `DocumentTitleManager` dans `AppProviders` (déduit le titre depuis l’URL) ; `useDocumentTitle` conserve la surcharge pages dynamiques ; metadata Next `template: %s \| JobbingTrack`. Validations sans `make` : `npm run type-check` OK ; Jest `pageTitles` **4/4**. **Reste porteur** : vérifier visuellement `/agent` → « Agent email \| JobbingTrack », backoffice Statistics/Sécurité, etc. | [x] |
 
 ## Vérifications récurrentes
 

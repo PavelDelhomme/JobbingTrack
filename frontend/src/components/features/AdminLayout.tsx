@@ -16,6 +16,8 @@ import { FRONTEND_URLS } from "@/config/ports.config";
 import { TrendingUp, Database, Activity, Server } from "@/lib/icons";
 import { FlaskConical, Eraser } from "lucide-react";
 import { BackofficeRefreshControls } from "./BackofficeRefreshControls";
+import { AdminActionToast } from "./AdminActionToast";
+import { showAdminActionFeedback } from "@/lib/adminActionFeedback";
 
 const BACKOFFICE_API_URL = FRONTEND_URLS.api;
 
@@ -190,7 +192,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       );
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
-        // Évite un hard reload qui peut perdre le contexte UI sur certaines pages.
+        showAdminActionFeedback(
+          typeof data.message === "string"
+            ? data.message
+            : "Données de test générées.",
+        );
         router.refresh();
       } else {
         alert(data?.error || `Erreur ${res.status}: ${res.statusText}`);
@@ -233,7 +239,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       );
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
-        // Évite un hard reload qui peut perdre le contexte UI sur certaines pages.
+        showAdminActionFeedback(
+          typeof data.message === "string"
+            ? data.message
+            : "Données de test supprimées.",
+        );
         router.refresh();
       } else {
         alert(data?.error || `Erreur ${res.status}: ${res.statusText}`);
@@ -1308,6 +1318,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         }}
         onSelectSettings={() => setIsSettingsOpen(true)}
       />
+
+      <AdminActionToast />
     </div>
   );
 }

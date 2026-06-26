@@ -10,6 +10,7 @@ Dernière mise à jour : 25 juin 2026 (étape 1 mobile clos → étape 2 active)
 | **B — Gate pré-prod mobile** | Validations porteur `TODOS_A_VALIDER.md` étapes **1→5** | **EN COURS** (étape 2) | Une étape à la fois ; OK explicite porteur. |
 | **C — Déploiement rapide** | Builds, SMTP `@jobbingtrack.com`, gate prod | Après B | Inchangé. |
 | **D — Triage repo / scripts / docs** | Lot H + Lot E + `REPO_ORGANIZATION.md` | **CLOS (H0/H1/H2)** | Branche `chore/repo-scripts-docs-hygiene` — merge puis reprise mobile. Lot H bis secrets + Lot E doc = avant prod. |
+| **E — Plateforme admin réutilisable (Cloudity / OSS)** | Extraction backoffice, monitoring, analytics, billing, archive… en packages réutilisables | **APRÈS prod stable** | **Ne pas démarrer** avant clôture A+B+C + gate prod. Voir `docs/project/BACKLOG.md` § Lot P. |
 
 **Travail agent en cours (phase B — étape 2 Samsung)** :
 

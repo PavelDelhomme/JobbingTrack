@@ -65,6 +65,8 @@ for port in "${PORTS[@]}"; do
   fi
 done
 
+cd "$ROOT"
+node "$ROOT/scripts/mobile/setup/generate-debug-test-accounts.js"
 LAN_IP="$(pick_lan_ip || true)"
 DART_DEFINES=()
 if [[ -n "${LAN_IP:-}" ]]; then

@@ -16,7 +16,7 @@ describe("getCentralMetricsAggregatorBase (alias client metrics)", () => {
   });
 
   it("utilise le proxy frontend par défaut dans le navigateur", () => {
-    expect(getCentralMetricsAggregatorBase()).toBe("/api/metrics-aggregator");
+    expect(getCentralMetricsAggregatorBase()).toBe("/api/mon");
   });
 
   it("autorise explicitement le mode direct si demandé", () => {

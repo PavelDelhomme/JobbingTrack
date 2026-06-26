@@ -7,6 +7,7 @@ import {
   getServiceErrorMessage,
   shouldLogServiceError,
 } from "./services/serviceStatus";
+import { maybeToastApiSuccess } from "@/lib/adminActionFeedback";
 
 /** Résolu à chaque requête (évite https://…:5002 quand la page est en :5443). */
 function apiBaseUrl(): string {
@@ -137,7 +138,16 @@ criticalApiClient.interceptors.request.use((config) => {
 
 // Intercepteur pour gérer les erreurs d'authentification
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    maybeToastApiSuccess(
+      response.config.method,
+      response.config.url,
+      response.status,
+      response.data,
+      response.config.headers as Record<string, unknown>,
+    );
+    return response;
+  },
   (error) => {
     // Gestion des erreurs d'authentification
     if (error.response?.status === 401) {

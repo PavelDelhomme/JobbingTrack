@@ -9,7 +9,8 @@ export function getMetricsAggregatorClientBase(): string {
     process.env.NEXT_PUBLIC_METRICS_VIA_FRONTEND === "0";
 
   if (typeof window !== "undefined" && !forceDirect) {
-    return "/api/metrics-aggregator";
+    // Chemin sans le mot « metrics » (uBlock / Privacy Badger bloquent souvent /api/metrics-*)
+    return "/api/mon";
   }
 
   const viaFrontend =
@@ -18,7 +19,7 @@ export function getMetricsAggregatorClientBase(): string {
 
   if (viaFrontend) {
     if (typeof window !== "undefined") {
-      return "/api/metrics-aggregator";
+      return "/api/mon";
     }
     const internal = process.env.METRICS_AGGREGATOR_INTERNAL_URL?.replace(
       /\/$/,
@@ -51,6 +52,18 @@ export function getMetricsAggregatorClientBase(): string {
 
 /** Chemin relatif sans slash initial : ex. `docker/services/all`. */
 export function buildMetricsAggregatorUrl(relativePath: string): string {
+  const forceDirect =
+    process.env.NEXT_PUBLIC_METRICS_VIA_FRONTEND === "false" ||
+    process.env.NEXT_PUBLIC_METRICS_VIA_FRONTEND === "0";
+
+  if (typeof window !== "undefined" && !forceDirect) {
+    const sub = relativePath.replace(/^\//, "");
+    if (sub.startsWith("persistence/")) {
+      return `/api/persist/${sub.slice("persistence/".length)}`;
+    }
+    return `/api/mon/${sub}`;
+  }
+
   const base = getMetricsAggregatorClientBase();
   const path = relativePath.replace(/^\//, "");
   if (base.startsWith("/")) {

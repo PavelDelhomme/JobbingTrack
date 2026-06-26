@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AdminLayout } from "@/components/features";
 import { useAuth } from "@/lib/hooks/auth";
 import {
   AgentConsent,
@@ -29,6 +28,14 @@ import {
   updateAgentConsents,
 } from "@/lib/services/emailAgentService";
 import { Switch } from "@/components/ui/switch";
+import {
+  AgentPageShell,
+  AgentPanel,
+  agentBtnDanger,
+  agentBtnPrimary,
+  agentBtnSecondary,
+  agentFieldClass,
+} from "./AgentPageShell";
 
 const CONSENT_ORDER: AgentConsentType[] = [
   "MAILBOX_ACCESS",
@@ -339,24 +346,45 @@ export default function AgentEmailContent() {
 
   if (authLoading || loading) {
     return (
-      <AdminLayout>
-        <div className="p-6">Chargement…</div>
-      </AdminLayout>
+      <AgentPageShell
+        title="📬 Agent email"
+        description="Chargement de votre espace agent…"
+        adminExtraNav={isAdmin}
+      >
+        <div className="rounded-lg border border-gray-200 bg-white p-12 text-center shadow dark:border-gray-700 dark:bg-gray-800">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
+          <p className="mt-4 text-gray-600 dark:text-gray-400">
+            Chargement…
+          </p>
+        </div>
+      </AgentPageShell>
     );
   }
 
   return (
-    <AdminLayout>
-      <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Agent email — recherche d&apos;emploi
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Espace utilisateur privé : connectez vos boîtes, gérez vos consentements RGPD et validez
-            les emails triés. Distinct du backoffice admin.
-          </p>
-        </div>
+    <AgentPageShell
+      title="📬 Agent email — recherche d'emploi"
+      description={
+        <>
+          Espace privé : boîtes mail, consentements RGPD et tri des candidatures.
+          Les analytics détaillés sont dans l&apos;onglet{" "}
+          <strong>Analytics utilisateur</strong>.
+        </>
+      }
+      adminExtraNav={isAdmin}
+      actions={
+        status?.access.allowed ? (
+          <button
+            type="button"
+            onClick={handleSync}
+            disabled={actionLoading === "sync"}
+            className={agentBtnPrimary}
+          >
+            {actionLoading === "sync" ? "Synchronisation…" : "Synchroniser"}
+          </button>
+        ) : null
+      }
+    >
 
         {oauthBanner && (
           <div
@@ -377,9 +405,8 @@ export default function AgentEmailContent() {
         )}
 
         {status && (
-          <section className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-2">
-            <h2 className="font-semibold text-gray-900 dark:text-white">Statut</h2>
-            <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+          <AgentPanel title="Statut">
+            <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
               <li>
                 Agent activé :{" "}
                 <strong>
@@ -416,7 +443,7 @@ export default function AgentEmailContent() {
                       type="button"
                       onClick={activateAgentForSelf}
                       disabled={selfActivating}
-                      className="px-3 py-1.5 rounded-lg bg-teal-600 text-white text-sm hover:bg-teal-700 disabled:opacity-50"
+                      className={agentBtnPrimary}
                     >
                       {selfActivating ? "Activation…" : "Activer pour mon compte"}
                     </button>
@@ -430,17 +457,21 @@ export default function AgentEmailContent() {
                 )}
               </div>
             )}
-          </section>
+          </AgentPanel>
         )}
 
-        <section className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
-          <h2 className="font-semibold text-gray-900 dark:text-white">Consentements RGPD</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Version {status?.consentVersion || "1.0"} — compte connecté{" "}
-            <strong className="text-gray-800 dark:text-gray-200">{authUser?.email || "—"}</strong>.
-            Les consentements enregistrés sur mobile apparaissent ici pour le même compte (pas pour un autre
-            utilisateur).
-          </p>
+        <AgentPanel
+          title="Consentements RGPD"
+          description={
+            <>
+              Version {status?.consentVersion || "1.0"} — compte{" "}
+              <strong className="text-gray-800 dark:text-gray-200">
+                {authUser?.email || "—"}
+              </strong>
+              . Les consentements mobile apparaissent ici pour le même compte.
+            </>
+          }
+        >
           {!status?.agentEnabled && (
             <p className="text-sm text-amber-700 dark:text-amber-300 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3">
               Agent non activé — les statuts ci-dessous reflètent la base de données ; activez l&apos;agent pour
@@ -500,14 +531,13 @@ export default function AgentEmailContent() {
             type="button"
             onClick={saveConsents}
             disabled={!status?.agentEnabled || actionLoading === "consents"}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm disabled:opacity-50"
+            className={agentBtnPrimary}
           >
             Enregistrer les consentements
           </button>
-        </section>
+        </AgentPanel>
 
-        <section className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-4">
-          <h2 className="font-semibold text-gray-900 dark:text-white">Connecter une boîte mail</h2>
+        <AgentPanel title="Connecter une boîte mail">
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
@@ -517,17 +547,9 @@ export default function AgentEmailContent() {
                 !status?.hasRequiredConsents ||
                 actionLoading === "gmail"
               }
-              className="px-4 py-2 rounded-lg bg-white border border-gray-300 dark:bg-gray-900 dark:border-gray-600 text-sm disabled:opacity-50"
+              className={agentBtnSecondary}
             >
               Lier Gmail (OAuth lecture seule)
-            </button>
-            <button
-              type="button"
-              onClick={handleSync}
-              disabled={!status?.access.allowed || actionLoading === "sync"}
-              className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm disabled:opacity-50"
-            >
-              Synchroniser maintenant
             </button>
           </div>
 
@@ -538,7 +560,7 @@ export default function AgentEmailContent() {
               value={imapForm.emailAddress}
               onChange={(e) => setImapForm((f) => ({ ...f, emailAddress: e.target.value }))}
               onBlur={handleImapEmailBlur}
-              className="rounded-lg border px-3 py-2 text-sm dark:bg-gray-900 dark:border-gray-700"
+              className={agentFieldClass}
             />
             <input
               required
@@ -546,20 +568,20 @@ export default function AgentEmailContent() {
               placeholder="Mot de passe / app password"
               value={imapForm.password}
               onChange={(e) => setImapForm((f) => ({ ...f, password: e.target.value }))}
-              className="rounded-lg border px-3 py-2 text-sm dark:bg-gray-900 dark:border-gray-700"
+              className={agentFieldClass}
             />
             <input
               required
               placeholder="Hôte IMAP (ex. imap.mail.ovh.net)"
               value={imapForm.imapHost}
               onChange={(e) => setImapForm((f) => ({ ...f, imapHost: e.target.value }))}
-              className="rounded-lg border px-3 py-2 text-sm dark:bg-gray-900 dark:border-gray-700"
+              className={agentFieldClass}
             />
             <input
               placeholder="Port IMAP"
               value={imapForm.imapPort}
               onChange={(e) => setImapForm((f) => ({ ...f, imapPort: e.target.value }))}
-              className="rounded-lg border px-3 py-2 text-sm dark:bg-gray-900 dark:border-gray-700"
+              className={agentFieldClass}
             />
             {imapDiscoveryHint && (
               <p className="md:col-span-2 text-xs text-gray-600 dark:text-gray-400">
@@ -574,16 +596,15 @@ export default function AgentEmailContent() {
                 actionLoading === "imap" ||
                 imapDiscovering
               }
-              className="md:col-span-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm disabled:opacity-50"
+              className={`md:col-span-2 ${agentBtnPrimary}`}
             >
               Ajouter boîte IMAP
             </button>
           </form>
-        </section>
+        </AgentPanel>
 
         {status && status.mailboxes.length > 0 && (
-          <section className="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <h2 className="font-semibold mb-3 text-gray-900 dark:text-white">Boîtes connectées</h2>
+          <AgentPanel title="Boîtes connectées">
             <ul className="space-y-2">
               {status.mailboxes.map((mb) => (
                 <li
@@ -601,21 +622,18 @@ export default function AgentEmailContent() {
                     type="button"
                     onClick={() => handleRevoke(mb.id)}
                     disabled={actionLoading === `revoke-${mb.id}`}
-                    className="text-red-600 text-sm"
+                    className={agentBtnDanger}
                   >
                     Révoquer
                   </button>
                 </li>
               ))}
             </ul>
-          </section>
+          </AgentPanel>
         )}
 
         {messages.length > 0 && (
-          <section className="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <h2 className="font-semibold mb-3 text-gray-900 dark:text-white">
-              Emails à traiter ({messages.length})
-            </h2>
+          <AgentPanel title={`Emails à traiter (${messages.length})`}>
             <ul className="space-y-3">
               {messages.map((msg) => {
                 const actions = proposedActions[msg.id];
@@ -751,9 +769,8 @@ export default function AgentEmailContent() {
                 );
               })}
             </ul>
-          </section>
+          </AgentPanel>
         )}
-      </div>
-    </AdminLayout>
+    </AgentPageShell>
   );
 }

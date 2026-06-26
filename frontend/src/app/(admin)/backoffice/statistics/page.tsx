@@ -14,6 +14,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { useAuth } from "@/lib/hooks/auth";
 import { useRouter } from "next/navigation";
 import { centralMetricsService } from "@/lib/services/centralMetricsService";
+import { lastSystemMetricsHistoryFetchFailed } from "@/lib/api/analytics.service";
 import {
   buildStatisticsServicesFromDocker,
   filterMetricsListToActive,
@@ -259,6 +260,7 @@ export default function StatisticsPage() {
     pointCount: 0,
     errorDerived: false,
     source: "empty" as "system_metrics" | "empty",
+    fetchFailed: false,
   });
   const [serviceHistory, setServiceHistory] = useState<ServiceMetricsHistory[]>(
     [],
@@ -574,6 +576,7 @@ export default function StatisticsPage() {
           pointCount: formattedHistory.length,
           errorDerived: formattedHistory.some((h) => h.error_rate_derived),
           source: formattedHistory.length > 0 ? "system_metrics" : "empty",
+          fetchFailed: false,
         });
 
         // Récupérer aussi l'historique par service si disponible
@@ -600,6 +603,14 @@ export default function StatisticsPage() {
         if (serviceHistoryData.length > 0) {
           setServiceHistory(serviceHistoryData);
         }
+      } else {
+        setMetricsHistory([]);
+        setHistorySeriesMeta({
+          pointCount: 0,
+          errorDerived: false,
+          source: "empty",
+          fetchFailed: lastSystemMetricsHistoryFetchFailed,
+        });
       }
     } catch (error) {
       console.error("Erreur chargement historique métriques:", error);
@@ -607,6 +618,7 @@ export default function StatisticsPage() {
         pointCount: 0,
         errorDerived: false,
         source: "empty",
+        fetchFailed: lastSystemMetricsHistoryFetchFailed,
       });
     }
   };
@@ -1274,6 +1286,7 @@ const OverviewTab = memo(function OverviewTab({
           periodLabel={chartPeriodLabel}
           pointCount={historySeriesMeta?.pointCount ?? 0}
           source={historySeriesMeta?.source}
+          fetchFailed={historySeriesMeta?.fetchFailed}
         />
       </Suspense>
       <div className="flex flex-wrap gap-3 text-sm">
@@ -2595,6 +2608,7 @@ const SecurityTab = memo(function SecurityTab({
           periodLabel={chartPeriodLabel}
           pointCount={historySeriesMeta?.pointCount ?? 0}
           source={historySeriesMeta?.source}
+          fetchFailed={historySeriesMeta?.fetchFailed}
         />
       </Suspense>
 
