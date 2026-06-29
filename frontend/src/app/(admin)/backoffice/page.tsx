@@ -48,6 +48,8 @@ import {
 } from "@/lib/metrics/serviceHealthOverview";
 import { averagePriorityResponseTimeMs } from "@/lib/metrics/responseTimePresentation";
 import { PriorityResponseServicesSummary } from "@/components/monitoring/PriorityResponseServicesSummary";
+import { fetchSecurityAnalysisSummary } from "@/lib/security/securityAnalysisSummary";
+import { SECURITY_LIVE_OVERVIEW_REFRESH_MS, SECURITY_LIVE_WINDOW_DAYS } from "@/lib/security/securityLiveConstants";
 
 const API_URL = FRONTEND_URLS.api;
 
@@ -667,18 +669,14 @@ export default function BackofficePage() {
                   })();
 
           // ✅ Calculer le taux d'erreur depuis les métriques
-          const totalErrors = allMetrics.errors?.total_last_5m || 0;
           const errorRate = allMetrics.errors?.rate_per_min || 0;
 
-          // Événements erreur côté agrégateur (fenêtre courte, ex. 5 min) — pas une vue 24h tant que l’API ne l’expose pas
-          const securityWindowErrors =
-            typeof totalErrors === "number" ? totalErrors : 0;
           const nextErrorRate =
             typeof errorRate === "number" && !Number.isNaN(errorRate)
               ? errorRate
               : 0;
 
-          // ✅ Mettre à jour les stats (0 explicite pour taux / compteurs, pas conserver une ancienne valeur)
+          // ✅ Mettre à jour les stats (signaux sécurité = fetch dédié securityAnalysisSummary)
           setStats((prev: any) => ({
             ...prev,
             averageResponseTime:
@@ -687,7 +685,6 @@ export default function BackofficePage() {
                 ? avgResponseTime
                 : prev.averageResponseTime,
             errorRate: nextErrorRate,
-            recentErrors: securityWindowErrors,
             systemHealth: allMetrics.health?.availability_percent
               ? Math.round(Number(allMetrics.health.availability_percent))
               : prev.systemHealth,
@@ -737,6 +734,51 @@ export default function BackofficePage() {
       };
     }
   }, [isAuthenticated, metricsRefreshInterval]);
+
+  // Signaux sécurité : même source que /backoffice/security (détections 30 j), pas errors.total_last_5m
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let cancelled = false;
+    const loadSecuritySignals = async () => {
+      try {
+        const authToken =
+          token ||
+          (typeof localStorage !== "undefined"
+            ? localStorage.getItem("token")
+            : null);
+        const summary = await fetchSecurityAnalysisSummary(
+          API_URL,
+          authToken,
+          { blockedPage: 1, blockedLimit: 10 },
+        );
+        if (cancelled) return;
+        setStats((prev) => ({
+          ...prev,
+          recentErrors: summary.detectionsCount,
+          securityAlerts: summary.openThreatsCount,
+        }));
+      } catch {
+        /* garder dernière valeur */
+      }
+    };
+
+    const initialTimeout = setTimeout(() => {
+      void loadSecuritySignals();
+    }, 800);
+
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible" && !document.hidden) {
+        void loadSecuritySignals();
+      }
+    }, SECURITY_LIVE_OVERVIEW_REFRESH_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+    };
+  }, [isAuthenticated, token]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -1057,7 +1099,11 @@ export default function BackofficePage() {
                     (dockerService.is_healthy
                       ? { status: "healthy" }
                       : { status: "unhealthy" }),
-                  responseTime: prevService?.responseTime || "N/A",
+                  responseTime:
+                    typeof dockerService.health?.responseTime === "number" &&
+                    dockerService.health.responseTime > 0
+                      ? Math.round(dockerService.health.responseTime)
+                      : prevService?.responseTime || "N/A",
                   uptime:
                     prevService?.uptime ||
                     (dockerService.is_running ? "En ligne" : "Hors ligne"),
@@ -1166,7 +1212,7 @@ export default function BackofficePage() {
               value={
                 stats.recentErrors !== undefined ? stats.recentErrors : "..."
               }
-              subtitle="Événements sécurité récents"
+              subtitle={`Détections (${SECURITY_LIVE_WINDOW_DAYS} j) — menaces + logs`}
               icon={<Shield className="h-6 w-6" />}
               color="red"
               href="/backoffice/security/incidents"

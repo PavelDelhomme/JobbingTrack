@@ -810,78 +810,48 @@ router.get('/services/all', async (req, res) => {
       }
     }
 
-    // Health HTTP : optionnel (mode light pour graphes Performances).
+    // Health HTTP : sondes actives même en mode light (light = sans docker inspect groupé).
     const httpHealthMap = {};
-    if (lightMode) {
-      for (const container of allContainers) {
+    const healthChecks = await Promise.allSettled(
+      allContainers.map(async (container) => {
         const name = container.canonicalName || normalizeDockerPsName(container.Names);
         const containerState = containerStateMap[name] || {
           isRunning: container.State === 'running',
         };
-        const dockerHealthInfo = healthStatusMap[name] || {
-          health: 'unknown',
-          running: containerState.isRunning,
-        };
-        if (!containerState.isRunning) {
-          httpHealthMap[name] = {
+        const isRunning = containerState.isRunning;
+        const stats = statsMap[name];
+
+        if (isRunning) {
+          try {
+            const healthInfo = await probeServiceHealth(name, stats);
+            return { name, healthInfo };
+          } catch (error) {
+            return {
+              name,
+              healthInfo: {
+                status: 'unknown',
+                responseTime: null,
+                error: error.message,
+              },
+            };
+          }
+        }
+        return {
+          name,
+          healthInfo: {
             status: 'offline',
             responseTime: null,
             error: 'Service arrêté',
-          };
-        } else if (dockerHealthInfo.health === 'healthy') {
-          httpHealthMap[name] = { status: 'healthy', responseTime: null, error: null };
-        } else if (dockerHealthInfo.health === 'unhealthy') {
-          httpHealthMap[name] = {
-            status: 'unhealthy',
-            responseTime: null,
-            error: 'Healthcheck Docker unhealthy',
-          };
-        } else {
-          httpHealthMap[name] = { status: 'ok', responseTime: null, error: null };
-        }
+          },
+        };
+      }),
+    );
+
+    healthChecks.forEach((result) => {
+      if (result.status === 'fulfilled' && result.value) {
+        httpHealthMap[result.value.name] = result.value.healthInfo;
       }
-    } else {
-      const healthChecks = await Promise.allSettled(
-        allContainers.map(async (container) => {
-          const name = container.canonicalName || normalizeDockerPsName(container.Names);
-          const containerState = containerStateMap[name] || {
-            isRunning: container.State === 'running',
-          };
-          const isRunning = containerState.isRunning;
-          const stats = statsMap[name];
-
-          if (isRunning) {
-            try {
-              const healthInfo = await probeServiceHealth(name, stats);
-              return { name, healthInfo };
-            } catch (error) {
-              return {
-                name,
-                healthInfo: {
-                  status: 'unknown',
-                  responseTime: null,
-                  error: error.message,
-                },
-              };
-            }
-          }
-          return {
-            name,
-            healthInfo: {
-              status: 'offline',
-              responseTime: null,
-              error: 'Service arrêté',
-            },
-          };
-        }),
-      );
-
-      healthChecks.forEach((result) => {
-        if (result.status === 'fulfilled' && result.value) {
-          httpHealthMap[result.value.name] = result.value.healthInfo;
-        }
-      });
-    }
+    });
 
     // Mapper tous les conteneurs avec leurs stats, health status Docker ET HTTP
     const services = allContainers.map(container => {

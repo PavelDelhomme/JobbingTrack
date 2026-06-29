@@ -160,7 +160,7 @@ Attendu : `200`.
 ### 5.1 Lenteur `docker/services/all` (~2,4 s)
 
 - **Cause** : cold path Docker (`docker stats` + inspect) + cache serveur 60 s.
-- **Correctifs** : query `?light=1` (stats JobbingTrack only, sans probes HTTP) ; cache client partagé `containersListClientCache.ts` (60 s) ; prefetch dans `PerformancesSubNav.tsx` ; bypass cache `?refresh=1` sur soft refresh (~45 s).
+- **Correctifs** : query `?light=1` (stats JobbingTrack only, **sans docker inspect groupé** — sondes HTTP **conservées** pour temps de réponse) ; cache client partagé `containersListClientCache.ts` (60 s) ; prefetch dans `PerformancesSubNav.tsx` ; bypass cache `?refresh=1` sur soft refresh (~45 s).
 - **Fichiers** : `docker.routes.js`, `docker.service.js`, `analytics.service.ts`, `usePerformancesContainersList.ts`.
 
 ### 5.2 Cartes « CPU / Mémoire live » incohérentes avec le graphe

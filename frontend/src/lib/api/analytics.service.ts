@@ -428,7 +428,7 @@ export class AnalyticsService {
 
   /**
    * Récupérer la liste des conteneurs (depuis metrics-aggregator docker/services/all)
-   * @param options.light — true (défaut) : sans sondes HTTP (~2 s plus rapide) pour graphes Performances
+   * @param options.light — true (défaut) : sans docker inspect groupé (plus rapide) ; sondes HTTP conservées
    */
   async getContainersList(options?: {
     timeoutMs?: number;
