@@ -82,7 +82,7 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | **FAB shell mobile** | `shellFabPadding` : décalage réduit à **25 %** (`kShellFabBottomLiftFactor`) au-dessus bottom bar — rebuild APK porteur | [x] 29/06 |
 | **Menu drawer mobile** | Bouton **Menu** explicite + en-tête drawer → **Profil** (`onDetailsPressed` `/profile`) | [x] 29/06 — **OK porteur** menu visuel ; fix tap en-tête profil |
 | **Redémarrage contrôleur** | `bash scripts/mobile/setup/restart-emulator-controller.sh` — libère ports **5055/5056** via `lsof` (évite EADDRINUSE après `pkill` seul) | [x] 29/06 |
-| **Matrice entités entremêlées** | `node scripts/mobile/setup/run-interleaved-live-matrix.js` — seed Capgemini/Orange/Thales/Atos/Sopra/Dassault/OVH + contacts/relances/entretiens/appels/calendrier ; smoke **22/22 OK** ; journey **19/19** ; crash pipeline OK ; rapport `scripts/ops/reports/recap-interleaved-live-matrix-*.html` ; email **`paul.delhomme@proton.me` HTTP 202** | [x] 29/06 |
+| **Matrice entités entremêlées** | Source unique `scripts/mobile/lib/interleaved-scenarios.js` — seed + smoke génériques (`expect`: statut, contacts, entretiens, relances, appels) ; **30/30 OK** ; endpoint appels `/calls/application/:id` ; email **`paul.delhomme@proton.me`** | [x] 29/06 refactor |
 
 ```bash
 node scripts/mobile/ensure-test-accounts-ready.js

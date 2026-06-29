@@ -10,6 +10,7 @@ Document de référence pour les tests **en conditions réelles** (API gateway +
 | **Matrice entités entremêlées** | `node scripts/mobile/setup/run-interleaved-live-matrix.js` (cible Make `mobile-interleaved-matrix`) |
 | Seed réaliste seul | `node scripts/mobile/setup/run-interleaved-live-matrix.js --seed-only` (cible Make `mobile-interleaved-seed`) |
 | Smoke entités seed | `node scripts/mobile/smoke/api/smoke-interleaved-entities-api.js` |
+| **Manifeste scénarios** | `scripts/mobile/lib/interleaved-scenarios.js` (ajouter un scénario = 1 entrée, pas de code par entreprise) |
 | Login user ADB | `node scripts/mobile/smoke-login-user-adb.js` |
 | Install + reverse | script `scripts/mobile/setup-physical-device.sh` (cible Make documentée `run-mobile`) |
 
@@ -80,7 +81,14 @@ Sans rappels locaux ou push, l’utilisateur ne reçoit **pas** de notification 
 
 ## Dernière exécution agent
 
-**29/06/2026** — Matrice entités entremêlées (`run-interleaved-live-matrix.js`) :
+**29/06/2026 (refactor)** — Manifeste unique `interleaved-scenarios.js` :
+
+- **8 scénarios déclaratifs** : `expect` générique (statut, min/max contacts, entretiens, relances, appels, appel sans contact, sujet relance…)
+- **Smoke entremêlé** : **30/30 OK** (endpoint appels corrigé : `/api/v1/calls/application/:id`)
+- **Parcours API** : **19/19 OK** · **Pipeline crash** : OK
+- **Email récap** : `paul.delhomme@proton.me`
+
+**29/06/2026** — Première matrice :
 
 - **Seed** : Capgemini, Orange, Thales, Atos (refus), Sopra (appel sans contact), Dassault, OVHcloud + contact autonome
 - **Smoke entremêlé** : **22/22 OK** (candidatures, contacts, relances, entretiens, appels, calendrier 50 événements, entreprises)

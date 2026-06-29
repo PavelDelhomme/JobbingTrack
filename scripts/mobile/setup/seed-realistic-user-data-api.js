@@ -3,20 +3,18 @@
  * Nettoie les données smoke (MobLiveCo-*, Dev Flutter *, Smoke *) puis seed un jeu
  * réaliste de candidatures / contacts / relances / entretiens / appels pour TEST_USER.
  *
+ * Scénarios : scripts/mobile/lib/interleaved-scenarios.js (source unique seed + smoke).
+ *
  * Usage :
  *   node scripts/mobile/setup/seed-realistic-user-data-api.js
- *   node scripts/mobile/setup/seed-realistic-user-data-api.js --seed-only   # sans nettoyage
+ *   node scripts/mobile/setup/seed-realistic-user-data-api.js --seed-only
  *   node scripts/mobile/setup/seed-realistic-user-data-api.js --cleanup-only
- *
- * Throttle : SEED_API_DELAY_MS=350 (défaut) entre requêtes — évite rafales WAF/rate-limit.
- * Prérequis : stack up, TEST_USER_* dans .env, gateway 5002.
- *
- * Note : import mail réel (candidatures@delhomme.ovh) bloqué tant que IMAP OVH KO (BL-26-02).
  */
 
 const { resolveWorkingUserCredentials, GATEWAY_URL } = require('../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../lib/resolve-admin-credentials');
 const { createApiThrottle } = require('../../../tools/api/throttle');
+const { INTERLEAVED_SCENARIOS, seedScenario } = require('../lib/interleaved-scenarios');
 
 loadRootEnv();
 
@@ -45,18 +43,6 @@ async function api(method, path, body) {
     data = { raw: text };
   }
   return { status: res.status, data };
-}
-
-function daysAgo(n) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString();
-}
-
-function daysAhead(n) {
-  const d = new Date();
-  d.setDate(d.getDate() + n);
-  return d.toISOString();
 }
 
 function isSmokeApplication(app) {
@@ -192,11 +178,7 @@ async function createInterview(applicationId, interviewDate, notes, location) {
 }
 
 async function createCall({ applicationId, callDate, subject, notes, contactId, companyId }) {
-  const body = {
-    callDate,
-    subject,
-    notes,
-  };
+  const body = { callDate, subject, notes };
   if (applicationId) body.applicationId = applicationId;
   if (contactId) body.contactId = contactId;
   if (companyId) body.companyId = companyId;
@@ -213,148 +195,23 @@ async function linkCallToFollowUp(callId, followUpId) {
 async function seed() {
   console.log('--- Seed jeu réaliste (scénarios variés) ---\n');
 
-  // 1. Capgemini — entretien + relance + appel contact
-  const cap = await createApplication({
-    position: 'Développeur Full Stack',
-    companyName: 'Capgemini',
-    status: 'AWAITING_INTERVIEW',
-    applicationDate: daysAgo(18),
-    location: 'Paris La Défense',
-    notes: 'Candidature via LinkedIn — profil Java/React',
-  });
-  const capContact = await createContact({
-    firstName: 'Marie',
-    lastName: 'Dupont',
-    email: 'marie.dupont@capgemini.com',
-    phone: '+33 6 12 34 56 01',
-    companyId: cap.companyId,
-    position: 'Chargée de recrutement IT',
-  });
-  await linkContact(capContact.id, cap.id);
-  await createInterview(cap.id, daysAhead(5), '[Format: Distanciel]\nEntretien RH puis technique', 'Visio Teams');
-  await createFollowUp(cap.id, daysAgo(10), 'Relance après envoi CV — réponse positive');
-  await createCall({
-    applicationId: cap.id,
-    contactId: capContact.id,
-    callDate: daysAgo(12),
-    subject: 'Premier échange RH',
-    notes: '15 min — créneaux entretien proposés',
-  });
-  console.log('✅ Capgemini — entretien + relance + appel contact');
+  const ctx = {
+    api,
+    createApplication,
+    createContact,
+    linkContact,
+    createFollowUp,
+    createInterview,
+    createCall,
+    linkCallToFollowUp,
+    seeded: {},
+  };
 
-  // 2. Orange — sans réponse, 2 relances, appel de relance lié
-  const orange = await createApplication({
-    position: 'Ingénieur réseau',
-    companyName: 'Orange',
-    status: 'NO_RESPONSE',
-    applicationDate: daysAgo(35),
-    location: 'Rennes',
-    notes: 'Offre site careers.orange.com',
-  });
-  const fu1 = await createFollowUp(orange.id, daysAgo(21), 'Relance email n°1 — pas de réponse');
-  const fu2 = await createFollowUp(orange.id, daysAgo(7), 'Relance email n°2 — toujours silence');
-  const orangeContact = await createContact({
-    firstName: 'Thomas',
-    lastName: 'Bernard',
-    email: 'thomas.bernard@orange.com',
-    phone: '+33 6 98 76 54 32',
-    companyId: orange.companyId,
-    position: 'Responsable recrutement',
-  });
-  await linkContact(orangeContact.id, orange.id);
-  const relanceCall = await createCall({
-    applicationId: orange.id,
-    contactId: orangeContact.id,
-    callDate: daysAgo(5),
-    subject: 'Appel de relance téléphonique',
-    notes: 'Messagerie — rappel prévu',
-  });
-  await linkCallToFollowUp(relanceCall.id, fu2.id);
-  console.log('✅ Orange — 2 relances + appel relance lié');
-
-  // 3. Thales — entretien sans relance
-  const thales = await createApplication({
-    position: 'DevOps Engineer',
-    companyName: 'Thales',
-    status: 'AWAITING_INTERVIEW',
-    applicationDate: daysAgo(8),
-    location: 'Velizy-Villacoublay',
-    notes: 'Recommandation ex-collègue',
-  });
-  await createInterview(thales.id, daysAhead(2), '[Format: Présentiel]\nEntretien manager', 'Site Thales Velizy');
-  console.log('✅ Thales — entretien sans relance');
-
-  // 4. Atos — refusée, sans entretien ni relance
-  await createApplication({
-    position: 'Consultant SI',
-    companyName: 'Atos',
-    status: 'REJECTED_WITHOUT_INTERVIEW',
-    applicationDate: daysAgo(45),
-    location: 'Lyon',
-    notes: 'Refus reçu par email après 3 semaines',
-  });
-  console.log('✅ Atos — refusée sans suite');
-
-  // 5. Sopra Steria — appel entreprise sans contact nominatif
-  const sopra = await createApplication({
-    position: 'Lead Developer Java',
-    companyName: 'Sopra Steria',
-    status: 'CANDIDATE_PENDING',
-    applicationDate: daysAgo(14),
-    location: 'Bordeaux',
-    notes: 'Candidature spontanée',
-  });
-  await createCall({
-    applicationId: sopra.id,
-    callDate: daysAgo(3),
-    subject: 'Appel standard accueil entreprise',
-    notes: 'Orientation vers service RH — pas de contact direct',
-  });
-  console.log('✅ Sopra Steria — appel sans contact');
-
-  // 6. Dassault — contact créé, candidature en attente
-  const dassault = await createApplication({
-    position: 'Architecte Cloud AWS',
-    companyName: 'Dassault Systèmes',
-    status: 'CANDIDATE_PENDING',
-    applicationDate: daysAgo(5),
-    location: 'Vélizy',
-    notes: 'Profil cloud / Kubernetes',
-  });
-  const dsContact = await createContact({
-    firstName: 'Sophie',
-    lastName: 'Martin',
-    email: 'sophie.martin@3ds.com',
-    phone: '+33 6 11 22 33 44',
-    companyId: dassault.companyId,
-    position: 'Talent Acquisition',
-  });
-  await linkContact(dsContact.id, dassault.id);
-  console.log('✅ Dassault — contact lié, pas encore d’appel');
-
-  // 7. Contact autonome (entreprise existante Capgemini) sans nouvelle candidature
-  await createContact({
-    firstName: 'Luc',
-    lastName: 'Petit',
-    email: 'luc.petit@capgemini.com',
-    phone: '+33 6 55 44 33 22',
-    companyId: cap.companyId,
-    position: 'Directeur technique',
-  });
-  console.log('✅ Contact autonome Capgemini (sans nouvelle candidature)');
-
-  // 8. OVHcloud — plusieurs relances, pas d’appel
-  const ovh = await createApplication({
-    position: 'SRE Platform Engineer',
-    companyName: 'OVHcloud',
-    status: 'CANDIDATE_PENDING',
-    applicationDate: daysAgo(22),
-    location: 'Roubaix',
-    notes: 'Aligné stack interne — candidatures@delhomme.ovh',
-  });
-  await createFollowUp(ovh.id, daysAgo(15), 'Relance J+7');
-  await createFollowUp(ovh.id, daysAgo(8), 'Relance J+14');
-  console.log('✅ OVHcloud — 2 relances sans appel');
+  for (const scenario of INTERLEAVED_SCENARIOS) {
+    const result = await seedScenario(scenario, ctx);
+    if (scenario.kind === 'application') ctx.seeded[scenario.id] = result;
+    console.log(`✅ ${scenario.label} — ${scenario.seedSummary || scenario.kind}`);
+  }
 
   console.log('\n--- Seed terminé ---\n');
 }
@@ -379,6 +236,7 @@ async function main() {
   const summary = await api('GET', '/api/v1/applications?limit=200');
   const count = (summary.data.applications || []).length;
   console.log(`Total candidatures visibles : ${count}`);
+  console.log(`Scénarios déclarés : ${INTERLEAVED_SCENARIOS.length}`);
   console.log('Ouvrez l’app mobile pour parcourir les scénarios.\n');
 }
 
