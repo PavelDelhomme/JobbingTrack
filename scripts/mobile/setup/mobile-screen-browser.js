@@ -16,7 +16,7 @@ const CONTROLLER =
     "",
   );
 const PORT = parseInt(process.env.MOBILE_SCREEN_BROWSER_PORT || "8765", 10);
-const REFRESH_MS = parseInt(process.env.MOBILE_SCREEN_REFRESH_MS || "600", 10);
+const REFRESH_MS = parseInt(process.env.MOBILE_SCREEN_REFRESH_MS || "120", 10);
 
 function pickDevice() {
   if (process.env.ADB_DEVICE) return process.env.ADB_DEVICE.trim();
@@ -68,7 +68,7 @@ function controllerHealth() {
 
 function fetchScreenshot(device) {
   return new Promise((resolve, reject) => {
-    const url = `${CONTROLLER}/screenshot?device=${encodeURIComponent(device)}&t=${Date.now()}`;
+    const url = `${CONTROLLER}/screenshot?device=${encodeURIComponent(device)}&live=1&t=${Date.now()}`;
     http
       .get(url, (res) => {
         if (res.statusCode !== 200) {
@@ -151,6 +151,10 @@ async function main() {
     process.exit(1);
   }
 
+  http
+    .get(`${CONTROLLER}/live/start?device=${encodeURIComponent(device)}`)
+    .on("error", () => {});
+
   const server = http.createServer(async (req, res) => {
     if (req.url === "/" || req.url.startsWith("/?")) {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
@@ -183,6 +187,13 @@ async function main() {
     try {
       spawn("xdg-open", [url], { stdio: "ignore", detached: true }).unref();
     } catch (_) {}
+  });
+
+  process.on("SIGINT", () => {
+    http
+      .get(`${CONTROLLER}/live/stop?device=${encodeURIComponent(device)}`)
+      .on("error", () => {});
+    process.exit(0);
   });
 }
 

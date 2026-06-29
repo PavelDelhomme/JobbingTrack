@@ -9,6 +9,7 @@ import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
+import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/widgets/company_picker_field.dart';
 import 'package:jobbingtrack_mobile/widgets/platform_picker_field.dart';
@@ -451,6 +452,8 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       key: _scaffoldKey,
       drawer: AppDrawer(),
       appBar: AppBar(
+        leading: const AppDrawerLeadingButton(),
+        automaticallyImplyLeading: false,
         title: Text(isEdit ? 'Modifier la candidature' : 'Nouvelle candidature'),
         centerTitle: true,
       ),

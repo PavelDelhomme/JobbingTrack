@@ -5,6 +5,7 @@ import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
 import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
+import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
@@ -51,6 +52,8 @@ class _InterviewsScreenState extends State<InterviewsScreen> with SingleTickerPr
       key: _scaffoldKey,
       drawer: AppDrawer(),
       appBar: AppBar(
+        leading: const AppDrawerLeadingButton(),
+        automaticallyImplyLeading: false,
         title: const Text('Entretiens'),
         centerTitle: true,
         actions: const [MobileNotificationCenter()],

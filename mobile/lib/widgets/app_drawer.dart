@@ -53,7 +53,10 @@ class _AppDrawerState extends State<AppDrawer> {
             currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
               child: Text(
-                user?.firstName.substring(0, 1).toUpperCase() ?? 'U',
+                (user?.firstName.isNotEmpty == true
+                        ? user!.firstName.substring(0, 1)
+                        : 'U')
+                    .toUpperCase(),
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -62,7 +65,7 @@ class _AppDrawerState extends State<AppDrawer> {
               ),
             ),
             accountName: Text(
-              '${user?.firstName ?? ''} ${user?.lastName ?? ''}',
+              '${user?.firstName ?? ''} ${user?.lastName ?? ''}'.trim(),
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -74,6 +77,8 @@ class _AppDrawerState extends State<AppDrawer> {
                 fontSize: 14,
               ),
             ),
+            onDetailsPressed: () =>
+                ShellNavigation.navigateFromDrawer(context, '/profile'),
           ),
 
           // Navigation principale

@@ -75,12 +75,19 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | Écran mobile Logs | Redirige vers bon chemin backoffice (plus « Services & Logs » seul) | [x] |
 | **Cause racine 413** | Payload capture/diagnostic >64 Ko rejeté ; fix parser **2 Mo** + bypass WAF + retry sans PJ | [x] |
 | **Bug WAF method TDZ** | `ReferenceError: Cannot access 'method' before initialization` — bypass crash après déclaration method/url | [x] |
-| Smoke pipeline | `node scripts/ops/smoke-mobile-crash-pipeline.js` → POST heavy **201**, GET OK | [x] |
+| Smoke pipeline | `node scripts/ops/smoke-mobile-crash-pipeline.js` → POST heavy **201**, GET OK | [x] re-run **29/06** OK |
 | Consentement télémétrie | Opt-out utilisateur respecté (plus de réactivation forcée à chaque init) | [x] |
 | Feedback sans télémétrie | Signaler un bug fonctionne même si analytics OFF ; erreurs auto = consentement ON | [x] |
+| **Aperçu live mobile-emulator** | Cache frames contrôleur 5055 (`/live/start`, boucle ~120 ms) + fetch pipeline front (~16 ms) ; latence HTTP cache **<2 ms** vs ~400 ms screencap ; redémarrer contrôleur après deploy | [x] 29/06 |
+| **FAB shell mobile** | `shellFabPadding` : décalage réduit à **25 %** (`kShellFabBottomLiftFactor`) au-dessus bottom bar — rebuild APK porteur | [x] 29/06 |
+| **Menu drawer mobile** | Bouton **Menu** explicite + en-tête drawer → **Profil** (`onDetailsPressed` `/profile`) | [x] 29/06 — **OK porteur** menu visuel ; fix tap en-tête profil |
+| **Redémarrage contrôleur** | `bash scripts/mobile/setup/restart-emulator-controller.sh` — libère ports **5055/5056** via `lsof` (évite EADDRINUSE après `pkill` seul) | [x] 29/06 |
+| **Matrice entités entremêlées** | `node scripts/mobile/setup/run-interleaved-live-matrix.js` — seed Capgemini/Orange/Thales/Atos/Sopra/Dassault/OVH + contacts/relances/entretiens/appels/calendrier ; smoke **22/22 OK** ; journey **19/19** ; crash pipeline OK ; rapport `scripts/ops/reports/recap-interleaved-live-matrix-*.html` ; email **`paul.delhomme@proton.me` HTTP 202** | [x] 29/06 |
 
 ```bash
 node scripts/mobile/ensure-test-accounts-ready.js
+node scripts/mobile/setup/run-interleaved-live-matrix.js
+node scripts/mobile/smoke/api/smoke-interleaved-entities-api.js
 node scripts/mobile/setup/diagnose-registration-email.js
 node scripts/mobile/smoke-preflight.js
 node scripts/mobile/smoke-run-mobile-fast.js

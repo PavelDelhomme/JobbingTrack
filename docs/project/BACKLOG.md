@@ -233,6 +233,21 @@ Voir **`docs/pilotage/PILOTAGE.md`** § « Phase post-D8 ».
 
 **Priorité** : backlog post-prod uniquement — ne pas ralentir mobile étape 2→5 ni gate production.
 
+## Tutoriels & navigation backoffice (29/06 porteur)
+
+**Objectif** : une vague unique post-mobile (pas de demi-refonte) — menu backoffice, hub **Tests**, section **Utilisateur/Produit**, tutoriels mobile + web (skip / replay / édition admin), doc `docs/` incrémentale sans toucher `docs/archive/`.
+
+| Thème | Contenu |
+|-------|---------|
+| **Tests (BL-NAV-01)** | Émulateur mobile, Playwright, smokes ADB, nettoyage comptes, rapports comparatifs pré/post release |
+| **Utilisateur (BL-NAV-02)** | Tutoriels backoffice, aide contextuelle, parcours guidé administrateur |
+| **Mobile logs (BL-NAV-03)** | Reclasser avec Observabilité/Tests lors de la refonte (actuellement Administration) |
+| **Tutoriels (BL-TUT-01→03)** | App mobile skip/replay ; variante admin éditable ; backoffice web + éditeur de steps |
+| **CI comparatifs (BL-TUT-04)** | Campagnes planifiées + diff rapports |
+| **Docs (BL-DOC-01)** | `administration/`, `api/`, `architecture/`, `changelog/` — conserver archives |
+
+Détail IDs : `docs/pilotage/TODOS.md` § « Backlog produit — tutoriels & refonte navigation ».
+
 ## Références
 
 - `STATUS.md` : état courant du projet.

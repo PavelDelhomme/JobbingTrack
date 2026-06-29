@@ -417,7 +417,7 @@ class MobileAnalyticsService extends ChangeNotifier {
     final trimmed = message.trim();
     if (trimmed.isEmpty) throw Exception('Message requis');
 
-    const metadata = <String, dynamic>{
+    final metadata = <String, dynamic>{
       'category': category,
       'feedback': true,
       'anonymized': true,

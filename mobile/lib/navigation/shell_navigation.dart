@@ -14,6 +14,28 @@ class ShellTabRegistry {
   }
 }
 
+/// Ferme les drawers des onglets shell encore montés (IndexedStack).
+class ShellDrawerRegistry {
+  static final Set<GlobalKey<ScaffoldState>> _keys = {};
+
+  static void register(GlobalKey<ScaffoldState> key) {
+    _keys.add(key);
+  }
+
+  static void unregister(GlobalKey<ScaffoldState> key) {
+    _keys.remove(key);
+  }
+
+  static void closeAllDrawers() {
+    for (final key in _keys.toList()) {
+      final state = key.currentState;
+      if (state?.isDrawerOpen == true) {
+        state!.closeDrawer();
+      }
+    }
+  }
+}
+
 /// Arguments pour ouvrir le shell principal sur un onglet précis.
 class MainShellArgs {
   final int initialTab;

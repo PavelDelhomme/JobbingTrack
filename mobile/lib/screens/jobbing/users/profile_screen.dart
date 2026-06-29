@@ -4,9 +4,18 @@ import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/users/profile_edit_screen.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
+import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
+import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   static Future<void> _requestPasswordReset(BuildContext context, AuthProvider auth) async {
     final email = auth.user?.email ?? '';
@@ -48,8 +57,11 @@ class ProfileScreen extends StatelessWidget {
     final user = auth.user;
 
     return Scaffold(
+      key: _scaffoldKey,
       drawer: const AppDrawer(),
       appBar: AppBar(
+        leading: const AppDrawerLeadingButton(),
+        automaticallyImplyLeading: false,
         title: const Text('Profil'),
         centerTitle: true,
         actions: [
@@ -63,8 +75,10 @@ class ProfileScreen extends StatelessWidget {
           const MobileNotificationCenter(),
         ],
       ),
-      body: SafeArea(
-        child: ListView(
+      body: DrawerBackScope(
+        scaffoldKey: _scaffoldKey,
+        child: SafeArea(
+          child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             CircleAvatar(
@@ -128,6 +142,7 @@ class ProfileScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

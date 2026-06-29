@@ -78,6 +78,77 @@ function parseAdbDevices(stdout) {
   });
 }
 
+/** Cache frames ADB — sert la dernière image immédiatement pendant qu'un screencap est en cours. */
+const liveFrames = new Map();
+const liveCaptureLoops = new Map();
+const LIVE_CAPTURE_INTERVAL_MS = parseInt(process.env.EMULATOR_LIVE_CAPTURE_MS || '120', 10);
+
+function getLiveFrame(deviceId) {
+  return liveFrames.get(deviceId) || null;
+}
+
+function captureLiveFrame(deviceId) {
+  const existing = liveFrames.get(deviceId);
+  if (existing?.inFlight) return existing.inFlight;
+  const promise = execPromise(`adb -s ${deviceId} exec-out screencap -p`, { encoding: null })
+    .then(({ stdout }) => {
+      liveFrames.set(deviceId, { buffer: stdout, capturedAt: Date.now(), inFlight: null });
+      return stdout;
+    })
+    .catch((err) => {
+      const prev = liveFrames.get(deviceId);
+      if (prev) prev.inFlight = null;
+      throw err;
+    });
+  liveFrames.set(deviceId, {
+    buffer: existing?.buffer || null,
+    capturedAt: existing?.capturedAt || 0,
+    inFlight: promise,
+  });
+  return promise;
+}
+
+function startLiveCaptureLoop(deviceId) {
+  if (!deviceId) return;
+  const current = liveCaptureLoops.get(deviceId);
+  if (current?.active) {
+    current.refCount = (current.refCount || 1) + 1;
+    return;
+  }
+  const state = { active: true, refCount: 1 };
+  liveCaptureLoops.set(deviceId, state);
+  const tick = () => {
+    if (!state.active) return;
+    const frame = getLiveFrame(deviceId);
+    if (!frame?.inFlight) captureLiveFrame(deviceId).catch(() => {});
+    if (state.active) state.timer = setTimeout(tick, LIVE_CAPTURE_INTERVAL_MS);
+  };
+  captureLiveFrame(deviceId).catch(() => {});
+  tick();
+}
+
+function stopLiveCaptureLoop(deviceId) {
+  if (!deviceId) return;
+  const state = liveCaptureLoops.get(deviceId);
+  if (!state) return;
+  state.refCount = (state.refCount || 1) - 1;
+  if (state.refCount > 0) return;
+  state.active = false;
+  if (state.timer) clearTimeout(state.timer);
+  liveCaptureLoops.delete(deviceId);
+}
+
+function sendPng(res, buffer, capturedAt) {
+  const ageMs = capturedAt ? Date.now() - capturedAt : 0;
+  res.writeHead(200, {
+    'Content-Type': 'image/png',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'no-store',
+    'X-Frame-Age-Ms': String(ageMs),
+  });
+  res.end(buffer);
+}
+
 /** Lit le chemin du SDK Flutter depuis mobile/android/local.properties */
 function getFlutterSdkPath() {
   const propsPath = path.join(MOBILE_PATH, 'android', 'local.properties');
@@ -753,16 +824,38 @@ const routes = {
     if (!device) {
       return send(res, 400, { success: false, error: 'Query ?device=emulator-5554 requis' });
     }
+    const live = u.searchParams.get('live') !== '0';
+    if (live) startLiveCaptureLoop(device);
     try {
-      const { stdout } = await execPromise(`adb -s ${device} exec-out screencap -p`, { encoding: null });
-      res.writeHead(200, {
-        'Content-Type': 'image/png',
-        'Access-Control-Allow-Origin': '*',
-      });
-      res.end(stdout);
+      const cached = getLiveFrame(device);
+      if (cached?.buffer) {
+        sendPng(res, cached.buffer, cached.capturedAt);
+        const age = Date.now() - cached.capturedAt;
+        if (age > LIVE_CAPTURE_INTERVAL_MS && !cached.inFlight) {
+          captureLiveFrame(device).catch(() => {});
+        }
+        return;
+      }
+      const buffer = await captureLiveFrame(device);
+      sendPng(res, buffer, getLiveFrame(device)?.capturedAt || Date.now());
     } catch (e) {
       send(res, 500, { success: false, error: e.message });
     }
+  },
+
+  async '/live/start'(req, res, _, url) {
+    const device = new URL(url, 'http://x').searchParams.get('device');
+    if (!device) {
+      return send(res, 400, { success: false, error: 'Query ?device= requis' });
+    }
+    startLiveCaptureLoop(device);
+    send(res, 200, { success: true, device, intervalMs: LIVE_CAPTURE_INTERVAL_MS });
+  },
+
+  async '/live/stop'(req, res, _, url) {
+    const device = new URL(url, 'http://x').searchParams.get('device');
+    if (device) stopLiveCaptureLoop(device);
+    send(res, 200, { success: true, device: device || null });
   },
 
   async '/adb-shell'(req, res, body) {
@@ -848,8 +941,9 @@ const server = http.createServer((req, res) => {
     handler(req, res, body, url).catch((e) => send(res, 500, { success: false, error: e.message }));
   };
 
-  if (req.method === 'GET' && pathname === '/screenshot') {
-    return routes['/screenshot'](req, res, null, url).catch((e) => send(res, 500, { success: false, error: e.message }));
+  if (req.method === 'GET' && (pathname === '/screenshot' || pathname === '/live/start' || pathname === '/live/stop')) {
+    const handler = routes[pathname];
+    return handler(req, res, null, url).catch((e) => send(res, 500, { success: false, error: e.message }));
   }
 
   next();

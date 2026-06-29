@@ -51,6 +51,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   void _selectTab(int index, {int? previousIndex}) {
     if (index == _selectedIndex) return;
+    ShellDrawerRegistry.closeAllDrawers();
     setState(() {
       _previousTabIndex = previousIndex ?? _selectedIndex;
       _selectedIndex = index;
@@ -60,6 +61,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
   }
 
   void _openApplications({required int tabIndex, String? statusFilter}) {
+    ShellDrawerRegistry.closeAllDrawers();
     setState(() {
       _previousTabIndex = _selectedIndex;
       _selectedIndex = 1;

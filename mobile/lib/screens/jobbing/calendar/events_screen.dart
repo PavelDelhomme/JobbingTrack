@@ -7,6 +7,8 @@ import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/calendar_drawer.dart';
+import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
+import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 /// Calendrier — vue Planning (défaut) ou liste événements.
@@ -18,6 +20,7 @@ class EventsScreen extends StatefulWidget {
 }
 
 class _EventsScreenState extends State<EventsScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   List<Map<String, dynamic>> _events = [];
   bool _loading = true;
   String? _error;
@@ -124,6 +127,7 @@ class _EventsScreenState extends State<EventsScreen> {
     final title = _viewMode == CalendarViewMode.planner ? 'Planning' : 'Événements & Rappels';
 
     return Scaffold(
+      key: _scaffoldKey,
       drawer: CalendarDrawer(
         viewMode: _viewMode,
         filters: _filters,
@@ -131,10 +135,14 @@ class _EventsScreenState extends State<EventsScreen> {
         onFiltersChanged: (f) => setState(() => _filters = f),
       ),
       appBar: AppBar(
+        leading: const AppDrawerLeadingButton(),
+        automaticallyImplyLeading: false,
         title: Text(title),
         actions: const [MobileNotificationCenter()],
       ),
-      body: _loading
+      body: DrawerBackScope(
+        scaffoldKey: _scaffoldKey,
+        child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? Center(
@@ -153,6 +161,7 @@ class _EventsScreenState extends State<EventsScreen> {
                   onRefresh: _load,
                   child: _viewMode == CalendarViewMode.planner ? _buildPlanner() : _buildList(),
                 ),
+      ),
     );
   }
 

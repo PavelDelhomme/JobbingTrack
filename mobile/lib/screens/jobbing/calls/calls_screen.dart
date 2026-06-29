@@ -4,6 +4,7 @@ import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
+import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
@@ -43,6 +44,8 @@ class _CallsScreenState extends State<CallsScreen> {
       key: _scaffoldKey,
       drawer: AppDrawer(),
       appBar: AppBar(
+        leading: const AppDrawerLeadingButton(),
+        automaticallyImplyLeading: false,
         title: const Text('Appels'),
         centerTitle: true,
       ),

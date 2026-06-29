@@ -11,6 +11,7 @@ import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
+import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
 import 'package:jobbingtrack_mobile/utils/shell_layout.dart';
@@ -126,6 +127,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
       key: _scaffoldKey,
       drawer: const AppDrawer(),
       appBar: AppBar(
+        leading: const AppDrawerLeadingButton(),
+        automaticallyImplyLeading: false,
         title: const Text('Candidatures'),
         centerTitle: true,
         actions: [

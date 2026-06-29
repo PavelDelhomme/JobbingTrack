@@ -295,6 +295,8 @@ help: ## Afficher l'aide complète
 	@echo "  make test-mobile-install     - Installer Playwright"
 	@echo ""
 	@echo "  make mobile-apk-reinstall     - Build APK debug + install -r sur appareil USB (adb)"
+	@echo "  make apk-reinstall            - Alias de mobile-apk-reinstall"
+	@echo "  make reinstall-apk              - Alias de mobile-apk-reinstall"
 	@echo "  make help-mobile-adb           - Aide courte appareil physique ADB"
 	@echo "  make mobile-device-ready     - Appareil USB : adb reverse + build/install APK"
 	@echo "  make run-mobile              - Alias : build + install + lance l'app sur téléphone USB"

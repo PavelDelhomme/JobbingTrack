@@ -5,6 +5,7 @@ import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
+import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 
@@ -49,6 +50,8 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
       key: _scaffoldKey,
       drawer: AppDrawer(),
       appBar: AppBar(
+        leading: const AppDrawerLeadingButton(),
+        automaticallyImplyLeading: false,
         title: const Text('Mes Relances'),
         centerTitle: true,
         actions: [

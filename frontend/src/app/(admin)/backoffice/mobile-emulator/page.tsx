@@ -73,9 +73,7 @@ export default function MobileEmulatorPage() {
   });
   const [liveViewOn, setLiveViewOn] = useState(false);
   const [buildElapsedSeconds, setBuildElapsedSeconds] = useState(0);
-  const screenshotInterval = useRef<ReturnType<typeof setInterval> | null>(
-    null,
-  );
+  const screenshotBlobRef = useRef<string | null>(null);
   const dragStart = useRef<{ x: number; y: number; time: number } | null>(null);
   const buildAbortRef = useRef<AbortController | null>(null);
   /** Ref remplie par MobileJourneyPanel pour annuler le parcours depuis l’extérieur (ex. bouton Arrêter l’app). */
@@ -934,33 +932,77 @@ export default function MobileEmulatorPage() {
   };
 
   useEffect(() => {
-    if (!selectedDevice || !controllerOk) {
-      if (screenshotInterval.current) {
-        clearInterval(screenshotInterval.current);
-        screenshotInterval.current = null;
+    let cancelled = false;
+    let inFlight = false;
+
+    const revokeBlob = () => {
+      if (screenshotBlobRef.current) {
+        URL.revokeObjectURL(screenshotBlobRef.current);
+        screenshotBlobRef.current = null;
       }
+    };
+
+    const stopLive = (deviceId: string) => {
+      if (!deviceId) return;
+      fetch(
+        `${base()}/live/stop?device=${encodeURIComponent(deviceId)}`,
+      ).catch(() => {});
+    };
+
+    if (!selectedDevice || !controllerOk || (!journeyRunning && !liveViewOn)) {
+      revokeBlob();
       setScreenshotUrl(null);
+      stopLive(selectedDevice);
       return;
     }
-    if (!journeyRunning && !liveViewOn) {
-      if (screenshotInterval.current) {
-        clearInterval(screenshotInterval.current);
-        screenshotInterval.current = null;
+
+    fetch(
+      `${base()}/live/start?device=${encodeURIComponent(selectedDevice)}`,
+    ).catch(() => {});
+
+    const minGapMs = journeyRunning ? 350 : 16;
+
+    const tick = async () => {
+      while (!cancelled) {
+        if (inFlight) {
+          await new Promise((r) => setTimeout(r, 8));
+          continue;
+        }
+        inFlight = true;
+        const t0 = performance.now();
+        try {
+          const res = await fetch(
+            `${base()}/screenshot?device=${encodeURIComponent(selectedDevice)}&live=1&t=${Date.now()}`,
+            { cache: "no-store" },
+          );
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const blob = await res.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          if (cancelled) {
+            URL.revokeObjectURL(objectUrl);
+          } else {
+            revokeBlob();
+            screenshotBlobRef.current = objectUrl;
+            setScreenshotUrl(objectUrl);
+          }
+        } catch {
+          /* adb / contrôleur transitoire */
+        } finally {
+          inFlight = false;
+        }
+        const elapsed = performance.now() - t0;
+        await new Promise((r) =>
+          setTimeout(r, Math.max(0, minGapMs - elapsed)),
+        );
       }
-      setScreenshotUrl(null);
-      return;
-    }
-    const url = `${base()}/screenshot?device=${encodeURIComponent(selectedDevice)}&t=`;
-    setScreenshotUrl(url + Date.now());
-    const intervalMs = journeyRunning ? 3000 : 1500;
-    screenshotInterval.current = setInterval(() => {
-      setScreenshotUrl(url + Date.now());
-    }, intervalMs);
+    };
+
+    void tick();
+
     return () => {
-      if (screenshotInterval.current) {
-        clearInterval(screenshotInterval.current);
-        screenshotInterval.current = null;
-      }
+      cancelled = true;
+      revokeBlob();
+      stopLive(selectedDevice);
     };
   }, [selectedDevice, controllerOk, controllerUrl, journeyRunning, liveViewOn]);
 

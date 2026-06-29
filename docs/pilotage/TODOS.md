@@ -73,6 +73,23 @@ Backlog détaillé historique : sections **Lot A–H** plus bas dans ce fichier 
 
 **Ordre suggéré après étape 2 mobile** : BL-26-04→08 (smokes ADB gate) → BL-26-01 (MailHog E2E verts) → BL-26-02 (IMAP agent) → BL-26-03 (template récap).
 
+## Backlog produit — tutoriels & refonte navigation (29/06 porteur)
+
+> **Ne pas traiter avant** clôture mobile étapes 1→5 + gate prod. **Une seule vague** : navigation backoffice + tutoriels + doc `docs/` (sans supprimer `docs/archive/`).
+
+| ID | Sujet | Cible | Détail |
+|----|-------|-------|--------|
+| **BL-NAV-01** | Section backoffice **Tests** | Web admin | Regrouper émulateur mobile, Playwright, smokes ADB, nettoyage comptes test, rapports comparatifs avant/après release — sortir des sous-menus **Administration** / **Développement** éparpillés |
+| **BL-NAV-02** | Section **Utilisateur / Produit** | Web admin | Hub séparé d’**Administration** infra : tutoriels backoffice, aide contextuelle, parcours guidé admin |
+| **BL-NAV-03** | **Mobile logs** — emplacement | Web admin | Aujourd’hui **Administration → Mobile — erreurs & retours** ; à reclasser avec la vague Tests/Observabilité (pas de déplacement avant refonte globale) |
+| **BL-TUT-01** | Tutoriel guidé **app mobile** | Flutter | Parcours complet skip/replay ; entrée **Paramètres → Revoir le tutoriel** ; persistance « tutoriel vu » |
+| **BL-TUT-02** | Tutoriel **admin mobile** | Flutter (compte admin) | Même contenu + variante éditable / prévisualisable pour admin (contenu géré côté backoffice) |
+| **BL-TUT-03** | Tutoriel **backoffice web** | Next.js | Parcours guidé par section ; skip ; **Revoir le tutoriel** ; éditeur admin (steps, textes, cibles UI) synchronisé avec évolutions UI |
+| **BL-TUT-04** | Tests réguliers & **comparatifs** | CI + Tests hub | Campagnes planifiées avant/après MEP ; rapports comparatifs (smokes ADB, Playwright, pipeline crash) — lié à BL-NAV-01 |
+| **BL-DOC-01** | Refonte **`docs/`** incrémentale | Documentation | Mettre à jour `administration/`, `api/`, `architecture/`, `changelog/` **sans** réécrire ni vider **`docs/archive/`** ; aligner fiches produit fini sur l’état réel du code |
+
+Référence : `docs/project/BACKLOG.md` § « Tutoriels & navigation ».
+
 ## Priorités mobile — archive (17/06)
 
 > Remplacé par la **Feuille de route** ci-dessus. Conservé pour référence rapide.

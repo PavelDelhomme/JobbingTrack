@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Réinstalle l'APK debug sur l'appareil ADB déjà connecté (build + install, sans lancer l'app).
-# Usage : make mobile-apk-reinstall  ou  bash scripts/mobile/setup/reinstall-apk-adb.sh
+# Usage : make mobile-apk-reinstall | make apk-reinstall | make reinstall-apk
+#     ou  bash scripts/mobile/setup/reinstall-apk-adb.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"

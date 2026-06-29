@@ -9,7 +9,7 @@
 EMULATOR_CONTROLLER_DIR := $(ROOT_DIR)/tools/emulator-controller
 MOBILE_DIR := $(ROOT_DIR)/mobile
 
-.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop restart-emulator verify-mobile-emulator verify-mobile-scenarios help-emulator test-emulator-controller mobile-device-ready run-mobile mobile-apk-reinstall mobile-apk-install mobile-screen mobile-screen-browser help-mobile-adb mobile-login-admin mobile-login-user mobile-test-accounts mobile-smoke-full-journey mobile-register-smoke mobile-verify-email-smoke mobile-sync-test-env mobile-verify-email
+.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop restart-emulator restart-emulator-controller verify-mobile-emulator verify-mobile-scenarios help-emulator test-emulator-controller mobile-device-ready run-mobile mobile-apk-reinstall mobile-apk-install apk-reinstall reinstall-apk mobile-screen mobile-screen-browser help-mobile-adb mobile-login-admin mobile-login-user mobile-test-accounts mobile-smoke-full-journey mobile-interleaved-matrix mobile-interleaved-seed mobile-register-smoke mobile-verify-email-smoke mobile-sync-test-env mobile-verify-email
 
 # Démarrer le lanceur (port 5056) qui démarre le contrôleur (5055). Depuis le backoffice on peut Démarrer/Arrêter le contrôleur sans terminal.
 emulator-controller: ## Démarrer le lanceur + contrôleur (5056 + 5055). Backoffice → Démarrer/Arrêter le contrôleur sans terminal
@@ -91,12 +91,18 @@ mobile-apk-reinstall: ## Build APK debug + adb install -r sur appareil USB conne
 
 mobile-apk-install: mobile-apk-reinstall ## Alias de mobile-apk-reinstall
 
+apk-reinstall: mobile-apk-reinstall ## Alias court : build APK debug + install -r (USB)
+reinstall-apk: mobile-apk-reinstall ## Alias court : idem apk-reinstall
+
 # Aperçu live écran Samsung/ADB sur le PC (scrcpy si dispo, sinon navigateur)
 mobile-screen: ## Fenêtre live scrcpy ou navigateur http://127.0.0.1:8765 (appareil USB connecté)
 	@bash "$(ROOT_DIR)/scripts/mobile/setup/mobile-screen-mirror.sh"
 
 mobile-screen-browser: ## Aperçu live dans le navigateur uniquement (sans scrcpy)
 	@node "$(ROOT_DIR)/scripts/mobile/setup/mobile-screen-browser.js"
+
+restart-emulator-controller: ## Libère 5055/5056 et relance le contrôleur (après modif server.js)
+	@bash "$(ROOT_DIR)/scripts/mobile/setup/restart-emulator-controller.sh"
 
 help-mobile-adb: ## Aide courte : appareil USB ADB (build, réinstall APK, smokes)
 	@printf '\033[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n'
@@ -105,9 +111,11 @@ help-mobile-adb: ## Aide courte : appareil USB ADB (build, réinstall APK, smoke
 	@printf '\033[0;32mÉcran live sur le PC :\033[0m\n\n'
 	@printf '  \033[1;33mmake mobile-screen\033[0m          Fenêtre scrcpy (recommandé) ou navigateur\n'
 	@printf '  \033[1;33mmake mobile-screen-browser\033[0m  Navigateur http://127.0.0.1:8765\n'
+	@printf '  \033[1;33mbash scripts/mobile/setup/restart-emulator-controller.sh\033[0m  Redémarrer contrôleur 5055 (EADDRINUSE)\n'
 	@printf '  Backoffice → \033[1mDéveloppement → Émulateur mobile\033[0m → sélect. appareil → « Aperçu continu »\n\n'
 	@printf '\033[0;32mCommandes essentielles :\033[0m\n\n'
 	@printf '  \033[1;33mmake mobile-apk-reinstall\033[0m  Build APK debug + install -r (appareil déjà branché)\n'
+	@printf '  \033[1;33mmake apk-reinstall\033[0m / \033[1;33mmake reinstall-apk\033[0m  Alias de mobile-apk-reinstall\n'
 	@printf '  \033[1;33mmake run-mobile\033[0m           Build + install + lance l''app (première fois)\n'
 	@printf '  \033[1;33mmake mobile-device-ready\033[0m  adb reverse + build + install\n'
 	@printf '  \033[1;33mmake mobile-login-user\033[0m   Connexion auto TEST_USER sur l''appareil\n'
@@ -138,6 +146,14 @@ mobile-test-accounts: ## Smoke ADB admin + user (menu ADMIN visible / masqué)
 mobile-smoke-full-journey: ## Parcours API complet (candidature, contact, entretien, relance, appels, analytics)
 	@echo "📱 Smoke parcours complet API mobile..."
 	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke/api/smoke-full-journey-api.js"
+
+mobile-interleaved-matrix: ## Seed réaliste + smokes entités entremêlées + rapport HTML + email porteur
+	@echo "📱 Matrice live entités entremêlées (seed + smokes + email)..."
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/setup/run-interleaved-live-matrix.js"
+
+mobile-interleaved-seed: ## Seed réaliste entremêlé uniquement (Capgemini/Orange/Thales/…)
+	@echo "📱 Seed réaliste entremêlé..."
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/setup/run-interleaved-live-matrix.js" --seed-only
 
 mobile-register-smoke: ## Smoke inscription UI (télémétrie + écran vérif email)
 	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true
