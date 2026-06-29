@@ -25,8 +25,9 @@ class LogsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'La consultation détaillée des logs (filtres, niveaux, export) est disponible sur le backoffice web '
-            '(menu Administration → Logs).',
+            'Sur le backoffice web : menu Administration → Mobile — erreurs & retours '
+            '(signalements manuels + erreurs auto-remontées). '
+            'Les logs Docker des services restent sous Administration → Services & Logs.',
             style: TextStyle(color: Colors.grey.shade700, height: 1.4),
             textAlign: TextAlign.center,
           ),
@@ -36,8 +37,8 @@ class LogsScreen extends StatelessWidget {
               leading: const Icon(Icons.info_outline),
               title: const Text('Sur mobile'),
               subtitle: Text(
-                'Utilisez Paramètres → Aide et retours pour signaler un problème. '
-                'Les crashs sont remontés automatiquement si la télémétrie est activée.',
+                'Paramètres → Aide et retours → Signaler un bug (diagnostic + capture). '
+                'Les crashs et erreurs API sont remontés automatiquement si la télémétrie est activée.',
                 style: TextStyle(color: Colors.grey.shade600),
               ),
             ),

@@ -1,0 +1,681 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { TimeRangeSelector, ChartPeriodCaption } from "@/components/analytics";
+import { AnalyticsRecordDetailDialog } from "@/components/analytics/AnalyticsRecordDetailDialog";
+import { useRegisterBackofficeRefresh } from "@/hooks/useRegisterBackofficeRefresh";
+import { useApplicationTimeRange } from "@/app/(admin)/backoffice/analytics/application/useApplicationTimeRange";
+import {
+  fetchApplicationErrors,
+  fetchCrashReports,
+  resolveApplicationError,
+  type ApplicationAnalyticsError,
+  type CrashReportSummary,
+} from "@/lib/services/applicationAnalyticsService";
+import {
+  crashReportDetailRecord,
+  enrichCrashDetailRecord,
+  feedbackCategoryFromCrash,
+  isUserFeedbackCrash,
+} from "@/lib/analytics/mobileFeedback";
+import {
+  crashScreenLabel,
+  crashUserLabel,
+  matchesSearch,
+  paginateSlice,
+} from "@/lib/analytics/mobileMonitoringTableUtils";
+import {
+  PaginationBar,
+  TableSearchFilter,
+} from "@/components/analytics/MobileMonitoringTableControls";
+
+function formatTs(value: string) {
+  try {
+    return new Date(value).toLocaleString("fr-FR");
+  } catch {
+    return value;
+  }
+}
+
+function stripFeedbackPrefix(message: string) {
+  return message.replace(/^\[(bug|suggestion|signalement)\]\s/i, "").trim();
+}
+
+type ErrorStatusFilter = "all" | "open" | "resolved";
+type ErrorSort = "newest" | "oldest" | "severity";
+type FeedbackCategoryFilter = "all" | "bug" | "suggestion" | "signalement";
+
+type MobileApplicationMonitoringPanelProps = {
+  liveRefreshMs?: number;
+  showAdminHint?: boolean;
+};
+
+export function MobileApplicationMonitoringPanel({
+  liveRefreshMs = 20000,
+  showAdminHint = false,
+}: MobileApplicationMonitoringPanelProps) {
+  const range = useApplicationTimeRange({ liveRefreshMs });
+  const {
+    rangeQuery,
+    consumeSilentFetch,
+    softTick,
+    bumpSoftRefresh,
+    timeRange,
+    setTimeRange,
+    useCustomRange,
+    setUseCustomRange,
+    customStart,
+    setCustomStart,
+    customEnd,
+    setCustomEnd,
+    rangeLabel,
+    goPrev,
+    goNext,
+    canGoNext,
+    handlePeriodNow,
+    handleClearCustomRange,
+    rangeStart,
+    rangeEnd,
+  } = range;
+
+  const [loading, setLoading] = useState(true);
+  const [crashes, setCrashes] = useState<CrashReportSummary[]>([]);
+  const [allCrashes, setAllCrashes] = useState<CrashReportSummary[]>([]);
+  const [appErrors, setAppErrors] = useState<ApplicationAnalyticsError[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [errorStatusFilter, setErrorStatusFilter] =
+    useState<ErrorStatusFilter>("all");
+  const [errorSort, setErrorSort] = useState<ErrorSort>("newest");
+  const [detailRecord, setDetailRecord] = useState<Record<string, unknown> | null>(
+    null,
+  );
+  const [detailTitle, setDetailTitle] = useState("");
+  const [lastRefreshAt, setLastRefreshAt] = useState<Date>(() => new Date());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [feedbackCategoryFilter, setFeedbackCategoryFilter] =
+    useState<FeedbackCategoryFilter>("all");
+  const [autoCrashTypeFilter, setAutoCrashTypeFilter] = useState("all");
+  const [pageFeedback, setPageFeedback] = useState(1);
+  const [pageAuto, setPageAuto] = useState(1);
+  const [pageErrors, setPageErrors] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  const loadData = useCallback(async () => {
+    const silent = consumeSilentFetch();
+    if (!silent) setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Session admin requise pour consulter les retours mobile.");
+        setCrashes([]);
+        setAllCrashes([]);
+        setAppErrors([]);
+        return;
+      }
+      const startMs = rangeStart.getTime();
+      const endMs = rangeEnd.getTime();
+      const inRange = (ts: string) => {
+        const t = new Date(ts).getTime();
+        return t >= startMs && t <= endMs;
+      };
+
+      const [crashesRes, errorsRes] = await Promise.all([
+        fetchCrashReports(token, 300),
+        fetchApplicationErrors(token, rangeQuery, {
+          limit: 200,
+          excludeFeedback: true,
+        }),
+      ]);
+
+      setCrashes(
+        crashesRes.filter((c) => inRange(c.timestamp)).filter(isUserFeedbackCrash),
+      );
+      setAllCrashes(
+        crashesRes
+          .filter((c) => inRange(c.timestamp))
+          .filter((c) => !isUserFeedbackCrash(c)),
+      );
+      setAppErrors(errorsRes.data);
+      setLastRefreshAt(new Date());
+    } catch (e) {
+      console.error(e);
+      setError("Impossible de charger les retours mobile.");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [rangeQuery, rangeStart, rangeEnd, consumeSilentFetch]);
+
+  useRegisterBackofficeRefresh(
+    useCallback(() => {
+      bumpSoftRefresh();
+    }, [bumpSoftRefresh]),
+  );
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData, softTick]);
+
+  const stats = useMemo(() => {
+    const bugs = crashes.filter((c) => feedbackCategoryFromCrash(c) === "bug").length;
+    const suggestions = crashes.filter(
+      (c) => feedbackCategoryFromCrash(c) === "suggestion",
+    ).length;
+    const signalements = crashes.filter(
+      (c) => feedbackCategoryFromCrash(c) === "signalement",
+    ).length;
+    const retoursUtilisateur = crashes.length;
+    const erreursAuto = appErrors.length;
+    const erreursOuvertes = appErrors.filter((e) => !e.resolved).length;
+
+    return {
+      retoursUtilisateur,
+      bugs,
+      suggestions,
+      signalements,
+      erreursAuto,
+      erreursOuvertes,
+    };
+  }, [crashes, appErrors]);
+
+  const rows = useMemo(() => {
+    return crashes
+      .map((c) => ({
+        crash: c,
+        id: c.id,
+        timestamp: c.timestamp,
+        category: feedbackCategoryFromCrash(c),
+        message: stripFeedbackPrefix(c.message),
+        screen: crashScreenLabel(c),
+        user: crashUserLabel(c),
+        source: "rapport mobile",
+      }))
+      .filter((row) => {
+        if (
+          feedbackCategoryFilter !== "all" &&
+          row.category !== feedbackCategoryFilter
+        ) {
+          return false;
+        }
+        const blob = `${row.message} ${row.screen} ${row.user} ${row.category}`;
+        return matchesSearch(blob, searchQuery);
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      );
+  }, [crashes, searchQuery, feedbackCategoryFilter]);
+
+  const autoCrashRows = useMemo(() => {
+    return allCrashes
+      .filter((c) => {
+        if (autoCrashTypeFilter !== "all" && c.crashType !== autoCrashTypeFilter) {
+          return false;
+        }
+        const blob = `${c.message} ${c.crashType} ${crashScreenLabel(c)} ${crashUserLabel(c)}`;
+        return matchesSearch(blob, searchQuery);
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      );
+  }, [allCrashes, searchQuery, autoCrashTypeFilter]);
+
+  const autoCrashTypes = useMemo(() => {
+    return [...new Set(allCrashes.map((c) => c.crashType))].sort();
+  }, [allCrashes]);
+
+  const filteredErrors = useMemo(() => {
+    let list = [...appErrors];
+    if (errorStatusFilter === "open") {
+      list = list.filter((e) => !e.resolved);
+    } else if (errorStatusFilter === "resolved") {
+      list = list.filter((e) => e.resolved);
+    }
+    list = list.filter((e) => {
+      const blob = `${e.errorMessage} ${e.errorName} ${e.errorType} ${e.page ?? ""} ${e.severity}`;
+      return matchesSearch(blob, searchQuery);
+    });
+    list.sort((a, b) => {
+      if (errorSort === "oldest") {
+        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+      }
+      if (errorSort === "severity") {
+        const rank = (s: string) =>
+          s === "critical" ? 0 : s === "error" ? 1 : 2;
+        const diff = rank(a.severity) - rank(b.severity);
+        if (diff !== 0) return diff;
+      }
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+    return list;
+  }, [appErrors, errorStatusFilter, errorSort, searchQuery]);
+
+  const pagedFeedback = paginateSlice(rows, pageFeedback, pageSize);
+  const pagedAuto = paginateSlice(autoCrashRows, pageAuto, pageSize);
+  const pagedErrors = paginateSlice(filteredErrors, pageErrors, pageSize);
+
+  useEffect(() => {
+    setPageFeedback(1);
+    setPageAuto(1);
+    setPageErrors(1);
+  }, [searchQuery, feedbackCategoryFilter, autoCrashTypeFilter, rangeQuery]);
+
+  const openFeedbackDetail = async (crash: CrashReportSummary) => {
+    setDetailTitle(`Retour — ${feedbackCategoryFromCrash(crash)}`);
+    const base = crashReportDetailRecord(crash);
+    setDetailRecord(await enrichCrashDetailRecord(base));
+  };
+
+  const openErrorDetail = (err: ApplicationAnalyticsError) => {
+    setDetailTitle(`Erreur — ${err.errorName || err.errorType}`);
+    setDetailRecord({ ...err });
+  };
+
+  const toggleErrorResolved = async (err: ApplicationAnalyticsError) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    setResolvingId(err.id);
+    try {
+      await resolveApplicationError(token, err.id, !err.resolved);
+      setAppErrors((prev) =>
+        prev.map((e) =>
+          e.id === err.id ? { ...e, resolved: !e.resolved } : e,
+        ),
+      );
+    } catch (e) {
+      console.error(e);
+      setError("Impossible de mettre à jour le statut de l'erreur.");
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <TimeRangeSelector
+          timeRange={timeRange}
+          setTimeRange={setTimeRange}
+          useCustomRange={useCustomRange}
+          setUseCustomRange={setUseCustomRange}
+          customStart={customStart}
+          setCustomStart={setCustomStart}
+          customEnd={customEnd}
+          setCustomEnd={setCustomEnd}
+          rangeLabel={rangeLabel}
+          goPrev={goPrev}
+          goNext={goNext}
+          canGoNext={canGoNext}
+          onPeriodNow={handlePeriodNow}
+          onClearCustomRange={handleClearCustomRange}
+        />
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Actualisation live ~{Math.round(liveRefreshMs / 1000)} s · dernière mise à jour{" "}
+          {formatTs(lastRefreshAt.toISOString())}
+        </p>
+      </div>
+
+      {showAdminHint ? (
+        <div className="rounded-lg border border-blue-200 bg-blue-50/80 p-3 text-sm text-blue-950 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
+          <p className="font-medium">Où retrouver vos signalements</p>
+          <p className="mt-1">
+            Backoffice → <strong>Administration → Mobile — erreurs &amp; retours</strong>{" "}
+            (cette page). Table « Retours utilisateur » = bug / suggestion / signalement
+            depuis Paramètres → Aide. « Erreurs auto » = crash/API si télémétrie activée.
+          </p>
+          <p className="mt-1">
+            Vue équivalente :{" "}
+            <Link
+              href="/backoffice/analytics/application/feedback"
+              className="font-medium underline"
+            >
+              Analytics → Application → Retours
+            </Link>
+            .
+          </p>
+        </div>
+      ) : null}
+
+      <ChartPeriodCaption label={rangeLabel} />
+
+      {loading && rows.length === 0 && appErrors.length === 0 ? (
+        <div className="flex min-h-[200px] items-center justify-center text-gray-500 dark:text-gray-400 sm:h-64">
+          Chargement…
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
+            <StatCard label="Retours utilisateur" value={stats.retoursUtilisateur} />
+            <StatCard label="Bugs signalés" value={stats.bugs} />
+            <StatCard label="Suggestions" value={stats.suggestions} />
+            <StatCard label="Signalements" value={stats.signalements} />
+            <StatCard label="Erreurs auto (période)" value={stats.erreursAuto} />
+            <StatCard label="Erreurs ouvertes" value={stats.erreursOuvertes} />
+          </div>
+
+          {error ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap items-end gap-3">
+            <TableSearchFilter
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Rechercher message, écran, utilisateur…"
+            />
+          </div>
+
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Retours utilisateur sur la période
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Bug / suggestion / signalement — clic = détail (diagnostic, capture, routes).
+                </p>
+              </div>
+              <label className="flex items-center gap-1.5 text-sm">
+                <span className="text-gray-500">Catégorie</span>
+                <select
+                  value={feedbackCategoryFilter}
+                  onChange={(e) =>
+                    setFeedbackCategoryFilter(e.target.value as FeedbackCategoryFilter)
+                  }
+                  className="rounded border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-900"
+                >
+                  <option value="all">Toutes</option>
+                  <option value="bug">Bug</option>
+                  <option value="suggestion">Suggestion</option>
+                  <option value="signalement">Signalement</option>
+                </select>
+              </label>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+              <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900/40">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium">Horodatage</th>
+                    <th className="px-3 py-2 text-left font-medium">Catégorie</th>
+                    <th className="px-3 py-2 text-left font-medium">Écran</th>
+                    <th className="px-3 py-2 text-left font-medium">Utilisateur</th>
+                    <th className="px-3 py-2 text-left font-medium">Message</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {pagedFeedback.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-3 py-8 text-center text-gray-500 dark:text-gray-400"
+                      >
+                        Aucun retour sur la période (ou filtre actif).
+                      </td>
+                    </tr>
+                  ) : (
+                    pagedFeedback.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/30"
+                        onClick={() => void openFeedbackDetail(row.crash)}
+                      >
+                        <td className="whitespace-nowrap px-3 py-2 text-gray-600 dark:text-gray-300">
+                          {formatTs(row.timestamp)}
+                        </td>
+                        <td className="px-3 py-2 capitalize">{row.category}</td>
+                        <td className="max-w-[8rem] truncate px-3 py-2" title={row.screen}>
+                          {row.screen}
+                        </td>
+                        <td className="max-w-[10rem] truncate px-3 py-2" title={row.user}>
+                          {row.user}
+                        </td>
+                        <td className="max-w-xl truncate px-3 py-2" title={row.message}>
+                          {row.message}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+              <PaginationBar
+                page={pageFeedback}
+                pageSize={pageSize}
+                totalItems={rows.length}
+                onPageChange={setPageFeedback}
+                onPageSizeChange={(s) => {
+                  setPageSize(s);
+                  setPageFeedback(1);
+                }}
+              />
+            </div>
+          </section>
+
+          <section className="mt-8 space-y-3">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Crashs auto (fichiers gateway)
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  FlutterError, UncaughtError, etc.
+                </p>
+              </div>
+              {autoCrashTypes.length > 0 ? (
+                <label className="flex items-center gap-1.5 text-sm">
+                  <span className="text-gray-500">Type</span>
+                  <select
+                    value={autoCrashTypeFilter}
+                    onChange={(e) => setAutoCrashTypeFilter(e.target.value)}
+                    className="rounded border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-900"
+                  >
+                    <option value="all">Tous</option>
+                    {autoCrashTypes.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+              <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900/40">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium">Horodatage</th>
+                    <th className="px-3 py-2 text-left font-medium">Type</th>
+                    <th className="px-3 py-2 text-left font-medium">Écran</th>
+                    <th className="px-3 py-2 text-left font-medium">Message</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {pagedAuto.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="px-3 py-8 text-center text-gray-500 dark:text-gray-400"
+                      >
+                        Aucun crash auto sur la période.
+                      </td>
+                    </tr>
+                  ) : (
+                    pagedAuto.map((c) => (
+                      <tr
+                        key={c.id}
+                        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/30"
+                        onClick={() => void openFeedbackDetail(c)}
+                      >
+                        <td className="whitespace-nowrap px-3 py-2 text-gray-600 dark:text-gray-300">
+                          {formatTs(c.timestamp)}
+                        </td>
+                        <td className="px-3 py-2">{c.crashType}</td>
+                        <td className="max-w-[8rem] truncate px-3 py-2">
+                          {crashScreenLabel(c)}
+                        </td>
+                        <td className="max-w-xl truncate px-3 py-2" title={c.message}>
+                          {c.message}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+              <PaginationBar
+                page={pageAuto}
+                pageSize={pageSize}
+                totalItems={autoCrashRows.length}
+                onPageChange={setPageAuto}
+              />
+            </div>
+          </section>
+
+          <section className="mt-8 space-y-3">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Erreurs applicatives (auto-remontées)
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Crash, API et réseau remontés automatiquement par l&apos;app connectée.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <label className="flex items-center gap-1.5 text-sm">
+                  <span className="text-gray-500">Statut</span>
+                  <select
+                    value={errorStatusFilter}
+                    onChange={(e) =>
+                      setErrorStatusFilter(e.target.value as ErrorStatusFilter)
+                    }
+                    className="rounded border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-900"
+                  >
+                    <option value="all">Toutes</option>
+                    <option value="open">Ouvertes</option>
+                    <option value="resolved">Traitées</option>
+                  </select>
+                </label>
+                <label className="flex items-center gap-1.5 text-sm">
+                  <span className="text-gray-500">Tri</span>
+                  <select
+                    value={errorSort}
+                    onChange={(e) => setErrorSort(e.target.value as ErrorSort)}
+                    className="rounded border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-900"
+                  >
+                    <option value="newest">Plus récentes</option>
+                    <option value="oldest">Plus anciennes</option>
+                    <option value="severity">Gravité</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+              <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900/40">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium">Horodatage</th>
+                    <th className="px-3 py-2 text-left font-medium">Type</th>
+                    <th className="px-3 py-2 text-left font-medium">Page</th>
+                    <th className="px-3 py-2 text-left font-medium">Message</th>
+                    <th className="px-3 py-2 text-left font-medium">Gravité</th>
+                    <th className="px-3 py-2 text-left font-medium">Statut</th>
+                    <th className="px-3 py-2 text-left font-medium">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {pagedErrors.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-3 py-8 text-center text-gray-500 dark:text-gray-400"
+                      >
+                        Aucune erreur auto sur la période.
+                      </td>
+                    </tr>
+                  ) : (
+                    pagedErrors.map((err) => (
+                      <tr
+                        key={err.id}
+                        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/30"
+                        onClick={() => openErrorDetail(err)}
+                      >
+                        <td className="whitespace-nowrap px-3 py-2 text-gray-600 dark:text-gray-300">
+                          {formatTs(err.timestamp)}
+                        </td>
+                        <td className="px-3 py-2">{err.errorName || err.errorType}</td>
+                        <td className="max-w-[8rem] truncate px-3 py-2" title={err.page ?? ""}>
+                          {err.page ?? "—"}
+                        </td>
+                        <td className="max-w-md truncate px-3 py-2" title={err.errorMessage}>
+                          {err.errorMessage}
+                        </td>
+                        <td className="px-3 py-2">{err.severity}</td>
+                        <td className="px-3 py-2">
+                          {err.resolved ? (
+                            <span className="text-green-600 dark:text-green-400">Traité</span>
+                          ) : (
+                            <span className="text-amber-600 dark:text-amber-400">Ouvert</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          <button
+                            type="button"
+                            disabled={resolvingId === err.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void toggleErrorResolved(err);
+                            }}
+                            className="rounded border border-gray-300 px-2 py-1 text-xs hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-900"
+                          >
+                            {err.resolved ? "Rouvrir" : "Marquer traité"}
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+              <PaginationBar
+                page={pageErrors}
+                pageSize={pageSize}
+                totalItems={filteredErrors.length}
+                onPageChange={setPageErrors}
+              />
+            </div>
+          </section>
+        </>
+      )}
+
+      <AnalyticsRecordDetailDialog
+        open={detailRecord != null}
+        title={detailTitle}
+        record={detailRecord}
+        onClose={() => {
+          setDetailRecord(null);
+          setDetailTitle("");
+        }}
+      />
+    </>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="min-w-0 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 sm:p-4">
+      <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+      <p className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">
+        {value}
+      </p>
+    </div>
+  );
+}

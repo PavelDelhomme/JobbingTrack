@@ -161,8 +161,12 @@ export async function fetchCrashReports(
   token: string,
   limit = 100,
 ): Promise<CrashReportSummary[]> {
+  const base =
+    typeof window !== "undefined"
+      ? ""
+      : FRONTEND_URLS.api.replace(/\/$/, "");
   const res = await axios.get(
-    `${FRONTEND_URLS.api}/api/v1/crashes?limit=${limit}`,
+    `${base}/api/v1/crashes?limit=${limit}`,
     { headers: authHeaders(token) },
   );
   if (!res.data?.success) return [];

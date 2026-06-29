@@ -66,7 +66,15 @@ export function AnalyticsRecordDetailDialog({
                 <dd className="mt-1 whitespace-pre-wrap break-words font-mono text-sm text-gray-900 dark:text-gray-100">
                   {key === "timestamp" && typeof value === "string"
                     ? formatLocalDateTime(value)
-                    : formatValue(value)}
+                    : key === "screenshotPreview" && typeof value === "string"
+                      ? (
+                          <img
+                            src={value}
+                            alt="Capture écran mobile"
+                            className="max-h-80 rounded border border-gray-200 dark:border-gray-700"
+                          />
+                        )
+                      : formatValue(value)}
                 </dd>
               </div>
             ))}

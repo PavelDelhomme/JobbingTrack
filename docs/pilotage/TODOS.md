@@ -772,6 +772,17 @@ Chantier **transversal** (hors périmètre fonctionnel A–G seul) : rangement, 
 - [ ] **Plan extraction** : rédiger `docs/project/PLATFORM_EXTRACTION_PLAN.md` (packages, frontières API, migration).
 - [ ] **Ne pas faire maintenant** : aucun split repo / npm package tant que le gate n’est pas ouvert.
 
+## Architecture modulaire — briques déployables (note porteur 27/06)
+
+> **À revoir post-prod** — voir `docs/project/MODULAR_SERVICES_VISION.md`.
+
+- [ ] **Cartographie brique → image → version** : frontend backoffice, sécurité, mail, logs, metrics, auth admin/mobile, métier (candidatures, entretiens, relances, appels, notifications), mobile APK/AAB.
+- [ ] **Orchestrateur deployment-service** : catalogue brique, config build, paramètres release, actions Déployer/rollback — voir `MODULAR_SERVICES_VISION.md` § Orchestrateur.
+- [ ] **Backoffice — pages d'aide intégrées** : documentation contextuelle par section (Performances, Sécurité, Mobile logs, Déploiement…) — hub `/backoffice/help` ou panneaux « ? ».
+- [ ] **Backoffice — navigation** : revue menu latéral (sections manquantes, doublons, chemins Sécurité vs Administration).
+- [ ] **Sécurité — clarifier rôles des pages** : Vue d'ensemble (score + synthèse) · Analyse (tendances) · Incidents & menaces (événements) · Politiques (règles WAF/firewall) · Firewall/Réseau (config réseau) — fusionner ou déplacer blocage IP si redondant.
+- [ ] **Gate** : ne pas fragmenter le monorepo avant phases A+B+C ; aligner avec Lot P / AllInOne après prod.
+
 ### H1 — Dossier **`scripts/`**
 
 - [x] **Wrappers env racine supprimés** (17/06) — canonique `scripts/env/` ; Make migré.

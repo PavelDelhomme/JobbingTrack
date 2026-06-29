@@ -229,6 +229,8 @@ Voir **`docs/pilotage/PILOTAGE.md`** § « Phase post-D8 ».
 
 **AllInOne (projet séparé)** : socle en cours d’alignement sur les **contrats API JobbingTrack** (`/persistence/system/metrics`, `docker/services/all?light=1`). JobbingTrack **ne consomme pas** AllInOne aujourd’hui — voir `docs/project/ALLINONE_AND_LOT_P.md`.
 
+**Briques déployables (vision porteur 27/06)** : chaque bloc (front admin, sécurité, mail, metrics, auth, métier…) = image versionnée + update ciblée sur serveur ; `deployment-service` comme orchestrateur cible — voir `docs/project/MODULAR_SERVICES_VISION.md`.
+
 **Priorité** : backlog post-prod uniquement — ne pas ralentir mobile étape 2→5 ni gate production.
 
 ## Références

@@ -346,13 +346,13 @@ class CrashReporter {
     debugPrint('[CrashReporter] Initialise (mode: ${_isDevMode ? "DEV - tracking illimite" : "PROD"})');
   }
 
-  static Future<void> reportManualError({
+  static Future<bool> reportManualError({
     required String message,
     String? stackTrace,
     String? screenName,
     Map<String, dynamic>? metadata,
   }) async {
-    await _reportError(
+    return _reportError(
       crashType: 'ManualReport',
       message: message,
       stackTrace: stackTrace,
@@ -361,7 +361,7 @@ class CrashReporter {
     );
   }
 
-  static Future<void> _reportError({
+  static Future<bool> _reportError({
     required String crashType,
     required String message,
     String? stackTrace,
@@ -384,6 +384,7 @@ class CrashReporter {
       final report = {
         'crashType': crashType,
         'message': message.length > 2000 ? message.substring(0, 2000) : message,
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
         'stackTrace': stackTrace,
         'deviceInfo': deviceInfo,
         'appVersion': appVersion,
@@ -404,7 +405,22 @@ class CrashReporter {
 
       debugPrint('[CrashReporter] Envoi rapport: $crashType - $message');
 
-      final sent = await _sendReport(report);
+      var sent = await _sendReport(report);
+      if (!sent && metadata?['feedback'] == true) {
+        final lighter = Map<String, dynamic>.from(report);
+        final meta = Map<String, dynamic>.from(
+          (lighter['metadata'] as Map<String, dynamic>?) ?? {},
+        );
+        if (meta.containsKey('screenshotCompressed') ||
+            meta.containsKey('diagnosticCompressed')) {
+          meta.remove('screenshotCompressed');
+          meta.remove('diagnosticCompressed');
+          meta['attachmentsStripped'] = true;
+          lighter['metadata'] = meta;
+          debugPrint('[CrashReporter] Nouvel essai sans pièces jointes lourdes');
+          sent = await _sendReport(lighter);
+        }
+      }
       final isUserFeedback = metadata?['feedback'] == true;
       if (_authToken != null && _authToken!.isNotEmpty && !isUserFeedback) {
         final deviceId = await ApiConfigStore.getOrCreateDeviceId();
@@ -431,6 +447,7 @@ class CrashReporter {
         _pendingReports.add(report);
         _persistReport(report);
       }
+      return sent;
     } catch (e) {
       debugPrint('[CrashReporter] Erreur lors de l\'envoi: $e');
       try {
@@ -445,6 +462,7 @@ class CrashReporter {
         };
         _persistReport(report);
       } catch (_) {}
+      return false;
     }
   }
 
@@ -506,7 +524,7 @@ class CrashReporter {
         debugPrint('[CrashReporter] Rapport envoye avec succes');
         return true;
       }
-      debugPrint('[CrashReporter] Erreur envoi: ${response.statusCode}');
+      debugPrint('[CrashReporter] Erreur envoi: ${response.statusCode} ${response.body.length > 120 ? response.body.substring(0, 120) : response.body}');
       return false;
     } catch (e) {
       debugPrint('[CrashReporter] Erreur envoi: $e');

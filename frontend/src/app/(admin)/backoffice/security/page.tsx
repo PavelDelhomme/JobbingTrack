@@ -862,6 +862,48 @@ export default function SecurityOverviewPage() {
             disque, services et conteneurs ne sont pas utilisées ici : elles
             relèvent de la performance, pas du risque sécurité.
           </p>
+          <details className="mb-3 rounded-lg border border-gray-200 bg-gray-50/80 p-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-300">
+            <summary className="cursor-pointer font-medium">
+              Comprendre l&apos;impact des curseurs (sans toucher aux alertes email)
+            </summary>
+            <ul className="mt-2 list-disc space-y-1.5 pl-5 text-xs">
+              <li>
+                <strong>Usage</strong> : jauge de synthèse sur cette page uniquement.
+                Les alertes email et le firewall appliquent leurs propres règles.
+              </li>
+              <li>
+                <strong>Menaces</strong> : plus le poids est élevé, plus chaque
+                menace comptée fait baisser le score (plafond 40 pts).
+              </li>
+              <li>
+                <strong>Bruit logs</strong> : au-delà de 20 logs « normaux », chaque
+                log supplémentaire retire des points (plafond 30 pts).
+              </li>
+              <li>
+                <strong>WAF off</strong> : pénalité fixe si le pare-feu applicatif
+                est désactivé — rappel visuel, pas un substitut au WAF réel.
+              </li>
+              <li>
+                <strong>IP bloquée</strong> : −10 pts si votre IP test ou une IP
+                blacklistée est active (voir bloc « Tester IP » plus haut).
+              </li>
+              <li>
+                <strong>Où agir vraiment</strong> : incidents → page{" "}
+                <a href="/backoffice/security/incidents" className="underline">
+                  Incidents &amp; menaces
+                </a>
+                ; règles →{" "}
+                <a href="/backoffice/security/policies" className="underline">
+                  Politiques
+                </a>
+                ; blocage réseau →{" "}
+                <a href="/backoffice/security/firewall" className="underline">
+                  Firewall
+                </a>
+                .
+              </li>
+            </ul>
+          </details>
           <p className="mb-3 rounded-lg bg-gray-50 p-2 font-mono text-xs text-gray-700 dark:bg-gray-900 dark:text-gray-300">
             Score = 100 - min(40, menaces × {weights.threats}) - min(30, max(0,
             logs - 20) × {weights.logsNoise}) - pénalité IP bloquée (10) -

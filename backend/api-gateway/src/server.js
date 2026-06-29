@@ -256,8 +256,15 @@ app.use(requestCorrelationMiddleware);
 // ✅ Forensics HTTP (4xx/5xx) → aggregated_logs pour corrélation fine
 app.use(httpForensicsAccessLogMiddleware());
 
-// ✅ Middleware de base (limite payload 64 Ko pour rejeter overflow → 413, conforme test E2E sécurité)
-app.use(express.json({ limit: '64kb' }));
+// ✅ Middleware de base — limite 64 Ko sauf POST /api/v1/crashes (captures + diagnostics compressés)
+const crashReportBodyParser = express.json({ limit: '2mb' });
+const defaultBodyParser = express.json({ limit: '64kb' });
+app.use((req, res, next) => {
+  if (req.method === 'POST' && req.path === '/api/v1/crashes') {
+    return crashReportBodyParser(req, res, next);
+  }
+  return defaultBodyParser(req, res, next);
+});
 app.use(express.urlencoded({ extended: true, limit: '64kb' }));
 
 // ✅ Détection d’intrusion (après body parser pour analyser le corps ; avant WAF)
@@ -394,7 +401,6 @@ app.post('/api/v1/crashes', async (req, res) => {
       screenName: raw.screenName || null,
       userActions: raw.userActions || [],
       metadata: raw.metadata || {},
-      ...raw,
     };
     const mergedMetadata = {
       ...(typeof body.metadata === 'object' && body.metadata ? body.metadata : {}),
@@ -413,32 +419,38 @@ app.post('/api/v1/crashes', async (req, res) => {
     if (body.screenName && !mergedMetadata.screenName) mergedMetadata.screenName = body.screenName;
     if (body.analytics && !mergedMetadata.analytics) mergedMetadata.analytics = body.analytics;
     body.metadata = mergedMetadata;
+
+    let forwardUser = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+        forwardUser = {
+          id: decoded.userId || decoded.id,
+          email: decoded.email,
+          role: decoded.role,
+        };
+        if (!body.userId && forwardUser.id) body.userId = forwardUser.id;
+        if (forwardUser.email && !body.metadata.userEmail) {
+          body.metadata.userEmail = forwardUser.email;
+        }
+      } catch (_) {
+        /* JWT optionnel — crash report reste anonyme */
+      }
+    }
+
     const dir = path.join(__dirname, '..', 'logs', 'crashes');
     fs.mkdirSync(dir, { recursive: true });
     const safe = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `crash-${safe}-${Date.now()}.json`;
     const filepath = path.join(dir, filename);
-    fs.writeFileSync(filepath, JSON.stringify(body, null, 2), 'utf8');
+    fs.writeFileSync(filepath, JSON.stringify(body), 'utf8');
     logger.info('Crash report saved', { file: filename });
 
     const internalSecret = effectiveSecurityInternalSecret();
     const notificationUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3008';
     if (internalSecret) {
-      let forwardUser = null;
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        try {
-          const jwt = require('jsonwebtoken');
-          const decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
-          forwardUser = {
-            id: decoded.userId,
-            email: decoded.email,
-            role: decoded.role,
-          };
-        } catch (_) {
-          /* JWT optionnel */
-        }
-      }
       axios.post(
         `${notificationUrl}/api/v1/notifications/internal/crash-report`,
         {
@@ -536,6 +548,8 @@ app.post('/api/v1/mobile/security-events', mobileSecurityEventsLimiter, async (r
 app.get('/api/v1/crashes', (req, res) => {
   try {
     const limit = Math.max(1, Math.min(500, parseInt(req.query.limit || '100', 10) || 100));
+    const sinceRaw = req.query.since ? String(req.query.since) : null;
+    const sinceMs = sinceRaw ? Date.parse(sinceRaw) : NaN;
     const dir = path.join(__dirname, '..', 'logs', 'crashes');
     if (!fs.existsSync(dir)) {
       return res.json({ success: true, data: [] });
@@ -547,6 +561,7 @@ app.get('/api/v1/crashes', (req, res) => {
         file: path.join(dir, name),
         mtime: fs.statSync(path.join(dir, name)).mtimeMs
       }))
+      .filter((f) => !Number.isFinite(sinceMs) || f.mtime >= sinceMs - 5000)
       .sort((a, b) => b.mtime - a.mtime)
       .slice(0, limit);
 

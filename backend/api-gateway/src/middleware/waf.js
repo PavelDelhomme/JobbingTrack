@@ -392,6 +392,15 @@ const wafCheck = async (req, res, next) => {
     const method = req.method || '';
     const headers = req.headers || {};
 
+    // Rapports crash mobile : payloads base64 (capture/diagnostic) — pas de scan WAF agressif
+    if (method === 'POST' && (url.startsWith('/api/v1/crashes') || req.originalUrl?.startsWith('/api/v1/crashes'))) {
+      res.set({
+        'X-WAF-Status': 'BYPASSED_CRASH_REPORT',
+        'X-Protected-By': 'JobbingTrack-WAF',
+      });
+      return next();
+    }
+
     if (isInternalWafBypassRequest(req)) {
       logger.debug('WAF bypass trafic interne', {
         ip: clientIP,

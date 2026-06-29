@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 26 juin 2026 (feuille de route mobile — phase A ; file porteur étapes 1→5 ; backlog récap 26/06 documenté)
+Dernière mise à jour : 27 juin 2026 (feuille de route mobile — phase A ; file porteur étapes 1→5 ; backlog récap 26/06 ; note architecture modulaire 27/06)
 
 ## Rôle
 
@@ -53,7 +53,31 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | BL-26-07 | smoke `company-create-adb` | Champ **Nom** introuvable (dialogue entreprise) | [ ] après étape 2 |
 | BL-26-08 | smoke `offline-business-adb` | Option **créer entreprise offline** introuvable | [ ] après étape 2 |
 
-Commandes utiles (directes, sans Make) :
+### Note porteur — architecture modulaire / deployment-service (27/06)
+
+> **À revoir post-prod** — pas de refactor maintenant. Doc : `docs/project/MODULAR_SERVICES_VISION.md`.
+
+| Vérification agent | Résultat | Statut |
+|--------------------|----------|--------|
+| Cartographie briques (front, sécurité, mail, logs, metrics, auth, métier, mobile) | Table § cartographie cible + état actuel documenté | [x] |
+| `deployment-service` existant (Prisma, API, UI `/deployments`) | Journal + analytics OK ; orchestration prod (build→registry→SSH) **absente** — `DEPLOIEMENT_FINAL.md` | [x] |
+| Alignement Lot P / AllInOne | Cross-liens `ALLINONE_AND_LOT_P.md`, `BACKLOG.md`, `TODOS.md` § briques | [x] |
+| Gate pilotage | Ne pas fragmenter monorepo avant phases A+B+C + prod | [x] doc |
+
+### Mobile — remontée erreurs & retours backoffice (27/06)
+
+| Vérification agent | Résultat | Statut |
+|--------------------|----------|--------|
+| Menu **Administration → Mobile — erreurs & retours** | `/backoffice/administration/mobile-logs` — retours manuels + erreurs auto, refresh 20 s | [x] |
+| Persistance rapports crash | Volume `./backend/api-gateway/logs:/app/logs` + `POST/GET /api/v1/crashes` | [x] |
+| Signaler un bug mobile | `help_feedback_screen` → `CrashReporter` + diagnostic/capture compressés | [x] |
+| Détail backoffice | Décompression diagnostic + aperçu capture dans dialogue | [x] |
+| Écran mobile Logs | Redirige vers bon chemin backoffice (plus « Services & Logs » seul) | [x] |
+| **Cause racine 413** | Payload capture/diagnostic >64 Ko rejeté ; fix parser **2 Mo** + bypass WAF + retry sans PJ | [x] |
+| **Bug WAF method TDZ** | `ReferenceError: Cannot access 'method' before initialization` — bypass crash après déclaration method/url | [x] |
+| Smoke pipeline | `node scripts/ops/smoke-mobile-crash-pipeline.js` → POST heavy **201**, GET OK | [x] |
+| Consentement télémétrie | Opt-out utilisateur respecté (plus de réactivation forcée à chaque init) | [x] |
+| Feedback sans télémétrie | Signaler un bug fonctionne même si analytics OFF ; erreurs auto = consentement ON | [x] |
 
 ```bash
 node scripts/mobile/ensure-test-accounts-ready.js
@@ -473,7 +497,7 @@ Index scripts : `scripts/mobile/README.md`.
 | Hygiène | Scripts / Make / tests/results — audit 26/06 | Rapport `docs/scripts/AUDIT_CLEANUP_2026-06-26.md` ; fix Makefile benchmark + verify-journey ; `.gitignore` tests/results ; `scripts/reports/prune-test-results.sh` ; `tools/api/throttle.js` ; `SEED_API_DELAY_MS`/`API_THROTTLE_MS` dans `.env.example` ; `make datas-remove-tests-tags` sans `source .env` (dotenv Node). **Reste porteur** : commit `git rm --cached tests/results/20*` si staging ~2576 fichiers OK. | [x] |
 | P1B | Performances backoffice — HTTP 404 `/api/mon/*` | **26/06** : route `api/mon/[...path]` + nginx `:5443`. **Suite perf** : mode `light=1` (sans probes HTTP + sans docker inspect), cache client 60 s partagé, prefetch `PerformancesSubNav`. Cold `docker stats` ~2 s (limite Docker) ; navigation onglets = cache hit (~40 ms). Validations : Jest `containersListClientCache` **2/2** ; `tsc` OK. **Reste porteur** : valider ressenti navigation CPU/Conteneurs/Corrélation sur `:5443`. | [ ] |
 | P1C | Performances CPU & Mémoire — cartes live ≠ graphe système | **26/06 retour porteur** : cartes figées ~**2,0 % CPU** / **19,1 % RAM** (moyenne Docker 23 conteneurs) alors que le graphe système affichait ~**24 % CPU** / **55 % RAM**. Cause : cartes calculées sur `docker/services/all`, pas sur `system_metrics`. Correctif : `resolvePerformancesLiveCards()` — priorité dernier point `rawSystemMetrics` (scan arrière si valeurs nulles), repli Docker explicite ; libellés **CPU système live** / **Mémoire système live** + horodatage source ; refresh conteneurs `?refresh=1` sur softTick. Validations sans `make` : Jest `liveContainerStats` **5/5** ; `npm run type-check` OK. **Reste porteur** : rebuild conteneur frontend + hard reload `/performances/cpu-memory` ; après ~45 s les cartes doivent suivre le dernier point du graphe (pas 2 % / 19 %). | [ ] |
-| P1B | Vue d’ensemble — temps de réponse N/A + signaux sécurité figés | **27/06** : `light=1` désactivait les sondes HTTP → `responseTime: null` partout (carte Temps de réponse, panneau P1B, Services). Correctif backend : mode light = sans `docker inspect` groupé, **sondes HTTP conservées**. Vue d’ensemble : carte **Signaux sécurité** alimentée par `fetchSecurityAnalysisSummary` (détections **30 j**), plus `errors.total_last_5m` metrics-aggregator. `tsc` OK ; Jest P1B **14/14**. **Reste porteur** : relancer stack + rebuild frontend/metrics-aggregator ; vérifier ms sur hub et `/performances/latency`. | [ ] |
+| P1B | Vue d’ensemble — temps de réponse N/A + signaux sécurité figés | **27/06** : `light=1` désactivait les sondes HTTP → `responseTime: null` partout. Correctif `03ffcddb` : mode light = sans `docker inspect` groupé, **sondes HTTP conservées** ; signaux sécurité via `fetchSecurityAnalysisSummary` (30 j). **Validation porteur 27/06** : temps de réponse OK hub + panneaux après `rebuild` + `up-full`. | [x] |
 | Docs | Conventions Git branches/commits | **26/06** : `docs/development/BRANCHES.md` aligné Conventional Branch (`feature/`, `bugfix/`, `hotfix/`, `release/`, `perf/`, `ci/`, etc.) + branches `main`/`dev`. | [x] |
 | Phase A | Mobile — APK debug Samsung + smokes étape 2 | **26/06** : `build-apk-debug.sh` OK ; install Samsung R5CT7263YJL OK ; `smoke-login-debug-test-accounts-adb.js` **OK** ; `smoke-mobile-navigation-adb.js` **OK** ; `smoke-full-journey-api.js` **19/19** ; seed `--seed-only` OK (37 candidatures). **KO** : `smoke-mobile-application-detail-fab-adb.js` timeout liste SmokeADB (candidature smoke absente après nettoyage — smoke à recibler Capgemini ou `ensureSmokeApplication` refresh). **Reste porteur** : parcours visuel seed (Orange relance→appel, FAB accueil contact). | [ ] |
 | Ops | Email récap journée complet 26/06 + arrêt stack | **26/06 fin** : rapport `/tmp/jt-recap-journee-20260626.txt` — 5 commits `feat/bl26-backlog-porteur-26juin`, mobile étape 2, Performances (404 `/api/mon`, light=1, cartes live système), hygiène dépôt, doc AllInOne/Lot P. Envoi `[JobbingTrack] Recap journée complet 26/06/2026 — BL-26 mobile étape 2, Performances metrics, hygiène dépôt — fin journée` : **6/6 HTTP 202** (`test@delhomme.ovh`, `pauldelhomme.pro@gmail.com`, `admin@jobbingtrack.com`, `security@jobbingtrack.com`, `dev@delhomme.ovh`, `admin@delhomme.ovh`). Stack locale arrêtée (`docker compose down --remove-orphans`). | [x] |

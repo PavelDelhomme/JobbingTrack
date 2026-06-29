@@ -417,13 +417,14 @@ class MobileAnalyticsService extends ChangeNotifier {
     final trimmed = message.trim();
     if (trimmed.isEmpty) throw Exception('Message requis');
 
-    final metadata = <String, dynamic>{
+    const metadata = <String, dynamic>{
       'category': category,
       'feedback': true,
       'anonymized': true,
       'deviceId': _deviceId,
       'sessionId': _sessionId,
       'screenName': CrashReporter.currentScreenName ?? 'help_feedback',
+      if (userId != null) 'userId': userId,
     };
 
     if (includeDiagnostics) {
@@ -435,11 +436,16 @@ class MobileAnalyticsService extends ChangeNotifier {
       metadata['screenshotCompressed'] = screenshotCompressed;
     }
 
-    await CrashReporter.reportManualError(
+    final sent = await CrashReporter.reportManualError(
       message: '[$category] $trimmed',
       screenName: CrashReporter.currentScreenName,
       metadata: metadata,
     );
+    if (!sent) {
+      throw Exception(
+        'Envoi impossible (réseau ou serveur). Vérifiez la connexion à l\'API dans Paramètres.',
+      );
+    }
 
     if (category == 'signalement') {
       await ApiService.postSecurityEvent(

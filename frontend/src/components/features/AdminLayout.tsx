@@ -473,6 +473,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           ],
         },
         { name: "Utilisateurs", href: "/backoffice/users", icon: "👥" },
+        {
+          name: "Mobile — erreurs & retours",
+          href: "/backoffice/administration/mobile-logs",
+          icon: "📱",
+        },
       ],
     },
     {

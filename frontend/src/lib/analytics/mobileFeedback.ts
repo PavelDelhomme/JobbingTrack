@@ -1,4 +1,8 @@
 import type { CrashReportSummary } from "@/lib/services/applicationAnalyticsService";
+import {
+  decompressImageDataUrl,
+  decompressJsonPayload,
+} from "@/lib/analytics/diagnosticPayloadCodec";
 
 const FEEDBACK_PREFIX =
   /^\[(bug|suggestion|signalement)\]\s/i;
@@ -21,19 +25,19 @@ export function feedbackCategoryFromCrash(crash: CrashReportSummary): string {
   return "retour";
 }
 
+function nestedMetaFromCrash(crash: CrashReportSummary): Record<string, unknown> {
+  const raw = (crash.metadata ?? {}) as Record<string, unknown>;
+  return (raw.metadata ?? {}) as Record<string, unknown>;
+}
+
 /** Détail exploitable pour le dialogue backoffice (diag, perf, logs). */
 export function crashReportDetailRecord(
   crash: CrashReportSummary,
 ): Record<string, unknown> {
   const raw = (crash.metadata ?? {}) as Record<string, unknown>;
-  const nestedMeta = (raw.metadata ?? {}) as Record<string, unknown>;
+  const nestedMeta = nestedMetaFromCrash(crash);
   const diagnosticCompressed = nestedMeta.diagnosticCompressed as string | undefined;
-  let diagnostic: Record<string, unknown> | undefined;
-  if (diagnosticCompressed) {
-    diagnostic = { note: "Diagnostic compressé (gz) — décompresser côté agent si besoin", size: diagnosticCompressed.length };
-  } else {
-    diagnostic = nestedMeta.diagnostic as Record<string, unknown> | undefined;
-  }
+  const screenshotCompressed = nestedMeta.screenshotCompressed as string | undefined;
   return {
     id: crash.id,
     timestamp: crash.timestamp,
@@ -41,15 +45,37 @@ export function crashReportDetailRecord(
     category: feedbackCategoryFromCrash(crash),
     message: crash.message,
     screenName: raw.screenName ?? nestedMeta.screenName,
-    sessionId: raw.sessionId,
+    sessionId: raw.sessionId ?? nestedMeta.sessionId,
+    userId: raw.userId ?? nestedMeta.userId,
     appVersion: raw.appVersion,
     deviceInfo: raw.deviceInfo ?? raw.device,
     analytics: raw.analytics,
-    diagnostic,
+    diagnosticCompressed: diagnosticCompressed ?? null,
+    screenshotCompressed: screenshotCompressed ?? null,
     userActions: raw.userActions,
     stackTrace: raw.stackTrace,
     metadata: nestedMeta,
   };
+}
+
+/** Décompression async pour affichage détail (diagnostic + capture). */
+export async function enrichCrashDetailRecord(
+  record: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const out = { ...record };
+  const diag = record.diagnosticCompressed;
+  if (typeof diag === "string" && diag.length > 0) {
+    const parsed = await decompressJsonPayload(diag);
+    if (parsed) out.diagnostic = parsed;
+  }
+  const shot = record.screenshotCompressed;
+  if (typeof shot === "string" && shot.length > 0) {
+    const dataUrl = await decompressImageDataUrl(shot);
+    if (dataUrl) out.screenshotPreview = dataUrl;
+  }
+  delete out.diagnosticCompressed;
+  delete out.screenshotCompressed;
+  return out;
 }
 
 export function formatMemoryBytes(bytes?: number | null): string {

@@ -9,7 +9,7 @@
 EMULATOR_CONTROLLER_DIR := $(ROOT_DIR)/tools/emulator-controller
 MOBILE_DIR := $(ROOT_DIR)/mobile
 
-.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop restart-emulator verify-mobile-emulator verify-mobile-scenarios help-emulator test-emulator-controller mobile-device-ready run-mobile mobile-login-admin mobile-login-user mobile-test-accounts mobile-smoke-full-journey mobile-register-smoke mobile-verify-email-smoke mobile-sync-test-env mobile-verify-email
+.PHONY: emulator-controller emulator-controller-bg emulator-controller-stop restart-emulator verify-mobile-emulator verify-mobile-scenarios help-emulator test-emulator-controller mobile-device-ready run-mobile mobile-apk-reinstall mobile-apk-install mobile-screen mobile-screen-browser help-mobile-adb mobile-login-admin mobile-login-user mobile-test-accounts mobile-smoke-full-journey mobile-register-smoke mobile-verify-email-smoke mobile-sync-test-env mobile-verify-email
 
 # Démarrer le lanceur (port 5056) qui démarre le contrôleur (5055). Depuis le backoffice on peut Démarrer/Arrêter le contrôleur sans terminal.
 emulator-controller: ## Démarrer le lanceur + contrôleur (5056 + 5055). Backoffice → Démarrer/Arrêter le contrôleur sans terminal
@@ -84,6 +84,37 @@ mobile-device-ready: ## Préparer appareil USB (adb reverse 5002/5003, build APK
 # Alias porteur : build + install + lancement sur téléphone USB
 run-mobile: ## Build, installe et lance l'app Flutter sur appareil USB (adb reverse inclus)
 	@bash "$(ROOT_DIR)/scripts/mobile/setup/setup-physical-device.sh"
+
+# Réinstaller l'APK debug sur appareil déjà connecté (sans relancer toute la stack)
+mobile-apk-reinstall: ## Build APK debug + adb install -r sur appareil USB connecté (adb reverse 5002/5003)
+	@bash "$(ROOT_DIR)/scripts/mobile/setup/reinstall-apk-adb.sh"
+
+mobile-apk-install: mobile-apk-reinstall ## Alias de mobile-apk-reinstall
+
+# Aperçu live écran Samsung/ADB sur le PC (scrcpy si dispo, sinon navigateur)
+mobile-screen: ## Fenêtre live scrcpy ou navigateur http://127.0.0.1:8765 (appareil USB connecté)
+	@bash "$(ROOT_DIR)/scripts/mobile/setup/mobile-screen-mirror.sh"
+
+mobile-screen-browser: ## Aperçu live dans le navigateur uniquement (sans scrcpy)
+	@node "$(ROOT_DIR)/scripts/mobile/setup/mobile-screen-browser.js"
+
+help-mobile-adb: ## Aide courte : appareil USB ADB (build, réinstall APK, smokes)
+	@printf '\033[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n'
+	@printf '\033[0;36m📱 MOBILE ADB — appareil physique (Samsung, etc.)\033[0m\n'
+	@printf '\033[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n\n'
+	@printf '\033[0;32mÉcran live sur le PC :\033[0m\n\n'
+	@printf '  \033[1;33mmake mobile-screen\033[0m          Fenêtre scrcpy (recommandé) ou navigateur\n'
+	@printf '  \033[1;33mmake mobile-screen-browser\033[0m  Navigateur http://127.0.0.1:8765\n'
+	@printf '  Backoffice → \033[1mDéveloppement → Émulateur mobile\033[0m → sélect. appareil → « Aperçu continu »\n\n'
+	@printf '\033[0;32mCommandes essentielles :\033[0m\n\n'
+	@printf '  \033[1;33mmake mobile-apk-reinstall\033[0m  Build APK debug + install -r (appareil déjà branché)\n'
+	@printf '  \033[1;33mmake run-mobile\033[0m           Build + install + lance l''app (première fois)\n'
+	@printf '  \033[1;33mmake mobile-device-ready\033[0m  adb reverse + build + install\n'
+	@printf '  \033[1;33mmake mobile-login-user\033[0m   Connexion auto TEST_USER sur l''appareil\n'
+	@printf '  \033[1;33mmake mobile-login-admin\033[0m  Connexion auto TEST_ADMIN\n'
+	@printf '  \033[1;33mmake mobile-test-accounts\033[0m Smoke admin + user\n\n'
+	@printf '\033[0;32mPrérequis :\033[0m adb devices → statut \033[1mdevice\033[0m ; scrcpy : \033[1mpacman -S scrcpy\033[0m (Arch)\n\n'
+	@printf 'Playwright / émulateur : \033[1;33mmake help-mobile\033[0m\n\n'
 
 # Connexion automatique admin (TEST_ADMIN_* puis repli ADMIN_* si login gateway OK)
 mobile-login-admin: ## Login auto sur appareil ADB avec credentials admin (.env)

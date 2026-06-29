@@ -112,5 +112,6 @@ Attendu : HTTP **200** ; JSON avec `cpuUsagePercent` / `memoryUsagePercent`.
 
 - `docs/pilotage/PILOTAGE.md` — phase E bloquée avant prod
 - `docs/project/BACKLOG.md` — Lot P périmètre modules
+- `docs/project/MODULAR_SERVICES_VISION.md` — briques déployables + deployment-service cible
 - `docs/scripts/AUDIT_CLEANUP_2026-06-26.md` — correctifs 26/06 détaillés
 - `docs/pilotage/TODOS_A_VERIFIER.md` — preuves agent + reste validation porteur

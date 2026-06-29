@@ -371,6 +371,16 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 
 ---
 
+### Mobile — erreurs & retours backoffice (prérequis étape 2)
+
+| Lot | Sujet | Environnement | Action porteur | Statut |
+|-----|-------|---------------|----------------|--------|
+| Mobile | Administration → **Mobile — erreurs & retours** | local + Samsung | (1) **Paramètres → Aide → Signaler un bug** (diagnostic + capture ON) — message d’erreur si API injoignable (plus de faux « Merci »). (2) Backoffice : **Administration → Mobile — erreurs & retours** — ligne dans « Retours utilisateur » (~20 s). (3) Clic ligne : diagnostic + capture. (4) « Erreurs auto » si télémétrie ON. (5) Recréer gateway si besoin : `docker compose up -d --force-recreate api-gateway`. | **[ ]** | **Preuve agent 29/06** : cause **413** payload >64 Ko corrigée (limite 2 Mo sur `/api/v1/crashes`) ; smoke `scripts/ops/smoke-mobile-crash-pipeline.js` OK ; WAF bypass crash ; fetch backoffice same-origin ; opt-out télémétrie respecté. |
+
+**Décision** : `OK Mobile logs backoffice` **ou** `KO …` + capture route.
+
+---
+
 ### Étape 2 — Ligne 320 : Navigation retour, admin, relances, ajouts candidature
 
 **Prérequis** : étape **1** validée et archivée dans `TODOS_DONE.md`.

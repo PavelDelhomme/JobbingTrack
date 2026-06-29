@@ -294,6 +294,8 @@ help: ## Afficher l'aide complète
 	@echo "  make test-mobile-interactive  - Menu interactif CLI mobile"
 	@echo "  make test-mobile-install     - Installer Playwright"
 	@echo ""
+	@echo "  make mobile-apk-reinstall     - Build APK debug + install -r sur appareil USB (adb)"
+	@echo "  make help-mobile-adb           - Aide courte appareil physique ADB"
 	@echo "  make mobile-device-ready     - Appareil USB : adb reverse + build/install APK"
 	@echo "  make run-mobile              - Alias : build + install + lance l'app sur téléphone USB"
 	@echo "  make mobile-login-admin      - Login auto ADB avec TEST_ADMIN_EMAIL/PASSWORD (.env)"

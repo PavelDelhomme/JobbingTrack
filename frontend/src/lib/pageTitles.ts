@@ -52,6 +52,8 @@ export const PAGE_TITLE_BY_PATH: Record<string, string> = {
     "Analytics — Activité & traces",
   "/backoffice/analytics/application/feedback":
     "Analytics — Retours & signalements",
+  "/backoffice/administration/mobile-logs":
+    "Administration — Mobile erreurs & retours",
   "/backoffice/analytics/containers": "Analytics — Conteneurs",
   "/backoffice/analytics/network": "Analytics — Réseau",
   "/backoffice/analytics/performances": "Analytics — Performances infra",

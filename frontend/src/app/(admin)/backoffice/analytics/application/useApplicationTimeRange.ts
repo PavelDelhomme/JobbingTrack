@@ -11,7 +11,7 @@ import {
 } from "@/components/analytics";
 import { localCalendarDayBounds } from "@/components/analytics/timeRangeUtils";
 
-export function useApplicationTimeRange() {
+export function useApplicationTimeRange(options?: { liveRefreshMs?: number }) {
   const [timeRange, setTimeRange] = useState<TimeRangeOption>("24h");
   const [windowEnd, setWindowEnd] = useState<Date>(() => new Date());
   const [followLive, setFollowLive] = useState(true);
@@ -40,6 +40,7 @@ export function useApplicationTimeRange() {
     followLive,
     useCustomRange,
     customEnd,
+    intervalMs: options?.liveRefreshMs ?? 45000,
     bumpWindowEndToNow,
     bumpSoftRefresh,
   });

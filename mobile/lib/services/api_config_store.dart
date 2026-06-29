@@ -108,10 +108,10 @@ class ApiConfigStore {
     return prefs.getBool(_keyAnalyticsConsent) ?? true;
   }
 
-  /// Réactive la télémétrie si elle avait été laissée OFF sans opt-out explicite récent.
+  /// Opt-in explicite uniquement : ne réactive pas un consentement refusé par l'utilisateur.
   static Future<void> ensureAnalyticsConsentEnabled() async {
     final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool(_keyAnalyticsConsent) != true) {
+    if (!prefs.containsKey(_keyAnalyticsConsent)) {
       await prefs.setBool(_keyAnalyticsConsent, true);
       await prefs.setBool(_keyAnalyticsPerformance, true);
       await prefs.setBool(_keyAnalyticsActivity, true);
