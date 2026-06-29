@@ -83,9 +83,12 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | **Menu drawer mobile** | Bouton **Menu** explicite + en-tête drawer → **Profil** (`onDetailsPressed` `/profile`) | [x] 29/06 — **OK porteur** menu visuel ; fix tap en-tête profil |
 | **Redémarrage contrôleur** | `bash scripts/mobile/setup/restart-emulator-controller.sh` — libère ports **5055/5056** via `lsof` (évite EADDRINUSE après `pkill` seul) | [x] 29/06 |
 | **Matrice entités entremêlées** | Source unique `scripts/mobile/lib/interleaved-scenarios.js` — seed + smoke génériques (`expect`: statut, contacts, entretiens, relances, appels) ; **30/30 OK** ; endpoint appels `/calls/application/:id` ; email **`paul.delhomme@proton.me`** | [x] 29/06 refactor |
+| **Retour porteur Signaler un bug** | **29/06 17:18** — `[bug] message de test` persisté ; diagnostic + capture OK ; Samsung SM-G990B2 ; `node scripts/ops/verify-porteur-mobile-feedback.js` **OK** | [x] |
 
 ```bash
 node scripts/mobile/ensure-test-accounts-ready.js
+node scripts/ops/verify-porteur-mobile-feedback.js
+node scripts/ops/smoke-mobile-crash-pipeline.js
 node scripts/mobile/setup/run-interleaved-live-matrix.js
 node scripts/mobile/smoke/api/smoke-interleaved-entities-api.js
 node scripts/mobile/setup/diagnose-registration-email.js
