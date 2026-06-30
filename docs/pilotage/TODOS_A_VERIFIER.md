@@ -84,10 +84,12 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | **Redémarrage contrôleur** | `bash scripts/mobile/setup/restart-emulator-controller.sh` — libère ports **5055/5056** via `lsof` (évite EADDRINUSE après `pkill` seul) | [x] 29/06 |
 | **Matrice entités entremêlées** | Source unique `scripts/mobile/lib/interleaved-scenarios.js` — seed + smoke génériques (`expect`: statut, contacts, entretiens, relances, appels) ; **30/30 OK** ; endpoint appels `/calls/application/:id` ; email **`paul.delhomme@proton.me`** | [x] 29/06 refactor |
 | **Retour porteur Signaler un bug** | **29/06 17:18** — `[bug] message de test` persisté ; diagnostic + capture OK ; Samsung SM-G990B2 ; `node scripts/ops/verify-porteur-mobile-feedback.js` **OK** | [x] |
+| **Connexion mobile « erreur réseau »** | **30/06** : cause **`adb reverse tcp:5002` absent** après rebranchage USB ; `ensure-device-api-ready.js` + `diagnose-mobile-api-connection.js` ; health téléphone **200** ; `smoke-login-user-adb.js` **OK** ; message login amélioré si API injoignable | [x] |
 
 ```bash
-node scripts/mobile/ensure-test-accounts-ready.js
-node scripts/ops/verify-porteur-mobile-feedback.js
+node scripts/mobile/setup/diagnose-mobile-api-connection.js
+node scripts/mobile/setup/ensure-device-api-ready.js
+```
 node scripts/ops/smoke-mobile-crash-pipeline.js
 node scripts/mobile/setup/run-interleaved-live-matrix.js
 node scripts/mobile/smoke/api/smoke-interleaved-entities-api.js

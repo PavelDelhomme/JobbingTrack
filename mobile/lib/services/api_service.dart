@@ -439,7 +439,14 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> login(String email, String password) async {
-    await prepareForLogin();
+    final ready = await prepareForLogin();
+    if (!ready) {
+      throw Exception(
+        'API injoignable ($baseUrl). Câble USB + PC allumé ? '
+        'Sur le PC : adb reverse tcp:5002 tcp:5002 — '
+        'ou touchez « API » en bas de l\'écran et saisissez l\'IP LAN du PC (ex. 192.168.x.x).',
+      );
+    }
     try {
       final response = await _post(
         '/api/v1/auth/login',
