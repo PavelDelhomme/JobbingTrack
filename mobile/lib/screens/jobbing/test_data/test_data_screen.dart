@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 class TestDataScreen extends StatefulWidget {
@@ -152,6 +153,39 @@ class _TestDataScreenState extends State<TestDataScreen> {
         false;
   }
 
+  Widget _summaryCard() {
+    final s = _summary!;
+    final countsRaw = s['counts'] ?? s['summary'] ?? s;
+    final rows = <String, dynamic>{};
+    if (countsRaw is Map) {
+      countsRaw.forEach((k, v) {
+        if (v is num) rows[k.toString()] = v;
+      });
+    }
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('État base actuelle', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            if (rows.isEmpty)
+              Text(s.toString(), style: const TextStyle(fontSize: 11))
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: rows.entries
+                    .map((e) => Chip(label: Text('${e.key}: ${e.value}'), visualDensity: VisualDensity.compact))
+                    .toList(),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -160,18 +194,15 @@ class _TestDataScreenState extends State<TestDataScreen> {
         centerTitle: true,
         actions: const [MobileNotificationCenter()],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (_summary != null)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text('Résumé : ${_summary.toString()}', style: const TextStyle(fontSize: 12)),
-                    ),
-                  ),
+      body: AdminSafeBody(
+        child: _loading && _summary == null
+            ? const Center(child: CircularProgressIndicator())
+            : Stack(
+                children: [
+                  ListView(
+                    padding: adminScrollPadding(context, base: const EdgeInsets.all(16)),
+                    children: [
+                      if (_summary != null) _summaryCard(),
                 const Text('Presets de génération', style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 ..._presets.entries.map((e) => Card(
@@ -201,8 +232,17 @@ class _TestDataScreenState extends State<TestDataScreen> {
                   title: Text('Purger toutes les données', style: TextStyle(color: Colors.red.shade700)),
                   onTap: () => _clear(onlyTest: false),
                 ),
-              ],
-            ),
+                    ],
+                  ),
+                  if (_loading)
+                    const Positioned(
+                      top: 8,
+                      right: 8,
+                      child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                    ),
+                ],
+              ),
+      ),
     );
   }
 }

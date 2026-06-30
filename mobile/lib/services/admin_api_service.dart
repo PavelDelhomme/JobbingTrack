@@ -191,6 +191,20 @@ class AdminApiService {
     return Map<String, dynamic>.from((data['statistics'] ?? data['data'] ?? data) as Map);
   }
 
+  // ——— Infra / performances système ———
+
+  static Future<Map<String, dynamic>> fetchSystemMetrics({required String? token}) async {
+    final r = await _get('/api/v1/metrics', token: token);
+    _ensureOk(r);
+    return _jsonMap(r);
+  }
+
+  static Future<Map<String, dynamic>> fetchServicesStatus({required String? token}) async {
+    final r = await _get('/api/v1/services', token: token);
+    _ensureOk(r);
+    return _jsonMap(r);
+  }
+
   static Future<List<Map<String, dynamic>>> fetchStatisticsTimeline({
     required String? token,
     required AdminTimeRange range,

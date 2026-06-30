@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
+import 'package:jobbingtrack_mobile/utils/admin_metrics_parser.dart';
 import 'package:jobbingtrack_mobile/utils/admin_time_range.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_kpi_tile.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_time_range_bar.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
@@ -19,6 +22,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   String? _error;
   Map<String, dynamic> _stats = {};
   List<Map<String, dynamic>> _timeline = [];
+  SystemSnapshot? _system;
 
   @override
   void initState() {
@@ -36,6 +40,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       final results = await Future.wait([
         AdminApiService.fetchStatistics(token: token),
         AdminApiService.fetchStatisticsTimeline(token: token, range: _range),
+        AdminApiService.fetchSystemMetrics(token: token).catchError((_) => <String, dynamic>{}),
       ]);
       if (mounted) {
         setState(() {
@@ -43,6 +48,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           _timeline = List<Map<String, dynamic>>.from(
             (results[1] as List).map((e) => Map<String, dynamic>.from(e as Map)),
           );
+          final metrics = Map<String, dynamic>.from(results[2] as Map);
+          _system = metrics.isNotEmpty ? AdminMetricsParser.parseSystem(metrics) : null;
         });
       }
     } catch (e) {
@@ -63,6 +70,15 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     return 0;
   }
 
+  Map<String, dynamic> _map(List<String> paths) {
+    dynamic cur = _stats;
+    for (final p in paths) {
+      if (cur is! Map) return {};
+      cur = cur[p];
+    }
+    return cur is Map ? Map<String, dynamic>.from(cur) : {};
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -74,85 +90,173 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           const MobileNotificationCenter(),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_error!, textAlign: TextAlign.center),
-                      FilledButton(onPressed: _load, child: const Text('Réessayer')),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    children: [
-                      AdminTimeRangeBar(value: _range, onChanged: (r) {
-                        setState(() => _range = r);
-                        _load();
-                      }),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text('Vue d\'ensemble', style: Theme.of(context).textTheme.titleMedium),
-                      ),
-                      _grid([
-                        _stat('Utilisateurs', _n(['users', 'total']), Icons.people, Colors.indigo),
-                        _stat('Actifs', _n(['users', 'active']), Icons.person, Colors.green),
-                        _stat('Candidatures', _n(['applications', 'total']), Icons.work, Colors.blue),
-                        _stat('Entreprises', _n(['companies', 'total']), Icons.business, Colors.purple),
-                        _stat('Contacts', _n(['contacts', 'total']), Icons.contact_mail, Colors.teal),
-                        _stat('Entretiens', _n(['interviews', 'total']), Icons.event, Colors.orange),
-                      ]),
-                      if (_timeline.isNotEmpty) ...[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                          child: Text('Évolution (${_range.label})', style: Theme.of(context).textTheme.titleMedium),
-                        ),
-                        ..._timeline.take(20).map((point) {
-                          final ts = DateTime.tryParse(point['timestamp']?.toString() ?? '')?.toLocal().toString().substring(0, 10) ?? '';
-                          final apps = point['total_applications'] ?? 0;
-                          final users = point['total_users'] ?? 0;
-                          return ListTile(
-                            dense: true,
-                            title: Text(ts),
-                            subtitle: Text('Users: $users · Candidatures: $apps'),
-                            trailing: Text('+$apps', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          );
-                        }),
+      body: AdminSafeBody(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_error!, textAlign: TextAlign.center),
+                        FilledButton(onPressed: _load, child: const Text('Réessayer')),
                       ],
-                    ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView(
+                      padding: adminScrollPadding(context),
+                      children: [
+                        AdminTimeRangeBar(value: _range, onChanged: (r) {
+                          setState(() => _range = r);
+                          _load();
+                        }),
+                        if (_system != null) ...[
+                          const AdminSectionTitle(title: 'Système (live)', subtitle: 'CPU/RAM hôte — metrics-aggregator'),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                AdminKpiTile(
+                                  label: 'CPU',
+                                  value: AdminMetricsParser.fmtPct(_system!.cpuPercent),
+                                  icon: Icons.memory,
+                                  color: Colors.blue,
+                                ),
+                                AdminKpiTile(
+                                  label: 'RAM',
+                                  value: AdminMetricsParser.fmtPct(_system!.memPercent),
+                                  icon: Icons.storage,
+                                  color: Colors.purple,
+                                ),
+                                AdminKpiTile(
+                                  label: 'Stack CPU',
+                                  value: AdminMetricsParser.fmtPct(_system!.projectCpuAvg),
+                                  icon: Icons.hub,
+                                  color: Colors.teal,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const AdminSectionTitle(title: 'Vue d\'ensemble métier'),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              AdminKpiTile(label: 'Utilisateurs', value: '${_n(['users', 'total'])}', icon: Icons.people, color: Colors.indigo),
+                              AdminKpiTile(label: 'Actifs (30 min)', value: '${_n(['users', 'active'])}', icon: Icons.person, color: Colors.green),
+                              AdminKpiTile(label: 'Candidatures', value: '${_n(['applications', 'total'])}', icon: Icons.work, color: Colors.blue),
+                              AdminKpiTile(label: 'Entreprises', value: '${_n(['companies', 'total'])}', icon: Icons.business, color: Colors.purple),
+                              AdminKpiTile(label: 'Contacts', value: '${_n(['contacts', 'total'])}', icon: Icons.contact_mail, color: Colors.teal),
+                              AdminKpiTile(label: 'Entretiens', value: '${_n(['interviews', 'total'])}', icon: Icons.event, color: Colors.orange),
+                              AdminKpiTile(label: 'Appels', value: '${_n(['calls', 'total'])}', icon: Icons.phone, color: Colors.cyan),
+                              AdminKpiTile(label: 'Relances', value: '${_n(['followups', 'total'])}', icon: Icons.notifications_active, color: Colors.amber.shade800),
+                              AdminKpiTile(label: 'Événements', value: '${_n(['events', 'total'])}', icon: Icons.calendar_month, color: Colors.deepOrange),
+                            ],
+                          ),
+                        ),
+                        const AdminSectionTitle(title: 'Activité récente', subtitle: 'Cette semaine / ce mois'),
+                        _activityCard(),
+                        ..._distributionSection('Candidatures par statut', _map(['applications', 'by_status'])),
+                        ..._distributionSection('Relances par statut', _map(['followups', 'by_status'])),
+                        ..._distributionSection('Appels par statut', _map(['calls', 'by_status'])),
+                        if (_timeline.length > 1) ...[
+                          AdminSectionTitle(title: 'Évolution (${_range.label})'),
+                          ..._timeline.take(20).map(_timelineTile),
+                        ] else if (_timeline.length == 1)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Text(
+                              'Historique fin non persisté côté serveur — point instantané affiché.',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
+      ),
     );
   }
 
-  Widget _grid(List<Widget> children) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Wrap(spacing: 8, runSpacing: 8, children: children),
-    );
-  }
+  Widget _activityCard() {
+    final appsWeek = _n(['applications', 'this_week']);
+    final appsMonth = _n(['applications', 'this_month']);
+    final usersWeek = _n(['users', 'new_this_week']);
+    final overdue = _n(['followups', 'overdue']);
+    final upcomingInterviews = _n(['interviews', 'upcoming']);
 
-  Widget _stat(String label, int value, IconData icon, Color color) {
-    return SizedBox(
-      width: 160,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: color),
-              const SizedBox(height: 8),
-              Text('$value', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
-              Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-            ],
-          ),
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _activityRow('Nouvelles candidatures (semaine)', appsWeek),
+            _activityRow('Nouvelles candidatures (mois)', appsMonth),
+            _activityRow('Nouveaux utilisateurs (semaine)', usersWeek),
+            _activityRow('Relances en retard', overdue, highlight: overdue > 0),
+            _activityRow('Entretiens à venir', upcomingInterviews),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _activityRow(String label, int value, {bool highlight = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(child: Text(label)),
+          Text(
+            '$value',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: highlight ? Colors.red : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _distributionSection(String title, Map<String, dynamic> buckets) {
+    if (buckets.isEmpty) return [];
+    final entries = buckets.entries.toList()..sort((a, b) => (b.value as num).compareTo(a.value as num));
+    return [
+      AdminSectionTitle(title: title),
+      Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: entries.take(12).map((e) {
+          return Padding(
+            padding: const EdgeInsets.only(left: 12),
+            child: Chip(
+              label: Text('${e.key}: ${e.value}'),
+              visualDensity: VisualDensity.compact,
+            ),
+          );
+        }).toList(),
+      ),
+      const SizedBox(height: 8),
+    ];
+  }
+
+  Widget _timelineTile(Map<String, dynamic> point) {
+    final ts = DateTime.tryParse(point['timestamp']?.toString() ?? '')?.toLocal().toString().substring(0, 10) ?? '';
+    return ListTile(
+      dense: true,
+      title: Text(ts),
+      subtitle: Text(
+        'Users ${point['total_users'] ?? 0} · Apps ${point['total_applications'] ?? 0} · '
+        'Relances ${point['total_followups'] ?? 0}',
       ),
     );
   }

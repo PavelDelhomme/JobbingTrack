@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
 import 'package:jobbingtrack_mobile/utils/admin_time_range.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_time_range_bar.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
@@ -65,6 +66,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
     }
   }
 
+  int get _openErrors => _errors.where((e) => e['resolved'] != true).length;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -86,14 +89,27 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
           const MobileNotificationCenter(),
         ],
       ),
-      body: Column(
-        children: [
-          AdminTimeRangeBar(value: _range, onChanged: (r) {
-            setState(() => _range = r);
-            _load();
-          }),
-          Expanded(child: _buildBody()),
-        ],
+      body: AdminSafeBody(
+        child: Column(
+          children: [
+            AdminTimeRangeBar(value: _range, onChanged: (r) {
+              setState(() => _range = r);
+              _load();
+            }),
+            if (!_loading && _error == null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                child: Row(
+                  children: [
+                    Chip(label: Text('$_openErrors erreurs ouvertes'), visualDensity: VisualDensity.compact),
+                    const SizedBox(width: 8),
+                    Chip(label: Text('Période : ${_range.label}'), visualDensity: VisualDensity.compact),
+                  ],
+                ),
+              ),
+            Expanded(child: _buildBody()),
+          ],
+        ),
       ),
     );
   }
@@ -114,31 +130,83 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
     return TabBarView(
       controller: _tabs,
       children: [
-        _simpleList(_events, (e) => '${e['eventName'] ?? e['eventType']} · ${e['page'] ?? ''}', (e) => _ts(e)),
-        _simpleList(_perf, (p) => '${p['metricName'] ?? p['metricType']} · ${p['duration'] ?? p['value'] ?? ''} ms', (p) => _ts(p)),
-        _simpleList(_errors, (e) => e['errorMessage']?.toString() ?? e['errorName']?.toString() ?? 'Erreur', (e) => _ts(e)),
-        _simpleList(_feedback, (f) => f['message']?.toString() ?? 'Retour', (f) => _ts(f)),
+        _list(_events, _eventTile),
+        _list(_perf, _perfTile),
+        _list(_errors, _errorTile),
+        _list(_feedback, _feedbackTile),
       ],
     );
   }
 
-  Widget _simpleList(
-    List<Map<String, dynamic>> items,
-    String Function(Map<String, dynamic>) title,
-    String Function(Map<String, dynamic>) subtitle,
-  ) {
-    if (items.isEmpty) return const Center(child: Text('Aucune donnée'));
+  Widget _list(List<Map<String, dynamic>> items, Widget Function(Map<String, dynamic>) builder) {
+    if (items.isEmpty) {
+      return const Center(child: Text('Aucune donnée sur cette période'));
+    }
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.builder(
+        padding: adminScrollPadding(context),
         itemCount: items.length,
-        itemBuilder: (_, i) {
-          final row = items[i];
-          return ListTile(
-            title: Text(title(row), maxLines: 2, overflow: TextOverflow.ellipsis),
-            subtitle: Text(subtitle(row)),
-          );
-        },
+        itemBuilder: (_, i) => builder(items[i]),
+      ),
+    );
+  }
+
+  Widget _eventTile(Map<String, dynamic> e) {
+    final name = e['eventName'] ?? e['eventType'] ?? 'event';
+    final page = e['page'] ?? e['screen'] ?? e['route'] ?? '';
+    final user = e['userId']?.toString();
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: ListTile(
+        title: Text('$name', maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text('$page${user != null ? '\nuser: ${user.length > 8 ? '${user.substring(0, 8)}…' : user}' : ''}'),
+        trailing: Text(_ts(e), style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+      ),
+    );
+  }
+
+  Widget _perfTile(Map<String, dynamic> p) {
+    final name = p['metricName'] ?? p['metricType'] ?? 'perf';
+    final ms = p['duration'] ?? p['value'] ?? p['durationMs'];
+    final path = p['path'] ?? p['endpoint'] ?? p['page'] ?? '';
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: ListTile(
+        title: Text('$name · ${ms ?? '?'} ms'),
+        subtitle: Text(path.toString()),
+        trailing: Text(_ts(p), style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+      ),
+    );
+  }
+
+  Widget _errorTile(Map<String, dynamic> e) {
+    final msg = e['errorMessage'] ?? e['errorName'] ?? 'Erreur';
+    final severity = e['severity'] ?? 'error';
+    final resolved = e['resolved'] == true;
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      color: resolved ? null : Colors.red.shade50,
+      child: ListTile(
+        title: Text(msg.toString(), maxLines: 2, overflow: TextOverflow.ellipsis),
+        subtitle: Text('$severity · ${e['platform'] ?? 'mobile'} · ${_ts(e)}'),
+        trailing: resolved ? const Icon(Icons.check, color: Colors.green, size: 20) : const Icon(Icons.error_outline, color: Colors.red, size: 20),
+      ),
+    );
+  }
+
+  Widget _feedbackTile(Map<String, dynamic> f) {
+    final msg = (f['message'] ?? '').toString().replaceFirst(
+          RegExp(r'^\[(bug|suggestion|signalement)\]\s*', caseSensitive: false),
+          '',
+        );
+    final cat = AdminApiService.feedbackCategory(f);
+    final device = f['device'] ?? f['deviceInfo'];
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: ListTile(
+        title: Text(msg.isEmpty ? '(sans message)' : msg, maxLines: 2, overflow: TextOverflow.ellipsis),
+        subtitle: Text('${cat.toUpperCase()} · ${device ?? f['appVersion'] ?? ''}\n${_ts(f)}'),
       ),
     );
   }

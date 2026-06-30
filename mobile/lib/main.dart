@@ -23,6 +23,7 @@ import 'package:jobbingtrack_mobile/screens/jobbing/users/email_agent_screen.dar
 import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/analytics_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/logs/logs_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/search/search_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/performance_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/statistics_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/test_data/test_data_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/trash/trash_screen.dart';
@@ -43,7 +44,6 @@ import 'package:jobbingtrack_mobile/widgets/telemetry_dev_status_banner.dart';
 import 'package:jobbingtrack_mobile/navigation/app_navigator.dart';
 import 'package:jobbingtrack_mobile/utils/locale_init.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
-import 'package:jobbingtrack_mobile/utils/post_auth_navigation.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 
 Route<dynamic>? resolveAppRoute(RouteSettings settings) {
@@ -200,6 +200,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/settings': (context) => const SettingsScreen(),
           '/email-agent': (context) => const EmailAgentScreen(),
           '/analytics': (context) => const AdminGuard(child: AnalyticsScreen()),
+          '/performance': (context) => const AdminGuard(child: PerformanceScreen()),
           '/logs': (context) => const AdminGuard(child: LogsScreen()),
           '/search': (context) => const SearchScreen(),
           '/statistics': (context) => const AdminGuard(child: StatisticsScreen()),

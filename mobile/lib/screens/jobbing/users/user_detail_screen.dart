@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/models/user.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 class UserDetailScreen extends StatefulWidget {
@@ -159,15 +160,16 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         title: const Text('Détail utilisateur'),
         actions: const [MobileNotificationCenter()],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(child: Text(_error!))
-              : u == null
-                  ? const Center(child: Text('Utilisateur introuvable'))
-                  : ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
+      body: AdminSafeBody(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(child: Text(_error!))
+                : u == null
+                    ? const Center(child: Text('Utilisateur introuvable'))
+                    : ListView(
+                        padding: adminScrollPadding(context, base: const EdgeInsets.all(16)),
+                        children: [
                         ListTile(
                           leading: CircleAvatar(radius: 28, child: Text(u.firstName.isNotEmpty ? u.firstName[0] : '?')),
                           title: Text('${u.firstName} ${u.lastName}'.trim(), style: Theme.of(context).textTheme.titleLarge),
@@ -187,8 +189,9 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                         _action(Icons.key, 'Reset mot de passe (email)', _resetPassword),
                         _action(Icons.mark_email_read_outlined, 'Renvoyer email vérification', _resendVerification),
                         _action(Icons.delete_forever, 'Supprimer', _deleteUser, destructive: true),
-                      ],
-                    ),
+                        ],
+                      ),
+      ),
     );
   }
 

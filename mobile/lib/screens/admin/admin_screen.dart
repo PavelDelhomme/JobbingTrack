@@ -32,6 +32,7 @@ class AdminScreen extends StatelessWidget {
                 children: [
                   _buildCard(context, Icons.people_alt, 'Utilisateurs', Colors.indigo[600]!, '/users'),
                   _buildCard(context, Icons.analytics, 'Analytics', Colors.teal[600]!, '/analytics'),
+                  _buildCard(context, Icons.speed, 'Performances', Colors.blueGrey[700]!, '/performance'),
                   _buildCard(context, Icons.article, 'Logs', Colors.amber[600]!, '/logs'),
                   _buildCard(context, Icons.bar_chart, 'Statistiques', Colors.deepPurple[600]!, '/statistics'),
                   _buildCard(context, Icons.delete_outline, 'Corbeille', Colors.red[600]!, '/trash'),

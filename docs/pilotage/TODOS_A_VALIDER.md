@@ -381,6 +381,16 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 
 ---
 
+### Mobile — hub admin parité backoffice (prérequis étape 2, point 4)
+
+| Lot | Sujet | Environnement | Action porteur | Statut |
+|-----|-------|---------------|----------------|--------|
+| Mobile | Drawer **ADMINISTRATION** → hub + sous-pages | Samsung + local | Login **TEST_ADMIN** → hub. Vérifier : **Utilisateurs** ; **Logs** ; **Analytics** ; **Performances** (CPU/RAM/conteneurs live) ; **Statistiques** (KPIs + répartitions) ; **Données test**. Scroll bas : contenu au-dessus barre navigation téléphone. | **[ ]** | **Preuve agent 30/06** : commit hub admin + perf infra + SafeArea ; APK à réinstaller. |
+
+**Décision** : `OK Mobile hub admin parité backoffice` **ou** `KO …` + page + capture.
+
+---
+
 ### Étape 2 — Ligne 320 : Navigation retour, admin, relances, ajouts candidature
 
 **Prérequis** : étape **1** validée et archivée dans `TODOS_DONE.md`.

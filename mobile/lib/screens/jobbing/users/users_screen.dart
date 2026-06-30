@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
 import 'package:jobbingtrack_mobile/models/user.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 class UsersScreen extends StatefulWidget {
@@ -101,37 +102,39 @@ class _UsersScreenState extends State<UsersScreen> {
           const MobileNotificationCenter(),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: Row(
-              children: [
-                _kpi('Total', '${_users.length}'),
-                const SizedBox(width: 8),
-                _kpi('Actifs', '$active'),
-                const SizedBox(width: 8),
-                _kpi('Admins', '$admins'),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: TextField(
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Rechercher email, nom, rôle…',
-                border: OutlineInputBorder(),
-                isDense: true,
+      body: AdminSafeBody(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Row(
+                children: [
+                  _kpi('Total', '${_users.length}'),
+                  const SizedBox(width: 8),
+                  _kpi('Actifs', '$active'),
+                  const SizedBox(width: 8),
+                  _kpi('Admins', '$admins'),
+                ],
               ),
-              onChanged: (v) => setState(() {
-                _query = v;
-                _applyFilter();
-              }),
             ),
-          ),
-          Expanded(child: _buildBody()),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: TextField(
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.search),
+                  hintText: 'Rechercher email, nom, rôle…',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onChanged: (v) => setState(() {
+                  _query = v;
+                  _applyFilter();
+                }),
+              ),
+            ),
+            Expanded(child: _buildBody()),
+          ],
+        ),
       ),
     );
   }
@@ -169,8 +172,12 @@ class _UsersScreenState extends State<UsersScreen> {
     return RefreshIndicator(
       onRefresh: _load,
       child: _filtered.isEmpty
-          ? ListView(children: const [SizedBox(height: 80), Center(child: Text('Aucun utilisateur'))])
+          ? ListView(
+              padding: adminScrollPadding(context),
+              children: const [SizedBox(height: 80), Center(child: Text('Aucun utilisateur'))],
+            )
           : ListView.builder(
+              padding: adminScrollPadding(context),
               itemCount: _filtered.length,
               itemBuilder: (_, i) {
                 final u = _filtered[i];

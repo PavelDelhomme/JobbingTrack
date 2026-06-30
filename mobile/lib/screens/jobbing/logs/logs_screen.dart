@@ -6,6 +6,7 @@ import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
 import 'package:jobbingtrack_mobile/utils/admin_time_range.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_time_range_bar.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 class LogsScreen extends StatefulWidget {
@@ -88,24 +89,26 @@ class _LogsScreenState extends State<LogsScreen> with SingleTickerProviderStateM
           const MobileNotificationCenter(),
         ],
       ),
-      body: Column(
-        children: [
-          AdminTimeRangeBar(value: _range, onChanged: (r) {
-            setState(() => _range = r);
-            _load();
-          }),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Row(
-              children: [
-                _chip('Bugs', '$bugs', Colors.red),
-                const SizedBox(width: 8),
-                _chip('Ouvertes', '$openErrors', Colors.orange),
-              ],
+      body: AdminSafeBody(
+        child: Column(
+          children: [
+            AdminTimeRangeBar(value: _range, onChanged: (r) {
+              setState(() => _range = r);
+              _load();
+            }),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Row(
+                children: [
+                  _chip('Bugs', '$bugs', Colors.red),
+                  const SizedBox(width: 8),
+                  _chip('Ouvertes', '$openErrors', Colors.orange),
+                ],
+              ),
             ),
-          ),
-          Expanded(child: _buildBody()),
-        ],
+            Expanded(child: _buildBody()),
+          ],
+        ),
       ),
     );
   }
@@ -150,6 +153,7 @@ class _LogsScreenState extends State<LogsScreen> with SingleTickerProviderStateM
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.builder(
+        padding: adminScrollPadding(context),
         itemCount: items.length,
         itemBuilder: (_, i) => builder(items[i]),
       ),
@@ -226,7 +230,12 @@ class _LogsScreenState extends State<LogsScreen> with SingleTickerProviderStateM
         initialChildSize: 0.6,
         maxChildSize: 0.9,
         builder: (_, scroll) => Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(context).padding.bottom + 16,
+          ),
           child: ListView(
             controller: scroll,
             children: [
