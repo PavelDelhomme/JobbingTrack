@@ -125,11 +125,11 @@ help-mobile-adb: ## Aide courte : appareil USB ADB (build, réinstall APK, smoke
 	@printf 'Playwright / émulateur : \033[1;33mmake help-mobile\033[0m\n\n'
 
 # Connexion automatique admin (TEST_ADMIN_* puis repli ADMIN_* si login gateway OK)
-mobile-login-admin: ## Login auto sur appareil ADB avec credentials admin (.env)
+mobile-login-admin: ## Login admin sur appareil ADB + ouverture hub Administration
 	@echo "📱 Connexion admin mobile (TEST_ADMIN_* puis ADMIN_*)..."
 	@adb reverse tcp:5002 tcp:5002 2>/dev/null || true
 	@adb reverse tcp:5003 tcp:5003 2>/dev/null || true
-	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/smoke/adb/smoke-login-admin-adb.js"
+	@/usr/bin/node "$(ROOT_DIR)/scripts/mobile/setup/login-admin-on-device.js"
 
 mobile-login-user: ## Login auto ADB avec TEST_USER_EMAIL/PASSWORD (.env)
 	@echo "📱 Connexion utilisateur test mobile (TEST_USER_*)..."
