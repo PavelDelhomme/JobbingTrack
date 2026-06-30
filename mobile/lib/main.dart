@@ -18,6 +18,7 @@ import 'package:jobbingtrack_mobile/screens/jobbing/auth/register_screen.dart';
 import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/users/settings_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/users/user_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/users/email_agent_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/analytics_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/logs/logs_screen.dart';
@@ -205,6 +206,10 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/test-data': (context) => const AdminGuard(child: TestDataScreen()),
           '/trash': (context) => const AdminGuard(child: TrashScreen()),
           '/users': (context) => const AdminGuard(child: UsersScreen()),
+          '/user-detail': (context) {
+            final id = ModalRoute.of(context)?.settings.arguments;
+            return AdminGuard(child: UserDetailScreen(userId: id is String ? id : ''));
+          },
           '/calls': (context) => const CallsScreen(),
           '/interim': (context) => const InterimScreen(),
           '/biometric-unlock': (context) => const BiometricUnlockScreen(),
