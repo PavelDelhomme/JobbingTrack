@@ -52,6 +52,7 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | BL-26-06 | smoke `notification-nav-adb` | Tap cloche fallback coords — centre notif non ouvert | [ ] après étape 2 |
 | BL-26-07 | smoke `company-create-adb` | Champ **Nom** introuvable (dialogue entreprise) | [ ] après étape 2 |
 | BL-26-08 | smoke `offline-business-adb` | Option **créer entreprise offline** introuvable | [ ] après étape 2 |
+| BL-26-09 | Toolchain mobile build | Gradle ≥8.14, Built-in Kotlin, `flutter pub outdated` | [ ] phase C1 |
 
 ### Note porteur — architecture modulaire / deployment-service (27/06)
 

@@ -27,6 +27,7 @@ Triage repo (phase D) **clos** : `scripts/legacy/`, env canonique `scripts/env/`
 - Performances : proxy `/api/mon`, nginx `:5443`, mode `light=1`, cartes CPU/RAM live = dernier point système.
 - Mobile : FAB, appels, entretiens, seed réaliste, analytics ON par défaut.
 - Hygiène : throttle seed API, dégit `tests/results/`, fix Make benchmark.
+- **BL-26-09 (30/06)** : dette toolchain APK — Kotlin Built-in Flutter + `pub outdated` ; Gradle wrapper **8.14** (correctif immédiat warning 8.13).
 
 AllInOne **n’est pas intégré** dans JobbingTrack ; c’est le futur socle réutilisable (Lot P post-prod).
 

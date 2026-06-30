@@ -252,6 +252,16 @@ Voir aussi : `docs/development/REPO_ORGANIZATION.md`, `scripts/README.md`, `docs
 - Détail appel refondu, analytics consent ON par défaut, bannière debug masquée
 - Voir commits et `docs/pilotage/TODOS_A_VERIFIER.md` § Phase A
 
+### Mobile toolchain — dette post-étape 2 (**BL-26-09**)
+
+| Sujet | Statut 30/06 | Action future |
+|-------|----------------|---------------|
+| Gradle wrapper **8.13 → 8.14** | Corrigé (warning Flutter supprimé) | Vérifier compat AGP à chaque upgrade Flutter |
+| **Built-in Kotlin** (app + plugins KGP) | Warning build — non bloquant | Migrer app + suivre upgrades `device_info_plus`, `flutter_contacts`, etc. |
+| **`flutter pub outdated`** (33 packages) | Info seulement | Revue contraintes `pubspec.yaml` + `STATS.md` §2.4 |
+
+Make réinstall APK : `make reinstall-apk` (build+install), `make reinstall-app` (+ lance app), `make mobile-apk-install-only` (install seule, `SKIP_BUILD=1`). « Performing Streamed Install » = normal USB (~10–60 s) ; `--fastdeploy` si app déjà installée.
+
 ### Documentation
 
 - `docs/scripts/AUDIT_CLEANUP_2026-06-26.md` — ce rapport
