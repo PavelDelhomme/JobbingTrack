@@ -72,6 +72,34 @@ async function purgeCrashes(token) {
   return json.data || {};
 }
 
+async function purgeDbDirectDocker() {
+  const cmd = `docker exec jobbingtrack-dashboard-service node -e "
+const { PrismaClient } = require('@prisma/client');
+const p = new PrismaClient();
+(async () => {
+  const mobile = { in: ['mobile','android','ios'] };
+  const e = await p.userError.deleteMany({ where: { OR: [{ platform: mobile }, { errorName: 'ManualReport' }] } });
+  const ev = await p.userEvent.deleteMany({ where: { platform: mobile } });
+  const perf = await p.userPerformance.deleteMany({ where: { platform: mobile } });
+  console.log(JSON.stringify({ deletedErrors: e.count, deletedEvents: ev.count, deletedPerformance: perf.count }));
+  await p.\\$disconnect();
+})().catch(x=>{console.error(x.message);process.exit(1);});
+"`;
+  const { execSync } = require('child_process');
+  const out = execSync(cmd, { encoding: 'utf8' }).trim();
+  return JSON.parse(out.split('\n').pop());
+}
+
+async function purgeCrashesDirectDocker() {
+  const { execSync } = require('child_process');
+  const out = execSync(
+    'docker exec jobbingtrack-api-gateway sh -c "rm -f /app/logs/crashes/*.json 2>/dev/null; ls /app/logs/crashes 2>/dev/null | wc -l"',
+    { encoding: 'utf8' },
+  ).trim();
+  const remaining = parseInt(out.split('\n').pop(), 10);
+  return { deletedFiles: Number.isNaN(remaining) ? 0 : Math.max(0, 500 - remaining) };
+}
+
 async function main() {
   console.log(`Gateway: ${BASE}`);
   const token = await loginAdmin();
@@ -84,8 +112,17 @@ async function main() {
     return;
   }
 
-  const db = await purgeDb(token);
-  const files = await purgeCrashes(token);
+  let db;
+  let files;
+  try {
+    db = await purgeDb(token);
+    files = await purgeCrashes(token);
+  } catch (apiErr) {
+    console.warn('API purge indisponible (redémarrer gateway/dashboard) — fallback Docker direct');
+    console.warn(String(apiErr.message || apiErr));
+    db = await purgeDbDirectDocker();
+    files = await purgeCrashesDirectDocker();
+  }
   const afterErrors = await countOpenErrors(token);
   const afterCrashes = await countCrashes();
 
