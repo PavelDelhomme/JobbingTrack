@@ -119,6 +119,22 @@ class AdminApiService {
     _ensureOk(r, minStatus: 200, maxStatus: 202);
   }
 
+  /// Connexion en tant qu'utilisateur (impersonation admin).
+  static Future<({String token, Map<String, dynamic> user})> impersonateUser(
+    String id, {
+    required String? token,
+  }) async {
+    final r = await _post('/api/v1/auth/users/${Uri.encodeComponent(id)}/impersonate', token: token);
+    _ensureOk(r);
+    final data = _jsonMap(r);
+    final user = Map<String, dynamic>.from((data['user'] ?? {}) as Map);
+    final impToken = data['token']?.toString();
+    if (impToken == null || impToken.isEmpty) {
+      throw Exception('Token impersonation absent');
+    }
+    return (token: impToken, user: user);
+  }
+
   static Future<void> cleanTestUsers({required String? token}) async {
     final r = await _post('/api/v1/auth/users/clean-test-users', token: token);
     _ensureOk(r);
@@ -137,7 +153,7 @@ class AdminApiService {
     required String? token,
     required AdminTimeRange range,
     bool excludeFeedback = true,
-    int limit = 100,
+    int limit = 300,
   }) async {
     final q = '${range.queryString()}&scope=application&platform=mobile&limit=$limit'
         '${excludeFeedback ? '&excludeFeedback=true' : ''}';

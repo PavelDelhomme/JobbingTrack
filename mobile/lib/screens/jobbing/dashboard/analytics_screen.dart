@@ -3,8 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
 import 'package:jobbingtrack_mobile/utils/admin_time_range.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_kpi_tile.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_record_detail_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_time_range_bar.dart';
+import 'package:jobbingtrack_mobile/utils/user_friendly_error.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 /// Analytics serveur mobile (API backoffice).
@@ -46,10 +49,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
     try {
       final token = Provider.of<AuthProvider>(context, listen: false).token;
       final results = await Future.wait([
-        AdminApiService.fetchApplicationEvents(token: token, range: _range, limit: 80),
-        AdminApiService.fetchApplicationPerformance(token: token, range: _range, limit: 80),
-        AdminApiService.fetchApplicationErrors(token: token, range: _range, limit: 80),
-        AdminApiService.fetchCrashReports(token: token, limit: 80),
+        AdminApiService.fetchApplicationEvents(token: token, range: _range, limit: 150),
+        AdminApiService.fetchApplicationPerformance(token: token, range: _range, limit: 150),
+        AdminApiService.fetchApplicationErrors(token: token, range: _range, limit: 150),
+        AdminApiService.fetchCrashReports(token: token, limit: 150),
       ]);
       if (mounted) {
         setState(() {
@@ -60,7 +63,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      if (mounted) setState(() => _error = userFriendlyError(e, adminContext: true));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -78,7 +81,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
           controller: _tabs,
           isScrollable: true,
           tabs: [
-            Tab(text: 'Events (${_events.length})'),
+            Tab(text: 'Événements (${_events.length})'),
             Tab(text: 'Perf (${_perf.length})'),
             Tab(text: 'Erreurs (${_errors.length})'),
             Tab(text: 'Retours (${_feedback.length})'),
@@ -98,12 +101,35 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
             }),
             if (!_loading && _error == null)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                child: Row(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    Chip(label: Text('$_openErrors erreurs ouvertes'), visualDensity: VisualDensity.compact),
-                    const SizedBox(width: 8),
-                    Chip(label: Text('Période : ${_range.label}'), visualDensity: VisualDensity.compact),
+                    AdminKpiTile(
+                      label: 'Événements',
+                      value: '${_events.length}',
+                      icon: Icons.timeline,
+                      color: Colors.blue,
+                    ),
+                    AdminKpiTile(
+                      label: 'Perf',
+                      value: '${_perf.length}',
+                      icon: Icons.speed,
+                      color: Colors.teal,
+                    ),
+                    AdminKpiTile(
+                      label: 'Erreurs ouvertes',
+                      value: '$_openErrors',
+                      icon: Icons.error_outline,
+                      color: Colors.orange,
+                    ),
+                    AdminKpiTile(
+                      label: 'Retours',
+                      value: '${_feedback.length}',
+                      icon: Icons.feedback_outlined,
+                      color: Colors.purple,
+                    ),
                   ],
                 ),
               ),
@@ -130,17 +156,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
     return TabBarView(
       controller: _tabs,
       children: [
-        _list(_events, _eventTile),
-        _list(_perf, _perfTile),
-        _list(_errors, _errorTile),
-        _list(_feedback, _feedbackTile),
+        _list(_events, _eventTile, empty: 'Aucun événement'),
+        _list(_perf, _perfTile, empty: 'Aucune mesure perf'),
+        _list(_errors, _errorTile, empty: 'Aucune erreur'),
+        _list(_feedback, _feedbackTile, empty: 'Aucun retour'),
       ],
     );
   }
 
-  Widget _list(List<Map<String, dynamic>> items, Widget Function(Map<String, dynamic>) builder) {
+  Widget _list(
+    List<Map<String, dynamic>> items,
+    Widget Function(Map<String, dynamic>) builder, {
+    required String empty,
+  }) {
     if (items.isEmpty) {
-      return const Center(child: Text('Aucune donnée sur cette période'));
+      return Center(child: Text(empty));
     }
     return RefreshIndicator(
       onRefresh: _load,
@@ -154,43 +184,46 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
 
   Widget _eventTile(Map<String, dynamic> e) {
     final name = e['eventName'] ?? e['eventType'] ?? 'event';
-    final page = e['page'] ?? e['screen'] ?? e['route'] ?? '';
-    final user = e['userId']?.toString();
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: ListTile(
+        leading: const Icon(Icons.bolt_outlined, size: 20),
         title: Text('$name', maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: Text('$page${user != null ? '\nuser: ${user.length > 8 ? '${user.substring(0, 8)}…' : user}' : ''}'),
-        trailing: Text(_ts(e), style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+        subtitle: Text('${e['page'] ?? e['category'] ?? ''} · ${_ts(e)}'),
+        trailing: const Icon(Icons.chevron_right, size: 18),
+        onTap: () => showAdminRecordDetailSheet(context, title: 'Événement', data: e),
       ),
     );
   }
 
   Widget _perfTile(Map<String, dynamic> p) {
     final name = p['metricName'] ?? p['metricType'] ?? 'perf';
-    final ms = p['duration'] ?? p['value'] ?? p['durationMs'];
-    final path = p['path'] ?? p['endpoint'] ?? p['page'] ?? '';
+    final ms = p['duration'] ?? p['value'] ?? p['networkLatency'];
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: ListTile(
+        leading: const Icon(Icons.speed, size: 20),
         title: Text('$name · ${ms ?? '?'} ms'),
-        subtitle: Text(path.toString()),
-        trailing: Text(_ts(p), style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+        subtitle: Text('${p['page'] ?? p['endpoint'] ?? ''} · ${_ts(p)}'),
+        trailing: const Icon(Icons.chevron_right, size: 18),
+        onTap: () => showAdminRecordDetailSheet(context, title: 'Performance', data: p),
       ),
     );
   }
 
   Widget _errorTile(Map<String, dynamic> e) {
-    final msg = e['errorMessage'] ?? e['errorName'] ?? 'Erreur';
-    final severity = e['severity'] ?? 'error';
+    final msg = userFriendlyError(e['errorMessage'] ?? e['errorName'] ?? 'Erreur', adminContext: true);
     final resolved = e['resolved'] == true;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       color: resolved ? null : Colors.red.shade50,
       child: ListTile(
-        title: Text(msg.toString(), maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: Text('$severity · ${e['platform'] ?? 'mobile'} · ${_ts(e)}'),
-        trailing: resolved ? const Icon(Icons.check, color: Colors.green, size: 20) : const Icon(Icons.error_outline, color: Colors.red, size: 20),
+        leading: Icon(resolved ? Icons.check_circle_outline : Icons.error_outline,
+            color: resolved ? Colors.green : Colors.red, size: 20),
+        title: Text(msg, maxLines: 2, overflow: TextOverflow.ellipsis),
+        subtitle: Text('${e['severity'] ?? ''} · ${_ts(e)}'),
+        trailing: const Icon(Icons.chevron_right, size: 18),
+        onTap: () => showAdminRecordDetailSheet(context, title: 'Erreur', data: e),
       ),
     );
   }
@@ -201,12 +234,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
           '',
         );
     final cat = AdminApiService.feedbackCategory(f);
-    final device = f['device'] ?? f['deviceInfo'];
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
       child: ListTile(
+        leading: const Icon(Icons.feedback_outlined, size: 20),
         title: Text(msg.isEmpty ? '(sans message)' : msg, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: Text('${cat.toUpperCase()} · ${device ?? f['appVersion'] ?? ''}\n${_ts(f)}'),
+        subtitle: Text('${cat.toUpperCase()} · ${_ts(f)}'),
+        trailing: const Icon(Icons.chevron_right, size: 18),
+        onTap: () => showAdminRecordDetailSheet(context, title: 'Retour', data: f),
       ),
     );
   }

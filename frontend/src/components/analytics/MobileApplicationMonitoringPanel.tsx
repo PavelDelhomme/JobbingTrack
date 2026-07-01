@@ -9,6 +9,8 @@ import { useApplicationTimeRange } from "@/app/(admin)/backoffice/analytics/appl
 import {
   fetchApplicationErrors,
   fetchCrashReports,
+  purgeCrashReports,
+  purgeMobileMonitoringData,
   resolveApplicationError,
   type ApplicationAnalyticsError,
   type CrashReportSummary,
@@ -30,12 +32,21 @@ import {
   TableSearchFilter,
 } from "@/components/analytics/MobileMonitoringTableControls";
 
-function formatTs(value: string) {
-  try {
-    return new Date(value).toLocaleString("fr-FR");
-  } catch {
-    return value;
-  }
+function formatTs(value: string | undefined) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function errorTimestamp(err: ApplicationAnalyticsError): string {
+  return err.timestamp || (err as { createdAt?: string }).createdAt || "";
 }
 
 function stripFeedbackPrefix(message: string) {
@@ -49,13 +60,22 @@ type FeedbackCategoryFilter = "all" | "bug" | "suggestion" | "signalement";
 type MobileApplicationMonitoringPanelProps = {
   liveRefreshMs?: number;
   showAdminHint?: boolean;
+  /** Aligné sur le compteur vue d'ensemble (7 j par défaut). */
+  defaultTimeRange?: import("@/components/analytics").TimeRangeOption;
+  /** Filtre initial erreurs (ex. lien depuis carte « Erreurs ouvertes »). */
+  initialErrorStatusFilter?: ErrorStatusFilter;
 };
 
 export function MobileApplicationMonitoringPanel({
   liveRefreshMs = 20000,
   showAdminHint = false,
+  defaultTimeRange = "7d",
+  initialErrorStatusFilter = "open",
 }: MobileApplicationMonitoringPanelProps) {
-  const range = useApplicationTimeRange({ liveRefreshMs });
+  const range = useApplicationTimeRange({
+    liveRefreshMs,
+    initialTimeRange: defaultTimeRange,
+  });
   const {
     rangeQuery,
     consumeSilentFetch,
@@ -86,7 +106,8 @@ export function MobileApplicationMonitoringPanel({
   const [error, setError] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [errorStatusFilter, setErrorStatusFilter] =
-    useState<ErrorStatusFilter>("all");
+    useState<ErrorStatusFilter>(initialErrorStatusFilter);
+  const [errorsTotal, setErrorsTotal] = useState(0);
   const [errorSort, setErrorSort] = useState<ErrorSort>("newest");
   const [detailRecord, setDetailRecord] = useState<Record<string, unknown> | null>(
     null,
@@ -101,6 +122,7 @@ export function MobileApplicationMonitoringPanel({
   const [pageAuto, setPageAuto] = useState(1);
   const [pageErrors, setPageErrors] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [purging, setPurging] = useState(false);
 
   const loadData = useCallback(async () => {
     const silent = consumeSilentFetch();
@@ -119,13 +141,14 @@ export function MobileApplicationMonitoringPanel({
       const endMs = rangeEnd.getTime();
       const inRange = (ts: string) => {
         const t = new Date(ts).getTime();
+        if (Number.isNaN(t)) return true;
         return t >= startMs && t <= endMs;
       };
 
       const [crashesRes, errorsRes] = await Promise.all([
-        fetchCrashReports(token, 300),
+        fetchCrashReports(token, 500),
         fetchApplicationErrors(token, rangeQuery, {
-          limit: 200,
+          limit: 500,
           excludeFeedback: true,
         }),
       ]);
@@ -138,7 +161,9 @@ export function MobileApplicationMonitoringPanel({
           .filter((c) => inRange(c.timestamp))
           .filter((c) => !isUserFeedbackCrash(c)),
       );
+      // Plage déjà appliquée côté API — pas de second filtre client (évite perte timezone).
       setAppErrors(errorsRes.data);
+      setErrorsTotal(errorsRes.pagination?.total ?? errorsRes.data.length);
       setLastRefreshAt(new Date());
     } catch (e) {
       console.error(e);
@@ -239,8 +264,10 @@ export function MobileApplicationMonitoringPanel({
       return matchesSearch(blob, searchQuery);
     });
     list.sort((a, b) => {
+      const ta = errorTimestamp(a);
+      const tb = errorTimestamp(b);
       if (errorSort === "oldest") {
-        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+        return new Date(ta).getTime() - new Date(tb).getTime();
       }
       if (errorSort === "severity") {
         const rank = (s: string) =>
@@ -248,7 +275,7 @@ export function MobileApplicationMonitoringPanel({
         const diff = rank(a.severity) - rank(b.severity);
         if (diff !== 0) return diff;
       }
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      return new Date(tb).getTime() - new Date(ta).getTime();
     });
     return list;
   }, [appErrors, errorStatusFilter, errorSort, searchQuery]);
@@ -272,6 +299,31 @@ export function MobileApplicationMonitoringPanel({
   const openErrorDetail = (err: ApplicationAnalyticsError) => {
     setDetailTitle(`Erreur — ${err.errorName || err.errorType}`);
     setDetailRecord({ ...err });
+  };
+
+  const purgeAllMobileMonitoring = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const ok = window.confirm(
+      "Supprimer TOUTES les données mobile (retours, crashs fichiers, erreurs/events/perf DB) ? Action irréversible.",
+    );
+    if (!ok) return;
+    setPurging(true);
+    try {
+      const [db, files] = await Promise.all([
+        purgeMobileMonitoringData(token),
+        purgeCrashReports(token),
+      ]);
+      alert(
+        `Purge OK — DB: ${db.deletedErrors} erreurs, ${db.deletedEvents} events, ${db.deletedPerformance} perf · fichiers crash: ${files.deletedFiles}`,
+      );
+      await loadData();
+    } catch (e) {
+      console.error(e);
+      alert("Échec purge — vérifiez que la stack est UP et que vous êtes admin.");
+    } finally {
+      setPurging(false);
+    }
   };
 
   const toggleErrorResolved = async (err: ApplicationAnalyticsError) => {
@@ -320,22 +372,34 @@ export function MobileApplicationMonitoringPanel({
 
       {showAdminHint ? (
         <div className="rounded-lg border border-blue-200 bg-blue-50/80 p-3 text-sm text-blue-950 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
-          <p className="font-medium">Où retrouver vos signalements</p>
-          <p className="mt-1">
-            Backoffice → <strong>Administration → Mobile — erreurs &amp; retours</strong>{" "}
-            (cette page). Table « Retours utilisateur » = bug / suggestion / signalement
-            depuis Paramètres → Aide. « Erreurs auto » = crash/API si télémétrie activée.
-          </p>
-          <p className="mt-1">
-            Vue équivalente :{" "}
-            <Link
-              href="/backoffice/analytics/application/feedback"
-              className="font-medium underline"
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-medium">Où retrouver vos signalements</p>
+              <p className="mt-1">
+                Backoffice → <strong>Administration → Mobile — erreurs &amp; retours</strong>{" "}
+                (cette page). Table « Retours utilisateur » = bug / suggestion / signalement
+                depuis Paramètres → Aide. « Erreurs auto » = crash/API si télémétrie activée.
+              </p>
+              <p className="mt-1">
+                Vue équivalente :{" "}
+                <Link
+                  href="/backoffice/analytics/application/feedback"
+                  className="font-medium underline"
+                >
+                  Analytics → Application → Retours
+                </Link>
+                .
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={purging}
+              onClick={() => void purgeAllMobileMonitoring()}
+              className="shrink-0 rounded border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200"
             >
-              Analytics → Application → Retours
-            </Link>
-            .
-          </p>
+              {purging ? "Purge…" : "Purger tout (dev)"}
+            </button>
+          </div>
         </div>
       ) : null}
 
@@ -355,6 +419,18 @@ export function MobileApplicationMonitoringPanel({
             <StatCard label="Erreurs auto (période)" value={stats.erreursAuto} />
             <StatCard label="Erreurs ouvertes" value={stats.erreursOuvertes} />
           </div>
+          {errorsTotal > appErrors.length ? (
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              {errorsTotal} erreurs sur la période — affichage limité aux{" "}
+              {appErrors.length} plus récentes. Réduisez la plage ou augmentez la
+              limite serveur si besoin.
+            </p>
+          ) : errorsTotal > 0 && appErrors.length === 0 ? (
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              {errorsTotal} erreur(s) en base sur la période mais aucune dans la
+              page courante — vérifiez le filtre « Statut » (ouvrez « Toutes »).
+            </p>
+          ) : null}
 
           {error ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
@@ -604,7 +680,7 @@ export function MobileApplicationMonitoringPanel({
                         onClick={() => openErrorDetail(err)}
                       >
                         <td className="whitespace-nowrap px-3 py-2 text-gray-600 dark:text-gray-300">
-                          {formatTs(err.timestamp)}
+                          {formatTs(errorTimestamp(err))}
                         </td>
                         <td className="px-3 py-2">{err.errorName || err.errorType}</td>
                         <td className="max-w-[8rem] truncate px-3 py-2" title={err.page ?? ""}>

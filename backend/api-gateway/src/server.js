@@ -591,6 +591,48 @@ app.get('/api/v1/crashes', (req, res) => {
   }
 });
 
+function verifyAdminJwt(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  try {
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+    const role = decoded.role;
+    if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') return null;
+    return decoded;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Purge tous les fichiers crash gateway (admin). */
+app.delete('/api/v1/crashes', (req, res) => {
+  try {
+    if (!verifyAdminJwt(req)) {
+      return res.status(403).json({ success: false, error: 'Accès admin requis' });
+    }
+    const dir = path.join(__dirname, '..', 'logs', 'crashes');
+    if (!fs.existsSync(dir)) {
+      return res.json({ success: true, data: { deletedFiles: 0 } });
+    }
+    const files = fs.readdirSync(dir).filter((name) => name.endsWith('.json'));
+    let deleted = 0;
+    for (const name of files) {
+      try {
+        fs.unlinkSync(path.join(dir, name));
+        deleted += 1;
+      } catch (unlinkErr) {
+        logger.warn('Crash purge skip file', { name, message: unlinkErr.message });
+      }
+    }
+    logger.info('Crash reports purged', { deleted });
+    return res.json({ success: true, data: { deletedFiles: deleted } });
+  } catch (err) {
+    logger.error('Crash report purge error:', err.message);
+    return res.status(500).json({ success: false, error: 'Erreur purge rapports crash' });
+  }
+});
+
 // ✅ Proxy métriques vers metrics-aggregator (pour tests et backoffice)
 app.get('/api/v1/metrics', async (req, res) => {
   const metricsUrl = process.env.METRICS_SERVICE_URL || 'http://jobbingtrack-metrics-aggregator:3014';

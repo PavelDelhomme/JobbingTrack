@@ -7,6 +7,7 @@ import 'package:jobbingtrack_mobile/widgets/admin/admin_kpi_tile.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_time_range_bar.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/simple_pie_chart.dart';
+import 'package:jobbingtrack_mobile/utils/user_friendly_error.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 class StatisticsScreen extends StatefulWidget {
@@ -49,7 +50,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      if (mounted) setState(() => _error = userFriendlyError(e, adminContext: true));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

@@ -19,6 +19,7 @@ import { preferencesService } from "@/lib/services/preferencesService";
 import { FRONTEND_URLS } from "@/config/ports.config";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import {
+  AlertCircle,
   Activity,
   TrendingUp,
   Users,
@@ -161,6 +162,7 @@ export default function BackofficePage() {
     averageResponseTime: 0,
     errorRate: 0,
     activeSessions: 0,
+    openApplicationErrors: 0,
     recentErrors: 0,
     securityAlerts: 0,
     codeQuality: 85,
@@ -873,6 +875,16 @@ export default function BackofficePage() {
               }),
               { data: { total: 0, activeUsersLast30Min: 0 } },
             ),
+            fetchWithFallback(
+              axios.get(
+                `${API_URL}/api/v1/analytics/errors?scope=application&platform=mobile&resolved=false&days=7&limit=1`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                  validateStatus: (status) => status < 500,
+                },
+              ),
+              { data: { pagination: { total: 0 }, data: [] } },
+            ),
           ])
             .then(
               ([
@@ -880,6 +892,7 @@ export default function BackofficePage() {
                 usersResponse,
                 companiesResponse,
                 activeSessionsResponse,
+                openErrorsResponse,
               ]) => {
                 const totalApplications =
                   applicationsResponse?.data?.total || 0;
@@ -893,6 +906,10 @@ export default function BackofficePage() {
                   activeSessionsResponse?.data?.total ||
                   activeSessionsResponse?.data?.activeUsersLast30Min ||
                   (user ? 1 : 0);
+                const openApplicationErrors =
+                  openErrorsResponse?.data?.pagination?.total ??
+                  openErrorsResponse?.data?.data?.length ??
+                  0;
 
                 const newStats = {
                   totalApplications,
@@ -900,6 +917,7 @@ export default function BackofficePage() {
                   totalCompanies,
                   activeUsers: activeSessions,
                   activeSessions: activeSessions,
+                  openApplicationErrors,
                   systemHealth: 100,
                   deploymentStatus: "success" as const,
                 };
@@ -920,6 +938,7 @@ export default function BackofficePage() {
           usersResponse,
           companiesResponse,
           activeSessionsResponse,
+          openErrorsResponse,
         ] = await Promise.all([
           fetchWithFallback(
             applicationService.getAll({ limit: 10 }).catch((error: any) => {
@@ -963,6 +982,16 @@ export default function BackofficePage() {
             }),
             { data: { total: 0, activeUsersLast30Min: 0 } },
           ),
+          fetchWithFallback(
+            axios.get(
+              `${API_URL}/api/v1/analytics/errors?scope=application&platform=mobile&resolved=false&limit=1`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+                validateStatus: (status) => status < 500,
+              },
+            ),
+            { data: { pagination: { total: 0 }, data: [] } },
+          ),
         ]);
 
         // Calculer les statistiques
@@ -974,6 +1003,10 @@ export default function BackofficePage() {
           activeSessionsResponse?.data?.total ||
           activeSessionsResponse?.data?.activeUsersLast30Min ||
           (user ? 1 : 0);
+        const openApplicationErrors =
+          openErrorsResponse?.data?.pagination?.total ??
+          openErrorsResponse?.data?.data?.length ??
+          0;
 
         const newStats = {
           totalApplications,
@@ -981,6 +1014,7 @@ export default function BackofficePage() {
           totalCompanies,
           activeUsers: activeSessions,
           activeSessions: activeSessions,
+          openApplicationErrors,
           systemHealth: 100,
           deploymentStatus: "success" as const,
         };
@@ -1198,14 +1232,16 @@ export default function BackofficePage() {
         <div className="space-y-4 md:space-y-6">
           <DashboardLayoutRegion variant="metrics">
             <MetricCard
-              title="Sessions actives"
+              title="Erreurs ouvertes"
               value={
-                stats.activeUsers !== undefined ? stats.activeUsers : "..."
+                stats.openApplicationErrors !== undefined
+                  ? stats.openApplicationErrors
+                  : "..."
               }
-              subtitle={`${stats.totalUsers || 0} utilisateurs`}
-              icon={<Users className="h-6 w-6" />}
-              color="green"
-              href="/backoffice/users?status=active"
+              subtitle="Mobile — 7 derniers jours, non traitées"
+              icon={<AlertCircle className="h-6 w-6" />}
+              color="orange"
+              href="/backoffice/administration/mobile-logs?status=open"
             />
             <MetricCard
               title="Signaux sécurité"

@@ -65,6 +65,7 @@ router.get('/events', authenticate, analyticsController.getEvents);
 router.post('/errors', optionalAuth, analyticsController.trackError);
 router.get('/errors', authenticate, analyticsController.getErrors);
 router.patch('/errors/:id/resolve', authenticate, analyticsController.resolveError);
+router.delete('/mobile-monitoring/purge', authenticate, analyticsController.purgeMobileMonitoringData);
 
 // Performance
 router.post('/performance', optionalAuth, analyticsController.trackPerformance);

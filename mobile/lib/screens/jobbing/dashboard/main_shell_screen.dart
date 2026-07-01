@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
+import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/applications_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/calendar/events_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/home_dashboard_tab.dart';
@@ -31,6 +33,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
   String? _applicationStatusFilter;
   int? _previousTabIndex;
   int? _pendingReturnTab;
+  int _applicationsResetEpoch = 0;
 
   @override
   void initState() {
@@ -91,6 +94,25 @@ class _MainShellScreenState extends State<MainShellScreen> {
     }
   }
 
+  void _reselectApplicationsTab() {
+    ShellDrawerRegistry.closeAllDrawers();
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    setState(() {
+      _applicationsTabIndex = 0;
+      _applicationStatusFilter = null;
+      _applicationsResetEpoch++;
+      _syncShellRegistry();
+    });
+  }
+
+  void _onBottomNavTap(int index) {
+    if (index == 1 && _selectedIndex == 1) {
+      _reselectApplicationsTab();
+      return;
+    }
+    _selectTab(index);
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -99,22 +121,52 @@ class _MainShellScreenState extends State<MainShellScreen> {
         if (!didPop) _handleSystemBack();
       },
       child: Scaffold(
-        body: IndexedStack(
-          index: _selectedIndex,
+        body: Column(
           children: [
+            Consumer<AuthProvider>(
+              builder: (context, auth, _) {
+                if (!auth.isImpersonating) return const SizedBox.shrink();
+                final email = auth.user?.email ?? '';
+                return MaterialBanner(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  backgroundColor: Colors.orange.shade100,
+                  content: Text('Mode diagnostic — connecté en tant que $email'),
+                  actions: [
+                    TextButton(
+                      onPressed: () async {
+                        await auth.exitImpersonation();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Retour session admin')),
+                          );
+                        }
+                      },
+                      child: const Text('Quitter'),
+                    ),
+                  ],
+                );
+              },
+            ),
+            Expanded(
+              child: IndexedStack(
+                index: _selectedIndex,
+                children: [
             HomeDashboardTab(
               isShellVisible: _selectedIndex == 0,
               onOpenApplications: ({required applicationsTabIndex, statusFilter}) {
               _openApplications(tabIndex: applicationsTabIndex, statusFilter: statusFilter);
             }),
             ApplicationsScreen(
-              key: ValueKey('apps-$_applicationsTabIndex-${_applicationStatusFilter ?? ''}'),
+              key: ValueKey('apps-$_applicationsResetEpoch-$_applicationsTabIndex-${_applicationStatusFilter ?? ''}'),
               initialTabIndex: _applicationsTabIndex,
               statusFilter: _applicationStatusFilter,
               isShellVisible: _selectedIndex == 1,
             ),
             const EventsScreen(),
             const ProfileScreen(),
+                ],
+              ),
+            ),
           ],
         ),
         bottomNavigationBar: SafeArea(
@@ -124,7 +176,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
             currentIndex: _selectedIndex,
             selectedItemColor: Colors.blue[600],
             unselectedItemColor: Colors.grey[400],
-            onTap: (index) => _selectTab(index),
+            onTap: _onBottomNavTap,
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
               BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Candidatures'),

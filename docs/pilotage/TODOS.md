@@ -74,7 +74,11 @@ Backlog détaillé historique : sections **Lot A–H** plus bas dans ce fichier 
 | **BL-26-10** | A mobile **v2** | **Création globale hors candidature** | Depuis n'importe où : champ recherche/autocomplete **candidature** puis créer **relance, appel, entretien, contact** sans ouvrir le détail candidature | `ApplicationPickerField` étendu ; FAB shell ou menu « Ajouter » global | **Après v1** (post étape 2 + gate) |
 | **BL-26-11** | A mobile **v2** | **Intérim = missions (pas candidatures)** | Mode intérim : **2 onglets** — **Boîtes d'intérim** (CRUD, anti-doublon nom) + **Missions** (liste, détail mission : dates, client, taux, statut). Ne plus réutiliser le modèle `Application` / formulaire candidature | `interim_screen.dart` → refonte ; API mission dédiée ou type `INTERIM_MISSION` | **Après v1** |
 
-**Ordre suggéré après étape 2 mobile** : BL-26-04→08 → BL-26-01 → BL-26-02 → BL-26-03 → **BL-26-09** → **BL-26-10/11** (v2 produit).
+| **BL-26-12** | C mobile / prod | **API_BASE_URL centralisée** | Toute l'app utilise `ApiService.baseUrl` (`--dart-define=API_BASE_URL`, login debug, `ApiConfigStore`) ; doc build prod | `mobile/PROCESSUS_APPLICATION_MOBILE_ET_API.md` | **C1** |
+
+| **BL-26-13** | D backoffice | **Recherche & filtres unifiés** | Un seul composant recherche/filtres réutilisable (tableaux, mobile-logs, analytics) ; plage dates + user/type/date ; personnalisation layout (cartes/tableaux/graphes) | `docs/BACKLOG.md` | **P2** |
+
+**Ordre suggéré après étape 2 mobile** : BL-26-04→08 → BL-26-01 → BL-26-02 → BL-26-03 → **BL-26-09/12** (toolchain + URL prod) → **BL-26-10/11** (v2 produit) → **BL-26-13** (recherche unifiée).
 
 ## Backlog produit — tutoriels & refonte navigation (29/06 porteur)
 

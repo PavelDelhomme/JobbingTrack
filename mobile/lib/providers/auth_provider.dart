@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/biometric_credential_store.dart';
@@ -21,6 +22,9 @@ class AuthProvider with ChangeNotifier {
   bool _sessionRestored = false;
   bool _restoringSession = false;
   bool _tokenStale = false;
+  String? _impersonatorToken;
+  User? _impersonatorUser;
+  String? _impersonatorRefreshToken;
 
   AuthProvider() {
     _wireSecurityCallbacks();
@@ -349,6 +353,9 @@ class AuthProvider with ChangeNotifier {
     _user = null;
     _token = null;
     _refreshToken = null;
+    _impersonatorToken = null;
+    _impersonatorUser = null;
+    _impersonatorRefreshToken = null;
     _tokenStale = false;
     _sessionRestored = false;
     CrashReporter.setToken(null);
@@ -471,4 +478,37 @@ class AuthProvider with ChangeNotifier {
   bool get isAuthenticated => _token != null && _user != null;
 
   bool get isAdmin => AdminAccess.canAccessAdmin(_user);
+
+  bool get isImpersonating => _impersonatorToken != null;
+
+  /// Ouvre la session de l'utilisateur cible (admin requis).
+  Future<void> impersonateUser(String targetUserId) async {
+    if (_token == null) throw Exception('Non connecté');
+    final result = await AdminApiService.impersonateUser(targetUserId, token: _token);
+    _impersonatorToken = _token;
+    _impersonatorUser = _user;
+    _impersonatorRefreshToken = _refreshToken;
+    _token = result.token;
+    _user = User.fromJson(result.user);
+    _refreshToken = null;
+    _tokenStale = false;
+    CrashReporter.setToken(_token);
+    await MobileAnalyticsService.instance.updateAuthToken(_token);
+    notifyListeners();
+  }
+
+  /// Quitte l'impersonation et restaure la session admin.
+  Future<void> exitImpersonation() async {
+    if (_impersonatorToken == null) return;
+    _token = _impersonatorToken;
+    _user = _impersonatorUser;
+    _refreshToken = _impersonatorRefreshToken;
+    _impersonatorToken = null;
+    _impersonatorUser = null;
+    _impersonatorRefreshToken = null;
+    _tokenStale = false;
+    CrashReporter.setToken(_token);
+    await MobileAnalyticsService.instance.updateAuthToken(_token);
+    notifyListeners();
+  }
 }

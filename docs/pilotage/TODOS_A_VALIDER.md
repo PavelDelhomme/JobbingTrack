@@ -385,9 +385,19 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 
 | Lot | Sujet | Environnement | Action porteur | Statut |
 |-----|-------|---------------|----------------|--------|
-| Mobile | Drawer **ADMINISTRATION** → hub + sous-pages | Samsung + local | Login **TEST_ADMIN** → hub. Vérifier : **Utilisateurs** ; **Logs** ; **Analytics** ; **Performances** (CPU/RAM/conteneurs live) ; **Statistiques** (KPIs + répartitions) ; **Données test**. Scroll bas : contenu au-dessus barre navigation téléphone. | **[ ]** | **Preuve agent 30/06** : commit hub admin + perf infra + SafeArea ; APK à réinstaller. |
+| Mobile | Drawer **ADMINISTRATION** → hub + sous-pages | Samsung + local | Login **TEST_ADMIN** → hub. **Performances** : onglets Hôte & stack / Appareils mobile. **Analytics** : KPI + détail par ligne. **Logs** : fiche détail. **Utilisateurs** : action sensible = empreinte ; impersonation avec bannière « Quitter ». | **[ ]** | **Preuve agent 17/06** : perf dual-tab ; analytics structuré ; user biométrie + impersonation. APK à réinstaller. |
 
 **Décision** : `OK Mobile hub admin parité backoffice` **ou** `KO …` + page + capture.
+
+---
+
+### Backoffice web — vue d'ensemble & logs mobile (prérequis étape 2)
+
+| Lot | Sujet | Environnement | Action porteur | Statut |
+|-----|-------|---------------|----------------|--------|
+| Web | **Vue d'ensemble** + **Mobile — erreurs & retours** | local | (1) Carte **Erreurs ouvertes** (~7 j) → lien avec filtre ouvertes. (2) Page logs : **7 jours** par défaut, erreurs auto visibles (ex. 11:30). (3) Détail technique complet (adresse, errno). | **[ ]** | **Preuve agent 17/06** : plage 7 j alignée dashboard ; limite 500 ; filtre ouvert par défaut ; `?status=open`. |
+
+**Décision** : `OK Backoffice vue d'ensemble erreurs` **ou** `KO …` + capture.
 
 ---
 
@@ -408,6 +418,8 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 | 7 | Idem → **Appel** : picker contact (sections) ou sans contact | Appel créé ; **Voir** → détail | OK FAB appel |
 | 8 | Idem → **Entretien** : date du jour, lieu, notes, contacts optionnels | Entretien créé ; **Voir** → détail | OK FAB entretien |
 | 9 | Idem → **Contact** : création ou liaison | Contact visible sur détail candidature | OK FAB contact |
+| 10 | Onglet **Candidatures** → sous-onglet Relances/Appels → re-clic **Candidatures** (barre basse) | Retour **liste candidatures** (sous-onglet 0) | OK re-tap candidatures |
+| 11 | Onglet **Contacts** (dans Candidatures) → FAB **+** | Sheet création contact avec picker entreprise | OK FAB contact onglet |
 
 **Smokes agent (référence)** : `smoke-mobile-navigation-adb.js`, `smoke-mobile-application-detail-fab-adb.js`, `smoke-mobile-admin-hub-adb.js`.
 

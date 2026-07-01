@@ -1389,6 +1389,49 @@ class AnalyticsController {
       });
     }
   }
+
+  /**
+   * Purge complète des données monitoring mobile (admin) — erreurs, events, perf DB.
+   * DELETE /api/v1/analytics/mobile-monitoring/purge
+   */
+  async purgeMobileMonitoringData(req, res) {
+    try {
+      if (!isAnalyticsAdmin(req.user?.role)) {
+        return res.status(403).json({ success: false, error: 'Accès admin requis' });
+      }
+
+      const mobilePlatform = { in: ['mobile', 'android', 'ios'] };
+
+      const [errors, events, perf] = await Promise.all([
+        prisma.userError.deleteMany({
+          where: {
+            OR: [
+              { platform: mobilePlatform },
+              { errorName: 'ManualReport' },
+            ],
+          },
+        }).catch(() => ({ count: 0 })),
+        prisma.userEvent.deleteMany({ where: { platform: mobilePlatform } }).catch(() => ({ count: 0 })),
+        prisma.userPerformance.deleteMany({ where: { platform: mobilePlatform } }).catch(() => ({ count: 0 })),
+      ]);
+
+      res.json({
+        success: true,
+        data: {
+          deletedErrors: errors.count || 0,
+          deletedEvents: events.count || 0,
+          deletedPerformance: perf.count || 0,
+        },
+      });
+    } catch (error) {
+      console.error('[ANALYTICS] Erreur purge mobile:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erreur lors de la purge des données mobile',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      });
+    }
+  }
 }
 
 module.exports = new AnalyticsController();

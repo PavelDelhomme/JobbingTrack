@@ -24,6 +24,7 @@ import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/widgets/application_card.dart';
 import 'package:jobbingtrack_mobile/widgets/company_create_dialog.dart';
+import 'package:jobbingtrack_mobile/widgets/contact_create_sheet.dart';
 
 class ApplicationsScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -163,7 +164,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
           ],
         ),
       ),
-      floatingActionButton: widget.isShellVisible && (_tabController.index == 0 || _tabController.index == 1)
+      floatingActionButton: widget.isShellVisible && (_tabController.index == 0 || _tabController.index == 1 || _tabController.index == 2)
           ? shellFabPadding(context, child: _buildFab()!)
           : null,
     );
@@ -184,6 +185,25 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
         },
         backgroundColor: Colors.purple[600],
         child: const Icon(Icons.add_business_outlined),
+      );
+    }
+    if (_tabController.index == 2) {
+      return FloatingActionButton(
+        heroTag: 'fab_contacts_tab',
+        tooltip: 'Nouveau contact',
+        onPressed: () async {
+          final created = await showCreateContactSheet(context);
+          if (created != null && mounted) {
+            await _loadAll();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Contact créé')),
+              );
+            }
+          }
+        },
+        backgroundColor: Colors.green[700],
+        child: const Icon(Icons.person_add_outlined),
       );
     }
     return FloatingActionButton(
@@ -361,6 +381,15 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
             Icon(Icons.people, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text('Aucun contact', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () async {
+                final created = await showCreateContactSheet(context);
+                if (created != null && mounted) await _loadAll();
+              },
+              icon: const Icon(Icons.person_add_outlined),
+              label: const Text('Nouveau contact'),
+            ),
           ],
         ),
       );

@@ -1,12 +1,12 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
 import 'package:jobbingtrack_mobile/utils/admin_time_range.dart';
+import 'package:jobbingtrack_mobile/utils/user_friendly_error.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_time_range_bar.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_record_detail_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 class LogsScreen extends StatefulWidget {
@@ -61,7 +61,7 @@ class _LogsScreenState extends State<LogsScreen> with SingleTickerProviderStateM
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      if (mounted) setState(() => _error = userFriendlyError(e, adminContext: true));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -245,40 +245,51 @@ class _LogsScreenState extends State<LogsScreen> with SingleTickerProviderStateM
     );
   }
 
+  String _safeLogMessage(String? raw) {
+    final msg = (raw ?? '').trim();
+    if (msg.isEmpty) return '(sans message)';
+    if (msg.contains('SocketException') ||
+        msg.contains('Connection refused') ||
+        msg.contains('ClientException')) {
+      return userFriendlyError(msg, adminContext: true);
+    }
+    return msg.replaceFirst(RegExp(r'^\[(bug|suggestion|signalement)\]\s*', caseSensitive: false), '').trim();
+  }
+
   Widget _feedbackTile(Map<String, dynamic> c) {
-    final msg = (c['message'] ?? '').toString().replaceFirst(
-          RegExp(r'^\[(bug|suggestion|signalement)\]\s*', caseSensitive: false),
-          '',
-        );
+    final title = _safeLogMessage(c['message']?.toString());
     final cat = AdminApiService.feedbackCategory(c);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: ListTile(
-        title: Text(msg.isEmpty ? '(sans message)' : msg, maxLines: 2, overflow: TextOverflow.ellipsis),
+        title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
         subtitle: Text('${cat.toUpperCase()} · ${_ts(c)}'),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () => _showDetail(c, title: 'Retour utilisateur'),
+        onTap: () => showAdminRecordDetailSheet(context, title: 'Retour utilisateur', data: c),
       ),
     );
   }
 
   Widget _crashTile(Map<String, dynamic> c) {
+    final title = _safeLogMessage(c['crashType']?.toString() ?? c['message']?.toString());
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: ListTile(
-        title: Text((c['crashType'] ?? 'Crash').toString()),
-        subtitle: Text('${c['message'] ?? ''}\n${_ts(c)}', maxLines: 2, overflow: TextOverflow.ellipsis),
-        onTap: () => _showDetail(c, title: 'Crash auto'),
+        title: Text(title),
+        subtitle: Text(_ts(c)),
+        onTap: () => showAdminRecordDetailSheet(context, title: 'Crash', data: c),
       ),
     );
   }
 
   Widget _errorTile(Map<String, dynamic> e) {
     final resolved = e['resolved'] == true;
+    final raw = (e['errorMessage'] ?? e['errorName'] ?? 'Erreur').toString();
+    final title = _safeLogMessage(raw);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: ListTile(
-        title: Text((e['errorMessage'] ?? e['errorName'] ?? 'Erreur').toString(), maxLines: 2, overflow: TextOverflow.ellipsis),
+        title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
         subtitle: Text('${e['severity'] ?? ''} · ${_ts(e)}'),
         trailing: resolved
             ? const Icon(Icons.check, color: Colors.green)
@@ -291,11 +302,15 @@ class _LogsScreenState extends State<LogsScreen> with SingleTickerProviderStateM
                     await AdminApiService.resolveApplicationError(e['id'].toString(), token: token);
                     _load();
                   } catch (err) {
-                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$err')));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(userFriendlyError(err, adminContext: true))),
+                      );
+                    }
                   }
                 },
               ),
-        onTap: () => _showDetail(e, title: 'Erreur applicative'),
+        onTap: () => showAdminRecordDetailSheet(context, title: 'Erreur', data: e),
       ),
     );
   }
@@ -304,33 +319,5 @@ class _LogsScreenState extends State<LogsScreen> with SingleTickerProviderStateM
     final t = row['timestamp'] ?? row['createdAt'];
     if (t == null) return '';
     return DateTime.tryParse(t.toString())?.toLocal().toString().substring(0, 16) ?? t.toString();
-  }
-
-  void _showDetail(Map<String, dynamic> data, {required String title}) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        builder: (_, scroll) => Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: MediaQuery.of(context).padding.bottom + 16,
-          ),
-          child: ListView(
-            controller: scroll,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 12),
-              SelectableText(const JsonEncoder.withIndent('  ').convert(data)),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

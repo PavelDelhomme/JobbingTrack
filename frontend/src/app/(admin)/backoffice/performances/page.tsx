@@ -539,6 +539,53 @@ export default function PerformancesPage() {
   const liveEndpointNoMeasure = liveEndpointModel.noMeasure;
   const liveOverviewMs = liveEndpointModel.overviewMs;
 
+  const latestChartPoint = useMemo(() => {
+    if (chartData.length === 0) return null;
+    return chartData[chartData.length - 1];
+  }, [chartData]);
+
+  const latestNetworkRate = useMemo(() => {
+    if (networkChartRows.length === 0) return null;
+    return networkChartRows[networkChartRows.length - 1];
+  }, [networkChartRows]);
+
+  const liveCpuMemoryLabel = useMemo(() => {
+    if (!latestChartPoint) return null;
+    const cpu =
+      latestChartPoint.cpu != null && Number.isFinite(Number(latestChartPoint.cpu))
+        ? `${Number(latestChartPoint.cpu).toFixed(1)} % CPU`
+        : null;
+    const mem =
+      latestChartPoint.memory != null &&
+      Number.isFinite(Number(latestChartPoint.memory))
+        ? `${Number(latestChartPoint.memory).toFixed(1)} % RAM`
+        : null;
+    if (!cpu && !mem) return null;
+    return [cpu, mem].filter(Boolean).join(" · ");
+  }, [latestChartPoint]);
+
+  const liveResponseLabel = useMemo(() => {
+    if (latestChartPoint?.responseTimeMs != null) {
+      return `${Math.round(Number(latestChartPoint.responseTimeMs))} ms`;
+    }
+    if (liveOverviewMs != null) return `${Math.round(liveOverviewMs)} ms`;
+    return null;
+  }, [latestChartPoint, liveOverviewMs]);
+
+  const liveNetworkLabel = useMemo(() => {
+    if (!latestNetworkRate) return null;
+    const rx = latestNetworkRate.networkRxMbPerMin;
+    const tx = latestNetworkRate.networkTxMbPerMin;
+    const parts: string[] = [];
+    if (rx != null && Number.isFinite(Number(rx))) {
+      parts.push(`↓ ${Number(rx).toFixed(2)} Mo/min`);
+    }
+    if (tx != null && Number.isFinite(Number(tx))) {
+      parts.push(`↑ ${Number(tx).toFixed(2)} Mo/min`);
+    }
+    return parts.length ? parts.join(" · ") : null;
+  }, [latestNetworkRate]);
+
   const handlePeriodNow = useCallback(() => {
     setUseCustomRange(false);
     setFollowLive(true);
@@ -603,7 +650,10 @@ export default function PerformancesPage() {
             renderedPoints={chartData.length}
             note="Synthèse CPU, mémoire, latence et réseau ; débits réseau dérivés côté UI"
           />
-          <PerformanceChartCard title="CPU et mémoire (%)">
+          <PerformanceChartCard
+            title="CPU et mémoire (%)"
+            liveValue={liveCpuMemoryLabel ?? "—"}
+          >
             <div className="w-full min-h-[240px] sm:min-h-[400px]">
               <SystemCpuMemoryAreaCharts
                 chartData={chartData}
@@ -620,6 +670,7 @@ export default function PerformancesPage() {
               id="latence"
               title="Temps de réponse agrégé (ms)"
               className="scroll-mt-24"
+              liveValue={liveResponseLabel ?? "—"}
             >
               <div className="w-full min-h-[220px] sm:min-h-[280px]">
                 <PerformancesResponseTimeLineChart
@@ -655,6 +706,7 @@ export default function PerformancesPage() {
             <PerformanceChartCard
               title="Réseau — cumul, débit et corrélation"
               contentClassName="space-y-8"
+              liveValue={liveNetworkLabel ?? "—"}
             >
               <div>
                 <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
@@ -707,6 +759,9 @@ export default function PerformancesPage() {
 
       <PerformanceChartCard
         title="Temps de réponse des endpoints (instantané)"
+        liveValue={
+          liveOverviewMs != null ? `${Math.round(liveOverviewMs)} ms` : "—"
+        }
         description={
           <span>
             Snapshot live agrégateur (hors plage des graphiques historiques

@@ -232,3 +232,28 @@ export async function resolveApplicationError(
     { headers: authHeaders(token) },
   );
 }
+
+export async function purgeMobileMonitoringData(token: string): Promise<{
+  deletedErrors: number;
+  deletedEvents: number;
+  deletedPerformance: number;
+}> {
+  const res = await axios.delete(
+    `${FRONTEND_URLS.api}/api/v1/analytics/mobile-monitoring/purge`,
+    { headers: authHeaders(token) },
+  );
+  if (!res.data?.success) {
+    throw new Error(res.data?.error || "Purge mobile échouée");
+  }
+  return res.data.data ?? { deletedErrors: 0, deletedEvents: 0, deletedPerformance: 0 };
+}
+
+export async function purgeCrashReports(token: string): Promise<{ deletedFiles: number }> {
+  const res = await axios.delete(`${FRONTEND_URLS.api}/api/v1/crashes`, {
+    headers: authHeaders(token),
+  });
+  if (!res.data?.success) {
+    throw new Error(res.data?.error || "Purge crashs échouée");
+  }
+  return res.data.data ?? { deletedFiles: 0 };
+}

@@ -11,8 +11,13 @@ import {
 } from "@/components/analytics";
 import { localCalendarDayBounds } from "@/components/analytics/timeRangeUtils";
 
-export function useApplicationTimeRange(options?: { liveRefreshMs?: number }) {
-  const [timeRange, setTimeRange] = useState<TimeRangeOption>("24h");
+export function useApplicationTimeRange(options?: {
+  liveRefreshMs?: number;
+  initialTimeRange?: TimeRangeOption;
+}) {
+  const [timeRange, setTimeRange] = useState<TimeRangeOption>(
+    options?.initialTimeRange ?? "24h",
+  );
   const [windowEnd, setWindowEnd] = useState<Date>(() => new Date());
   const [followLive, setFollowLive] = useState(true);
   const [softTick, setSoftTick] = useState(0);

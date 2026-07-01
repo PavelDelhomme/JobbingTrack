@@ -48,9 +48,7 @@ describe("PriorityResponseServicesSummary", () => {
       />,
     );
 
-    expect(
-      screen.getByText("Temps de réponse — services prioritaires P1B"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Temps de réponse")).toBeInTheDocument();
     expect(screen.getByText("auth-service")).toBeInTheDocument();
     expect(screen.getByText("notification-service")).toBeInTheDocument();
     expect(screen.queryByText("postgres")).not.toBeInTheDocument();

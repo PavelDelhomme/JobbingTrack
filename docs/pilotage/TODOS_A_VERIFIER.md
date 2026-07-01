@@ -86,7 +86,8 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | **Matrice entités entremêlées** | Source unique `scripts/mobile/lib/interleaved-scenarios.js` — seed + smoke génériques (`expect`: statut, contacts, entretiens, relances, appels) ; **30/30 OK** ; endpoint appels `/calls/application/:id` ; email **`paul.delhomme@proton.me`** | [x] 29/06 refactor |
 | **Retour porteur Signaler un bug** | **29/06 17:18** — `[bug] message de test` persisté ; diagnostic + capture OK ; Samsung SM-G990B2 ; `node scripts/ops/verify-porteur-mobile-feedback.js` **OK** | [x] |
 | **Hub admin mobile (parité backoffice)** | **30/06** : hub admin + perf infra ; **01/07** : stats camemberts métier, logs recherche/filtres, popup candidature padding, contacts sheet entreprise | [x] |
-| **Mobile UX v1 (01/07)** | Popup candidature padding ; contacts création type entreprise ; stats sans live système ; logs recherche | [x] agent |
+| **Backoffice web UX erreurs (17/06)** | Carte Erreurs ouvertes (7 j) ; mobile-logs plage 7 j + filtre ouvertes ; limite 500 ; sans double filtre client | [x] agent — `npm run type-check` OK |
+| **Mobile admin observabilité (17/06)** | Perf hôte vs appareils ; analytics KPI + détails ; logs détail sheet ; user biométrie + impersonation | [x] agent — `dart analyze` OK fichiers modifiés |
 
 ```bash
 node scripts/mobile/setup/diagnose-mobile-api-connection.js

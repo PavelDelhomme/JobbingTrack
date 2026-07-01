@@ -8,6 +8,8 @@ interface PerformanceChartCardProps {
   children: ReactNode;
   periodLabel?: string;
   description?: ReactNode;
+  /** Valeur instantanée affichée en haut à droite (CPU, RAM, latence…). */
+  liveValue?: ReactNode;
   className?: string;
   contentClassName?: string;
   id?: string;
@@ -18,6 +20,7 @@ export function PerformanceChartCard({
   children,
   periodLabel,
   description,
+  liveValue,
   className = "",
   contentClassName = "",
   id,
@@ -27,9 +30,16 @@ export function PerformanceChartCard({
       id={id}
       className={`min-w-0 rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800 sm:p-6 ${className}`}
     >
-      <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 sm:text-lg">
-        {title}
-      </h2>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 sm:text-lg">
+          {title}
+        </h2>
+        {liveValue ? (
+          <div className="text-right text-sm font-semibold tabular-nums text-blue-700 dark:text-blue-300 shrink-0">
+            {liveValue}
+          </div>
+        ) : null}
+      </div>
       {description ? (
         <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           {description}

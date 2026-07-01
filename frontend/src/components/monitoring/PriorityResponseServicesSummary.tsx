@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
   PRIORITY_RESPONSE_SERVICES,
-  RESPONSE_TIME_SOURCE_NOTE,
   averagePriorityResponseTimeMs,
   isPriorityResponseService,
   normalizeServiceShortName,
@@ -54,11 +53,8 @@ export function PriorityResponseServicesSummary({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 className="text-sm font-semibold text-blue-950 dark:text-blue-100">
-            Temps de réponse — services prioritaires P1B
+            Temps de réponse
           </h3>
-          <p className="text-xs text-blue-900/80 dark:text-blue-100/80 mt-1 max-w-3xl">
-            {RESPONSE_TIME_SOURCE_NOTE}
-          </p>
         </div>
         <Link
           href="/backoffice/performances/latency"
