@@ -86,7 +86,7 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | **Matrice entités entremêlées** | Source unique `scripts/mobile/lib/interleaved-scenarios.js` — seed + smoke génériques (`expect`: statut, contacts, entretiens, relances, appels) ; **30/30 OK** ; endpoint appels `/calls/application/:id` ; email **`paul.delhomme@proton.me`** | [x] 29/06 refactor |
 | **Retour porteur Signaler un bug** | **29/06 17:18** — `[bug] message de test` persisté ; diagnostic + capture OK ; Samsung SM-G990B2 ; `node scripts/ops/verify-porteur-mobile-feedback.js` **OK** | [x] |
 | **Hub admin mobile (parité backoffice)** | **30/06** : hub admin + perf infra ; **01/07** : stats camemberts métier, logs recherche/filtres, popup candidature padding, contacts sheet entreprise | [x] |
-| **Purge monitoring mobile (17/06)** | 339 erreurs + 1510 events + 923 perf DB + 24 crashs fichiers supprimés ; compteurs 0 | [x] agent — `node scripts/ops/purge-mobile-monitoring-data.js` (fallback docker si route 404) |
+| **Remontée erreurs mobile live (17/06)** | Script `seed-and-verify-mobile-monitoring-live.js` — 3 erreurs auto + 2 crashs + 1 retour ; app ADB navigation offline | [x] agent |
 | **Mobile admin observabilité (17/06)** | Perf hôte vs appareils ; analytics KPI + détails ; logs détail sheet ; user biométrie + impersonation | [x] agent — `dart analyze` OK fichiers modifiés |
 
 ```bash
