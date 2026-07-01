@@ -7,6 +7,34 @@ import {
 const FEEDBACK_PREFIX =
   /^\[(bug|suggestion|signalement)\]\s/i;
 
+/** Données générées par scripts de validation / smokes (pas du terrain utilisateur). */
+const TEST_SMOKE_MESSAGE =
+  /live-verify-|smoke\s+(auto|pipeline)|simulation porteur|test validation|message de test/i;
+
+function nestedMeta(crash: CrashReportSummary): Record<string, unknown> {
+  const raw = (crash.metadata ?? {}) as Record<string, unknown>;
+  return (raw.metadata ?? {}) as Record<string, unknown>;
+}
+
+export function isMonitoringTestOrSmokeCrash(crash: CrashReportSummary): boolean {
+  const nested = nestedMeta(crash);
+  const tag = String(nested.tag ?? "");
+  if (tag.startsWith("live-verify") || nested.validation === true || nested.smoke === true) {
+    return true;
+  }
+  return TEST_SMOKE_MESSAGE.test(crash.message || "");
+}
+
+export function isMonitoringTestOrSmokeError(err: {
+  errorMessage?: string | null;
+  properties?: Record<string, unknown> | null;
+}): boolean {
+  const props = (err.properties ?? {}) as Record<string, unknown>;
+  const tag = String(props.tag ?? "");
+  if (tag.startsWith("live-verify")) return true;
+  return TEST_SMOKE_MESSAGE.test(err.errorMessage || "");
+}
+
 export function isUserFeedbackCrash(crash: CrashReportSummary): boolean {
   const nested = (crash.metadata?.metadata ?? {}) as Record<string, unknown>;
   if (nested.feedback === true) return true;

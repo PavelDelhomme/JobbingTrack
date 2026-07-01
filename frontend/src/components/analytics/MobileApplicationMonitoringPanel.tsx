@@ -19,6 +19,8 @@ import {
   crashReportDetailRecord,
   enrichCrashDetailRecord,
   feedbackCategoryFromCrash,
+  isMonitoringTestOrSmokeCrash,
+  isMonitoringTestOrSmokeError,
   isUserFeedbackCrash,
 } from "@/lib/analytics/mobileFeedback";
 import {
@@ -51,6 +53,14 @@ function errorTimestamp(err: ApplicationAnalyticsError): string {
 
 function stripFeedbackPrefix(message: string) {
   return message.replace(/^\[(bug|suggestion|signalement)\]\s/i, "").trim();
+}
+
+function TestDataBadge() {
+  return (
+    <span className="ml-1.5 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium uppercase text-violet-800 dark:bg-violet-900/50 dark:text-violet-200">
+      test
+    </span>
+  );
 }
 
 type ErrorStatusFilter = "all" | "open" | "resolved";
@@ -123,6 +133,8 @@ export function MobileApplicationMonitoringPanel({
   const [pageErrors, setPageErrors] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [purging, setPurging] = useState(false);
+  const [hideTestData, setHideTestData] = useState(true);
+  const [resolvingAll, setResolvingAll] = useState(false);
 
   const loadData = useCallback(async () => {
     const silent = consumeSilentFetch();
@@ -183,17 +195,55 @@ export function MobileApplicationMonitoringPanel({
     void loadData();
   }, [loadData, softTick]);
 
+  const testDataCounts = useMemo(() => {
+    const feedbackTest = crashes.filter(isMonitoringTestOrSmokeCrash).length;
+    const autoCrashTest = allCrashes.filter(isMonitoringTestOrSmokeCrash).length;
+    const errorTest = appErrors.filter(isMonitoringTestOrSmokeError).length;
+    return {
+      feedback: feedbackTest,
+      autoCrash: autoCrashTest,
+      errors: errorTest,
+      total: feedbackTest + autoCrashTest + errorTest,
+    };
+  }, [crashes, allCrashes, appErrors]);
+
+  const visibleFeedbackCrashes = useMemo(
+    () =>
+      hideTestData
+        ? crashes.filter((c) => !isMonitoringTestOrSmokeCrash(c))
+        : crashes,
+    [crashes, hideTestData],
+  );
+
+  const visibleAutoCrashes = useMemo(
+    () =>
+      hideTestData
+        ? allCrashes.filter((c) => !isMonitoringTestOrSmokeCrash(c))
+        : allCrashes,
+    [allCrashes, hideTestData],
+  );
+
+  const visibleAppErrors = useMemo(
+    () =>
+      hideTestData
+        ? appErrors.filter((e) => !isMonitoringTestOrSmokeError(e))
+        : appErrors,
+    [appErrors, hideTestData],
+  );
+
   const stats = useMemo(() => {
-    const bugs = crashes.filter((c) => feedbackCategoryFromCrash(c) === "bug").length;
-    const suggestions = crashes.filter(
+    const bugs = visibleFeedbackCrashes.filter(
+      (c) => feedbackCategoryFromCrash(c) === "bug",
+    ).length;
+    const suggestions = visibleFeedbackCrashes.filter(
       (c) => feedbackCategoryFromCrash(c) === "suggestion",
     ).length;
-    const signalements = crashes.filter(
+    const signalements = visibleFeedbackCrashes.filter(
       (c) => feedbackCategoryFromCrash(c) === "signalement",
     ).length;
-    const retoursUtilisateur = crashes.length;
-    const erreursAuto = appErrors.length;
-    const erreursOuvertes = appErrors.filter((e) => !e.resolved).length;
+    const retoursUtilisateur = visibleFeedbackCrashes.length;
+    const erreursAuto = visibleAppErrors.length;
+    const erreursOuvertes = visibleAppErrors.filter((e) => !e.resolved).length;
 
     return {
       retoursUtilisateur,
@@ -203,10 +253,10 @@ export function MobileApplicationMonitoringPanel({
       erreursAuto,
       erreursOuvertes,
     };
-  }, [crashes, appErrors]);
+  }, [visibleFeedbackCrashes, visibleAppErrors]);
 
   const rows = useMemo(() => {
-    return crashes
+    return visibleFeedbackCrashes
       .map((c) => ({
         crash: c,
         id: c.id,
@@ -231,10 +281,10 @@ export function MobileApplicationMonitoringPanel({
         (a, b) =>
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       );
-  }, [crashes, searchQuery, feedbackCategoryFilter]);
+  }, [visibleFeedbackCrashes, searchQuery, feedbackCategoryFilter]);
 
   const autoCrashRows = useMemo(() => {
-    return allCrashes
+    return visibleAutoCrashes
       .filter((c) => {
         if (autoCrashTypeFilter !== "all" && c.crashType !== autoCrashTypeFilter) {
           return false;
@@ -246,14 +296,14 @@ export function MobileApplicationMonitoringPanel({
         (a, b) =>
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       );
-  }, [allCrashes, searchQuery, autoCrashTypeFilter]);
+  }, [visibleAutoCrashes, searchQuery, autoCrashTypeFilter]);
 
   const autoCrashTypes = useMemo(() => {
-    return [...new Set(allCrashes.map((c) => c.crashType))].sort();
-  }, [allCrashes]);
+    return [...new Set(visibleAutoCrashes.map((c) => c.crashType))].sort();
+  }, [visibleAutoCrashes]);
 
   const filteredErrors = useMemo(() => {
-    let list = [...appErrors];
+    let list = [...visibleAppErrors];
     if (errorStatusFilter === "open") {
       list = list.filter((e) => !e.resolved);
     } else if (errorStatusFilter === "resolved") {
@@ -278,7 +328,7 @@ export function MobileApplicationMonitoringPanel({
       return new Date(tb).getTime() - new Date(ta).getTime();
     });
     return list;
-  }, [appErrors, errorStatusFilter, errorSort, searchQuery]);
+  }, [visibleAppErrors, errorStatusFilter, errorSort, searchQuery]);
 
   const pagedFeedback = paginateSlice(rows, pageFeedback, pageSize);
   const pagedAuto = paginateSlice(autoCrashRows, pageAuto, pageSize);
@@ -288,7 +338,7 @@ export function MobileApplicationMonitoringPanel({
     setPageFeedback(1);
     setPageAuto(1);
     setPageErrors(1);
-  }, [searchQuery, feedbackCategoryFilter, autoCrashTypeFilter, rangeQuery]);
+  }, [searchQuery, feedbackCategoryFilter, autoCrashTypeFilter, rangeQuery, hideTestData]);
 
   const openFeedbackDetail = async (crash: CrashReportSummary) => {
     setDetailTitle(`Retour — ${feedbackCategoryFromCrash(crash)}`);
@@ -323,6 +373,29 @@ export function MobileApplicationMonitoringPanel({
       alert("Échec purge — vérifiez que la stack est UP et que vous êtes admin.");
     } finally {
       setPurging(false);
+    }
+  };
+
+  const resolveAllVisibleOpenErrors = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const open = filteredErrors.filter((e) => !e.resolved);
+    if (open.length === 0) return;
+    const ok = window.confirm(
+      `Marquer ${open.length} erreur(s) visible(s) comme traitées ?`,
+    );
+    if (!ok) return;
+    setResolvingAll(true);
+    try {
+      for (const err of open) {
+        await resolveApplicationError(token, err.id, true);
+      }
+      await loadData();
+    } catch (e) {
+      console.error(e);
+      alert("Échec lors du marquage groupé.");
+    } finally {
+      setResolvingAll(false);
     }
   };
 
@@ -432,6 +505,14 @@ export function MobileApplicationMonitoringPanel({
             </p>
           ) : null}
 
+          {hideTestData && testDataCounts.total > 0 ? (
+            <p className="text-sm text-violet-800 dark:text-violet-200">
+              {testDataCounts.total} entrée(s) test/smoke masquée(s) (scripts{" "}
+              <code className="text-xs">seed-and-verify-mobile-monitoring-live</code>
+              , smokes). Décochez « Masquer tests » pour les afficher.
+            </p>
+          ) : null}
+
           {error ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
               {error}
@@ -444,6 +525,15 @@ export function MobileApplicationMonitoringPanel({
               onChange={setSearchQuery}
               placeholder="Rechercher message, écran, utilisateur…"
             />
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <input
+                type="checkbox"
+                checked={hideTestData}
+                onChange={(e) => setHideTestData(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              Masquer données test/smoke
+            </label>
           </div>
 
           <section className="space-y-3">
@@ -647,6 +737,16 @@ export function MobileApplicationMonitoringPanel({
                     <option value="severity">Gravité</option>
                   </select>
                 </label>
+                {filteredErrors.some((e) => !e.resolved) ? (
+                  <button
+                    type="button"
+                    disabled={resolvingAll}
+                    onClick={() => void resolveAllVisibleOpenErrors()}
+                    className="rounded border border-gray-300 bg-white px-2 py-1 text-xs hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900"
+                  >
+                    {resolvingAll ? "Traitement…" : "Tout marquer traité"}
+                  </button>
+                ) : null}
               </div>
             </div>
             <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">

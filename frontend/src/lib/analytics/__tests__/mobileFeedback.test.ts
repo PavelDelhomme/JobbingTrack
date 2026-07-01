@@ -1,6 +1,7 @@
 import {
   feedbackCategoryFromCrash,
   formatMemoryBytes,
+  isMonitoringTestOrSmokeCrash,
   isUserFeedbackCrash,
 } from "../mobileFeedback";
 import type { CrashReportSummary } from "@/lib/services/applicationAnalyticsService";
@@ -31,5 +32,16 @@ describe("mobileFeedback", () => {
 
   it("formatMemoryBytes affiche en Mo", () => {
     expect(formatMemoryBytes(2 * 1024 * 1024)).toBe("2.0 Mo");
+  });
+
+  it("isMonitoringTestOrSmokeCrash détecte live-verify", () => {
+    const crash: CrashReportSummary = {
+      id: "3",
+      timestamp: "2026-01-01T00:00:00Z",
+      crashType: "FlutterError",
+      message: "[live-verify-123] FlutterError smoke validation",
+      metadata: {},
+    };
+    expect(isMonitoringTestOrSmokeCrash(crash)).toBe(true);
   });
 });
