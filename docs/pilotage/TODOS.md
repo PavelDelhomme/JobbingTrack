@@ -70,9 +70,11 @@ Backlog détaillé historique : sections **Lot A–H** plus bas dans ce fichier 
 | **BL-26-06** | A mobile | **smoke `notification-nav-adb`** | Tap notification **fallback coords** — centre notifications non ouvert | `scripts/mobile/smoke/adb/smoke-mobile-notification-nav-adb.js` | A |
 | **BL-26-07** | A mobile | **smoke `company-create-adb`** | Champ **« Nom »** introuvable dans le dialogue création entreprise | `scripts/mobile/smoke/adb/smoke-mobile-company-create-adb.js` | A |
 | **BL-26-08** | A mobile | **smoke `offline-business-adb`** | Option **« créer entreprise offline »** introuvable | `scripts/mobile/smoke/adb/smoke-offline-business-adb.js` | A |
-| **BL-26-09** | C mobile / build | **Toolchain Android Flutter (dette)** | Build APK : **Gradle 8.13** bientôt refusé (cible **≥8.14** — wrapper corrigé 30/06) ; **Kotlin Gradle Plugin** legacy (app + plugins `device_info_plus`, `flutter_contacts`, `package_info_plus`, `shared_preferences_android`) → migration **Built-in Kotlin** Flutter ([guide](https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-app-developers)) ; **`flutter pub outdated`** : 33 packages plus récents incompatibles avec contraintes `pubspec` — revue semver + `STATS.md` §2.4 | `mobile/android/gradle/wrapper/gradle-wrapper.properties` ; `mobile/pubspec.yaml` ; `dart pub outdated` / `flutter pub outdated` | **C1** (après étape 2 mobile) |
+| **BL-26-09** | C mobile / build | **Toolchain Android Flutter (dette)** | … | `mobile/pubspec.yaml` | **C1** (après étape 2 mobile) |
+| **BL-26-10** | A mobile **v2** | **Création globale hors candidature** | Depuis n'importe où : champ recherche/autocomplete **candidature** puis créer **relance, appel, entretien, contact** sans ouvrir le détail candidature | `ApplicationPickerField` étendu ; FAB shell ou menu « Ajouter » global | **Après v1** (post étape 2 + gate) |
+| **BL-26-11** | A mobile **v2** | **Intérim = missions (pas candidatures)** | Mode intérim : **2 onglets** — **Boîtes d'intérim** (CRUD, anti-doublon nom) + **Missions** (liste, détail mission : dates, client, taux, statut). Ne plus réutiliser le modèle `Application` / formulaire candidature | `interim_screen.dart` → refonte ; API mission dédiée ou type `INTERIM_MISSION` | **Après v1** |
 
-**Ordre suggéré après étape 2 mobile** : BL-26-04→08 (smokes ADB gate) → BL-26-01 (MailHog E2E verts) → BL-26-02 (IMAP agent) → BL-26-03 (template récap) → **BL-26-09** (toolchain Android/Kotlin/pub).
+**Ordre suggéré après étape 2 mobile** : BL-26-04→08 → BL-26-01 → BL-26-02 → BL-26-03 → **BL-26-09** → **BL-26-10/11** (v2 produit).
 
 ## Backlog produit — tutoriels & refonte navigation (29/06 porteur)
 
@@ -452,7 +454,9 @@ Liste opérationnelle alignée sur **`PLAN.md`** (lots A–H) et **`STATUS.md`**
 - [x] **`mobile/test/widget_test.dart`** : smoke **app → écran Connexion** (**24/04**).
 - [ ] **Smokes ADB mobile — sélecteurs UI fragiles (26/06 porteur)** : cinq scripts du gate rapide échouent ou flaky sur Samsung — champs a11y contact (**Prénom**, **Rechercher**), écran profil **Modifier**, cloche notifications (coords fallback), dialogue entreprise (**Nom**), option offline **créer entreprise**. Détail : **BL-26-04→08** ; aligner semantics Flutter + helpers `tools/adb-lib/flows.js`. **Ne pas traiter** avant OK étape 2 sauf blocage direct.
 - [ ] **Playwright MailHog — 2 tests skip (26/06 porteur)** : `admin-emails-mailhog.spec.ts` — **1 passed, 2 skipped** (SMTP admin/MailHog + prérequis envoi avant spec UI). Voir **BL-26-01** ; objectif **3/3** avec stack `COMPOSE_PROFILES=mail` et auth-service MailHog.
-- [ ] **Mobile toolchain Android/Flutter (30/06 build APK)** : Gradle wrapper **≥8.14** ; migration **Built-in Kotlin** (warnings KGP app + plugins natifs) ; **`flutter pub outdated`** — 33 packages bloqués par contraintes. Voir **BL-26-09** ; phase **C1** après validation mobile étape 2.
+- [ ] **Mobile toolchain Android/Flutter (30/06 build APK)** : … Voir **BL-26-09** ; phase **C1** après validation mobile étape 2.
+- [ ] **Mobile v2 — création globale liée candidature (30/06 porteur)** : relance/appel/entretien/contact depuis autocomplete candidature hors page détail. Voir **BL-26-10**.
+- [ ] **Mobile v2 — intérim missions (30/06 porteur)** : onglets boîtes + missions, anti-doublon agences, modèle mission dédié (pas candidature). Voir **BL-26-11**.
 - [ ] **Emails récap agent — template HTML normalisé (26/06 porteur)** : remplacer le rendu markdown-monospace par un gabarit HTML coloré réutilisable (sections, statuts OK/KO, liens pilotage). Voir **BL-26-03**.
 - [ ] **Mobile (`mobile/`)** : renommage optionnel `home_screen` → `dashboard_screen` ; barrel **`lib/screens/screens.dart`** si tu veux des imports courts.
 - [x] **`flutter-mobile-app/lib/screens/`** : même logique **`jobbing/*`** + **`routes`** nommées pour **`/applications`** etc. (**24/04** ; vérifier **Provider** si tu branches l’API sur cet exemple).

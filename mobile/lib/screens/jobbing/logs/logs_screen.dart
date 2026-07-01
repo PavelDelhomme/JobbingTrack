@@ -23,11 +23,17 @@ class _LogsScreenState extends State<LogsScreen> with SingleTickerProviderStateM
   String? _error;
   List<Map<String, dynamic>> _crashes = [];
   List<Map<String, dynamic>> _errors = [];
+  String _searchQuery = '';
+  String _feedbackFilter = 'all';
+  String _errorFilter = 'all';
 
   @override
   void initState() {
     super.initState();
     _tabs = TabController(length: 3, vsync: this);
+    _tabs.addListener(() {
+      if (!_tabs.indexIsChanging) setState(() {});
+    });
     _load();
   }
 
@@ -67,10 +73,34 @@ class _LogsScreenState extends State<LogsScreen> with SingleTickerProviderStateM
   List<Map<String, dynamic>> get _autoCrashes =>
       _crashes.where((c) => !AdminApiService.isUserFeedbackCrash(c)).toList();
 
+  bool _matchesQuery(Map<String, dynamic> row, List<String> keys) {
+    final q = _searchQuery.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    for (final k in keys) {
+      if (row[k]?.toString().toLowerCase().contains(q) ?? false) return true;
+    }
+    return row.toString().toLowerCase().contains(q);
+  }
+
+  List<Map<String, dynamic>> get _filteredFeedback => _feedback.where((c) {
+        if (_feedbackFilter != 'all' && AdminApiService.feedbackCategory(c) != _feedbackFilter) return false;
+        return _matchesQuery(c, ['message', 'crashType', 'appVersion', 'device', 'osVersion']);
+      }).toList();
+
+  List<Map<String, dynamic>> get _filteredCrashes => _autoCrashes.where((c) {
+        return _matchesQuery(c, ['message', 'crashType', 'stackTrace', 'appVersion']);
+      }).toList();
+
+  List<Map<String, dynamic>> get _filteredErrors => _errors.where((e) {
+        if (_errorFilter == 'open' && e['resolved'] == true) return false;
+        if (_errorFilter == 'resolved' && e['resolved'] != true) return false;
+        return _matchesQuery(e, ['errorMessage', 'errorName', 'severity', 'page', 'stackTrace']);
+      }).toList();
+
   @override
   Widget build(BuildContext context) {
-    final bugs = _feedback.where((c) => AdminApiService.feedbackCategory(c) == 'bug').length;
-    final openErrors = _errors.where((e) => e['resolved'] != true).length;
+    final bugs = _filteredFeedback.where((c) => AdminApiService.feedbackCategory(c) == 'bug').length;
+    final openErrors = _filteredErrors.where((e) => e['resolved'] != true).length;
 
     return Scaffold(
       appBar: AppBar(
@@ -79,9 +109,9 @@ class _LogsScreenState extends State<LogsScreen> with SingleTickerProviderStateM
         bottom: TabBar(
           controller: _tabs,
           tabs: [
-            Tab(text: 'Retours (${_feedback.length})'),
-            Tab(text: 'Crashs (${_autoCrashes.length})'),
-            Tab(text: 'Erreurs (${_errors.length})'),
+            Tab(text: 'Retours (${_filteredFeedback.length})'),
+            Tab(text: 'Crashs (${_filteredCrashes.length})'),
+            Tab(text: 'Erreurs (${_filteredErrors.length})'),
           ],
         ),
         actions: [
@@ -96,6 +126,57 @@ class _LogsScreenState extends State<LogsScreen> with SingleTickerProviderStateM
               setState(() => _range = r);
               _load();
             }),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Rechercher message, type, appareil…',
+                  prefixIcon: const Icon(Icons.search),
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(icon: const Icon(Icons.clear), onPressed: () => setState(() => _searchQuery = ''))
+                      : null,
+                ),
+                onChanged: (v) => setState(() => _searchQuery = v),
+              ),
+            ),
+            if (_tabs.index == 0)
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  children: [
+                    for (final f in ['all', 'bug', 'suggestion', 'signalement'])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: FilterChip(
+                          label: Text(f == 'all' ? 'Tous' : f),
+                          selected: _feedbackFilter == f,
+                          onSelected: (_) => setState(() => _feedbackFilter = f),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            if (_tabs.index == 2)
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  children: [
+                    for (final f in ['all', 'open', 'resolved'])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: FilterChip(
+                          label: Text(f == 'all' ? 'Toutes' : f == 'open' ? 'Ouvertes' : 'Traitées'),
+                          selected: _errorFilter == f,
+                          onSelected: (_) => setState(() => _errorFilter = f),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               child: Row(
@@ -139,16 +220,20 @@ class _LogsScreenState extends State<LogsScreen> with SingleTickerProviderStateM
     return TabBarView(
       controller: _tabs,
       children: [
-        _list(_feedback, _feedbackTile),
-        _list(_autoCrashes, _crashTile),
-        _list(_errors, _errorTile),
+        _list(_filteredFeedback, _feedbackTile, emptyLabel: 'Aucun retour pour cette recherche'),
+        _list(_filteredCrashes, _crashTile, emptyLabel: 'Aucun crash pour cette recherche'),
+        _list(_filteredErrors, _errorTile, emptyLabel: 'Aucune erreur pour cette recherche'),
       ],
     );
   }
 
-  Widget _list(List<Map<String, dynamic>> items, Widget Function(Map<String, dynamic>) builder) {
+  Widget _list(
+    List<Map<String, dynamic>> items,
+    Widget Function(Map<String, dynamic>) builder, {
+    required String emptyLabel,
+  }) {
     if (items.isEmpty) {
-      return const Center(child: Text('Aucune entrée sur cette période'));
+      return Center(child: Text(emptyLabel));
     }
     return RefreshIndicator(
       onRefresh: _load,

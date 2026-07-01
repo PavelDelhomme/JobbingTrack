@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
-import 'package:jobbingtrack_mobile/utils/admin_metrics_parser.dart';
 import 'package:jobbingtrack_mobile/utils/admin_time_range.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_kpi_tile.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_time_range_bar.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/simple_pie_chart.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 class StatisticsScreen extends StatefulWidget {
@@ -22,7 +22,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   String? _error;
   Map<String, dynamic> _stats = {};
   List<Map<String, dynamic>> _timeline = [];
-  SystemSnapshot? _system;
 
   @override
   void initState() {
@@ -40,7 +39,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       final results = await Future.wait([
         AdminApiService.fetchStatistics(token: token),
         AdminApiService.fetchStatisticsTimeline(token: token, range: _range),
-        AdminApiService.fetchSystemMetrics(token: token).catchError((_) => <String, dynamic>{}),
       ]);
       if (mounted) {
         setState(() {
@@ -48,8 +46,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           _timeline = List<Map<String, dynamic>>.from(
             (results[1] as List).map((e) => Map<String, dynamic>.from(e as Map)),
           );
-          final metrics = Map<String, dynamic>.from(results[2] as Map);
-          _system = metrics.isNotEmpty ? AdminMetricsParser.parseSystem(metrics) : null;
         });
       }
     } catch (e) {
@@ -112,36 +108,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                           setState(() => _range = r);
                           _load();
                         }),
-                        if (_system != null) ...[
-                          const AdminSectionTitle(title: 'Système (live)', subtitle: 'CPU/RAM hôte — metrics-aggregator'),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                AdminKpiTile(
-                                  label: 'CPU',
-                                  value: AdminMetricsParser.fmtPct(_system!.cpuPercent),
-                                  icon: Icons.memory,
-                                  color: Colors.blue,
-                                ),
-                                AdminKpiTile(
-                                  label: 'RAM',
-                                  value: AdminMetricsParser.fmtPct(_system!.memPercent),
-                                  icon: Icons.storage,
-                                  color: Colors.purple,
-                                ),
-                                AdminKpiTile(
-                                  label: 'Stack CPU',
-                                  value: AdminMetricsParser.fmtPct(_system!.projectCpuAvg),
-                                  icon: Icons.hub,
-                                  color: Colors.teal,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
                         const AdminSectionTitle(title: 'Vue d\'ensemble métier'),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -163,20 +129,14 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                         ),
                         const AdminSectionTitle(title: 'Activité récente', subtitle: 'Cette semaine / ce mois'),
                         _activityCard(),
-                        ..._distributionSection('Candidatures par statut', _map(['applications', 'by_status'])),
-                        ..._distributionSection('Relances par statut', _map(['followups', 'by_status'])),
-                        ..._distributionSection('Appels par statut', _map(['calls', 'by_status'])),
+                        ..._pieSection('Candidatures par statut', _map(['applications', 'by_status'])),
+                        ..._pieSection('Relances par statut', _map(['followups', 'by_status'])),
+                        ..._pieSection('Appels par statut', _map(['calls', 'by_status'])),
+                        ..._pieSection('Entretiens par statut', _map(['interviews', 'by_status'])),
                         if (_timeline.length > 1) ...[
                           AdminSectionTitle(title: 'Évolution (${_range.label})'),
                           ..._timeline.take(20).map(_timelineTile),
-                        ] else if (_timeline.length == 1)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            child: Text(
-                              'Historique fin non persisté côté serveur — point instantané affiché.',
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                            ),
-                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -217,34 +177,18 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           Expanded(child: Text(label)),
           Text(
             '$value',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: highlight ? Colors.red : null,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold, color: highlight ? Colors.red : null),
           ),
         ],
       ),
     );
   }
 
-  List<Widget> _distributionSection(String title, Map<String, dynamic> buckets) {
+  List<Widget> _pieSection(String title, Map<String, dynamic> buckets) {
     if (buckets.isEmpty) return [];
-    final entries = buckets.entries.toList()..sort((a, b) => (b.value as num).compareTo(a.value as num));
     return [
       AdminSectionTitle(title: title),
-      Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        children: entries.take(12).map((e) {
-          return Padding(
-            padding: const EdgeInsets.only(left: 12),
-            child: Chip(
-              label: Text('${e.key}: ${e.value}'),
-              visualDensity: VisualDensity.compact,
-            ),
-          );
-        }).toList(),
-      ),
+      SimplePieChart(data: buckets),
       const SizedBox(height: 8),
     ];
   }

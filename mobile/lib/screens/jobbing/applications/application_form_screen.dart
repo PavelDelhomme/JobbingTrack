@@ -14,7 +14,6 @@ import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/widgets/company_picker_field.dart';
 import 'package:jobbingtrack_mobile/widgets/platform_picker_field.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
-import 'package:jobbingtrack_mobile/utils/shell_layout.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 
 /// Écran formulaire complet pour créer ou modifier une candidature (tous les champs backend).
@@ -39,12 +38,17 @@ class ApplicationFormScreen extends StatefulWidget {
       useSafeArea: true,
       showDragHandle: true,
       builder: (ctx) {
-        final height = MediaQuery.sizeOf(ctx).height * 0.92;
         return Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
-          child: SizedBox(
-            height: height,
-            child: const ApplicationFormScreen(modalMode: true),
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.88,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (_, scroll) => ApplicationFormScreen(
+              modalMode: true,
+              scrollController: scroll,
+            ),
           ),
         );
       },
@@ -405,7 +409,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   Widget build(BuildContext context) {
     final isEdit = widget.application != null;
     final bottomPad = widget.modalMode
-        ? scrollSafePadding(context, top: 0, extraBottom: shellBottomExtra(context) + 24)
+        ? scrollSafePadding(context, top: 4, extraBottom: 8)
         : scrollSafePadding(context, top: 0);
     final form = Form(
       key: _formKey,
@@ -422,7 +426,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
               child: Row(
                 children: [
                   IconButton(

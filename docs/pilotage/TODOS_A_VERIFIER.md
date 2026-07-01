@@ -85,7 +85,8 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | **Redémarrage contrôleur** | `bash scripts/mobile/setup/restart-emulator-controller.sh` — libère ports **5055/5056** via `lsof` (évite EADDRINUSE après `pkill` seul) | [x] 29/06 |
 | **Matrice entités entremêlées** | Source unique `scripts/mobile/lib/interleaved-scenarios.js` — seed + smoke génériques (`expect`: statut, contacts, entretiens, relances, appels) ; **30/30 OK** ; endpoint appels `/calls/application/:id` ; email **`paul.delhomme@proton.me`** | [x] 29/06 refactor |
 | **Retour porteur Signaler un bug** | **29/06 17:18** — `[bug] message de test` persisté ; diagnostic + capture OK ; Samsung SM-G990B2 ; `node scripts/ops/verify-porteur-mobile-feedback.js` **OK** | [x] |
-| **Hub admin mobile (parité backoffice)** | **30/06** : `AdminApiService` + écrans Utilisateurs, Logs, Analytics, Statistiques, Données test ; **Performances infra** (`/api/v1/metrics` + `/api/v1/services`) CPU/RAM/conteneurs ; SafeArea scroll admin | [x] |
+| **Hub admin mobile (parité backoffice)** | **30/06** : hub admin + perf infra ; **01/07** : stats camemberts métier, logs recherche/filtres, popup candidature padding, contacts sheet entreprise | [x] |
+| **Mobile UX v1 (01/07)** | Popup candidature padding ; contacts création type entreprise ; stats sans live système ; logs recherche | [x] agent |
 
 ```bash
 node scripts/mobile/setup/diagnose-mobile-api-connection.js
