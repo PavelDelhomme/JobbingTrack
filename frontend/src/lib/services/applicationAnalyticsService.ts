@@ -182,6 +182,7 @@ export async function fetchApplicationErrors(
     resolved?: boolean;
     severity?: string;
     excludeFeedback?: boolean;
+    excludeTest?: boolean;
   },
 ): Promise<PaginatedAnalyticsResult<ApplicationAnalyticsError>> {
   const params = buildParams(rangeQuery, {
@@ -198,6 +199,7 @@ export async function fetchApplicationErrors(
     severity: options?.severity,
     excludeFeedback:
       options?.excludeFeedback === true ? "true" : undefined,
+    excludeTest: options?.excludeTest === true ? "true" : undefined,
   });
 
   const res = await axios.get(

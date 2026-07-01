@@ -1270,6 +1270,7 @@ class AnalyticsController {
         platform,
         excludeFeedback
       } = req.query;
+      const excludeTest = req.query.excludeTest;
 
       const tw = resolveUserAnalyticsTimeWindow(req.query, 7, 366);
       if (tw.error) {
@@ -1293,6 +1294,18 @@ class AnalyticsController {
         if (resolved !== undefined) where.resolved = resolved === 'true';
         if (excludeFeedback === 'true') {
           where.errorName = { not: 'ManualReport' };
+        }
+        if (excludeTest === 'true') {
+          where.NOT = {
+            OR: [
+              { errorMessage: { contains: 'live-verify-', mode: 'insensitive' } },
+              { errorMessage: { contains: 'simulation porteur', mode: 'insensitive' } },
+              { errorMessage: { contains: 'test validation', mode: 'insensitive' } },
+              { errorMessage: { contains: 'smoke auto crash', mode: 'insensitive' } },
+              { errorMessage: { contains: 'smoke pipeline', mode: 'insensitive' } },
+              { errorMessage: { contains: 'message de test', mode: 'insensitive' } },
+            ],
+          };
         }
         where.timestamp = { gte: startDate, lte: endDate };
 

@@ -395,7 +395,7 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 
 | Lot | Sujet | Environnement | Action porteur | Statut |
 |-----|-------|---------------|----------------|--------|
-| Web | **Vue d'ensemble** + **Mobile — erreurs & retours** | local | (1) Carte **Erreurs ouvertes** (~7 j) → lien avec filtre ouvertes. (2) Page logs : **7 jours** par défaut, erreurs auto visibles (ex. 11:30). (3) Détail technique complet (adresse, errno). | **[ ]** | **Preuve agent 17/06** : plage 7 j alignée dashboard ; limite 500 ; filtre ouvert par défaut ; `?status=open`. |
+| Web | **Vue d'ensemble** + **Mobile — erreurs & retours** | local | (1) Carte **Erreurs ouvertes** (~7 j) → lien avec filtre ouvertes. (2) Page logs : **7 jours** par défaut, erreurs auto visibles (ex. 11:30). (3) Détail technique complet (adresse, errno). | **[ ]** | **Preuve agent 17/06** : plage 7 j alignée dashboard ; limite 500 ; filtre ouvert par défaut ; `?status=open`. **Suite 17/06** : API `excludeTest=true` + 2e fetch dashboard corrigé (`days=7`) ; compteur carte = 0 hors données `live-verify-*` avec filtre test actif. |
 
 **Décision** : `OK Backoffice vue d'ensemble erreurs` **ou** `KO …` + capture.
 

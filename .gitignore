@@ -90,6 +90,7 @@ frontend/playwright-report/
 frontend/.tmp-jest/
 frontend/.tmp-playwright/
 scripts/frontend/
+scripts/ops/reports/
 frontend/.cache-playwright/
 tests/test-results/
 tests/e2e/test-results/

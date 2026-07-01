@@ -877,7 +877,7 @@ export default function BackofficePage() {
             ),
             fetchWithFallback(
               axios.get(
-                `${API_URL}/api/v1/analytics/errors?scope=application&platform=mobile&resolved=false&days=7&limit=1`,
+                `${API_URL}/api/v1/analytics/errors?scope=application&platform=mobile&resolved=false&days=7&excludeFeedback=true&excludeTest=true&limit=1`,
                 {
                   headers: { Authorization: `Bearer ${token}` },
                   validateStatus: (status) => status < 500,
@@ -984,7 +984,7 @@ export default function BackofficePage() {
           ),
           fetchWithFallback(
             axios.get(
-              `${API_URL}/api/v1/analytics/errors?scope=application&platform=mobile&resolved=false&limit=1`,
+              `${API_URL}/api/v1/analytics/errors?scope=application&platform=mobile&resolved=false&days=7&excludeFeedback=true&excludeTest=true&limit=1`,
               {
                 headers: { Authorization: `Bearer ${token}` },
                 validateStatus: (status) => status < 500,
