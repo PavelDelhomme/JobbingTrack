@@ -1,9 +1,6 @@
-/** Client navigateur pour le contrôleur émulateur (build APK local). */
+/** Client navigateur pour le contrôleur émulateur — passe par le proxy same-origin (/api/emulator-proxy). */
 
-export const DEFAULT_EMULATOR_CONTROLLER_URL =
-  typeof window !== "undefined"
-    ? process.env.NEXT_PUBLIC_EMULATOR_CONTROLLER_URL || "http://127.0.0.1:5055"
-    : "http://127.0.0.1:5055";
+const PROXY = "/api/emulator-proxy";
 
 export type EmulatorHealth = {
   ok?: boolean;
@@ -30,114 +27,92 @@ export type BuildApkResult = {
   version?: string | null;
   buildNumber?: number | null;
   _hint?: string;
-  _triedUrl?: string;
 };
 
-export type AdbDevice = { id: string; status: string };
+export type AdbDevice = {
+  id: string;
+  status: string;
+  model?: string | null;
+  androidVersion?: string | null;
+  appInstalled?: boolean;
+  appVersionName?: string | null;
+  appVersionCode?: number | null;
+  localApkVersion?: string | null;
+  localApkBuild?: number | null;
+  updateNeeded?: boolean;
+};
 
-function controllerBase(override?: string): string {
-  return (override || DEFAULT_EMULATOR_CONTROLLER_URL).replace(/\/$/, "");
-}
-
-export async function fetchEmulatorHealth(
-  baseUrl = DEFAULT_EMULATOR_CONTROLLER_URL,
-): Promise<EmulatorHealth | null> {
+async function proxyGet<T>(path: string, timeoutMs = 15_000): Promise<T | null> {
   try {
-    const res = await fetch(`${controllerBase(baseUrl)}/health`, {
-      signal: AbortSignal.timeout(4000),
-    });
+    const res = await fetch(`${PROXY}${path}`, { signal: AbortSignal.timeout(timeoutMs) });
     if (!res.ok) return null;
-    return (await res.json()) as EmulatorHealth;
+    return (await res.json()) as T;
   } catch {
     return null;
   }
 }
 
-export async function fetchApkInfo(baseUrl = DEFAULT_EMULATOR_CONTROLLER_URL): Promise<ApkInfo | null> {
-  try {
-    const res = await fetch(`${controllerBase(baseUrl)}/apk-info`, {
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as ApkInfo;
-  } catch {
-    return null;
-  }
+async function proxyPost<T>(
+  path: string,
+  body: Record<string, unknown> = {},
+  timeoutMs = 120_000,
+): Promise<{ ok: boolean; data: T; status: number }> {
+  const res = await fetch(`${PROXY}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  const data = (await res.json().catch(() => ({}))) as T;
+  return { ok: res.ok, data, status: res.status };
 }
 
-export async function fetchAdbDevices(
-  baseUrl = DEFAULT_EMULATOR_CONTROLLER_URL,
-): Promise<AdbDevice[]> {
-  try {
-    const res = await fetch(`${controllerBase(baseUrl)}/devices`, {
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return [];
-    const data = (await res.json()) as { devices?: AdbDevice[] };
-    return (data.devices || []).filter((d) => d.status === "device");
-  } catch {
-    return [];
-  }
+export async function fetchEmulatorHealth(): Promise<EmulatorHealth | null> {
+  return proxyGet<EmulatorHealth>("/health", 8000);
+}
+
+export async function fetchApkInfo(): Promise<ApkInfo | null> {
+  return proxyGet<ApkInfo>("/apk-info", 8000);
+}
+
+export async function fetchAdbDevices(): Promise<AdbDevice[]> {
+  const data = await proxyGet<{ devices?: AdbDevice[] }>("/devices", 20_000);
+  return (data?.devices || []).filter((d) => d.status === "device");
 }
 
 export async function buildApkFromBackoffice(
-  baseUrl = DEFAULT_EMULATOR_CONTROLLER_URL,
   signal?: AbortSignal,
-): Promise<{ ok: boolean; data: BuildApkResult; via: "direct" | "proxy" }> {
-  const BUILD_TIMEOUT_MS = 5 * 60 * 1000;
-  const abort = signal || new AbortController().signal;
-  const directUrl = `${controllerBase(baseUrl)}/build-apk`;
-
-  try {
-    const res = await fetch(directUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-      signal,
-    });
-    const data = (await res.json().catch(() => ({}))) as BuildApkResult;
-    if (res.ok || res.status === 502) {
-      return { ok: !!data.success, data, via: "direct" };
-    }
-  } catch {
-    /* proxy fallback */
-  }
-
-  const res = await fetch("/api/emulator-proxy/build-apk", {
+): Promise<{ ok: boolean; data: BuildApkResult }> {
+  const res = await fetch(`${PROXY}/build-apk`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ controllerBaseUrl: controllerBase(baseUrl) }),
-    signal: AbortSignal.timeout(BUILD_TIMEOUT_MS),
+    body: "{}",
+    signal: signal || AbortSignal.timeout(5 * 60 * 1000),
   });
   const data = (await res.json().catch(() => ({}))) as BuildApkResult;
-  return { ok: !!data.success, data, via: "proxy" };
+  return { ok: !!data.success && res.ok, data };
 }
 
 export function localApkDownloadHref(): string {
-  return "/api/emulator-proxy/download-apk";
+  return `${PROXY}/download-apk`;
 }
 
 export async function installApkOnDevice(
   deviceId: string,
-  baseUrl = DEFAULT_EMULATOR_CONTROLLER_URL,
 ): Promise<{ success?: boolean; message?: string; error?: string }> {
-  try {
-    const res = await fetch(`${controllerBase(baseUrl)}/install-run`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ deviceId }),
-      signal: AbortSignal.timeout(120_000),
-    });
-    return (await res.json()) as { success?: boolean; message?: string; error?: string };
-  } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : String(e) };
-  }
+  const { data } = await proxyPost<{ success?: boolean; message?: string; error?: string }>(
+    "/install-run",
+    { deviceId },
+    180_000,
+  );
+  return data;
 }
 
 export async function fetchBuiltApkBlob(): Promise<Blob> {
   const res = await fetch(localApkDownloadHref(), { signal: AbortSignal.timeout(120_000) });
   if (!res.ok) {
-    throw new Error(`Téléchargement APK HTTP ${res.status}`);
+    const err = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(err.error || `Téléchargement APK HTTP ${res.status}`);
   }
   return res.blob();
 }

@@ -74,12 +74,63 @@ function getActiveRelease(store, channel, platform) {
   return findRelease(store, channelState.activeReleaseId);
 }
 
-function buildDownloadUrlForFilename(filename) {
-  const override = process.env.MOBILE_ANDROID_DOWNLOAD_URL?.trim();
-  if (override) return override;
+function resolvePublicApiBaseForMobileDownload() {
+  const baseOverride = process.env.MOBILE_ANDROID_DOWNLOAD_BASE_URL?.trim();
+  if (baseOverride) return baseOverride.replace(/\/$/, '');
+
   const publicApi = process.env.PUBLIC_API_URL?.trim() || process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!publicApi) return null;
+
+  let parsed;
+  try {
+    parsed = new URL(publicApi);
+  } catch {
+    return publicApi.replace(/\/$/, '');
+  }
+
+  const host = parsed.hostname.toLowerCase();
+  const isDevLocalHost = host === 'localhost' || host === '127.0.0.1' || host.endsWith('.localhost');
+
+  if (!isDevLocalHost) return publicApi.replace(/\/$/, '');
+
+  const lanHost =
+    process.env.MOBILE_DEV_LAN_HOST?.trim()
+    || process.env.DEV_HTTPS_LAN_IP?.trim()
+    || (process.env.HOST_IP?.trim() && process.env.HOST_IP.trim() !== 'localhost'
+      ? process.env.HOST_IP.trim()
+      : '');
+
+  if (lanHost) {
+    const gatewayPort = process.env.API_GATEWAY_PORT?.trim() || '5002';
+    return `http://${lanHost}:${gatewayPort}`;
+  }
+
+  return publicApi.replace(/\/$/, '');
+}
+
+function isDevLocalDownloadHost(url) {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host.endsWith('.localhost');
+  } catch {
+    return false;
+  }
+}
+
+function effectiveAndroidDownloadUrl(release) {
+  const fullOverride = process.env.MOBILE_ANDROID_DOWNLOAD_URL?.trim();
+  if (fullOverride) return fullOverride;
+  if (release.downloadUrl && !isDevLocalDownloadHost(release.downloadUrl)) {
+    return release.downloadUrl;
+  }
+  if (release.filename) return buildDownloadUrlForFilename(release.filename);
+  return release.downloadUrl || null;
+}
+
+function buildDownloadUrlForFilename(filename) {
+  const publicApi = resolvePublicApiBaseForMobileDownload();
   if (!filename || !publicApi) return null;
-  return `${publicApi.replace(/\/$/, '')}/api/v1/mobile/releases/download/${encodeURIComponent(filename)}`;
+  return `${publicApi}/api/v1/mobile/releases/download/${encodeURIComponent(filename)}`;
 }
 
 function releaseToPublicInfo(release, channelState) {
@@ -104,7 +155,7 @@ function releaseToPublicInfo(release, channelState) {
 
   return {
     ...base,
-    downloadUrl: release.downloadUrl || buildDownloadUrlForFilename(release.filename),
+    downloadUrl: effectiveAndroidDownloadUrl(release),
   };
 }
 
@@ -123,6 +174,7 @@ function getDeployHints(store) {
       process.env.PUBLIC_API_URL?.trim()
       || process.env.NEXT_PUBLIC_API_URL?.trim()
       || null,
+    mobileDownloadBaseUrl: resolvePublicApiBaseForMobileDownload(),
     suggestedVersion: versionSource?.version || '1.0.0',
     suggestedBuild: Math.max(latestBuild + 1, (versionSource?.buildNumber || 0) + 1, 1),
     latestAndroidRelease: latest,
@@ -244,8 +296,9 @@ function promoteRelease({ platform, fromChannel = 'dev', toChannel = 'production
     filename: source.filename,
     storeUrl: source.storeUrl,
     downloadUrl:
-      source.downloadUrl
-      || (source.filename ? buildDownloadUrlForFilename(source.filename) : null),
+      source.filename
+        ? buildDownloadUrlForFilename(source.filename)
+        : effectiveAndroidDownloadUrl(source),
     createdAt: new Date().toISOString(),
     createdBy: promotedBy || `promote:${fromChannel}->${toChannel}`,
     status: 'active',
@@ -306,4 +359,5 @@ module.exports = {
   updateChannelPolicy,
   getPublicReleaseInfo,
   buildDownloadUrlForFilename,
+  resolvePublicApiBaseForMobileDownload,
 };

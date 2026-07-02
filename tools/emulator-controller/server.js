@@ -11,7 +11,7 @@ const path = require('path');
 const fs = require('fs');
 
 const PORT = parseInt(process.env.EMULATOR_CONTROLLER_PORT || '5055', 10);
-const HOST = process.env.EMULATOR_CONTROLLER_HOST || '127.0.0.1';
+const HOST = process.env.EMULATOR_CONTROLLER_HOST || '0.0.0.0';
 const BASE_PATH = (process.env.EMULATOR_CONTROLLER_BASE_PATH || '').replace(/\/$/, '');
 const MOBILE_PATH = process.env.MOBILE_PROJECT_PATH || path.resolve(__dirname, '../../mobile');
 const REPO_ROOT = path.resolve(MOBILE_PATH, '..');
@@ -110,6 +110,48 @@ function parseAdbDevices(stdout) {
     const [id, ...rest] = line.split(/\s+/);
     return { id, status: rest.join(' ') || 'device' };
   });
+}
+
+async function queryDeviceDetails(deviceId) {
+  const details = {
+    id: deviceId,
+    model: null,
+    androidVersion: null,
+    appInstalled: false,
+    appVersionName: null,
+    appVersionCode: null,
+  };
+  try {
+    const { stdout: modelOut } = await execPromise(
+      `adb -s ${deviceId} shell getprop ro.product.model`,
+    );
+    details.model = (modelOut || '').trim() || null;
+  } catch { /* ignore */ }
+  try {
+    const { stdout: apiOut } = await execPromise(
+      `adb -s ${deviceId} shell getprop ro.build.version.release`,
+    );
+    details.androidVersion = (apiOut || '').trim() || null;
+  } catch { /* ignore */ }
+  try {
+    const { stdout: pkgOut } = await execPromise(
+      `adb -s ${deviceId} shell dumpsys package ${ANDROID_PACKAGE}`,
+      { maxBuffer: 4 * 1024 * 1024 },
+    );
+    if (pkgOut && pkgOut.includes('versionName')) {
+      details.appInstalled = true;
+      const nameMatch = pkgOut.match(/versionName=([^\s\n]+)/);
+      const codeMatch = pkgOut.match(/versionCode=(\d+)/);
+      details.appVersionName = nameMatch ? nameMatch[1] : null;
+      details.appVersionCode = codeMatch ? parseInt(codeMatch[1], 10) : null;
+    } else {
+      const { stdout: pmOut } = await execPromise(
+        `adb -s ${deviceId} shell pm path ${ANDROID_PACKAGE}`,
+      );
+      details.appInstalled = Boolean((pmOut || '').trim());
+    }
+  } catch { /* ignore */ }
+  return details;
 }
 
 /** Cache frames ADB — sert la dernière image immédiatement pendant qu'un screencap est en cours. */
@@ -285,10 +327,29 @@ const routes = {
   async '/devices'(req, res) {
     try {
       const { stdout } = await execPromise('adb devices');
-      const devices = parseAdbDevices(stdout);
-      send(res, 200, { success: true, devices });
+      const raw = parseAdbDevices(stdout).filter((d) => d.status === 'device');
+      const pubspec = parsePubspecVersion();
+      const devices = await Promise.all(
+        raw.map(async (d) => {
+          const extra = await queryDeviceDetails(d.id);
+          return {
+            ...d,
+            ...extra,
+            localApkVersion: pubspec?.version || null,
+            localApkBuild: pubspec?.buildNumber || null,
+            updateNeeded:
+              extra.appInstalled
+              && pubspec
+              && (
+                extra.appVersionName !== pubspec.version
+                || (extra.appVersionCode != null && extra.appVersionCode < pubspec.buildNumber)
+              ),
+          };
+        }),
+      );
+      send(res, 200, { success: true, devices, package: ANDROID_PACKAGE });
     } catch (e) {
-      send(res, 500, { success: false, error: e.message });
+      send(res, 500, { success: false, error: e.message, devices: [] });
     }
   },
 

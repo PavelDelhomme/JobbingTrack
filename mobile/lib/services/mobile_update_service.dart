@@ -121,12 +121,40 @@ class MobileUpdateService {
     return null;
   }
 
+  /// Réécrit les URLs `*.localhost` / `127.0.0.1` vers [ApiService.baseUrl] (joignable depuis le téléphone).
+  static String resolveAndroidDownloadUrl(String? serverUrl) {
+    if (serverUrl == null || serverUrl.trim().isEmpty) {
+      throw Exception('URL de téléchargement APK absente côté serveur');
+    }
+    final trimmed = serverUrl.trim();
+    final parsed = Uri.tryParse(trimmed);
+    if (parsed == null || !parsed.hasScheme) return trimmed;
+
+    final host = parsed.host.toLowerCase();
+    final isDevLocalHost = host == 'localhost'
+        || host == '127.0.0.1'
+        || host.endsWith('.localhost');
+
+    if (!isDevLocalHost) return trimmed;
+
+    const marker = '/api/v1/mobile/releases/download/';
+    if (!parsed.path.contains(marker)) return trimmed;
+
+    final apiBase = ApiService.baseUrl.replaceAll(RegExp(r'/+$'), '');
+    final path = parsed.path.startsWith('/') ? parsed.path : '/${parsed.path}';
+    final query = parsed.hasQuery ? '?${parsed.query}' : '';
+    final resolved = '$apiBase$path$query';
+    debugPrint('[OTA] URL téléchargement réécrite: $trimmed → $resolved');
+    return resolved;
+  }
+
   static Future<void> downloadAndInstallAndroid(String downloadUrl) async {
     if (!Platform.isAndroid) return;
 
     await Permission.requestInstallPackages.request();
 
-    final response = await http.get(Uri.parse(downloadUrl)).timeout(const Duration(minutes: 3));
+    final resolvedUrl = resolveAndroidDownloadUrl(downloadUrl);
+    final response = await http.get(Uri.parse(resolvedUrl)).timeout(const Duration(minutes: 3));
     if (response.statusCode != 200) {
       throw Exception('Téléchargement APK échoué (${response.statusCode})');
     }

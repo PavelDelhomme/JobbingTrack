@@ -34,6 +34,7 @@ type AdminReleaseState = {
   releasesDir: string;
   deployHints?: {
     publicApiUrl: string | null;
+    mobileDownloadBaseUrl?: string | null;
     suggestedVersion: string;
     suggestedBuild: number;
     latestAndroidRelease: MobileRelease | null;
@@ -42,10 +43,6 @@ type AdminReleaseState = {
   releases: MobileRelease[];
 };
 
-const BUILD_APK_CMD = "bash scripts/mobile/setup/build-apk-debug.sh";
-const INSTALL_APK_CMD =
-  "adb install -r mobile/build/app/outputs/flutter-apk/app-debug.apk";
-const ADB_REVERSE_CMD = "adb reverse tcp:5002 tcp:5002";
 const APK_OUTPUT =
   "mobile/build/app/outputs/flutter-apk/app-debug.apk";
 
@@ -58,27 +55,27 @@ function resolveDownloadHref(release: Pick<MobileRelease, "filename" | "download
 
 const DEPLOY_STEPS = [
   {
-    title: "1 — Build APK (backoffice ou terminal)",
-    body: "Depuis cette page : bouton « Lancer le build APK » (contrôleur local requis). Sinon en terminal : script ci-dessous. Alignez mobile/pubspec.yaml avant le build.",
-    code: BUILD_APK_CMD,
+    title: "1 — Build APK (backoffice étape 1)",
+    body: "Incrémentez mobile/pubspec.yaml, démarrez le contrôleur, cliquez « Lancer le build APK ».",
+    code: "bash scripts/mobile/setup/restart-emulator-controller.sh",
   },
   {
-    title: "2 — Installer et valider sur téléphone / émulateur",
-    body: "Installez l’APK, testez le parcours métier (connexion, navigation, FAB). USB : adb reverse pour joindre l’API locale.",
-    code: `${INSTALL_APK_CMD}\n${ADB_REVERSE_CMD}`,
+    title: "2 — Tester sur appareil ADB (backoffice étape 2)",
+    body: "Sélectionnez l’appareil détecté automatiquement. Vérifiez la version installée, puis « Installer / mettre à jour ».",
+    code: "adb devices",
   },
   {
     title: "3 — Publier sur le canal DEV (formulaire ci-dessous)",
-    body: "Choisissez le fichier APK compilé, saisissez la même version et le même numéro de build que pubspec.yaml, canal « dev ». L’upload active automatiquement cette build pour les apps en mode debug.",
+    body: "Upload ou bouton « Publier sur canal dev ». Version/build = pubspec.yaml.",
     code: APK_OUTPUT,
   },
   {
-    title: "4 — Bêta-testeurs reçoivent la mise à jour",
-    body: "Les APK debug interrogent le canal dev au démarrage (OTA in-app). Partagez le lien « Téléchargement OTA » de la carte DEV, ou laissez l’app proposer la MAJ. Wi‑Fi : MOBILE_DEV_LAN_HOST dans .env.",
+    title: "4 — Bêta-testeurs reçoivent la mise à jour OTA",
+    body: "APK debug → canal dev au démarrage. Partagez le lien OTA ou laissez l’app proposer la MAJ.",
   },
   {
     title: "5 — Promouvoir en PRODUCTION",
-    body: "Quand la validation porteur est OK, cliquez « Promouvoir dev → production » sur la carte Production. Les builds release (APK release / store) utilisent le canal production.",
+    body: "Après validation porteur : « Promouvoir dev → production » sur la carte Production.",
   },
 ] as const;
 
@@ -305,7 +302,8 @@ export function MobileReleaseManagementPanel() {
   const devAndroid = state?.channels?.dev?.android;
   const prodAndroid = state?.channels?.production?.android;
   const publicApiUrl = state?.deployHints?.publicApiUrl;
-  const otaBaseUrl = publicApiUrl || (typeof window !== "undefined" ? window.location.origin : null);
+  const mobileDownloadBase = state?.deployHints?.mobileDownloadBaseUrl;
+  const otaBaseUrl = mobileDownloadBase || publicApiUrl || (typeof window !== "undefined" ? window.location.origin : null);
 
   return (
     <div className="space-y-6">
@@ -335,6 +333,22 @@ export function MobileReleaseManagementPanel() {
                 </span>
               )}
             </li>
+            {mobileDownloadBase && mobileDownloadBase !== publicApiUrl ? (
+              <li>
+                URL téléchargement APK (téléphone) : <code>{mobileDownloadBase}</code>
+                <span className="text-gray-600 dark:text-gray-400">
+                  {" "}
+                  — dérivée de <code>MOBILE_DEV_LAN_HOST</code> (évite *.localhost sur Samsung)
+                </span>
+              </li>
+            ) : null}
+            {publicApiUrl?.includes(".localhost") && !mobileDownloadBase ? (
+              <li className="text-amber-800 dark:text-amber-200">
+                Sur appareil physique, définir <code>MOBILE_DEV_LAN_HOST=&lt;IP LAN&gt;</code> dans{" "}
+                <code>.env</code> puis redémarrer <code>api-gateway</code>. L’app réécrit aussi
+                l’URL vers son API configurée (adb reverse / LAN).
+              </li>
+            ) : null}
             <li>
               Prochain build suggéré :{" "}
               <strong>
@@ -359,6 +373,24 @@ export function MobileReleaseManagementPanel() {
           </button>
         </div>
       ) : null}
+
+      <section className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-800 dark:bg-indigo-950/20">
+        <h2 className="text-base font-semibold text-indigo-950 dark:text-indigo-100">
+          Parcours développeur local (5 étapes)
+        </h2>
+        <ol className="mt-2 list-inside list-decimal space-y-1 text-sm text-indigo-900 dark:text-indigo-200">
+          <li>Build APK (panneau vert ci-dessus)</li>
+          <li>Test ADB + version installée (panneau bleu)</li>
+          <li>Publication canal dev (formulaire « Étape 3 »)</li>
+          <li>OTA bêta-testeurs (canal dev)</li>
+          <li>Promotion production</li>
+        </ol>
+        <p className="mt-2 text-xs text-indigo-800/80 dark:text-indigo-300/80">
+          API / backoffice / frontend : stack Docker habituelle. Le conteneur{" "}
+          <code>deployment-service</code> sert au déploiement orchestré (Portainer) — pas requis pour
+          un push APK local.
+        </p>
+      </section>
 
       <section className="rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm dark:border-indigo-800 dark:from-indigo-950/40 dark:to-gray-900">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">

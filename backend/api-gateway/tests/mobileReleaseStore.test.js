@@ -79,4 +79,26 @@ describe('mobileReleaseStore', () => {
     expect(state.deployHints.suggestedVersion).toBe('1.0.0');
     expect(state.deployHints.suggestedBuild).toBeGreaterThanOrEqual(8);
   });
+
+  it('downloadUrl utilise MOBILE_DEV_LAN_HOST quand PUBLIC_API_URL est *.localhost', () => {
+    process.env.PUBLIC_API_URL = 'https://api.jobbingtrack.localhost:5443';
+    process.env.MOBILE_DEV_LAN_HOST = '192.168.1.134';
+    process.env.API_GATEWAY_PORT = '5002';
+
+    createRelease({
+      channel: 'dev',
+      platform: 'android',
+      version: '1.0.1',
+      buildNumber: 2,
+      filename: 'smoke-test.apk',
+    });
+
+    const info = getPublicReleaseInfo('android', 'dev');
+    expect(info.downloadUrl).toBe(
+      'http://192.168.1.134:5002/api/v1/mobile/releases/download/smoke-test.apk',
+    );
+
+    delete process.env.MOBILE_DEV_LAN_HOST;
+    delete process.env.API_GATEWAY_PORT;
+  });
 });
