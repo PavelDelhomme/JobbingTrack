@@ -8,11 +8,20 @@ Ce dossier centralise la documentation. **Point d’entrée produit** : **[STATU
 
 ## À lire en premier
 
-1. **[STATUS.md](STATUS.md)** — état courant, priorités, journal des livraisons.
-2. **[pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)** — flux porteur/agent (obligatoire avant une tâche).
-3. **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)** — validations porteur bloquantes.
-4. **[pilotage/TODOS.md](pilotage/TODOS.md)** — backlog technique ordonné (cases à cocher).
-5. **[project/PLAN.md](project/PLAN.md)** — plan global par lots A–H.
+**Porteur (validation produit)** :
+
+1. **[pilotage/GUIDE_VALIDATION_PORTEUR.md](pilotage/GUIDE_VALIDATION_PORTEUR.md)** — **checklist mobile étape par étape** (étape 2 active).
+2. **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)** — cocher / répondre OK ou KO.
+
+**Vue globale** :
+
+1. **[STATUS.md](STATUS.md)** — état courant, priorités.
+2. **[pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)** — flux porteur/agent.
+
+**Agent / backlog** (ne pas confondre avec validation porteur) :
+
+- **[pilotage/TODOS.md](pilotage/TODOS.md)** — backlog technique.
+- **[project/PLAN.md](project/PLAN.md)** — plan global par lots A–H.
 
 ## Fichiers de suivi (rôles)
 
@@ -31,6 +40,7 @@ Ce dossier centralise la documentation. **Point d’entrée produit** : **[STATU
 
 ## Validation et production
 
+- [**Guide validation porteur (mobile 1→5)**](pilotage/GUIDE_VALIDATION_PORTEUR.md) ← **commencer ici**
 - [À valider par le porteur](pilotage/TODOS_A_VALIDER.md)
 - [Validé par le porteur](pilotage/TODOS_DONE.md)
 - [**Actions porteur déploiement VPS**](production/PORTEUR_ACTIONS_DEPLOIEMENT.md) ← checklist exacte

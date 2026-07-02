@@ -77,7 +77,14 @@ async function main() {
   const contactsRes = await api('GET', '/api/v1/contacts?limit=200');
   const contactsCache = contactsRes.data.contacts || [];
 
-  const ctx = { apps, pass, fail, api, interviewsCache, contactsCache };
+  const ctx = {
+    apps,
+    pass,
+    fail,
+    api,
+    interviewsCache: interviewsRes.data.interviews || [],
+    contactsCache: contactsRes.data.contacts || [],
+  };
 
   for (const scenario of INTERLEAVED_SCENARIOS) {
     await verifyScenario(scenario, ctx);

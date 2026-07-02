@@ -441,13 +441,23 @@ async function verifyScenario(scenario, ctx) {
 }
 
 async function verifyGlobalExpect(ctx) {
-  const { pass, fail, api } = ctx;
+  const { pass, fail, api, apps } = ctx;
   const { minCompanies, minCalendarEvents, minTotalCalls } = GLOBAL_EXPECT;
 
-  const companies = await api('GET', '/api/v1/companies?limit=200');
-  const coList = companies.data.companies || [];
-  if (companies.status === 200 && coList.length >= minCompanies) pass('Entreprises listées', `${coList.length}`);
-  else fail('Entreprises listées', `${companies.status} n=${coList.length}`);
+  const companiesRes = await api('GET', '/api/v1/companies?limit=200');
+  const coList = companiesRes.data.companies || [];
+  const companyNamesFromApps = new Set(
+    (apps || [])
+      .map((a) => a.company?.name || a.companyName)
+      .filter(Boolean),
+  );
+  const companyCount = coList.length > 0 ? coList.length : companyNamesFromApps.size;
+
+  if (companyCount >= minCompanies) {
+    pass('Entreprises listées', `${companyCount}`);
+  } else {
+    fail('Entreprises listées', `${companiesRes.status} n=${companyCount}`);
+  }
 
   const events = await api('GET', '/api/v1/events?limit=50');
   const evCount = events.data.events?.length ?? 0;

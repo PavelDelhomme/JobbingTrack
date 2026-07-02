@@ -8,6 +8,7 @@
 
 | Thème | Emplacement |
 |-------|-------------|
+| **Validation porteur (mobile, étape par étape)** | **[pilotage/GUIDE_VALIDATION_PORTEUR.md](pilotage/GUIDE_VALIDATION_PORTEUR.md)** ← **commencer ici** |
 | **Pilotage immédiat** | **[pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)** · **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)** · **[pilotage/TODOS_A_VERIFIER.md](pilotage/TODOS_A_VERIFIER.md)** |
 | **Actions porteur déploiement VPS** | **[production/PORTEUR_ACTIONS_DEPLOIEMENT.md](production/PORTEUR_ACTIONS_DEPLOIEMENT.md)** ← checklist exacte |
 | **État courant du projet** | **[STATUS.md](STATUS.md)** — hub principal |
@@ -26,18 +27,17 @@
 | **Quick Start - Tests mobile** | [tests/QUICK_START_MOBILE_TESTS.md](tests/QUICK_START_MOBILE_TESTS.md) |
 | **Optimisation perf. frontend** | [frontend/PERFORMANCE_OPTIMIZATION.md](frontend/PERFORMANCE_OPTIMIZATION.md) ; rapports : [performance/FRONTEND_REPORTS_SUMMARY.md](performance/FRONTEND_REPORTS_SUMMARY.md), [performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md](performance/FRONTEND_REPORTS_FINAL_ANALYSIS.md) |
 
-Pour **quoi faire maintenant** : **[STATUS.md](STATUS.md)** → **[pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)** → **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)**. Chantier structuré : **[project/PLAN.md](project/PLAN.md)**, **[pilotage/TODOS.md](pilotage/TODOS.md)**.
+Pour **quoi faire maintenant (porteur)** : **[pilotage/GUIDE_VALIDATION_PORTEUR.md](pilotage/GUIDE_VALIDATION_PORTEUR.md)** → **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)**. Vue globale : **[STATUS.md](STATUS.md)** · **[pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)**. Backlog agent : **[pilotage/TODOS.md](pilotage/TODOS.md)** (ne pas utiliser pour valider).
 
 ---
 
 ## 🎯 Par où commencer
 
-### Ce qu’il reste à faire (priorité)
-- **[pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)** — source de vérité du flux.
-- **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)** — validations porteur à vider avant nouvelles features.
-- **[STATUS.md](STATUS.md)** — **état courant**, priorités (hub principal)
-- **[project/PLAN.md](project/PLAN.md)** / **[pilotage/TODOS.md](pilotage/TODOS.md)** / **[security/STATS.md](security/STATS.md)** — Lots A–H
-- **[mobile/PROCHAINES_ETAPES.md](mobile/PROCHAINES_ETAPES.md)** — Étapes manuelles vérification email puis suite développement Flutter.
+### Ce qu’il reste à faire (priorité porteur)
+- **[pilotage/GUIDE_VALIDATION_PORTEUR.md](pilotage/GUIDE_VALIDATION_PORTEUR.md)** — **checklist étape 2 mobile** (navigation + FAB)
+- **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)** — registre OK/KO officiel
+- **[pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)** — ordre des phases A→E
+- **[production/PORTEUR_ACTIONS_DEPLOIEMENT.md](production/PORTEUR_ACTIONS_DEPLOIEMENT.md)** — déploiement VPS (parallèle)
 
 ### Fichiers .md à la racine
 La racine de `docs/` garde les **hubs** : `README.md`, **`STATUS.md`**, `INDEX.md`, `navigation.md`, plus des **redirects** (`PLAN.md`, `TODOS.md`, …). Pilotage : **`pilotage/`**. Vision projet : **`project/`**. Dépannage : **`troubleshooting/`**.

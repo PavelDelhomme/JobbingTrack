@@ -18,9 +18,10 @@ Avant chaque release large (mobile, backend, infra, desktop), détecter et docum
 ## Gate prévu (après D8 + hub tests)
 
 1. **Matrice manuelle** : `docs/security/SECURITY_RELEASE_IMPACT_REPORT.template.md` rempli par release.
-2. **Script diff** (backlog) : comparer `pubspec.yaml`, `package.json`, Compose, Prisma migrations, `.env.example`.
-3. **CI** (backlog) : job `release-impact-check` sur PR vers `main` / tag semver.
-4. **Alerte porteur** : entrée obligatoire dans `A_VALIDER_AVANT_PRODUCTION.md` avant préprod.
+2. **Android multi-API** : [`STRATEGIE_COMPATIBILITE_ANDROID.md`](STRATEGIE_COMPATIBILITE_ANDROID.md) — **après étapes mobile 1→5**, pas avant étape 2.
+3. **Script diff** (backlog) : comparer `pubspec.yaml`, `package.json`, Compose, Prisma migrations, `.env.example`.
+4. **CI** (backlog) : job `release-impact-check` sur PR vers `main` / tag semver.
+5. **Alerte porteur** : entrée obligatoire dans `A_VALIDER_AVANT_PRODUCTION.md` avant préprod.
 
 ## Commandes dev mobile liées
 
