@@ -85,3 +85,48 @@ EXPOSE 3000
 # Utiliser dumb-init pour une meilleure gestion des processus
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["npm", "run", "dev"]
+
+# Stage production (Portainer / GHCR)
+FROM base AS production
+WORKDIR /app
+
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_API_GATEWAY_URL
+ARG NEXT_PUBLIC_AUTH_SERVICE_URL
+ARG NEXT_PUBLIC_FRONTEND_URL
+ARG NEXT_PUBLIC_APP_NAME=JobbingTrack
+ARG NEXT_PUBLIC_APP_VERSION=1.0.0
+ARG NEXT_PUBLIC_METRICS_URL=/api/metrics-aggregator
+ARG NEXT_PUBLIC_METRICS_AGGREGATOR_URL=/api/metrics-aggregator
+ARG NEXT_PUBLIC_METRICS_VIA_FRONTEND=true
+ARG NEXT_PUBLIC_TZ=Europe/Paris
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_API_GATEWAY_URL=${NEXT_PUBLIC_API_GATEWAY_URL}
+ENV NEXT_PUBLIC_AUTH_SERVICE_URL=${NEXT_PUBLIC_AUTH_SERVICE_URL}
+ENV NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL}
+ENV NEXT_PUBLIC_APP_NAME=${NEXT_PUBLIC_APP_NAME}
+ENV NEXT_PUBLIC_APP_VERSION=${NEXT_PUBLIC_APP_VERSION}
+ENV NEXT_PUBLIC_METRICS_URL=${NEXT_PUBLIC_METRICS_URL}
+ENV NEXT_PUBLIC_METRICS_AGGREGATOR_URL=${NEXT_PUBLIC_METRICS_AGGREGATOR_URL}
+ENV NEXT_PUBLIC_METRICS_VIA_FRONTEND=${NEXT_PUBLIC_METRICS_VIA_FRONTEND}
+ENV NEXT_PUBLIC_TZ=${NEXT_PUBLIC_TZ}
+
+RUN addgroup --system --gid 1001 nodejs \
+  && adduser --system --uid 1001 nextjs
+
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=deps --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=deps --chown=nextjs:nodejs /app/package-lock.json* ./package-lock.json
+COPY --chown=nextjs:nodejs . .
+
+RUN npm run build
+
+USER nextjs
+EXPOSE 3000
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["npm", "run", "start"]

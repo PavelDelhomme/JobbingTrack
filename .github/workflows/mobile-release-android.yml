@@ -1,0 +1,90 @@
+name: Mobile Release Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: 'URL API prod/preprod (dart-define API_BASE_URL)'
+        required: true
+        default: 'https://api.jobbingtrack.delhomme.ovh'
+      version_name:
+        description: 'Version affichée (ex. 1.0.1)'
+        required: true
+        default: '1.0.0'
+      version_code:
+        description: 'Build number Android (ex. 2)'
+        required: true
+        default: '1'
+      release_notes:
+        description: 'Notes de version'
+        required: false
+        default: 'Mise à jour JobbingTrack'
+      force_update:
+        description: 'Mise à jour obligatoire'
+        type: boolean
+        default: false
+  push:
+    tags:
+      - 'mobile-v*'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  build-android:
+    name: Build APK release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.29.3'
+
+      - name: Patch pubspec version (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: mobile
+        run: |
+          sed -i "s/^version: .*/version: ${{ github.event.inputs.version_name }}+${{ github.event.inputs.version_code }}/" pubspec.yaml
+
+      - name: Build APK
+        working-directory: mobile
+        env:
+          API_BASE_URL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.api_base_url || vars.MOBILE_PROD_API_URL || 'https://api.jobbingtrack.delhomme.ovh' }}
+        run: |
+          flutter pub get
+          flutter build apk --release --dart-define=API_BASE_URL="$API_BASE_URL"
+          VERSION="$(awk '/^version:/ {print $2}' pubspec.yaml)"
+          cp build/app/outputs/flutter-apk/app-release.apk "../jobbingtrack-${VERSION}.apk"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jobbingtrack-android-apk
+          path: jobbingtrack-*.apk
+
+      - name: Create GitHub Release (tag mobile-v*)
+        if: startsWith(github.ref, 'refs/tags/mobile-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: jobbingtrack-*.apk
+          generate_release_notes: true
+
+      - name: Resume variables Portainer
+        run: |
+          VERSION="$(awk '/^version:/ {print $2}' mobile/pubspec.yaml)"
+          NAME="${VERSION%%+*}"
+          BUILD="${VERSION#*+}"
+          FILE="jobbingtrack-${VERSION}.apk"
+          echo "## Variables Portainer à mettre à jour" >> $GITHUB_STEP_SUMMARY
+          echo "- MOBILE_ANDROID_LATEST_VERSION=${NAME}" >> $GITHUB_STEP_SUMMARY
+          echo "- MOBILE_ANDROID_LATEST_BUILD=${BUILD}" >> $GITHUB_STEP_SUMMARY
+          echo "- MOBILE_ANDROID_APK_FILENAME=${FILE}" >> $GITHUB_STEP_SUMMARY
+          echo "- Copier l'APK artifact vers volume \`jobbingtrack_mobile_releases\` sur le VPS" >> $GITHUB_STEP_SUMMARY

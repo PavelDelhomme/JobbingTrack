@@ -1,0 +1,174 @@
+name: Build and Push Container Images
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'deploy/production/**'
+      - '.github/workflows/build-push-images.yml'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag image supplementaire (ex. v1.0.0)'
+        required: false
+
+env:
+  REGISTRY: ghcr.io
+  DOCKER_BUILDKIT: 1
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  build-push:
+    name: Build ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: api-gateway
+            context: backend
+            dockerfile: api-gateway/Dockerfile.backend-context
+          - image: auth-service
+            context: backend/auth-service
+            dockerfile: Dockerfile
+          - image: application-service
+            context: backend/application-service
+            dockerfile: Dockerfile
+          - image: company-service
+            context: backend/company-service
+            dockerfile: Dockerfile
+          - image: contact-service
+            context: backend/contact-service
+            dockerfile: Dockerfile
+          - image: interview-service
+            context: backend/interview-service
+            dockerfile: Dockerfile
+          - image: notification-service
+            context: backend/notification-service
+            dockerfile: Dockerfile
+          - image: dashboard-service
+            context: backend/dashboard-service
+            dockerfile: Dockerfile
+          - image: call-service
+            context: backend/call-service
+            dockerfile: Dockerfile
+          - image: profile-service
+            context: backend/profile-service
+            dockerfile: Dockerfile
+          - image: event-service
+            context: backend/event-service
+            dockerfile: Dockerfile
+          - image: followup-service
+            context: backend/followup-service
+            dockerfile: Dockerfile
+          - image: workflow-service
+            context: backend/workflow-service
+            dockerfile: Dockerfile
+          - image: security-service
+            context: backend/security-service
+            dockerfile: Dockerfile
+          - image: metrics-aggregator
+            context: backend/metrics-aggregator-service
+            dockerfile: Dockerfile
+          - image: frontend
+            context: frontend
+            dockerfile: Dockerfile
+            target: production
+            has_target: true
+            build_args: |
+              NEXT_PUBLIC_API_URL=https://api.jobbingtrack.example.com
+              NEXT_PUBLIC_API_GATEWAY_URL=https://api.jobbingtrack.example.com
+              NEXT_PUBLIC_AUTH_SERVICE_URL=https://api.jobbingtrack.example.com
+              NEXT_PUBLIC_FRONTEND_URL=https://jobbingtrack.example.com
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Meta tags
+        id: meta
+        run: |
+          OWNER="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          PREFIX="ghcr.io/${OWNER}/jobbingtrack"
+          BRANCH="${{ github.ref_name }}"
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          TAGS="${PREFIX}-${{ matrix.image }}:${BRANCH},${PREFIX}-${{ matrix.image }}:sha-${SHORT_SHA}"
+          if [ "${BRANCH}" = "main" ]; then
+            TAGS="${TAGS},${PREFIX}-${{ matrix.image }}:latest"
+          fi
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            TAGS="${TAGS},${PREFIX}-${{ matrix.image }}:${{ github.event.inputs.tag }}"
+          fi
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push (default target)
+        if: ${{ !matrix.has_target }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push (production frontend)
+        if: matrix.has_target
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/${{ matrix.dockerfile }}
+          target: production
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: ${{ matrix.build_args }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  notify-portainer:
+    name: Webhook Portainer
+    runs-on: ubuntu-latest
+    needs: build-push
+    if: success()
+    steps:
+      - name: Webhook preprod (dev)
+        if: github.ref == 'refs/heads/dev'
+        env:
+          WEBHOOK_URL: ${{ secrets.DEV_DEPLOY_URL }}
+        run: |
+          if [ -z "${WEBHOOK_URL}" ]; then
+            echo "DEV_DEPLOY_URL non defini — redeploy Portainer manuel ou GitOps."
+            exit 0
+          fi
+          curl -fsS -X POST "${WEBHOOK_URL}" \
+            -H "Content-Type: application/json" \
+            -d "{\"ref\":\"${{ github.ref }}\",\"sha\":\"${{ github.sha }}\"}"
+
+      - name: Webhook prod (main)
+        if: github.ref == 'refs/heads/main'
+        env:
+          WEBHOOK_URL: ${{ secrets.PROD_DEPLOY_URL }}
+        run: |
+          if [ -z "${WEBHOOK_URL}" ]; then
+            echo "PROD_DEPLOY_URL non defini — redeploy Portainer manuel ou GitOps."
+            exit 0
+          fi
+          curl -fsS -X POST "${WEBHOOK_URL}" \
+            -H "Content-Type: application/json" \
+            -d "{\"ref\":\"${{ github.ref }}\",\"sha\":\"${{ github.sha }}\"}"

@@ -106,6 +106,19 @@ node scripts/mobile/clear-smoke-device-adb.js   # si usage porteur après smokes
 
 Index scripts : `scripts/mobile/README.md`.
 
+## Phase C — Déploiement Portainer (préparation infra)
+
+> Préparation Git **sans déploiement VPS** tant que le porteur n’a pas créé la stack. Branche : `feat/deploy-portainer-production`.
+
+| Priorité | Vérification agent | Preuve attendue | Statut |
+|----------|--------------------|-----------------|--------|
+| C1 | Compose Portainer Git | `deploy/production/docker-compose.yml` + `docker compose config --quiet` avec `.env.example` | [x] **17/06** |
+| C2 | Doc stack + NPM | `docs/production/PORTAINER_STACK.md`, `deploy/production/README.md`, `MOBILE_RELEASE_PIPELINE.md` | [x] **17/06** |
+| C3 | CI images GHCR | `.github/workflows/build-push-images.yml` (16 images) ; webhooks `DEV_DEPLOY_URL` / `PROD_DEPLOY_URL` documentés | [x] **17/06** |
+| C4 | Stage prod frontend | `frontend/Dockerfile` target `production` (`npm run build` + `next start`) | [x] **17/06** |
+| C5 | Stack Portainer live VPS | Porteur : stack `jobbingtrack`, ref `refs/heads/dev`, healthchecks OK, NPM HTTPS | [ ] porteur |
+| C6 | OTA mobile Android | API `/api/v1/mobile/releases/latest` + install in-app ; workflow `mobile-release-android.yml` ; doc `PREMIER_DEPLOIEMENT.md` §5 | [x] **17/06** |
+
 ## Phase D — Lot H triage scripts (17/06)
 
 | Priorité | Vérification agent | Preuve attendue | Statut |

@@ -1,0 +1,3 @@
+# APK hébergés sur le VPS (volume Docker jobbingtrack_mobile_releases)
+# Copier ici avant docker cp vers le conteneur api-gateway.
+*.apk

@@ -27,12 +27,15 @@ jobs:
           echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "Configurer DEV_DEPLOY_URL pour activer le deploiement reel."
 
-      - name: Deploiement (placeholder)
+      - name: Deploiement (webhook Portainer)
+        env:
+          WEBHOOK_URL: ${{ secrets.DEV_DEPLOY_URL }}
         run: |
-          if [ -n "${{ secrets.DEV_DEPLOY_URL }}" ]; then
-            curl -f -X POST "${{ secrets.DEV_DEPLOY_URL }}" \
-              -H "Content-Type: application/json" \
-              -d "{\"ref\":\"${{ github.ref }}\",\"sha\":\"${{ github.sha }}\"}" || true
-          else
-            echo "DEV_DEPLOY_URL non defini : deploiement dev non execute."
+          if [ -z "${WEBHOOK_URL}" ]; then
+            echo "DEV_DEPLOY_URL non defini : configurer le webhook GitOps Portainer (stack jobbingtrack, branche dev)."
+            echo "Images GHCR : workflow build-push-images.yml"
+            exit 0
           fi
+          curl -fsS -X POST "${WEBHOOK_URL}" \
+            -H "Content-Type: application/json" \
+            -d "{\"ref\":\"${{ github.ref }}\",\"sha\":\"${{ github.sha }}\"}"

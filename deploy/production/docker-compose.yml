@@ -1,0 +1,455 @@
+# Stack JobbingTrack — déploiement Portainer (Git) + Nginx Proxy Manager
+# Compose path Portainer : deploy/production/docker-compose.yml
+# Secrets : variables stack Portainer (stack.env) — jamais dans Git.
+
+name: jobbingtrack
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-backend-common: &backend-common
+  restart: unless-stopped
+  networks:
+    - jobbingtrack-network
+  logging: *default-logging
+  pull_policy: ${IMAGE_PULL_POLICY:-build}
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+x-database-url: &database-url
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: jobbingtrack-postgres
+    restart: unless-stopped
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-768m}
+    command: ["postgres", "-c", "max_connections=${POSTGRES_MAX_CONNECTIONS:-200}"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      PGTZ: ${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
+      TZ: ${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
+    volumes:
+      - jobbingtrack_postgres_data:/var/lib/postgresql/data
+      - ../../backend/init-db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobbingtrack-network
+    logging: *default-logging
+
+  redis:
+    image: redis:7-alpine
+    container_name: jobbingtrack-redis
+    restart: unless-stopped
+    mem_limit: ${REDIS_MEMORY_LIMIT:-192m}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD}
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - jobbingtrack_redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jobbingtrack-network
+    logging: *default-logging
+
+  metrics-aggregator:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-metrics-aggregator:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend/metrics-aggregator-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-metrics-aggregator
+    mem_limit: ${METRICS_AGGREGATOR_MEMORY_LIMIT:-512m}
+    environment:
+      <<: *database-url
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER}
+      METRICS_API_KEY: ${METRICS_API_KEY:?set METRICS_API_KEY}
+      ENABLE_METRICS_AUTH: ${ENABLE_METRICS_AUTH:-true}
+      ENABLE_METRICS_COLLECTION: ${ENABLE_METRICS_COLLECTION:-true}
+      FRONTEND_URL: ${FRONTEND_URL:?set FRONTEND_URL}
+      NODE_ENV: production
+      PORT: "3014"
+
+  auth-service:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-auth-service:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend/auth-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-auth-service
+    mem_limit: ${AUTH_SERVICE_MEMORY_LIMIT:-384m}
+    environment:
+      <<: *database-url
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?set ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS}
+      APP_URL: ${APP_URL:?set APP_URL}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
+      FRONTEND_URL: ${FRONTEND_URL}
+      FRONTEND_PUBLIC_URL: ${FRONTEND_PUBLIC_URL:-${FRONTEND_URL}}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      METRICS_API_KEY: ${METRICS_API_KEY}
+      METRICS_SERVICE_URL: http://metrics-aggregator:3014
+      NODE_ENV: production
+      PORT: "3001"
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      SECURITY_INTERNAL_SECRET: ${SECURITY_INTERNAL_SECRET:?set SECURITY_INTERNAL_SECRET}
+      SECURITY_SERVICE_URL: http://security-service:3017
+      SMTP_FROM: ${SMTP_FROM:?set SMTP_FROM}
+      SMTP_HOST: ${SMTP_HOST:?set SMTP_HOST}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_PORT: ${SMTP_PORT:?set SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USE_SSL: ${SMTP_USE_SSL:-false}
+      SMTP_USER: ${SMTP_USER:?set SMTP_USER}
+
+  security-service:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-security-service:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend/security-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-security-service
+    mem_limit: ${SECURITY_SERVICE_MEMORY_LIMIT:-384m}
+    environment:
+      <<: *database-url
+      JWT_SECRET: ${JWT_SECRET}
+      METRICS_API_KEY: ${METRICS_API_KEY}
+      METRICS_SERVICE_URL: http://metrics-aggregator:3014
+      NODE_ENV: production
+      NOTIFICATION_SERVICE_URL: http://notification-service:3008
+      PORT: "3017"
+      SECURITY_ALERT_EMAIL: ${SECURITY_ALERT_EMAIL:-${ADMIN_EMAIL}}
+      SECURITY_INTERNAL_SECRET: ${SECURITY_INTERNAL_SECRET}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+
+  notification-service:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-notification-service:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend/notification-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-notification-service
+    mem_limit: ${NOTIFICATION_SERVICE_MEMORY_LIMIT:-256m}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    environment:
+      <<: *database-url
+      AUTH_SERVICE_URL: http://auth-service:3001
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+      PORT: "3008"
+
+  application-service:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-application-service:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend/application-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-application-service
+    environment:
+      <<: *database-url
+      AUTH_SERVICE_URL: http://auth-service:3001
+      JWT_SECRET: ${JWT_SECRET}
+      METRICS_API_KEY: ${METRICS_API_KEY}
+      METRICS_SERVICE_URL: http://metrics-aggregator:3014
+      NODE_ENV: production
+      PORT: "3002"
+
+  company-service:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-company-service:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend/company-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-company-service
+    environment:
+      <<: *database-url
+      AUTH_SERVICE_URL: http://auth-service:3001
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+      PORT: "3003"
+
+  contact-service:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-contact-service:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend/contact-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-contact-service
+    environment:
+      <<: *database-url
+      AUTH_SERVICE_URL: http://auth-service:3001
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+      PORT: "3004"
+
+  interview-service:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-interview-service:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend/interview-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-interview-service
+    environment:
+      <<: *database-url
+      AUTH_SERVICE_URL: http://auth-service:3001
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+      PORT: "3005"
+
+  dashboard-service:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-dashboard-service:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend/dashboard-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-dashboard-service
+    environment:
+      <<: *database-url
+      AUTH_SERVICE_URL: http://auth-service:3001
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+      PORT: "3007"
+
+  call-service:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-call-service:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend/call-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-call-service
+    environment:
+      <<: *database-url
+      AUTH_SERVICE_URL: http://auth-service:3001
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+      PORT: "3008"
+
+  profile-service:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-profile-service:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend/profile-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-profile-service
+    environment:
+      <<: *database-url
+      AUTH_SERVICE_URL: http://auth-service:3001
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+      PORT: "3009"
+
+  event-service:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-event-service:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend/event-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-event-service
+    environment:
+      <<: *database-url
+      AUTH_SERVICE_URL: http://auth-service:3001
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+      PORT: "3011"
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+
+  followup-service:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-followup-service:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend/followup-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-followup-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+    environment:
+      <<: *database-url
+      AUTH_SERVICE_URL: http://auth-service:3001
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+      NOTIFICATION_SERVICE_URL: http://notification-service:3008
+      PORT: "3012"
+
+  workflow-service:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-workflow-service:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend/workflow-service
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-workflow-service
+    environment:
+      <<: *database-url
+      AUTH_SERVICE_URL: http://auth-service:3001
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: production
+      PORT: "3013"
+
+  api-gateway:
+    <<: *backend-common
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-api-gateway:${IMAGE_TAG:-dev}
+    build:
+      context: ../../backend
+      dockerfile: api-gateway/Dockerfile.backend-context
+    container_name: jobbingtrack-api-gateway
+    mem_limit: ${API_GATEWAY_MEMORY_LIMIT:-384m}
+    ports:
+      - "${API_PUBLISH_HOST:-127.0.0.1}:${API_PUBLISH_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      metrics-aggregator:
+        condition: service_started
+      security-service:
+        condition: service_started
+    environment:
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      APPLICATION_SERVICE_URL: http://application-service:3002
+      COMPANY_SERVICE_URL: http://company-service:3003
+      CONTACT_SERVICE_URL: http://contact-service:3004
+      INTERVIEW_SERVICE_URL: http://interview-service:3005
+      NOTIFICATION_SERVICE_URL: http://notification-service:3008
+      DASHBOARD_SERVICE_URL: http://dashboard-service:3007
+      CALL_SERVICE_URL: http://call-service:3008
+      PROFILE_SERVICE_URL: http://profile-service:3009
+      EVENT_SERVICE_URL: http://event-service:3011
+      FOLLOWUP_SERVICE_URL: http://followup-service:3012
+      WORKFLOW_SERVICE_URL: http://workflow-service:3013
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      ENABLE_CENTRAL_LOGGING: ${ENABLE_CENTRAL_LOGGING:-true}
+      INTRUSION_DETECTION_ENABLED: ${INTRUSION_DETECTION_ENABLED:-true}
+      INTRUSION_RELAX_HEURISTICS: ${INTRUSION_RELAX_HEURISTICS:-false}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      METRICS_API_KEY: ${METRICS_API_KEY}
+      METRICS_SERVICE_URL: http://metrics-aggregator:3014
+      NODE_ENV: production
+      PORT: "3000"
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      SECURITY_INTERNAL_SECRET: ${SECURITY_INTERNAL_SECRET}
+      SECURITY_SERVICE_URL: http://security-service:3017
+      SERVICE_NAME: jobbingtrack-api-gateway
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-2}
+      WAF_ENABLED: ${WAF_ENABLED:-true}
+      WAF_INTERNAL_BYPASS_CIDRS: ${WAF_INTERNAL_BYPASS_CIDRS:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+      WAF_INTERNAL_BYPASS_ENABLED: ${WAF_INTERNAL_BYPASS_ENABLED:-true}
+      PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}
+      MOBILE_RELEASES_DIR: /app/mobile-releases
+      MOBILE_ANDROID_LATEST_VERSION: ${MOBILE_ANDROID_LATEST_VERSION:-1.0.0}
+      MOBILE_ANDROID_LATEST_BUILD: ${MOBILE_ANDROID_LATEST_BUILD:-1}
+      MOBILE_ANDROID_MIN_VERSION: ${MOBILE_ANDROID_MIN_VERSION:-1.0.0}
+      MOBILE_ANDROID_MIN_BUILD: ${MOBILE_ANDROID_MIN_BUILD:-1}
+      MOBILE_ANDROID_APK_FILENAME: ${MOBILE_ANDROID_APK_FILENAME:-}
+      MOBILE_ANDROID_DOWNLOAD_URL: ${MOBILE_ANDROID_DOWNLOAD_URL:-}
+      MOBILE_ANDROID_FORCE_UPDATE: ${MOBILE_ANDROID_FORCE_UPDATE:-false}
+      MOBILE_ANDROID_RELEASE_NOTES: ${MOBILE_ANDROID_RELEASE_NOTES:-}
+      MOBILE_IOS_APP_STORE_URL: ${MOBILE_IOS_APP_STORE_URL:-}
+      MOBILE_IOS_LATEST_VERSION: ${MOBILE_IOS_LATEST_VERSION:-1.0.0}
+      MOBILE_IOS_LATEST_BUILD: ${MOBILE_IOS_LATEST_BUILD:-1}
+      MOBILE_IOS_MIN_VERSION: ${MOBILE_IOS_MIN_VERSION:-1.0.0}
+      MOBILE_IOS_MIN_BUILD: ${MOBILE_IOS_MIN_BUILD:-0}
+      MOBILE_IOS_FORCE_UPDATE: ${MOBILE_IOS_FORCE_UPDATE:-false}
+      MOBILE_IOS_RELEASE_NOTES: ${MOBILE_IOS_RELEASE_NOTES:-}
+    volumes:
+      - jobbingtrack_mobile_releases:/app/mobile-releases
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  frontend:
+    pull_policy: ${IMAGE_PULL_POLICY:-build}
+    image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-frontend:${IMAGE_TAG:-dev}
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+      target: production
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_API_GATEWAY_URL: ${NEXT_PUBLIC_API_GATEWAY_URL:-${NEXT_PUBLIC_API_URL}}
+        NEXT_PUBLIC_AUTH_SERVICE_URL: ${NEXT_PUBLIC_AUTH_SERVICE_URL:-${NEXT_PUBLIC_API_URL}}
+        NEXT_PUBLIC_FRONTEND_URL: ${NEXT_PUBLIC_FRONTEND_URL:?set NEXT_PUBLIC_FRONTEND_URL}
+        NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-JobbingTrack}
+        NEXT_PUBLIC_APP_VERSION: ${NEXT_PUBLIC_APP_VERSION:-1.0.0}
+        NEXT_PUBLIC_METRICS_URL: ${NEXT_PUBLIC_METRICS_URL:-/api/metrics-aggregator}
+        NEXT_PUBLIC_METRICS_AGGREGATOR_URL: ${NEXT_PUBLIC_METRICS_AGGREGATOR_URL:-/api/metrics-aggregator}
+        NEXT_PUBLIC_METRICS_VIA_FRONTEND: ${NEXT_PUBLIC_METRICS_VIA_FRONTEND:-true}
+        NEXT_PUBLIC_TZ: ${NEXT_PUBLIC_TZ:-Europe/Paris}
+    container_name: jobbingtrack-frontend
+    restart: unless-stopped
+    mem_limit: ${FRONTEND_MEMORY_LIMIT:-1024m}
+    ports:
+      - "${FRONTEND_PUBLISH_HOST:-127.0.0.1}:${FRONTEND_PUBLISH_PORT:-3001}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+      METRICS_API_KEY: ${METRICS_API_KEY}
+      API_GATEWAY_URL: http://api-gateway:3000
+      METRICS_AGGREGATOR_INTERNAL_URL: http://metrics-aggregator:3014
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - jobbingtrack-network
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+volumes:
+  jobbingtrack_postgres_data:
+  jobbingtrack_redis_data:
+  jobbingtrack_mobile_releases:
+
+networks:
+  jobbingtrack-network:
+    name: jobbingtrack-network

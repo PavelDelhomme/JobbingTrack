@@ -648,7 +648,17 @@ bash scripts/run-all-tests-with-reports.sh
 | P1D | Gate suite complète tests fin de journée / avant push majeur | local | Dernière campagne `run-all-tests-with-reports.sh` **verte** (exit 0) + rapport lu dans `tests/results/<horodatage>/` ; noter date/heure dans décision/preuves porteur. | | | | [ ] | Dernière campagne complète : **à relancer en fin de journée**, pas pendant le P0/P1 courant. |
 | P1D | Audit final A-Z avant déploiement / tests globaux finaux | local puis préprod dédiée | Reprendre chaque bouton, formulaire, écriture BDD, endpoint API, service backend, job/worker, email, configuration, Docker/HTTPS, sécurité, logs, métriques, performances, responsive, mobile et rapports. Produire un bilan détaillé : régressions, lenteurs, opportunités d’optimisation sans perte fonctionnelle, risques prod et décision GO/NO-GO. | | | | [ ] | À lancer seulement en fin de programme, après clôture/reclassement des P1 ouverts et avant préprod/prod. |
 
-## File technique liée (pas de validation ici)
+### Phase C — Stack Portainer préprod (infra)
+
+| # | Action porteur | Preuve attendue | Statut |
+|---|----------------|-----------------|--------|
+| 1 | Portainer → stack Git `jobbingtrack` (`refs/heads/dev`, compose `deploy/production/docker-compose.yml`) | Stack **Running**, conteneurs healthy | [ ] |
+| 2 | Variables stack depuis `deploy/production/.env.example` (secrets forts, domaines réels) | Pas de secret dans Git ; login backoffice OK | [ ] |
+| 3 | NPM : `api.<domaine>` → `127.0.0.1:3000`, web → `127.0.0.1:3001`, SSL | HTTPS + CORS OK (`ALLOWED_ORIGINS`) | [ ] |
+| 4 | (Optionnel phase B) GitHub secret `DEV_DEPLOY_URL` = webhook Portainer | Push `dev` → redeploy auto | [ ] |
+
+Guide : [`docs/production/PORTAINER_STACK.md`](../production/PORTAINER_STACK.md).
+
 
 Les chantiers non encore prêts pour validation porteur restent dans `docs/TODOS.md` (env strictes, pentest, PQC, purge menaces après OK P0, etc.).
 

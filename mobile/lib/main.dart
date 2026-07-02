@@ -45,6 +45,8 @@ import 'package:jobbingtrack_mobile/navigation/app_navigator.dart';
 import 'package:jobbingtrack_mobile/utils/locale_init.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
+import 'package:jobbingtrack_mobile/services/mobile_update_service.dart';
+import 'package:jobbingtrack_mobile/widgets/mobile_update_dialog.dart';
 
 Route<dynamic>? resolveAppRoute(RouteSettings settings) {
   if (settings.name != null && settings.name!.contains('reset-password')) {
@@ -251,6 +253,28 @@ class _SplashScreenState extends State<_SplashScreen> {
       debugPrint('[SPLASH] autoDetectApi error (continuing): $e\n$st');
     }
     if (!mounted) return;
+    final update = await MobileUpdateService.evaluateUpdate();
+    if (!mounted) return;
+    if (update != null) {
+      if (update.blocked) {
+        await showMobileUpdateDialog(
+          context,
+          release: update.release,
+          currentVersion: update.current,
+          forceUpdate: true,
+        );
+        if (!mounted) return;
+        setState(() => _status = 'Mise à jour requise pour continuer.');
+        return;
+      }
+      await showMobileUpdateDialog(
+        context,
+        release: update.release,
+        currentVersion: update.current,
+        forceUpdate: false,
+      );
+      if (!mounted) return;
+    }
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final restored = await auth.restoreSession();
     MobileAnalyticsService.instance.sessionRefreshBeforeFlush = auth.refreshSessionIfOnline;

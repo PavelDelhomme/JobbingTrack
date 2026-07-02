@@ -377,6 +377,9 @@ app.get('/api/v1/health', (req, res) => {
   });
 });
 
+const mobileReleasesRoutes = require('./routes/mobile-releases.routes');
+app.use('/api/v1/mobile/releases', mobileReleasesRoutes);
+
 // ✅ Rapports de crash (app mobile) — route dédiée, sans auth, hors notification-service
 // Le notification-service gère uniquement les notifications in-app utilisateur.
 app.post('/api/v1/crashes', async (req, res) => {
