@@ -1,5 +1,9 @@
 # VPS — préproduction / production (Portainer, Nginx Proxy Manager, OVH)
 
+Dernière mise à jour : 2 juillet 2026
+
+> **Checklist porteur (ordre des actions, stack versionnée)** : [`docs/production/PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md) · compose Git : [`deploy/production/docker-compose.yml`](../../deploy/production/docker-compose.yml)
+
 Objectif : déployer **API (gateway + services)**, **frontend Next.js** et **build mobile** (artefacts / stores) sur un **VPS** en s’appuyant sur **Portainer** (stacks Docker Compose), **Nginx Proxy Manager** (TLS et reverse proxy) et **OVH** (DNS).
 
 **Documents complémentaires** : [`portainer/README.md`](./portainer/README.md), [`environment-variables/README.md`](./environment-variables/README.md), [`docs/operations/PREPROD_PRODUCTION_CHECKLIST.md`](../operations/PREPROD_PRODUCTION_CHECKLIST.md), [`docs/operations/PRE_VPS_ENV_AUDIT_AND_UPDATES.md`](../operations/PRE_VPS_ENV_AUDIT_AND_UPDATES.md) (audit variables **hors Git**, mises à jour, security-service).

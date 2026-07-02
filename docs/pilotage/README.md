@@ -12,6 +12,6 @@ Point d’entrée pour le flux porteur / agent.
 
 Backlog technique (non validation produit) : **[../TODOS.md](../TODOS.md)**.
 
-Production / préprod : **[../production/](../production/)** (`A_VALIDER_AVANT_PRODUCTION.md`, `DEPLOIEMENT_PRODUCTION.md`, `VALIDATION_PRODUCTION.md`).
+Production / préprod : **[../production/](../production/)** — **commencer par** [`PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md) (checklist porteur VPS + OTA), puis `A_VALIDER_AVANT_PRODUCTION.md`, `DEPLOIEMENT_PRODUCTION.md`, `VALIDATION_PRODUCTION.md`.
 
 Git et logs dev : **[../development/BRANCHES.md](../development/BRANCHES.md)**, **[../development/LOGS.md](../development/LOGS.md)** (journal pilotage), **[../development/DOCKER_LOGS.md](../development/DOCKER_LOGS.md)** (commandes Docker / make logs).

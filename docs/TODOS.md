@@ -6,4 +6,9 @@
 
 Backlog technique ordonné (cases à cocher, lots A–H). Ne remplace pas la validation porteur → [`pilotage/TODOS_A_VALIDER.md`](pilotage/TODOS_A_VALIDER.md).
 
-**Priorité porteur (juin 2026)** : file stricte étapes **1→5** (lignes 319–323) — guide détaillé dans `TODOS_A_VALIDER.md` § « File de validation porteur ». État : [`STATUS.md`](STATUS.md).
+**Priorité porteur (juillet 2026)** :
+
+1. **Mobile** — file stricte étapes **1→5** (lignes 319–323) — guide `TODOS_A_VALIDER.md` § « File de validation porteur ». **Étape 2 active** (ligne 320).
+2. **Déploiement VPS** — en parallèle : [`production/PORTEUR_ACTIONS_DEPLOIEMENT.md`](production/PORTEUR_ACTIONS_DEPLOIEMENT.md) (branche `feat/deploy-portainer-production`).
+
+État global : [`STATUS.md`](STATUS.md).

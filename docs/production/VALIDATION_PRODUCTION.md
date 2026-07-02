@@ -1,12 +1,12 @@
 # Validation production
 
-Dernière mise à jour : 21 mai 2026
+Dernière mise à jour : 2 juillet 2026
 
 ## Rôle
 
 Ce fichier contient uniquement ce qui a été validé en préprod/prod réelle ou simulation explicitement acceptée comme gate de production.
 
-État actuel : **rien n’est validé en production réelle**, car aucun serveur production n’est encore lancé.
+État actuel : **rien n’est validé en production réelle**. La préparation infra (Phase C) est documentée dans [`PORTEUR_ACTIONS_DEPLOIEMENT.md`](PORTEUR_ACTIONS_DEPLOIEMENT.md) et [`DEPLOIEMENT_PRODUCTION.md`](DEPLOIEMENT_PRODUCTION.md) — le VPS n’est pas encore déployé.
 
 ## Validations production
 

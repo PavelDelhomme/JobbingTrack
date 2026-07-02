@@ -1,6 +1,8 @@
 # Premier déploiement Portainer — checklist porteur
 
-Dernière mise à jour : 17 juin 2026
+Dernière mise à jour : 2 juillet 2026
+
+> **Version complète alignée pilotage** : [`docs/production/PORTEUR_ACTIONS_DEPLOIEMENT.md`](../../docs/production/PORTEUR_ACTIONS_DEPLOIEMENT.md)
 
 Objectif : stack **jobbingtrack** running sur le VPS, API + backoffice accessibles en HTTPS via NPM, mise à jour mobile Android automatique.
 
