@@ -27,6 +27,18 @@ Organisation par rôle. Les **raccourcis à la racine** (`smoke-preflight.js`, e
 | `smoke/utils/` | Utilitaires smoke (presse-papier mot de passe, etc.) |
 | `test/` | Scripts de test hors smoke |
 
+## Gateway API (smokes / scripts hôte)
+
+Les smokes et scripts Node lancés **sur la machine** (ADB, ops) n'utilisent pas le hostname Docker `api-gateway`. La résolution est centralisée dans `scripts/lib/gateway-url.js` :
+
+| Contexte | URL typique |
+|----------|-------------|
+| Hôte (smokes, Jest) | `http://127.0.0.1:5002` (`API_GATEWAY_PORT`) |
+| Conteneur / Portainer (réseau stack) | `http://api-gateway:3000` (`API_GATEWAY_URL` dans `.env`) |
+| Client externe (HTTPS) | `API_GATEWAY_PUBLIC_URL` / `NEXT_PUBLIC_API_*` |
+
+Override tests : `SMOKE_API_GATEWAY_URL` ou `PLAYWRIGHT_API_GATEWAY_URL`.
+
 ## Commandes courantes
 
 ```bash

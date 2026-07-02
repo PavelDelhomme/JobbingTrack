@@ -5,31 +5,10 @@
 
 const fs = require('fs');
 const path = require('path');
-
-function hostGatewayUrl() {
-  return `http://127.0.0.1:${process.env.API_GATEWAY_PORT || '5002'}`;
-}
-
-function getGatewayUrl() {
-  const raw =
-    process.env.API_GATEWAY_URL ||
-    process.env.API_URL ||
-    hostGatewayUrl();
-  return String(raw).replace(/\/$/, '');
-}
-
-function normalizeHostGatewayUrl() {
-  const inDocker =
-    fs.existsSync('/.dockerenv') || process.env.RUNNING_IN_DOCKER === '1';
-  if (inDocker) return;
-  const host = hostGatewayUrl();
-  for (const key of ['API_GATEWAY_URL', 'API_URL']) {
-    const val = process.env[key];
-    if (!val || /:\/\/api-gateway(?::|\/|$)/i.test(val)) {
-      process.env[key] = host;
-    }
-  }
-}
+const {
+  resolveGatewayUrl,
+  applyRuntimeGatewayEnv,
+} = require('../../lib/gateway-url');
 
 function loadRootEnv() {
   const envPath = path.resolve(__dirname, '../../../.env');
@@ -75,7 +54,11 @@ function loadRootEnv() {
       process.env[key] = value;
     }
   }
-  normalizeHostGatewayUrl();
+  applyRuntimeGatewayEnv();
+}
+
+function getGatewayUrl() {
+  return resolveGatewayUrl({ perspective: 'auto' });
 }
 
 async function probeLogin(email, password) {

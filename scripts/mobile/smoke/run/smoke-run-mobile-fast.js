@@ -11,6 +11,7 @@
 const { spawnSync } = require('child_process');
 const path = require('path');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');
+const { applyRuntimeGatewayEnv, resolveGatewayUrl, isRunningInContainer } = require('../../../lib/gateway-url');
 const { runPreflight } = require('./smoke-preflight');
 const { restoreSmokeDeviceAfterBattery } = require('../../lib/restore-smoke-device');
 
@@ -113,6 +114,10 @@ function runParallel(scripts, prefix) {
 
 (async () => {
   console.log('JobbingTrack — batterie smoke RAPIDE Lot D');
+  console.log(
+    `Gateway smoke : ${resolveGatewayUrl({ perspective: 'host' })}` +
+      (isRunningInContainer() ? ' (conteneur → interne)' : ' (hôte → port publié)'),
+  );
   const t0 = Date.now();
 
   process.env.ADB_FAST = '1';

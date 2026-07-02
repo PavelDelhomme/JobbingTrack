@@ -8,6 +8,7 @@
 
 const adbLib = require('../../../../tools/adb-lib');
 const { loadRootEnv, getGatewayUrl } = require('../../lib/resolve-admin-credentials');
+const { isRunningInContainer } = require('../../../lib/gateway-url');
 const { ensureTestAccountsReady } = require('../../setup/ensure-test-accounts-ready');
 const { acquireSmokeLock } = require('./smoke-lock');
 const { resolveEmailTriageEnv } = require('../../lib/resolve-email-triage-env');
@@ -58,6 +59,10 @@ function logEmailMailboxes() {
 async function runPreflight(opts = {}) {
   const { prepare = true, label = 'battery' } = opts;
   console.log('\n=== Pré-vol smokes mobile ===\n');
+  console.log(
+    `Gateway : ${getGatewayUrl()}` +
+      (isRunningInContainer() ? ' [réseau interne]' : ' [hôte / port publié]'),
+  );
 
   await checkGateway();
   await ensureTestAccountsReady();

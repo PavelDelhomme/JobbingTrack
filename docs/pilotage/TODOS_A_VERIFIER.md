@@ -87,7 +87,7 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | **Retour porteur Signaler un bug** | **29/06 17:18** — `[bug] message de test` persisté ; diagnostic + capture OK ; Samsung SM-G990B2 ; `node scripts/ops/verify-porteur-mobile-feedback.js` **OK** | [x] |
 | **Hub admin mobile (parité backoffice)** | **30/06** : hub admin + perf infra ; **01/07** : stats camemberts métier, logs recherche/filtres, popup candidature padding, contacts sheet entreprise | [x] |
 | **Remontée erreurs mobile live (17/06)** | Pipeline OK — 3 types erreurs + crashs + retours ; filtre « Masquer tests » par défaut | [x] agent |
-| **Backoffice erreurs ouvertes (02/07)** | Stack redémarrée (frontend/gateway/dashboard/https-proxy) ; `excludeTest` API + panel mobile-logs ; `check-services.sh` probe `/api/v1/health` ; login hydration fix ; `tsc` OK | [x] |
+| **Backoffice erreurs ouvertes (02/07)** | Stack redémarrée ; `excludeTest` API + panel ; `scripts/lib/gateway-url.js` — hôte `127.0.0.1:PORT` vs interne `api-gateway` (Compose/Portainer) | [x] |
 | **APK debug étape 2 (02/07)** | `build-apk-debug.sh` + reinstall Samsung ; batterie `smoke-run-mobile-fast.js` **12/16 OK** — étape 2 navigation+FAB OK ; admin-hub restore timeout | [x] |
 
 ```bash
