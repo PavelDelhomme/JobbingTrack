@@ -11,12 +11,17 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [themeReady, setThemeReady] = useState(false);
   const currentYear = new Date().getFullYear();
   const router = useRouter();
   const { login, isAuthenticated, user } = useAuth();
   const { actualTheme, toggleTheme } = useTheme();
 
   // ✅ Si déjà connecté, rediriger automatiquement
+  useEffect(() => {
+    setThemeReady(true);
+  }, []);
+
   useEffect(() => {
     if (isAuthenticated && user) {
       // Forcer la redirection immédiatement
@@ -72,20 +77,22 @@ export default function LoginPage() {
                 priority
               />
               <button
+                type="button"
                 onClick={toggleTheme}
+                suppressHydrationWarning
                 className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full transition-all shadow-lg hover:shadow-xl transform hover:scale-105 ${
-                  actualTheme === "dark"
+                  themeReady && actualTheme === "dark"
                     ? "bg-gray-800 text-gray-100 hover:bg-gray-700 border border-gray-700"
                     : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
                 }`}
                 title={
-                  actualTheme === "dark"
+                  themeReady && actualTheme === "dark"
                     ? "Passer en mode clair"
                     : "Passer en mode sombre"
                 }
               >
-                <span className="text-lg sm:text-xl">
-                  {actualTheme === "dark" ? "🌙" : "☀️"}
+                <span className="text-lg sm:text-xl" suppressHydrationWarning>
+                  {themeReady ? (actualTheme === "dark" ? "🌙" : "☀️") : "🌙"}
                 </span>
               </button>
             </div>

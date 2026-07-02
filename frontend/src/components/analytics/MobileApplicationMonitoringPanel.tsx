@@ -162,6 +162,7 @@ export function MobileApplicationMonitoringPanel({
         fetchApplicationErrors(token, rangeQuery, {
           limit: 500,
           excludeFeedback: true,
+          excludeTest: hideTestData,
         }),
       ]);
 
@@ -183,7 +184,7 @@ export function MobileApplicationMonitoringPanel({
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [rangeQuery, rangeStart, rangeEnd, consumeSilentFetch]);
+  }, [rangeQuery, rangeStart, rangeEnd, consumeSilentFetch, hideTestData]);
 
   useRegisterBackofficeRefresh(
     useCallback(() => {

@@ -45,7 +45,13 @@ api_port=$(docker ps --filter "name=jobbingtrack-api-gateway" --format '{{.Ports
 if [ -n "$api_port" ]; then
   echo "- API Gateway accessible sur http://localhost:$api_port"
   echo "  Test de santé :"
-  curl -s "http://localhost:$api_port/health" || echo "  ❌ L'API Gateway ne répond pas"
+  if curl -fsS "http://localhost:$api_port/api/v1/health" >/dev/null; then
+    echo "  ✅ API Gateway répond (/api/v1/health)"
+  elif curl -fsS "http://localhost:$api_port/health" >/dev/null; then
+    echo "  ✅ API Gateway répond (/health)"
+  else
+    echo "  ❌ L'API Gateway ne répond pas"
+  fi
 else
   echo "❌ API Gateway non accessible"
 fi
