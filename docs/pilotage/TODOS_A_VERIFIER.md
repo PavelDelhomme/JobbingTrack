@@ -12,10 +12,10 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 
 | Priorité | Vérification agent | Preuve attendue | Statut |
 |----------|--------------------|-----------------|--------|
-| A1 | Smokes rapides — gate par défaut | `node scripts/mobile/smoke-run-mobile-fast.js` OK Samsung ; pré-vol `smoke-preflight.js` (verrou ADB, `SMOKE_SHARED_SHELL=1`) ; pas de scripts parallèles sur le même appareil | [ ] reprise étape 1 |
+| A1 | Smokes rapides — gate par défaut | `node scripts/mobile/smoke-run-mobile-fast.js` OK Samsung ; pré-vol `smoke-preflight.js` (verrou ADB, `SMOKE_SHARED_SHELL=1`) ; pas de scripts parallèles sur le même appareil | [x] **02/07** : batterie **12/16 OK** (~27 min) — étape 2 OK : navigation, shell, FAB candidature/relance/appel-entretien, profile-save ; fixes `smoke-preflight` path adb-lib + gateway host `127.0.0.1:5002` |
 | A2 | Attente email smokes — bonne boîte + diagnostic | Helper IMAP poll avec timeout ; ordre EmailLog → MailHog → Gmail → OVH ; logs indiquent boîte et tentative ; échec = message actionnable (mauvaise boîte, token absent, délai). **25/06** : doc [`BOITE_MAIL_INSCRIPTION_TESTS.md`](../../mobile/BOITE_MAIL_INSCRIPTION_TESTS.md) + `diagnose-registration-email.js` — `candidatures@…` ≠ inbox vérif inscription ; lire **`test@delhomme.ovh`** pour alias `test+…`. EmailLog **SENT** vers `test+mob…@delhomme.ovh` confirmé. | [x] doc + diagnostic |
 | A3 | Bypass biométrie smokes (pas produit) | Pref `test_automation_skip_biometric` (debug APK) ; smokes sans prompt Samsung ; **restauration auto** fin batterie + `clear-smoke-device-adb.js` ; biométrie porteur inchangée hors pref | [x] |
-| A4 | Hub admin ADB multi-comptes | `smoke-mobile-admin-hub-adb.js` OK : admin visible → hub → retour TEST_USER sans blocage login | [ ] |
+| A4 | Hub admin ADB multi-comptes | `smoke-mobile-admin-hub-adb.js` OK : admin visible → hub → retour TEST_USER sans blocage login | [ ] partiel **02/07** : hub + Statistiques OK dans batterie ; restore USER timeout 420 s — reprise isolée |
 | A5 | Consentements agent `/agent` — sync mobile→web | Consentements sauvés mobile visibles sur `/agent` (même compte) ; UI switches statut OK/KO + `grantedAt` ; `hasRequiredConsents` cohérent | [ ] UI switches OK ; **porteur 17/06** : à revoir plus tard. **Reste** : preuve sync même compte si besoin |
 | A6 | Comptes test prêts | `ensure-test-accounts-ready.js` : `TEST_USER` + `TEST_ADMIN` login API + `emailVerified=true` | [x] |
 | A6b | Login mobile — comptes test réels (debug) | **26/06** : `generate-debug-test-accounts.js` + boutons **Connexion USER/ADMIN** ; smoke `smoke-login-debug-test-accounts-adb.js` Samsung **OK** (USER + ADMIN, emails/mots de passe visibles). APK réinstallé via `build-apk-debug.sh`. | [x] |
@@ -27,7 +27,7 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | Étape | Ligne | Statut agent | Statut porteur | Action porteur |
 |-------|-------|--------------|----------------|----------------|
 | 1 | 319 Inscription + vérif email | `smoke-etape1-inscription-adb.js` **OK** + porteur mail/vérif OK | **[x] OK** | Archivé `TODOS_DONE.md` 25/06 |
-| 2 | 320 Navigation + FAB | smokes ADB OK | **[ ] EN COURS** | § étape 2 — retour shell, admin, FAB candidature |
+| 2 | 320 Navigation + FAB | smokes ADB OK | **[ ] EN COURS** | § étape 2 — **02/07 agent** : `smoke-mobile-navigation-adb` **OK** ; `smoke-mobile-application-detail-fab-adb` **OK** ; `smoke-mobile-fab-relance-adb` **OK** ; `smoke-mobile-fab-call-entretien-adb` **OK** ; APK rebuild + reinstall Samsung ; **validation porteur** checklist § étape 2 |
 | 3 | 321 OVH SMTP `@jobbingtrack.com` | doc + diagnostic OK | bloquée par 320 | MX Plan OVH — § étape 3 |
 | 4 | 322 Agent admin `/agent` | UI + API OK | bloquée par 321 | § étape 4 |
 | 5 | 323 Consentements RGPD sync | UI switches OK | bloquée par 322 | § étape 5 |
@@ -88,7 +88,7 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | **Hub admin mobile (parité backoffice)** | **30/06** : hub admin + perf infra ; **01/07** : stats camemberts métier, logs recherche/filtres, popup candidature padding, contacts sheet entreprise | [x] |
 | **Remontée erreurs mobile live (17/06)** | Pipeline OK — 3 types erreurs + crashs + retours ; filtre « Masquer tests » par défaut | [x] agent |
 | **Backoffice erreurs ouvertes (02/07)** | Stack redémarrée (frontend/gateway/dashboard/https-proxy) ; `excludeTest` API + panel mobile-logs ; `check-services.sh` probe `/api/v1/health` ; login hydration fix ; `tsc` OK | [x] |
-| **APK debug étape 2 (02/07)** | `build-apk-debug.sh` + reinstall Samsung ; `generate-debug-test-accounts.js` ; smoke login USER via **Connexion USER** OK ; batterie `smoke-run-mobile-fast.js` en cours | [ ] |
+| **APK debug étape 2 (02/07)** | `build-apk-debug.sh` + reinstall Samsung ; batterie `smoke-run-mobile-fast.js` **12/16 OK** — étape 2 navigation+FAB OK ; admin-hub restore timeout | [x] |
 
 ```bash
 node scripts/mobile/setup/diagnose-mobile-api-connection.js

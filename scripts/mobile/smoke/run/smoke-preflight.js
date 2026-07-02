@@ -6,8 +6,8 @@
  *   node scripts/mobile/smoke-preflight.js --no-prepare   # sans restart app
  */
 
-const adbLib = require('../../../tools/adb-lib');
-const { loadRootEnv, GATEWAY_URL } = require('../../lib/resolve-admin-credentials');
+const adbLib = require('../../../../tools/adb-lib');
+const { loadRootEnv, getGatewayUrl } = require('../../lib/resolve-admin-credentials');
 const { ensureTestAccountsReady } = require('../../setup/ensure-test-accounts-ready');
 const { acquireSmokeLock } = require('./smoke-lock');
 const { resolveEmailTriageEnv } = require('../../lib/resolve-email-triage-env');
@@ -15,7 +15,7 @@ const { resolveEmailTriageEnv } = require('../../lib/resolve-email-triage-env');
 loadRootEnv();
 
 async function checkGateway() {
-  const base = GATEWAY_URL.replace(/\/$/, '');
+  const base = getGatewayUrl().replace(/\/$/, '');
   const paths = ['/health', '/api/v1/health'];
   for (const p of paths) {
     const res = await fetch(`${base}${p}`, { signal: AbortSignal.timeout(8000) }).catch(() => null);
@@ -24,7 +24,7 @@ async function checkGateway() {
       return;
     }
   }
-  throw new Error(`Gateway injoignable sur ${GATEWAY_URL} — lancer la stack avant les smokes`);
+  throw new Error(`Gateway injoignable sur ${getGatewayUrl()} — lancer la stack avant les smokes`);
 }
 
 async function checkEmulatorController(phone) {

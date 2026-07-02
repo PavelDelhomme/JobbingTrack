@@ -421,7 +421,7 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 | 10 | Onglet **Candidatures** → sous-onglet Relances/Appels → re-clic **Candidatures** (barre basse) | Retour **liste candidatures** (sous-onglet 0) | OK re-tap candidatures |
 | 11 | Onglet **Contacts** (dans Candidatures) → FAB **+** | Sheet création contact avec picker entreprise | OK FAB contact onglet |
 
-**Smokes agent (référence)** : `smoke-mobile-navigation-adb.js`, `smoke-mobile-application-detail-fab-adb.js`, `smoke-mobile-admin-hub-adb.js`.
+**Smokes agent (référence)** : `smoke-mobile-navigation-adb.js`, `smoke-mobile-application-detail-fab-adb.js`, `smoke-mobile-admin-hub-adb.js`. **Preuve agent 02/07** : batterie rapide Samsung **12/16 OK** — navigation, shell, FAB candidature/relance/appel-entretien **OK** ; hub admin ouvert + Statistiques (restore USER timeout isolé à optimiser).
 
 **Décision** : `OK Mobile — navigation retour, admin, relances, ajouts candidature` **ou** `KO …`.
 

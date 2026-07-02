@@ -162,7 +162,7 @@ async function runRegisterVerifyLogin() {
   ok('Login API après vérif');
 
   if (!skipAdb) {
-    const adbLib = require('../../../tools/adb-lib');
+    const adbLib = require('../../../../tools/adb-lib');
     const phone = await adbLib.connect();
     await adbLib.flows.ensureLoggedOut(phone);
     deepLinkVerify(verifyToken);
@@ -234,7 +234,7 @@ async function runForgotResetForEmail(email, { applyReset = true, newPasswordSuf
   }
 
   if (!skipAdb) {
-    const adbLib = require('../../../tools/adb-lib');
+    const adbLib = require('../../../../tools/adb-lib');
     await adbLib.flows.ensureLoggedOut(await adbLib.connect());
     deepLinkReset(resetToken);
     const phone = await adbLib.connect();

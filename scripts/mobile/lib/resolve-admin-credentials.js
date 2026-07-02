@@ -6,33 +6,56 @@
 const fs = require('fs');
 const path = require('path');
 
-const GATEWAY_URL =
-  process.env.API_GATEWAY_URL ||
-  process.env.API_URL ||
-  `http://127.0.0.1:${process.env.API_GATEWAY_PORT || '5002'}`;
+function hostGatewayUrl() {
+  return `http://127.0.0.1:${process.env.API_GATEWAY_PORT || '5002'}`;
+}
+
+function getGatewayUrl() {
+  const raw =
+    process.env.API_GATEWAY_URL ||
+    process.env.API_URL ||
+    hostGatewayUrl();
+  return String(raw).replace(/\/$/, '');
+}
+
+function normalizeHostGatewayUrl() {
+  const inDocker =
+    fs.existsSync('/.dockerenv') || process.env.RUNNING_IN_DOCKER === '1';
+  if (inDocker) return;
+  const host = hostGatewayUrl();
+  for (const key of ['API_GATEWAY_URL', 'API_URL']) {
+    const val = process.env[key];
+    if (!val || /:\/\/api-gateway(?::|\/|$)/i.test(val)) {
+      process.env[key] = host;
+    }
+  }
+}
 
 function loadRootEnv() {
   const envPath = path.resolve(__dirname, '../../../.env');
-  if (!fs.existsSync(envPath)) return;
-  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq <= 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let value = trimmed.slice(eq + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
+  if (fs.existsSync(envPath)) {
+    for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq <= 0) continue;
+      const key = trimmed.slice(0, eq).trim();
+      let value = trimmed.slice(eq + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      if (!process.env[key]) process.env[key] = value;
     }
-    if (!process.env[key]) process.env[key] = value;
   }
   const emuEnv = path.resolve(__dirname, '../../../.env.mobile-emulator');
   if (
     fs.existsSync(emuEnv) &&
-    ['1', 'true', 'yes'].includes(String(process.env.MOBILE_PREFER_EMULATOR || '').toLowerCase())
+    ['1', 'true', 'yes'].includes(
+      String(process.env.MOBILE_PREFER_EMULATOR || '').toLowerCase(),
+    )
   ) {
     for (const line of fs.readFileSync(emuEnv, 'utf8').split('\n')) {
       const trimmed = line.trim();
@@ -52,10 +75,12 @@ function loadRootEnv() {
       process.env[key] = value;
     }
   }
+  normalizeHostGatewayUrl();
 }
 
 async function probeLogin(email, password) {
-  const res = await fetch(`${GATEWAY_URL}/api/v1/auth/login`, {
+  const base = getGatewayUrl();
+  const res = await fetch(`${base}/api/v1/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -68,8 +93,16 @@ async function probeLogin(email, password) {
 function listAdminCredentialCandidates() {
   loadRootEnv();
   return [
-    { source: 'TEST_ADMIN_*', email: process.env.TEST_ADMIN_EMAIL, password: process.env.TEST_ADMIN_PASSWORD },
-    { source: 'ADMIN_*', email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD },
+    {
+      source: 'TEST_ADMIN_*',
+      email: process.env.TEST_ADMIN_EMAIL,
+      password: process.env.TEST_ADMIN_PASSWORD,
+    },
+    {
+      source: 'ADMIN_*',
+      email: process.env.ADMIN_EMAIL,
+      password: process.env.ADMIN_PASSWORD,
+    },
   ].filter((c) => c.email && c.password);
 }
 
@@ -88,10 +121,15 @@ async function resolveWorkingAdminCredentials() {
   );
 }
 
+loadRootEnv();
+
 module.exports = {
   loadRootEnv,
+  getGatewayUrl,
   probeLogin,
   listAdminCredentialCandidates,
   resolveWorkingAdminCredentials,
-  GATEWAY_URL,
+  get GATEWAY_URL() {
+    return getGatewayUrl();
+  },
 };
