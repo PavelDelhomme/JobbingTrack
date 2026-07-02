@@ -80,10 +80,8 @@ describe('mobileReleaseStore', () => {
     expect(state.deployHints.suggestedBuild).toBeGreaterThanOrEqual(8);
   });
 
-  it('downloadUrl utilise MOBILE_DEV_LAN_HOST quand PUBLIC_API_URL est *.localhost', () => {
+  it('downloadUrl utilise chemin relatif en dev *.localhost', () => {
     process.env.PUBLIC_API_URL = 'https://api.jobbingtrack.localhost:5443';
-    process.env.MOBILE_DEV_LAN_HOST = '192.168.1.134';
-    process.env.API_GATEWAY_PORT = '5002';
 
     createRelease({
       channel: 'dev',
@@ -94,11 +92,26 @@ describe('mobileReleaseStore', () => {
     });
 
     const info = getPublicReleaseInfo('android', 'dev');
+    expect(info.downloadUrl).toBe('/api/v1/mobile/releases/download/smoke-test.apk');
+  });
+
+  it('downloadUrl utilise MOBILE_DEV_LAN_HOST quand base explicite', () => {
+    process.env.PUBLIC_API_URL = 'https://api.example.com';
+    process.env.MOBILE_ANDROID_DOWNLOAD_BASE_URL = 'http://192.168.1.134:5002';
+
+    createRelease({
+      channel: 'dev',
+      platform: 'android',
+      version: '1.0.2',
+      buildNumber: 3,
+      filename: 'lan.apk',
+    });
+
+    const info = getPublicReleaseInfo('android', 'dev');
     expect(info.downloadUrl).toBe(
-      'http://192.168.1.134:5002/api/v1/mobile/releases/download/smoke-test.apk',
+      'http://192.168.1.134:5002/api/v1/mobile/releases/download/lan.apk',
     );
 
-    delete process.env.MOBILE_DEV_LAN_HOST;
-    delete process.env.API_GATEWAY_PORT;
+    delete process.env.MOBILE_ANDROID_DOWNLOAD_BASE_URL;
   });
 });

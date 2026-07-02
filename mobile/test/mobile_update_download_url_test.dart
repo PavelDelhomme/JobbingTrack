@@ -7,6 +7,16 @@ void main() {
     ApiService.baseUrl = 'http://127.0.0.1:5002';
   });
 
+  test('resolveAndroidDownloadUrl résout un chemin relatif', () {
+    ApiService.baseUrl = 'http://127.0.0.1:5002';
+    const relative = '/api/v1/mobile/releases/download/smoke-test.apk';
+
+    expect(
+      MobileUpdateService.resolveAndroidDownloadUrl(relative),
+      'http://127.0.0.1:5002/api/v1/mobile/releases/download/smoke-test.apk',
+    );
+  });
+
   test('resolveAndroidDownloadUrl réécrit *.localhost vers baseUrl API', () {
     ApiService.baseUrl = 'http://127.0.0.1:5002';
     const serverUrl =

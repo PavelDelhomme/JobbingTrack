@@ -121,12 +121,17 @@ class MobileUpdateService {
     return null;
   }
 
-  /// Réécrit les URLs `*.localhost` / `127.0.0.1` vers [ApiService.baseUrl] (joignable depuis le téléphone).
+  /// Chemin ou URL de téléchargement OTA — les chemins relatifs sont résolus via [ApiService.baseUrl].
   static String resolveAndroidDownloadUrl(String? serverUrl) {
     if (serverUrl == null || serverUrl.trim().isEmpty) {
       throw Exception('URL de téléchargement APK absente côté serveur');
     }
     final trimmed = serverUrl.trim();
+    if (trimmed.startsWith('/')) {
+      final apiBase = ApiService.baseUrl.replaceAll(RegExp(r'/+$'), '');
+      return '$apiBase$trimmed';
+    }
+
     final parsed = Uri.tryParse(trimmed);
     if (parsed == null || !parsed.hasScheme) return trimmed;
 

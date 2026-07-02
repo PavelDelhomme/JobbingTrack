@@ -23,6 +23,33 @@ if (!ANDROID_HOME && process.env.HOME) {
 }
 const ANDROID_PACKAGE = process.env.ANDROID_PACKAGE || 'com.example.jobbingtrack_mobile';
 
+function pickLanIPv4() {
+  const os = require('os');
+  const nets = os.networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    if (/docker|br-|veth|tun|wg|vir/i.test(name)) continue;
+    for (const net of nets[name] || []) {
+      if (net.family !== 'IPv4' || net.internal) continue;
+      if (/^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[01])\./.test(net.address)) {
+        return net.address;
+      }
+    }
+  }
+  return null;
+}
+
+async function setupAdbReverseForDevice(deviceId) {
+  const portsToReverse = [5002, 5003, 3000, 3001, 3002, 3003, 3004, 3005, 8025];
+  let ok = 0;
+  for (const port of portsToReverse) {
+    try {
+      await execPromise(`adb -s ${deviceId} reverse tcp:${port} tcp:${port}`, { cwd: MOBILE_PATH });
+      ok += 1;
+    } catch (_) { /* ignore */ }
+  }
+  return ok;
+}
+
 function envWithAndroid() {
   return { ...process.env, ANDROID_HOME, ANDROID_SDK_ROOT: ANDROID_HOME };
 }
@@ -377,7 +404,8 @@ const routes = {
       const gradleCache = ensureWritableFlutterGradle();
       if (gradleCache) baseEnv.FLUTTER_GRADLE_BUILD_PATH = gradleCache;
       if (process.env.API_BASE_URL) baseEnv.API_BASE_URL = process.env.API_BASE_URL;
-      if (process.env.MOBILE_DEV_LAN_HOST) baseEnv.MOBILE_DEV_LAN_HOST = process.env.MOBILE_DEV_LAN_HOST;
+      const lanHost = process.env.MOBILE_DEV_LAN_HOST || pickLanIPv4();
+      if (lanHost) baseEnv.MOBILE_DEV_LAN_HOST = lanHost;
 
       let stdout = '';
       let stderr = '';
@@ -430,19 +458,43 @@ const routes = {
         return send(res, 400, { success: false, error: 'APK non trouvé. Lancez d\'abord "Build APK".' });
       }
       const execOpts = { cwd: MOBILE_PATH };
-      // Rediriger les ports du PC vers le téléphone pour que localhost fonctionne sur l'appareil
-      const portsToReverse = [5002, 5003, 3000, 3001, 3002, 3003, 3004, 3005, 8025];
-      for (const port of portsToReverse) {
-        try {
-          await execPromise(`adb -s ${deviceId} reverse tcp:${port} tcp:${port}`, execOpts);
-        } catch (_) { /* ignore si adb reverse échoue */ }
-      }
+      await setupAdbReverseForDevice(deviceId);
       await execPromise(`adb -s ${deviceId} install -r "${apkPath}"`, execOpts);
       await execPromise(`adb -s ${deviceId} shell am force-stop ${ANDROID_PACKAGE}`, execOpts);
       await execPromise(`adb -s ${deviceId} shell am start -n ${ANDROID_PACKAGE}/.MainActivity`, execOpts);
       send(res, 200, { success: true, message: 'App installée, fermée puis relancée (adb reverse activé sur ports API)' });
     } catch (e) {
       send(res, 500, { success: false, error: e.message });
+    }
+  },
+
+  /** Prépare adb reverse sur tous les appareils + expose IP LAN détectée (sans commande manuelle). */
+  async '/setup-dev'(req, res) {
+    try {
+      const { stdout } = await execPromise('adb devices -l', { cwd: MOBILE_PATH });
+      const devices = parseAdbDevices(stdout).filter((d) => d.status === 'device');
+      const results = [];
+      for (const d of devices) {
+        const reversed = await setupAdbReverseForDevice(d.id);
+        results.push({ id: d.id, adbReversePorts: reversed });
+      }
+      const lanHost = pickLanIPv4();
+      send(res, 200, {
+        success: true,
+        message:
+          devices.length > 0
+            ? `ADB prêt (${devices.length} appareil(s), adb reverse API)`
+            : 'Contrôleur OK — branchez un téléphone USB (débogage activé)',
+        devices: results,
+        lanHost,
+      });
+    } catch (e) {
+      send(res, 200, {
+        success: false,
+        error: e.message,
+        message: 'adb indisponible ou aucun appareil',
+        lanHost: pickLanIPv4(),
+      });
     }
   },
 
@@ -1062,7 +1114,7 @@ const server = http.createServer((req, res) => {
     if (!handler) {
       return send(res, 404, { error: 'Not found' });
     }
-    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/stop-app', '/uninstall-app', '/restart', '/force-restart-app', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info', '/adb-shell'];
+    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/setup-dev', '/stop-app', '/uninstall-app', '/restart', '/force-restart-app', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info', '/adb-shell'];
     if (req.method === 'POST' && postRoutes.includes(pathname)) {
       let data = '';
       req.on('data', (chunk) => { data += chunk; });

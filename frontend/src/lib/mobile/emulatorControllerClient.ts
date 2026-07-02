@@ -116,3 +116,27 @@ export async function fetchBuiltApkBlob(): Promise<Blob> {
   }
   return res.blob();
 }
+
+export type BootstrapResult = {
+  ok?: boolean;
+  success?: boolean;
+  steps?: string[];
+  deviceCount?: number;
+  apkReady?: boolean;
+  error?: string;
+};
+
+/** Démarre le contrôleur + adb reverse automatiquement (sans terminal). */
+export async function bootstrapEmulatorDev(): Promise<BootstrapResult> {
+  try {
+    const res = await fetch(`${PROXY}/bootstrap`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+      signal: AbortSignal.timeout(90_000),
+    });
+    return (await res.json().catch(() => ({}))) as BootstrapResult;
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}

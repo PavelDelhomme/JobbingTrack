@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  bootstrapEmulatorDev,
   buildApkFromBackoffice,
   fetchApkInfo,
   fetchAdbDevices,
@@ -11,8 +12,6 @@ import {
   type AdbDevice,
   type ApkInfo,
 } from "@/lib/mobile/emulatorControllerClient";
-
-const START_CONTROLLER_CMD = "bash scripts/mobile/setup/restart-emulator-controller.sh";
 
 type MobileApkBuildPanelProps = {
   onBuilt?: (info: { version: string; buildNumber: string }) => void;
@@ -31,8 +30,8 @@ export function MobileApkBuildPanel({
   onPublishRequest,
   publishing,
 }: MobileApkBuildPanelProps) {
+  const [bootstrapping, setBootstrapping] = useState(true);
   const [controllerOk, setControllerOk] = useState<boolean | null>(null);
-  const [controllerHint, setControllerHint] = useState<string | null>(null);
   const [apkInfo, setApkInfo] = useState<ApkInfo | null>(null);
   const [devices, setDevices] = useState<AdbDevice[]>([]);
   const [selectedDevice, setSelectedDevice] = useState("");
@@ -41,6 +40,7 @@ export function MobileApkBuildPanel({
   const [installing, setInstalling] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const buildAbortRef = useRef<AbortController | null>(null);
+  const bootstrapOnceRef = useRef(false);
 
   const addLog = useCallback((line: string) => {
     setLogs((prev) => [...prev.slice(-14), line]);
@@ -48,15 +48,7 @@ export function MobileApkBuildPanel({
 
   const refreshStatus = useCallback(async () => {
     const health = await fetchEmulatorHealth();
-    if (health?.ok) {
-      setControllerOk(true);
-      setControllerHint(null);
-    } else {
-      setControllerOk(false);
-      setControllerHint(
-        "Contrôleur injoignable via le proxy backoffice. Lancez-le sur la machine hôte (Flutter + ADB).",
-      );
-    }
+    setControllerOk(!!health?.ok);
     setApkInfo(await fetchApkInfo());
     const devs = await fetchAdbDevices();
     setDevices(devs);
@@ -66,11 +58,37 @@ export function MobileApkBuildPanel({
     });
   }, []);
 
+  const runBootstrap = useCallback(async () => {
+    setBootstrapping(true);
+    addLog("Préparation automatique (contrôleur + ADB)…");
+    const result = await bootstrapEmulatorDev();
+    if (result.steps?.length) {
+      for (const step of result.steps) addLog(step);
+    }
+    if (result.ok) {
+      addLog(
+        result.deviceCount
+          ? `${result.deviceCount} appareil(s) détecté(s).`
+          : "Environnement prêt — branchez un téléphone USB si besoin.",
+      );
+    } else {
+      addLog(result.error || "Préparation incomplète — nouvel essai dans quelques secondes…");
+    }
+    await refreshStatus();
+    setBootstrapping(false);
+  }, [addLog, refreshStatus]);
+
   useEffect(() => {
-    void refreshStatus();
+    if (bootstrapOnceRef.current) return;
+    bootstrapOnceRef.current = true;
+    void runBootstrap();
+  }, [runBootstrap]);
+
+  useEffect(() => {
+    if (bootstrapping) return;
     const poll = window.setInterval(() => void refreshStatus(), 8000);
     return () => window.clearInterval(poll);
-  }, [refreshStatus]);
+  }, [bootstrapping, refreshStatus]);
 
   useEffect(() => {
     if (!building) return;
@@ -81,6 +99,7 @@ export function MobileApkBuildPanel({
   const selected = devices.find((d) => d.id === selectedDevice);
 
   const runBuild = async () => {
+    if (!controllerOk) await runBootstrap();
     setBuilding(true);
     setBuildSeconds(0);
     addLog("Build APK en cours (1–3 min)…");
@@ -89,16 +108,15 @@ export function MobileApkBuildPanel({
       const { ok, data } = await buildApkFromBackoffice(buildAbortRef.current.signal);
       addLog(data.message || (ok ? "Build réussi." : data.error || "Build échoué."));
       if (data.stderr) addLog(data.stderr.slice(-400));
-      if (data._hint) addLog(data._hint);
       if (ok) {
         await refreshStatus();
-        const version = data.version || apkInfo?.version || "1.0.0";
-        const buildNumber = String(data.buildNumber || apkInfo?.buildNumber || "1");
-        onBuilt?.({ version, buildNumber });
+        onBuilt?.({
+          version: data.version || apkInfo?.version || "1.0.0",
+          buildNumber: String(data.buildNumber || apkInfo?.buildNumber || "1"),
+        });
       }
     } catch (e) {
       addLog(e instanceof Error ? e.message : String(e));
-      addLog(`Terminal : ${START_CONTROLLER_CMD}`);
     } finally {
       setBuilding(false);
       buildAbortRef.current = null;
@@ -107,6 +125,7 @@ export function MobileApkBuildPanel({
 
   const runInstall = async () => {
     if (!selectedDevice) return;
+    if (!controllerOk) await runBootstrap();
     setInstalling(true);
     addLog(`Installation + lancement sur ${selectedDevice}…`);
     try {
@@ -120,15 +139,19 @@ export function MobileApkBuildPanel({
 
   return (
     <div className="space-y-4">
-      {/* Étape 1 — Build */}
+      {bootstrapping ? (
+        <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-100">
+          Préparation automatique de l’environnement mobile (contrôleur, adb reverse)…
+        </div>
+      ) : null}
+
       <section className="rounded-xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm dark:border-emerald-900 dark:from-emerald-950/30 dark:to-gray-900">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Étape 1 — Build APK (machine locale)
+          Étape 1 — Build APK
         </h2>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Le backoffice appelle le contrôleur via le proxy interne{" "}
-          <code className="text-xs">/api/emulator-proxy</code> (compatible HTTPS). Prérequis :
-          Flutter + Android SDK sur l’hôte, script ci-dessous une fois par session.
+          Tout est piloté depuis ici — pas de terminal requis. Le contrôleur démarre automatiquement
+          au chargement de la page.
         </p>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
@@ -137,15 +160,16 @@ export function MobileApkBuildPanel({
               controllerOk
                 ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200"
                 : controllerOk === false
-                  ? "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200"
+                  ? "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200"
                   : "bg-gray-100 text-gray-600"
             }`}
           >
-            Contrôleur : {controllerOk ? "connecté" : controllerOk === false ? "absent" : "…"}
+            Contrôleur :{" "}
+            {bootstrapping ? "préparation…" : controllerOk ? "connecté" : "en attente"}
           </span>
           {apkInfo?.exists ? (
             <span className="text-xs text-gray-600 dark:text-gray-400">
-              APK local v{apkInfo.version}+{apkInfo.buildNumber}
+              APK v{apkInfo.version}+{apkInfo.buildNumber}
               {apkInfo.sizeBytes
                 ? ` · ${Math.round(apkInfo.sizeBytes / 1024 / 1024)} Mo`
                 : ""}
@@ -155,30 +179,18 @@ export function MobileApkBuildPanel({
           )}
           <button
             type="button"
-            onClick={() => void refreshStatus()}
+            disabled={bootstrapping}
+            onClick={() => void runBootstrap().then(() => refreshStatus())}
             className="text-xs text-blue-600 hover:underline dark:text-blue-400"
           >
-            Actualiser
+            Relancer la préparation
           </button>
         </div>
-
-        {controllerOk === false ? (
-          <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
-            <p className="font-medium">{controllerHint}</p>
-            <code className="mt-2 block break-all rounded bg-black/10 px-2 py-1 dark:bg-black/30">
-              {START_CONTROLLER_CMD}
-            </code>
-            <p className="mt-2">
-              Docker : <code>EMULATOR_CONTROLLER_URL=http://host.docker.internal:5055</code> dans{" "}
-              <code>.env</code>, puis redémarrer le conteneur frontend.
-            </p>
-          </div>
-        ) : null}
 
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
-            disabled={building || controllerOk === false}
+            disabled={building || bootstrapping}
             onClick={() => void runBuild()}
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
           >
@@ -195,19 +207,19 @@ export function MobileApkBuildPanel({
         </div>
       </section>
 
-      {/* Étape 2 — Appareils ADB */}
       <section className="rounded-xl border-2 border-sky-200 bg-gradient-to-br from-sky-50 to-white p-5 shadow-sm dark:border-sky-900 dark:from-sky-950/30 dark:to-gray-900">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           Étape 2 — Tester sur appareil (ADB)
         </h2>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Détection automatique toutes les 8 s. Branchez un téléphone USB (débogage activé) ou
-          démarrez un émulateur. L’app installée et sa version sont affichées.
+          Appareils détectés automatiquement. <code>adb reverse</code> est appliqué à la préparation
+          (OTA + API sur le téléphone sans config manuelle).
         </p>
 
         {devices.length === 0 ? (
           <p className="mt-3 rounded-md border border-dashed border-gray-300 px-3 py-4 text-sm text-gray-500 dark:border-gray-600">
-            Aucun appareil ADB — vérifiez <code>adb devices</code> dans un terminal.
+            Aucun appareil pour l’instant — branchez le téléphone (débogage USB), la liste se met à
+            jour toutes les 8 s.
           </p>
         ) : (
           <div className="mt-3 space-y-2">
@@ -238,11 +250,6 @@ export function MobileApkBuildPanel({
                       Mise à jour recommandée (pubspec v{d.localApkVersion}+{d.localApkBuild})
                     </p>
                   ) : null}
-                  {d.appInstalled && !d.updateNeeded ? (
-                    <p className="mt-1 text-xs text-green-700 dark:text-green-300">
-                      Version alignée avec pubspec
-                    </p>
-                  ) : null}
                 </div>
               </label>
             ))}
@@ -250,30 +257,22 @@ export function MobileApkBuildPanel({
             <div className="flex flex-wrap gap-2 pt-2">
               <button
                 type="button"
-                disabled={!apkInfo?.exists || installing || !selectedDevice}
+                disabled={!apkInfo?.exists || installing || !selectedDevice || bootstrapping}
                 onClick={() => void runInstall()}
                 className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
               >
                 {installing ? "Installation…" : "Installer / mettre à jour sur l’appareil"}
               </button>
-              {selected ? (
-                <span className="self-center text-xs text-gray-500">
-                  {selected.appInstalled
-                    ? `Installée : v${selected.appVersionName} (build ${selected.appVersionCode})`
-                    : "Application non installée sur cet appareil"}
-                </span>
-              ) : null}
             </div>
           </div>
         )}
       </section>
 
-      {/* Lien vers étape 3 */}
       {apkInfo?.exists && onPublishRequest ? (
         <section className="rounded-lg border border-blue-200 bg-blue-50/50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950/20">
           <p className="text-sm text-gray-800 dark:text-gray-200">
-            <strong>Étape 3</strong> — Quand le test sur appareil est OK, publiez sur le canal{" "}
-            <strong>dev</strong> (formulaire plus bas ou bouton rapide).
+            <strong>Étape 3</strong> — Après test sur appareil, publiez sur le canal <strong>dev</strong>.
+            Les liens OTA utilisent l’API déjà configurée sur le téléphone (plus de *.localhost).
           </p>
           <button
             type="button"

@@ -127,7 +127,31 @@ function effectiveAndroidDownloadUrl(release) {
   return release.downloadUrl || null;
 }
 
+function isDevPublicApiUrl() {
+  const publicApi = process.env.PUBLIC_API_URL?.trim() || process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!publicApi) return false;
+  try {
+    const host = new URL(publicApi).hostname.toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host.endsWith('.localhost');
+  } catch {
+    return false;
+  }
+}
+
 function buildDownloadUrlForFilename(filename) {
+  const fullOverride = process.env.MOBILE_ANDROID_DOWNLOAD_URL?.trim();
+  if (fullOverride) return fullOverride;
+
+  const baseOverride = process.env.MOBILE_ANDROID_DOWNLOAD_BASE_URL?.trim();
+  if (baseOverride && filename) {
+    return `${baseOverride.replace(/\/$/, '')}/api/v1/mobile/releases/download/${encodeURIComponent(filename)}`;
+  }
+
+  // Dev local : chemin relatif — l'app mobile le résout via ApiService.baseUrl (adb reverse / LAN).
+  if (isDevPublicApiUrl() && filename) {
+    return `/api/v1/mobile/releases/download/${encodeURIComponent(filename)}`;
+  }
+
   const publicApi = resolvePublicApiBaseForMobileDownload();
   if (!filename || !publicApi) return null;
   return `${publicApi}/api/v1/mobile/releases/download/${encodeURIComponent(filename)}`;
