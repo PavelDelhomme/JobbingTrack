@@ -900,8 +900,30 @@ const updateUserRole = async (req, res, next) => {
 // ✅ ADMIN - Activer/Désactiver un utilisateur
 const toggleUserStatus = async (req, res, next) => {
   try {
+    const role = req.user?.role;
+    if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+      return res.status(403).json({
+        success: false,
+        error: 'Accès administrateur requis',
+      });
+    }
+
     const { id } = req.params;
     const { isActive } = req.body;
+
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: 'Le champ isActive (boolean) est requis',
+      });
+    }
+
+    if (req.user.id === id && !isActive) {
+      return res.status(400).json({
+        success: false,
+        error: 'Vous ne pouvez pas désactiver votre propre compte',
+      });
+    }
 
     const user = await prisma.user.update({
       where: { id },

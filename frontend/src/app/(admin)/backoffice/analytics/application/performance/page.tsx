@@ -132,15 +132,6 @@ export default function ApplicationPerformancePage() {
   return (
     <AnalyticsPageShell
       title="Application — performances live"
-      description={
-        <p>
-          Métriques remontées par l&apos;app mobile (mémoire RSS, durée de
-          session, latence API, compteurs) — consentement télémétrie requis.
-          RSS ~400–500 Mo est normal sur Android (heap Dart + moteur). Les
-          indicateurs infra Docker sont sur{" "}
-          <span className="font-medium">Performances (infra)</span>.
-        </p>
-      }
       actions={
         <TimeRangeSelector
             timeRange={timeRange}
@@ -184,12 +175,6 @@ export default function ApplicationPerformancePage() {
             <StatCard label="Appareils (snapshots)" value={kpis.devices} />
             <StatCard label="Erreurs ouvertes" value={openErrors} />
           </div>
-
-          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            {metricsTotal} échantillon(s) sur la période — flush mobile toutes les
-            5 min si télémétrie performances active. Utilisez Actions → Actualiser
-            ou l&apos;icône à côté de la recherche.
-          </p>
 
           <section className="mt-6 space-y-3">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">

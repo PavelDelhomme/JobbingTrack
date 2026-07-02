@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { TimeRangeSelector, ChartPeriodCaption } from "@/components/analytics";
 import { AnalyticsRecordDetailDialog } from "@/components/analytics/AnalyticsRecordDetailDialog";
 import { useRegisterBackofficeRefresh } from "@/hooks/useRegisterBackofficeRefresh";
@@ -69,7 +68,7 @@ type FeedbackCategoryFilter = "all" | "bug" | "suggestion" | "signalement";
 
 type MobileApplicationMonitoringPanelProps = {
   liveRefreshMs?: number;
-  showAdminHint?: boolean;
+  showDevPurgeButton?: boolean;
   /** Aligné sur le compteur vue d'ensemble (7 j par défaut). */
   defaultTimeRange?: import("@/components/analytics").TimeRangeOption;
   /** Filtre initial erreurs (ex. lien depuis carte « Erreurs ouvertes »). */
@@ -78,7 +77,7 @@ type MobileApplicationMonitoringPanelProps = {
 
 export function MobileApplicationMonitoringPanel({
   liveRefreshMs = 20000,
-  showAdminHint = false,
+  showDevPurgeButton = false,
   defaultTimeRange = "7d",
   initialErrorStatusFilter = "open",
 }: MobileApplicationMonitoringPanelProps) {
@@ -438,33 +437,8 @@ export function MobileApplicationMonitoringPanel({
           onPeriodNow={handlePeriodNow}
           onClearCustomRange={handleClearCustomRange}
         />
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Actualisation live ~{Math.round(liveRefreshMs / 1000)} s · dernière mise à jour{" "}
-          {formatTs(lastRefreshAt.toISOString())}
-        </p>
-      </div>
-
-      {showAdminHint ? (
-        <div className="rounded-lg border border-blue-200 bg-blue-50/80 p-3 text-sm text-blue-950 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="font-medium">Où retrouver vos signalements</p>
-              <p className="mt-1">
-                Backoffice → <strong>Administration → Mobile — erreurs &amp; retours</strong>{" "}
-                (cette page). Table « Retours utilisateur » = bug / suggestion / signalement
-                depuis Paramètres → Aide. « Erreurs auto » = crash/API si télémétrie activée.
-              </p>
-              <p className="mt-1">
-                Vue équivalente :{" "}
-                <Link
-                  href="/backoffice/analytics/application/feedback"
-                  className="font-medium underline"
-                >
-                  Analytics → Application → Retours
-                </Link>
-                .
-              </p>
-            </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {showDevPurgeButton ? (
             <button
               type="button"
               disabled={purging}
@@ -473,9 +447,13 @@ export function MobileApplicationMonitoringPanel({
             >
               {purging ? "Purge…" : "Purger tout (dev)"}
             </button>
-          </div>
+          ) : null}
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Actualisation live ~{Math.round(liveRefreshMs / 1000)} s · dernière mise à jour{" "}
+            {formatTs(lastRefreshAt.toISOString())}
+          </p>
         </div>
-      ) : null}
+      </div>
 
       <ChartPeriodCaption label={rangeLabel} />
 

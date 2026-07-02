@@ -467,15 +467,93 @@ async function ensureLoggedOut(adb) {
   return 'Tentative navigation vers login';
 }
 
-async function logout(adb) {
-  if (await adb.uiContains('Bonjour') || (await adb.uiContains('Déconnexion'))) {
-    if (await tapLogout(adb)) return 'Deconnecte';
+async function fastSwitchAccountViaDebug(adb, email, password) {
+  const creds = resolveTestCredentials({ email, password });
+  email = creds.email;
+  password = creds.password;
+  await dismissBiometricUnlock(adb, { password });
+
+  if (await adb.uiContains('Bonjour')) {
+    try {
+      await goToTab(adb, 1, { shell: true });
+      await adb.openNavigationDrawer();
+      await adb.wait(600);
+      const local = email.split('@')[0];
+      const same =
+        (await adb.uiContains(email)) ||
+        (local.length >= 4 && (await adb.uiContains(local)));
+      await adb.back();
+      await adb.wait(400);
+      if (same) return `Déjà connecté (${email})`;
+    } catch {
+      /* bascule ci-dessous */
+    }
   }
+
   try {
-    await adb.tapTab(SHELL_TAB_COUNT);
-    await adb.wait(2000);
-    if (await tapLogout(adb)) return 'Deconnecte';
-  } catch {}
+    await logout(adb);
+  } catch {
+    /* ignore */
+  }
+  await adb.wait(800);
+
+  if (
+    !(await adb.uiContains('Se connecter')) &&
+    !(await adb.uiContains('Comptes de test (debug)'))
+  ) {
+    await ensureFullLoginForm(adb);
+    await adb.wait(1000);
+  }
+
+  if (await tryQuickDebugLogin(adb, email)) {
+    return `Bascule debug (${email})`;
+  }
+  return login(adb, email, password);
+}
+
+async function logoutViaDrawer(adb) {
+  const onShell =
+    (await adb.uiContains('Bonjour')) ||
+    (await adb.uiContains(`Tab 1 of ${SHELL_TAB_COUNT}`)) ||
+    (await adb.uiContains(`Tab 4 of ${SHELL_TAB_COUNT}`));
+  if (!onShell) return false;
+
+  try {
+    await goToTab(adb, 1, { shell: true });
+    await adb.wait(800);
+    await adb.openNavigationDrawer();
+    await adb.wait(1000);
+    for (let i = 0; i < 12; i++) {
+      if (await adb.uiContains('Déconnexion')) break;
+      await adb.drawerScrollDown();
+      await adb.wait(450);
+    }
+    if (!(await adb.uiContains('Déconnexion'))) {
+      await adb.back();
+      return false;
+    }
+    if (!(await tapLogout(adb))) {
+      await adb.back();
+      return false;
+    }
+    return (
+      (await adb.uiContains('Se connecter')) ||
+      (await adb.uiContains('Email')) ||
+      (await adb.uiContains('Comptes de test (debug)')) ||
+      (await adb.uiContains('Connexion par empreinte'))
+    );
+  } catch {
+    try {
+      await adb.back();
+    } catch {
+      /* ignore */
+    }
+    return false;
+  }
+}
+
+async function logout(adb) {
+  if (await logoutViaDrawer(adb)) return 'Deconnecte';
   if (await adb.uiContains('connexion')) {
     await adb.tap('connexion');
     await adb.wait(4000);
@@ -486,9 +564,12 @@ async function logout(adb) {
     await adb.wait(2000);
   } catch {}
   if (await tapLogout(adb)) return 'Deconnecte';
-  await adb.tap('connexion');
-  await adb.wait(4000);
-  return 'Deconnecte';
+  if (await adb.uiContains('connexion')) {
+    await adb.tap('connexion');
+    await adb.wait(4000);
+    return 'Deconnecte';
+  }
+  throw new Error('Impossible de se déconnecter');
 }
 
 function resolveTestCredentials(overrides = {}) {
@@ -1055,6 +1136,8 @@ module.exports = {
   login,
   logout,
   loginFresh,
+  tryQuickDebugLogin,
+  fastSwitchAccountViaDebug,
   loginWithoutKeepLoggedIn,
   unlockWithJobbingTrackPassword,
   ensureFullLoginForm,

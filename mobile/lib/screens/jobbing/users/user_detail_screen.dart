@@ -37,7 +37,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       final data = await AdminApiService.fetchUser(widget.userId, token: token);
       if (mounted) setState(() => _raw = data);
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      if (mounted) setState(() => _error = _errMsg(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -45,7 +45,9 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 
   User? get _user => _raw != null ? User.fromJson(_raw!) : null;
 
-  Future<bool> _guard(String title, String message) =>
+  String _errMsg(Object e) => e.toString().replaceAll('Exception: ', '');
+
+  Future<bool> _confirm(String title, String message) =>
       confirmSensitiveAdminAction(context, title: title, message: message);
 
   Future<void> _run(
@@ -54,7 +56,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     required String guardTitle,
     required String guardMessage,
   }) async {
-    if (!await _guard(guardTitle, guardMessage)) return;
+    if (!await _confirm(guardTitle, guardMessage)) return;
     try {
       await action();
       if (mounted) {
@@ -62,8 +64,84 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         await _load();
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errMsg(e))));
+      }
     }
+  }
+
+  Future<void> _editProfile() async {
+    final u = _user;
+    if (u == null) return;
+    final firstNameCtrl = TextEditingController(text: u.firstName);
+    final lastNameCtrl = TextEditingController(text: u.lastName);
+    final emailCtrl = TextEditingController(text: u.email);
+    final phoneCtrl = TextEditingController(text: u.phone);
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Modifier le profil'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: firstNameCtrl,
+                decoration: const InputDecoration(labelText: 'Prénom'),
+                textCapitalization: TextCapitalization.words,
+              ),
+              TextField(
+                controller: lastNameCtrl,
+                decoration: const InputDecoration(labelText: 'Nom'),
+                textCapitalization: TextCapitalization.words,
+              ),
+              TextField(
+                controller: emailCtrl,
+                decoration: const InputDecoration(labelText: 'Email'),
+                keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+              ),
+              TextField(
+                controller: phoneCtrl,
+                decoration: const InputDecoration(labelText: 'Téléphone'),
+                keyboardType: TextInputType.phone,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Enregistrer')),
+        ],
+      ),
+    );
+    if (saved != true || !mounted) return;
+
+    final email = emailCtrl.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email invalide')),
+      );
+      return;
+    }
+
+    final token = Provider.of<AuthProvider>(context, listen: false).token;
+    await _run(
+      () => AdminApiService.updateUser(
+        u.id,
+        token: token,
+        firstName: firstNameCtrl.text.trim(),
+        lastName: lastNameCtrl.text.trim(),
+        email: email,
+        phone: phoneCtrl.text.trim(),
+      ),
+      'Profil mis à jour',
+      guardTitle: 'Modifier le profil',
+      guardMessage: email != u.email
+          ? 'Changer l\'email vers $email ? (nouvelle vérification requise)'
+          : 'Enregistrer les modifications pour $email ?',
+    );
   }
 
   Future<void> _pickRole() async {
@@ -91,13 +169,20 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       () => AdminApiService.updateUserRole(u.id, picked, token: token),
       'Rôle mis à jour',
       guardTitle: 'Changer le rôle',
-      guardMessage: 'Confirmez le changement de rôle vers $picked pour ${u.email}',
+      guardMessage: 'Passer ${u.email} au rôle $picked ?',
     );
   }
 
   Future<void> _toggleActive() async {
     final u = _user;
     if (u == null) return;
+    final me = Provider.of<AuthProvider>(context, listen: false).user?.id;
+    if (u.id == me && u.isActive) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossible de désactiver votre propre compte')),
+      );
+      return;
+    }
     final token = Provider.of<AuthProvider>(context, listen: false).token;
     await _run(
       () => AdminApiService.toggleUserStatus(u.id, !u.isActive, token: token),
@@ -112,30 +197,30 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   Future<void> _resetPassword() async {
     final u = _user;
     if (u == null) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Reset mot de passe'),
-        content: Text('Envoyer un email de réinitialisation à ${u.email} ?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Envoyer')),
-        ],
-      ),
-    );
-    if (ok != true) return;
+    if (!u.isActive) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Compte inactif — réactivez-le d\'abord')),
+      );
+      return;
+    }
     final token = Provider.of<AuthProvider>(context, listen: false).token;
     await _run(
       () => AdminApiService.sendPasswordReset(u.id, token: token),
       'Email reset envoyé',
       guardTitle: 'Reset mot de passe',
-      guardMessage: 'Confirmez l\'envoi du reset à ${u.email}',
+      guardMessage: 'Envoyer un email de réinitialisation à ${u.email} ?',
     );
   }
 
   Future<void> _resendVerification() async {
     final u = _user;
     if (u == null) return;
+    if (u.emailVerified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email déjà vérifié')),
+      );
+      return;
+    }
     final token = Provider.of<AuthProvider>(context, listen: false).token;
     await _run(
       () => AdminApiService.resendVerification(u.id, token: token),
@@ -155,23 +240,9 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       );
       return;
     }
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Supprimer utilisateur'),
-        content: Text('Supprimer définitivement ${u.email} ?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    if (!await _guard('Supprimer utilisateur', 'Suppression définitive de ${u.email}')) return;
+    if (!await _confirm('Supprimer utilisateur', 'Supprimer définitivement ${u.email} ?')) {
+      return;
+    }
     final token = Provider.of<AuthProvider>(context, listen: false).token;
     try {
       await AdminApiService.deleteUser(u.id, token: token);
@@ -180,16 +251,18 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errMsg(e))));
+      }
     }
   }
 
   Future<void> _impersonate() async {
     final u = _user;
     if (u == null || !u.isActive) return;
-    if (!await _guard(
+    if (!await _confirm(
       'Impersonation',
-      'Ouvrir l\'application en tant que ${u.email} pour diagnostiquer',
+      'Ouvrir l\'application en tant que ${u.email} ?',
     )) {
       return;
     }
@@ -204,7 +277,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errMsg(e))));
       }
     }
   }
@@ -215,13 +288,30 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Détail utilisateur'),
-        actions: const [MobileNotificationCenter()],
+        actions: [
+          if (u != null)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Modifier le profil',
+              onPressed: _editProfile,
+            ),
+          const MobileNotificationCenter(),
+        ],
       ),
       body: AdminSafeBody(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : _error != null
-                ? Center(child: Text(_error!))
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_error!, textAlign: TextAlign.center),
+                        const SizedBox(height: 12),
+                        FilledButton(onPressed: _load, child: const Text('Réessayer')),
+                      ],
+                    ),
+                  )
                 : u == null
                     ? const Center(child: Text('Utilisateur introuvable'))
                     : ListView(
@@ -235,6 +325,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                             title: Text('${u.firstName} ${u.lastName}'.trim(),
                                 style: Theme.of(context).textTheme.titleLarge),
                             subtitle: Text(u.email),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: _editProfile,
+                            ),
                           ),
                           const Divider(),
                           _info('Rôle', u.role),
@@ -243,13 +337,9 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                           if (u.phone.isNotEmpty) _info('Téléphone', u.phone),
                           _info('Créé le', u.createdAt.toLocal().toString().substring(0, 16)),
                           const SizedBox(height: 16),
-                          const Text('Actions sensibles', style: TextStyle(fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Empreinte digitale requise avant chaque action.',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                          ),
+                          const Text('Actions', style: TextStyle(fontWeight: FontWeight.w600)),
                           const SizedBox(height: 8),
+                          _action(Icons.edit_outlined, 'Modifier prénom, nom, email, téléphone', _editProfile),
                           if (u.isActive)
                             _action(
                               Icons.switch_account,

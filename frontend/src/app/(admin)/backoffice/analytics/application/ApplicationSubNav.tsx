@@ -50,7 +50,6 @@ export function ApplicationSubNav() {
 
 export function AnalyticsPageShell({
   title,
-  description,
   children,
   actions,
   backHref,
@@ -85,11 +84,6 @@ export function AnalyticsPageShell({
             <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">
               {title}
             </h1>
-            {description ? (
-              <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {description}
-              </div>
-            ) : null}
           </div>
           {actions ? (
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">

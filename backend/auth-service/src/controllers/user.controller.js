@@ -117,7 +117,15 @@ const updateUser = async (req, res) => {
     const { id } = req.params;
     const { firstName, lastName, email, phone, password, jobSearchAgentEnabled } = req.body;
 
-    // Vérifier que l'utilisateur existe
+    const requesterRole = String(req.user?.role || '').toUpperCase();
+    const isAdmin = requesterRole === 'ADMIN' || requesterRole === 'SUPER_ADMIN';
+    if (req.user?.id !== id && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        error: 'Accès non autorisé. Droits administrateur requis pour modifier un autre utilisateur.',
+      });
+    }
+
     const existingUser = await prisma.user.findUnique({ where: { id } });
     if (!existingUser) {
       return res.status(404).json({
@@ -126,18 +134,16 @@ const updateUser = async (req, res) => {
       });
     }
 
-    // Préparer les données de mise à jour
     const updateData = {};
     if (firstName) updateData.firstName = firstName;
     if (lastName) updateData.lastName = lastName;
     if (phone) updateData.phone = phone;
 
-    // Si l'email change, vérifier qu'il n'existe pas déjà
     if (email && email !== existingUser.email) {
       const emailExists = await prisma.user.findUnique({
         where: { email: email.toLowerCase() }
       });
-      
+
       if (emailExists) {
         return res.status(409).json({
           success: false,
@@ -146,22 +152,17 @@ const updateUser = async (req, res) => {
       }
 
       updateData.email = email.toLowerCase();
-      updateData.emailVerified = false; // Nécessite une nouvelle vérification
+      updateData.emailVerified = false;
       updateData.verificationToken = crypto.randomBytes(32).toString('hex');
       updateData.verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
     }
 
-    // Si le mot de passe change, le hasher
     const passwordChanged = !!password;
     if (password) {
       updateData.password = await bcrypt.hash(password, 12);
     }
 
-    const requesterRole = String(req.user?.role || '').toUpperCase();
-    if (
-      typeof jobSearchAgentEnabled === 'boolean' &&
-      ['ADMIN', 'SUPER_ADMIN'].includes(requesterRole)
-    ) {
+    if (typeof jobSearchAgentEnabled === 'boolean' && isAdmin) {
       updateData.jobSearchAgentEnabled = jobSearchAgentEnabled;
     }
 
@@ -184,7 +185,6 @@ const updateUser = async (req, res) => {
       }
     });
 
-    // Si l'email a changé, envoyer un email de vérification
     if (updateData.email && updateData.verificationToken) {
       try {
         await sendVerificationEmailInternal(
@@ -195,18 +195,15 @@ const updateUser = async (req, res) => {
         );
       } catch (emailError) {
         logger.error('Erreur envoi email de vérification:', emailError);
-        // Ne pas échouer la mise à jour si l'email échoue
       }
     }
 
-    // Si le mot de passe a changé, envoyer un email de confirmation
     if (passwordChanged) {
       try {
         const emailService = require('../services/emailService');
         await emailService.sendPasswordChangedEmail(updatedUser);
       } catch (emailError) {
         logger.error('Erreur envoi email confirmation changement mot de passe:', emailError);
-        // Ne pas échouer la mise à jour si l'email échoue
       }
     }
 

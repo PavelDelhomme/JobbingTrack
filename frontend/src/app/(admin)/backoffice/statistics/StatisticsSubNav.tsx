@@ -45,7 +45,6 @@ export function StatisticsSubNav() {
 
 export function StatisticsPageShell({
   title,
-  description,
   actions,
   children,
 }: {
@@ -64,9 +63,6 @@ export function StatisticsPageShell({
               <h1 className="text-2xl font-bold tracking-tight text-gray-950 dark:text-gray-100">
                 {title}
               </h1>
-              <div className="mt-2 text-sm leading-6 text-gray-700 dark:text-gray-400">
-                {description}
-              </div>
             </div>
             {actions ? (
               <div className="flex shrink-0 flex-wrap items-center gap-2">

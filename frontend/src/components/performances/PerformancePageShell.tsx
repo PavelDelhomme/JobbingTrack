@@ -18,10 +18,8 @@ interface PerformancePageShellProps {
 
 export function PerformancePageShell({
   title,
-  description,
   children,
   actions,
-  notice,
   backHref = "/backoffice/performances",
   backLabel = "Retour à Performances",
   topLinks,
@@ -45,13 +43,7 @@ export function PerformancePageShell({
             <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">
               {title}
             </h1>
-            {description ? (
-              <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                {description}
-              </div>
-            ) : null}
           </div>
-          {notice}
           {actions ? (
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               {actions}

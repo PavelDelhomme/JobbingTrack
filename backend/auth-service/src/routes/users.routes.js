@@ -9,21 +9,21 @@ router.use(authenticate);
 
 // Routes CRUD utilisateurs (alias vers auth controller pour compatibilité)
 router.get('/', authController.getAllUsers);
-router.post('/clean-test-users', authController.cleanTestUsers);
+router.post('/clean-test-users', requireAdmin, authController.cleanTestUsers);
 router.get('/:id', userController.getUserById);
 router.put('/:id', userController.updateUser);
-router.delete('/:id', authController.deleteUser);
+router.delete('/:id', requireAdmin, authController.deleteUser);
 
-// Routes d'administration
-router.put('/:id/role', authController.updateUserRole);
-router.put('/:id/status', authController.toggleUserStatus);
-router.post('/:id/impersonate', userController.impersonateUser);
+// Routes d'administration (ADMIN / SUPER_ADMIN)
+router.put('/:id/role', requireAdmin, authController.updateUserRole);
+router.put('/:id/status', requireAdmin, authController.toggleUserStatus);
+router.post('/:id/impersonate', requireAdmin, userController.impersonateUser);
 
 // Routes de vérification email
-router.post('/:id/send-verification', userController.sendVerificationEmail);
-router.post('/:id/resend-verification', userController.resendVerificationEmail);
+router.post('/:id/send-verification', requireAdmin, userController.sendVerificationEmail);
+router.post('/:id/resend-verification', requireAdmin, userController.resendVerificationEmail);
 
 // Route pour envoyer un email de réinitialisation de mot de passe (admin)
-router.post('/:id/send-password-reset', authController.sendPasswordResetForUser);
+router.post('/:id/send-password-reset', requireAdmin, authController.sendPasswordResetForUser);
 
 module.exports = router;

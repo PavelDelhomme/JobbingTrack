@@ -271,13 +271,25 @@ class _LogsScreenState extends State<LogsScreen> with SingleTickerProviderStateM
   }
 
   Widget _crashTile(Map<String, dynamic> c) {
-    final title = _safeLogMessage(c['crashType']?.toString() ?? c['message']?.toString());
+    final type = (c['crashType'] ?? 'Crash').toString();
+    final msg = _safeLogMessage(c['message']?.toString());
+    final device = c['device'];
+    final deviceLabel = device is Map
+        ? (device['model'] ?? device['name'] ?? '').toString()
+        : device?.toString() ?? '';
+    final subtitle = [
+      type,
+      _ts(c),
+      if (deviceLabel.isNotEmpty) deviceLabel,
+      if (c['appVersion'] != null) 'v${c['appVersion']}',
+    ].where((s) => s.toString().isNotEmpty).join(' · ');
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: ListTile(
-        title: Text(title),
-        subtitle: Text(_ts(c)),
-        onTap: () => showAdminRecordDetailSheet(context, title: 'Crash', data: c),
+        title: Text(msg, maxLines: 2, overflow: TextOverflow.ellipsis),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => showAdminRecordDetailSheet(context, title: 'Crash — $type', data: c),
       ),
     );
   }

@@ -19,7 +19,6 @@ export function PerformanceChartCard({
   title,
   children,
   periodLabel,
-  description,
   liveValue,
   className = "",
   contentClassName = "",
@@ -40,11 +39,6 @@ export function PerformanceChartCard({
           </div>
         ) : null}
       </div>
-      {description ? (
-        <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          {description}
-        </div>
-      ) : null}
       {periodLabel ? <ChartPeriodCaption label={periodLabel} /> : null}
       <div className={contentClassName}>{children}</div>
     </div>

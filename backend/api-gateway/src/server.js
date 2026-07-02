@@ -577,10 +577,14 @@ app.get('/api/v1/crashes', (req, res) => {
         timestamp: raw.timestamp || raw.createdAt || new Date(f.mtime).toISOString(),
         crashType: raw.crashType || 'UNKNOWN',
         message: raw.message || raw.error || 'Crash report',
+        stackTrace: raw.stackTrace || raw.stack || null,
+        screenName: raw.screenName || raw.screen || null,
+        userId: raw.userId || null,
+        userEmail: raw.metadata?.userEmail || raw.userEmail || null,
         source: raw.source || raw.app || 'mobile',
-        device: raw.device || raw.deviceInfo || null,
+        device: raw.deviceInfo || raw.device || null,
         appVersion: raw.appVersion || raw.version || null,
-        osVersion: raw.osVersion || null,
+        osVersion: raw.osVersion || (raw.deviceInfo && raw.deviceInfo.osVersion) || null,
         metadata: raw
       };
     });

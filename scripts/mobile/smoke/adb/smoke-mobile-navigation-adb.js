@@ -168,6 +168,69 @@ async function ensureLoggedIn(phone, email, password) {
   await phone.back();
   await phone.wait(1000);
 
+  // ── Re-tap onglet Candidatures (barre basse) → liste candidatures (sous-onglet 0)
+  await adbLib.flows.goToTab(phone, 2, { shell: true });
+  await phone.wait(1500);
+  if (await phone.uiContains('Relances')) {
+    await phone.tap('Relances');
+    await phone.wait(2000);
+  }
+  await adbLib.flows.goToTab(phone, 2, { shell: true });
+  await phone.wait(2000);
+  const onCandidaturesList =
+    (await phone.uiContains('Candidatures')) &&
+    !(await phone.uiContains('Aucune relance')) &&
+    ((await phone.uiContains('Nouvelle candidature')) ||
+      (await phone.uiContains('Aucune candidature')) ||
+      (await phone.uiContains('Postulé')));
+  if (!onCandidaturesList) {
+    const fallback =
+      (await phone.uiContains('Candidatures')) &&
+      !(await phone.uiContains('relance planifiée'));
+    if (!fallback) {
+      throw new Error('Re-tap Candidatures : retour liste sous-onglet 0 échoué');
+    }
+  }
+  console.log('✅ Re-tap onglet Candidatures → liste OK');
+
+  // ── FAB contact sur sous-onglet Contacts
+  if (await phone.uiContains('Contacts')) {
+    await phone.tap('Contacts');
+  } else {
+    await phone.openDrawer();
+    await phone.wait(800);
+    await phone.tap('Contacts');
+    await phone.back();
+    await phone.wait(800);
+  }
+  await phone.wait(2000);
+  try {
+    await phone.tap('Nouveau contact');
+  } catch {
+    const fab = await phone.findElement('Nouveau contact');
+    if (fab?.bounds) {
+      const m = fab.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+      if (m) {
+        await phone.tapCoords(
+          Math.floor((+m[1] + +m[3]) / 2),
+          Math.floor((+m[2] + +m[4]) / 2),
+        );
+      }
+    }
+  }
+  await phone.wait(2000);
+  const contactSheet =
+    (await phone.uiContains('Prénom')) ||
+    (await phone.uiContains('Nom')) ||
+    (await phone.uiContains('Entreprise')) ||
+    (await phone.uiContains('Nouveau contact'));
+  if (!contactSheet) {
+    throw new Error('FAB Contacts : sheet création contact introuvable');
+  }
+  console.log('✅ FAB Contacts : sheet création OK');
+  await phone.back();
+  await phone.wait(800);
+
   console.log('\nSmoke navigation mobile OK');
 })().catch((err) => {
   console.error('Smoke navigation mobile KO:', err.message);

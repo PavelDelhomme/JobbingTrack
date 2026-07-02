@@ -68,32 +68,58 @@ async function openAdminHubFromDrawer(phone, adminEmail) {
 }
 
 async function restorePorteurSession(phone, email, password) {
-  await switchToAccount(phone, email, password);
+  try {
+    await adbLib.flows.logout(phone);
+  } catch {
+    /* ignore */
+  }
+  await phone.wait(800);
+  if (!(await phone.uiContains('Comptes de test (debug)'))) {
+    await adbLib.flows.ensureFullLoginForm(phone);
+    for (let i = 0; i < 6; i++) {
+      if (await phone.uiContains('Connexion USER')) break;
+      await phone.scrollDown(600);
+      await phone.wait(400);
+    }
+  }
+  if (await adbLib.flows.tryQuickDebugLogin(phone, email)) {
+    console.log('  [restore] Connexion USER (debug)');
+  } else {
+    await adbLib.flows.login(phone, email, password);
+  }
   await phone.assertVisible('Bonjour');
 }
 
 async function switchToAccount(phone, email, password, { force = false } = {}) {
-  if (!force && (await phone.uiContains('Bonjour'))) {
+  const adminEmail = process.env.TEST_ADMIN_EMAIL?.trim();
+  const isAdminTarget = Boolean(adminEmail && email === adminEmail);
+
+  if (!force) {
+    const msg = await adbLib.flows.fastSwitchAccountViaDebug(phone, email, password);
+    if (msg.startsWith('Déjà connecté')) return;
+  }
+
+  if (isAdminTarget) {
     try {
-      await adbLib.flows.goToTab(phone, 1, { shell: true });
-      await phone.openNavigationDrawer();
-      await phone.wait(800);
-      const local = email.split('@')[0];
-      const same =
-        (await phone.uiContains(email)) ||
-        (local.length >= 4 && (await phone.uiContains(local)));
-      await phone.back();
-      await phone.wait(500);
-      if (same) return;
+      await adbLib.flows.logout(phone);
     } catch {
-      /* logout ci-dessous */
+      /* ignore */
     }
-  }
-  if (await phone.uiContains('Bonjour')) {
-    await adbLib.flows.ensureLoggedOut(phone);
     await phone.wait(800);
+    for (let i = 0; i < 8; i++) {
+      if (await phone.uiContains('Connexion ADMIN')) break;
+      await phone.scrollDown(700);
+      await phone.wait(400);
+    }
+    if (await phone.uiContains('Connexion ADMIN')) {
+      await phone.tap('Connexion ADMIN');
+      await phone.wait(3000);
+    } else {
+      await adbLib.flows.login(phone, email, password);
+    }
+  } else {
+    await adbLib.flows.fastSwitchAccountViaDebug(phone, email, password);
   }
-  await adbLib.flows.login(phone, email, password);
   await adbLib.flows.dismissBiometricUnlock(phone, { password });
 }
 
@@ -118,7 +144,17 @@ async function switchToAccount(phone, email, password, { force = false } = {}) {
   } else {
     await adbLib.flows.clearAppDataForSmoke(phone);
     await adbLib.flows.prepareSmokeSession(phone, { restart: false });
-    await adbLib.flows.login(phone, admin.email, admin.password);
+    for (let i = 0; i < 8; i++) {
+      if (await phone.uiContains('Connexion ADMIN')) break;
+      await phone.scrollDown(700);
+      await phone.wait(500);
+    }
+    if (await phone.uiContains('Connexion ADMIN')) {
+      await phone.tap('Connexion ADMIN');
+      await phone.wait(3000);
+    } else {
+      await adbLib.flows.login(phone, admin.email, admin.password);
+    }
   }
 
   await adbLib.flows.dismissBiometricUnlock(phone, { password: admin.password });

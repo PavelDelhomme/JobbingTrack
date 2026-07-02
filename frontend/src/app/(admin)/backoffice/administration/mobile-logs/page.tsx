@@ -27,18 +27,10 @@ export default function AdministrationMobileLogsPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             Mobile — erreurs &amp; retours
           </h1>
-          <p className="max-w-3xl text-sm text-gray-600 dark:text-gray-400">
-            Remontée depuis l&apos;application mobile : signalements manuels
-            (Signaler un bug, diagnostic, capture) et erreurs automatiques tant
-            que l&apos;app est connectée avec télémétrie activée. Période par
-            défaut : <strong>7 jours</strong> (alignée sur la carte vue
-            d&apos;ensemble). Fichiers bruts côté serveur :{" "}
-            <code className="text-xs">backend/api-gateway/logs/crashes/</code>.
-          </p>
         </div>
         <MobileApplicationMonitoringPanel
           liveRefreshMs={20000}
-          showAdminHint
+          showDevPurgeButton
           defaultTimeRange="7d"
           initialErrorStatusFilter={initialErrorStatusFilter}
         />

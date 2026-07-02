@@ -43,7 +43,6 @@ export function DevelopmentTestsSubNav() {
 
 export function DevelopmentPageShell({
   title,
-  description,
   actions,
   children,
   showTestsSubNav = true,
@@ -64,11 +63,6 @@ export function DevelopmentPageShell({
               <h1 className="text-2xl font-bold tracking-tight text-gray-950 dark:text-gray-100">
                 {title}
               </h1>
-              {description ? (
-                <div className="mt-2 text-sm leading-6 text-gray-700 dark:text-gray-400">
-                  {description}
-                </div>
-              ) : null}
             </div>
             {actions ? (
               <div className="flex shrink-0 flex-wrap items-center gap-2">

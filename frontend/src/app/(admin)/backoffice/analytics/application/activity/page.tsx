@@ -174,13 +174,6 @@ export default function ApplicationActivityPage() {
   return (
     <AnalyticsPageShell
       title="Application — activité & traces"
-      description={
-        <p>
-          Navigation mobile anonyme, lots de traces d&apos;activité et
-          échantillons de performance remontés par l&apos;app Flutter (consentement
-          utilisateur requis côté mobile).
-        </p>
-      }
       actions={
         <TimeRangeSelector
           timeRange={timeRange}
@@ -238,9 +231,6 @@ export default function ApplicationActivityPage() {
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   Événements
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Traces mobile (navigation, lots d&apos;activité, retours). Cliquez sur une ligne pour le détail.
-                </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <select
@@ -335,9 +325,6 @@ export default function ApplicationActivityPage() {
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Performances mobile (échantillons)
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Échantillons paginés — clic sur une ligne pour mémoire, latence, CPU, session, etc.
-            </p>
             <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
               <table className="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-900/40">
