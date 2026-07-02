@@ -13,7 +13,7 @@ Stack Docker Compose pensée pour **Portainer > Stacks > Add stack > Use a git r
 | **Authentication** | Token GitHub si dépôt privé | idem |
 | **GitOps updates** | Activé (polling 5 min) ou webhook CI | idem |
 
-Guide détaillé : [`docs/production/PORTAINER_STACK.md`](../../docs/production/PORTAINER_STACK.md).
+**Checklist porteur (actions exactes)** : [`docs/production/PORTEUR_ACTIONS_DEPLOIEMENT.md`](../../docs/production/PORTEUR_ACTIONS_DEPLOIEMENT.md)
 
 **Checklist premier déploiement** : [`PREMIER_DEPLOIEMENT.md`](PREMIER_DEPLOIEMENT.md) ← commencer ici.
 

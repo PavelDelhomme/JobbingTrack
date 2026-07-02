@@ -1,24 +1,23 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 26 juin 2026 (étape 2 mobile active ; lot BL-26 performances + mobile sur branche `feat/bl26-backlog-porteur-26juin`)
+Dernière mise à jour : 2 juillet 2026 (étape 2 mobile active ; **Phase C déploiement préparée** sur `feat/deploy-portainer-production`)
 
-## Feuille de route — ordre strict (juin 2026)
+## Feuille de route — ordre strict (juin–juillet 2026)
 
 | Phase | Contenu | Statut | Règle |
 |-------|---------|--------|-------|
 | **A — Mobile Lot D** | App Flutter, smokes, agent `/agent`, hub admin | **Étape 2 active** | Validation porteur **étape 2 / 5** — navigation + FAB (ligne 320). |
 | **B — Gate pré-prod mobile** | Validations porteur `TODOS_A_VALIDER.md` étapes **1→5** | **EN COURS** (étape 2) | Une étape à la fois ; OK explicite porteur. |
-| **C — Déploiement rapide** | Builds, SMTP `@jobbingtrack.com`, gate prod | Après B | Inchangé. |
-| **D — Triage repo / scripts / docs** | Lot H + Lot E + `REPO_ORGANIZATION.md` | **CLOS (H0/H1/H2)** | Merge `chore/repo-scripts-docs-hygiene` → **`dev`** (**26/06**, `3f5dd007`). Suite : **`feat/bl26-backlog-porteur-26juin`**. |
-| **E — Plateforme admin réutilisable (Cloudity / OSS)** | Extraction backoffice, monitoring, analytics, billing, archive… en packages réutilisables | **APRÈS prod stable** | **Ne pas démarrer** avant clôture A+B+C + gate prod. Voir `docs/project/BACKLOG.md` § Lot P. |
+| **C — Déploiement VPS / OTA** | Portainer, NPM, GHCR, releases mobile backoffice | **PRÉPARÉ (agent)** — **porteur : VPS + push APK** | Peut avancer **en parallèle** de B ; checklist [`docs/production/PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md). |
+| **D — Triage repo / scripts / docs** | Lot H + Lot E + `REPO_ORGANIZATION.md` | **CLOS (H0/H1/H2)** | Merge `chore/repo-scripts-docs-hygiene` → **`dev`** (**26/06**, `3f5dd007`). |
+| **E — Plateforme admin réutilisable (Cloudity / OSS)** | Extraction backoffice, monitoring, analytics, billing, archive… | **APRÈS prod stable** | **Ne pas démarrer** avant clôture A+B+C + gate prod. |
 
-**Travail agent en cours (phase B — étape 2 Samsung + backlog BL-26)** :
+**Travail porteur — deux files parallèles** :
 
-Branche active : **`feat/bl26-backlog-porteur-26juin`** (depuis merge `dev` @ `3f5dd007` — 26/06).
+1. **Mobile B** : validation étape 2 ligne 320 (`TODOS_A_VALIDER.md`) → débloquer SMTP étape 3.
+2. **Déploiement C** : suivre [`PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md) (Portainer → NPM → backoffice releases OTA).
 
-1. Preuves agent : smokes navigation/FAB déjà **OK** (25/06).
-2. **Porteur** (optionnel) : retour shell, admin USER/ADMIN, FAB candidature sur Samsung.
-3. OK ligne 320 → débloquer étape 3 (ligne 321 SMTP).
+Branche infra : **`feat/deploy-portainer-production`** (à merger dans `dev` après 1er deploy VPS OK).
 
 Triage repo (phase D) **clos** : `scripts/legacy/`, env canonique `scripts/env/`, inventaire à jour — voir `REPO_ORGANIZATION.md`.
 

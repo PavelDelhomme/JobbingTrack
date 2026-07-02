@@ -2,7 +2,7 @@
 
 [Retour au README principal](../README.md) | **[STATUS — état courant](STATUS.md)** | [Navigation](navigation.md) | [Index](INDEX.md)
 
-Dernière mise à jour : 22 juin 2026
+Dernière mise à jour : 2 juillet 2026
 
 Ce dossier centralise la documentation. **Point d’entrée produit** : **[STATUS.md](STATUS.md)** (où en est le projet, priorités, faits récents).
 
@@ -33,7 +33,11 @@ Ce dossier centralise la documentation. **Point d’entrée produit** : **[STATU
 
 - [À valider par le porteur](pilotage/TODOS_A_VALIDER.md)
 - [Validé par le porteur](pilotage/TODOS_DONE.md)
+- [**Actions porteur déploiement VPS**](production/PORTEUR_ACTIONS_DEPLOIEMENT.md) ← checklist exacte
 - [À valider avant production](production/A_VALIDER_AVANT_PRODUCTION.md)
+- [Suivi déploiement](production/DEPLOIEMENT_PRODUCTION.md)
+- [Stack Portainer](production/PORTAINER_STACK.md)
+- [Pipeline mobile OTA](production/MOBILE_RELEASE_PIPELINE.md)
 - [Checklist preprod / production](operations/PREPROD_PRODUCTION_CHECKLIST.md)
 
 ## Structure `docs/`

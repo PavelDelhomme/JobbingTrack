@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 27 juin 2026 (feuille de route mobile — phase A ; file porteur étapes 1→5 ; backlog récap 26/06 ; note architecture modulaire 27/06)
+Dernière mise à jour : 2 juillet 2026 (feuille de route mobile phase B ; **Phase C déploiement préparée** ; backlog BL-26)
 
 ## Rôle
 
@@ -106,19 +106,20 @@ node scripts/mobile/clear-smoke-device-adb.js   # si usage porteur après smokes
 
 Index scripts : `scripts/mobile/README.md`.
 
-## Phase C — Déploiement Portainer (préparation infra)
+## Phase C — Déploiement Portainer + OTA mobile (préparation infra)
 
-> Préparation Git **sans déploiement VPS** tant que le porteur n’a pas créé la stack. Branche : `feat/deploy-portainer-production`.
+> Agent **OK** sur branche `feat/deploy-portainer-production`. **Porteur** : [`PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md).
 
 | Priorité | Vérification agent | Preuve attendue | Statut |
 |----------|--------------------|-----------------|--------|
-| C1 | Compose Portainer Git | `deploy/production/docker-compose.yml` + `docker compose config --quiet` avec `.env.example` | [x] **17/06** |
-| C2 | Doc stack + NPM | `docs/production/PORTAINER_STACK.md`, `deploy/production/README.md`, `MOBILE_RELEASE_PIPELINE.md` | [x] **17/06** |
-| C3 | CI images GHCR | `.github/workflows/build-push-images.yml` (16 images) ; webhooks `DEV_DEPLOY_URL` / `PROD_DEPLOY_URL` documentés | [x] **17/06** |
-| C4 | Stage prod frontend | `frontend/Dockerfile` target `production` (`npm run build` + `next start`) | [x] **17/06** |
-| C5 | Stack Portainer live VPS | Porteur : stack `jobbingtrack`, ref `refs/heads/dev`, healthchecks OK, NPM HTTPS | [ ] porteur |
-| C6 | OTA mobile Android | API `/api/v1/mobile/releases/latest` + install in-app ; workflow `mobile-release-android.yml` ; doc `PREMIER_DEPLOIEMENT.md` §5 | [x] **17/06** |
-| C7 | Backoffice releases mobile | Page `/backoffice/administration/mobile-releases` — upload dev, promote prod, force update | [x] **02/07** |
+| C1 | Compose Portainer Git | `deploy/production/docker-compose.yml` + `docker compose config --quiet` | [x] **02/07** |
+| C2 | Doc stack + NPM | `PORTAINER_STACK.md`, `PREMIER_DEPLOIEMENT.md`, `PORTEUR_ACTIONS_DEPLOIEMENT.md` | [x] **02/07** |
+| C3 | CI images GHCR | `build-push-images.yml` ; webhooks documentés | [x] **02/07** |
+| C4 | Stage prod frontend | `frontend/Dockerfile` target `production` | [x] **02/07** |
+| C5 | Stack Portainer live VPS | Porteur : stack Running + NPM HTTPS | [ ] porteur |
+| C6 | OTA mobile Android | API `/api/v1/mobile/releases/latest?channel=` + install in-app | [x] **02/07** |
+| C7 | Backoffice releases | `/backoffice/administration/mobile-releases` — upload dev, promote prod | [x] **02/07** |
+| C8 | Tests gateway releases | Jest `mobileReleaseConfig` + `mobileReleaseStore` **5/5 OK** | [x] **02/07** |
 
 ## Phase D — Lot H triage scripts (17/06)
 

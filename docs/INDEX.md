@@ -1,6 +1,6 @@
 # 📚 Index de Documentation - JobbingTrack
 
-**Dernière mise à jour** : 21 mai 2026
+**Dernière mise à jour** : 2 juillet 2026
 
 ---
 
@@ -9,9 +9,10 @@
 | Thème | Emplacement |
 |-------|-------------|
 | **Pilotage immédiat** | **[pilotage/PILOTAGE.md](pilotage/PILOTAGE.md)** · **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)** · **[pilotage/TODOS_A_VERIFIER.md](pilotage/TODOS_A_VERIFIER.md)** |
+| **Actions porteur déploiement VPS** | **[production/PORTEUR_ACTIONS_DEPLOIEMENT.md](production/PORTEUR_ACTIONS_DEPLOIEMENT.md)** ← checklist exacte |
 | **État courant du projet** | **[STATUS.md](STATUS.md)** — hub principal |
 | **Chantier lots A–H** | **[project/PLAN.md](project/PLAN.md)** · **[pilotage/TODOS.md](pilotage/TODOS.md)** · **[security/STATS.md](security/STATS.md)** |
-| **Préprod / production / release** | **[deployment/VPS_PORTAINER_NPM_OVH.md](deployment/VPS_PORTAINER_NPM_OVH.md)** — runbook VPS/Portainer/NPM/OVH ; **[operations/PREPROD_PRODUCTION_CHECKLIST.md](operations/PREPROD_PRODUCTION_CHECKLIST.md)** — checklist manuelle ; **[operations/RELEASE_PREPROD_PRODUCTION_PLAN.md](operations/RELEASE_PREPROD_PRODUCTION_PLAN.md)** — branche tests complets, préprod, bêta mobile, licences, RGPD, déploiements, mono-repo vs multi-repo |
+| **Préprod / production / release** | **[production/DEPLOIEMENT_PRODUCTION.md](production/DEPLOIEMENT_PRODUCTION.md)** · **[production/PORTAINER_STACK.md](production/PORTAINER_STACK.md)** · **[production/MOBILE_RELEASE_PIPELINE.md](production/MOBILE_RELEASE_PIPELINE.md)** · **[deploy/production/PREMIER_DEPLOIEMENT.md](../deploy/production/PREMIER_DEPLOIEMENT.md)** |
 | **Audit / restructuration documentation** | **[operations/DOCUMENTATION_AUDIT_PLAN.md](operations/DOCUMENTATION_AUDIT_PLAN.md)** — périmètre complet demandé, règles de tri, ordre de fusion/déplacement, validation liens |
 | **Configuration / ports** | [configuration/](configuration/) — CONFIGURATION_PORTS.md, PORTS.md |
 | **Rapports performance, fixes & optimisations** | [performance/](performance/) — FINAL_PERFORMANCE_REPORT, RAPPORT_PERFORMANCE, FIXES_AND_OPTIMIZATIONS, etc. |

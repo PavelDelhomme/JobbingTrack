@@ -1,6 +1,8 @@
 # Stack Portainer — JobbingTrack
 
-Dernière mise à jour : 17 juin 2026
+Dernière mise à jour : 2 juillet 2026
+
+> **Checklist porteur (ordre des actions)** : [`PORTEUR_ACTIONS_DEPLOIEMENT.md`](PORTEUR_ACTIONS_DEPLOIEMENT.md)
 
 ## Objectif
 

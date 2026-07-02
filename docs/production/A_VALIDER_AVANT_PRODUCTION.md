@@ -1,12 +1,12 @@
 # À valider avant préproduction / production
 
-Dernière mise à jour : 22 juin 2026
+Dernière mise à jour : 2 juillet 2026
 
 ## Rôle
 
-Ce fichier démarre seulement quand les validations locales de `TODOS_A_VALIDER.md` sont suffisamment propres. Il sert au gate **préprod** (environnement contrôlé, pas encore ouvert au public) puis **prod**.
+Ce fichier démarre quand les validations locales de `TODOS_A_VALIDER.md` sont suffisamment propres. Gate **préprod** puis **prod**.
 
-Pour l’instant, aucune production réelle n’est lancée sur serveur (Portainer/NPM à monter).
+Infra Portainer + OTA mobile : **préparée dans Git** (`feat/deploy-portainer-production`). Déploiement VPS : **checklist porteur** [`PORTEUR_ACTIONS_DEPLOIEMENT.md`](PORTEUR_ACTIONS_DEPLOIEMENT.md).
 
 ## Enchaînement obligatoire (étape par étape)
 
@@ -19,7 +19,7 @@ Le porteur valide **chaque étape** avant la suivante. L’agent prépare les pr
 | 3 | Suite tests + rapports | `scripts/run-all-tests-with-reports.sh` | [ ] |
 | 4 | Rapport impact release (vide structuré) | `docs/security/SECURITY_RELEASE_IMPACT_REPORT.template.md` | [ ] |
 | 5 | Matrice plateformes | `docs/mobile/COMPATIBILITE_PLATEFORMES.md` | [ ] |
-| 6 | Déploiement **préprod** VPS (Portainer, NPM, secrets hors Git) | `DEPLOIEMENT_PRODUCTION.md` | [ ] |
+| 6 | Déploiement **préprod** VPS (Portainer, NPM, secrets hors Git, releases mobile) | [`PORTEUR_ACTIONS_DEPLOIEMENT.md`](PORTEUR_ACTIONS_DEPLOIEMENT.md) + [`DEPLOIEMENT_PRODUCTION.md`](DEPLOIEMENT_PRODUCTION.md) | [ ] |
 | 7 | Tests identiques préprod (Android, iOS si dispo, web, API) | Reprendre matrice §4 du rapport | [ ] |
 | 8 | Audit sécurité final + tri critical/high | Rapports P0 + Trivy prod | [ ] |
 | 9 | GO production | Porteur explicite → `VALIDATION_PRODUCTION.md` | [ ] |
