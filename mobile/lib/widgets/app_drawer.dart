@@ -5,6 +5,7 @@ import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/utils/admin_access.dart';
 import 'package:jobbingtrack_mobile/utils/auth_logout.dart';
+import 'package:jobbingtrack_mobile/widgets/impersonation_banner.dart';
 
 class AppDrawer extends StatefulWidget {
   const AppDrawer({super.key});
@@ -34,11 +35,31 @@ class _AppDrawerState extends State<AppDrawer> {
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;
     final isAdmin = AdminAccess.canAccessAdmin(user);
+    final isImpersonating = authProvider.isImpersonating;
 
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
+          if (isImpersonating)
+            Material(
+              color: Colors.orange.shade50,
+              child: ListTile(
+                leading: Icon(Icons.switch_account, color: Colors.orange.shade900),
+                title: Text(
+                  'Désimpersonnaliser',
+                  style: TextStyle(
+                    color: Colors.orange.shade900,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: const Text('Retour à la session administrateur'),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await ImpersonationBanner.exitAndRestoreAdminSession(context);
+                },
+              ),
+            ),
           UserAccountsDrawerHeader(
             decoration: BoxDecoration(
               gradient: LinearGradient(

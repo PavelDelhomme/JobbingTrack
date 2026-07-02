@@ -2,6 +2,10 @@
 
 Dernière mise à jour : 2 juillet 2026 (étape 2 mobile active ; **Phase C déploiement préparée** sur `feat/deploy-portainer-production`)
 
+> **Porteur — par où commencer ?**  
+> Mobile (validation produit) : **[`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md)** → puis [`TODOS_A_VALIDER.md`](TODOS_A_VALIDER.md) § étape active.  
+> **Ne pas** suivre [`TODOS.md`](TODOS.md) pour valider (backlog agent).
+
 ## Feuille de route — ordre strict (juin–juillet 2026)
 
 | Phase | Contenu | Statut | Règle |
@@ -14,8 +18,8 @@ Dernière mise à jour : 2 juillet 2026 (étape 2 mobile active ; **Phase C dép
 
 **Travail porteur — deux files parallèles** :
 
-1. **Mobile B** : validation étape 2 ligne 320 (`TODOS_A_VALIDER.md`) → débloquer SMTP étape 3.
-2. **Déploiement C** : suivre [`PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md) (Portainer → NPM → backoffice releases OTA).
+1. **Mobile B** : **[`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md)** — étape **2 / 5** active → débloquer SMTP étape 3.
+2. **Déploiement C** : [`PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md) (Portainer → NPM → backoffice releases OTA).
 
 Branche infra : **`feat/deploy-portainer-production`** (à merger dans `dev` après 1er deploy VPS OK).
 

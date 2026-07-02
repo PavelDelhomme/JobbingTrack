@@ -1,5 +1,8 @@
 # TODOS — chantier backoffice / API / doc (JobbingTrack)
 
+> **Porteur** : ce fichier est le **backlog technique agent** (lots A–H, centaines de tâches).  
+> **Pour valider le produit** → **[`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md)** + [`TODOS_A_VALIDER.md`](TODOS_A_VALIDER.md).
+
 **Dernière mise à jour : 2 juillet 2026** — feuille de route réorganisée ; **Phase C déploiement préparée** (`feat/deploy-portainer-production`) ; checklist porteur [`PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md).
 
 ## Feuille de route — ordre de travail (juin 2026)
@@ -32,7 +35,7 @@
 | B2 | **D8 — Hub tests backoffice** | UI `/backoffice/mobile-emulator` | Gate pré-prod |
 | B3 | Batterie complète optionnelle | `smoke-run-mobile-validation.js` | Non bloquant merge |
 
-Détail pas à pas porteur : **`TODOS_A_VALIDER.md` § « File de validation porteur — ordre strict »**.
+Détail pas à pas porteur : **[`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md)** (checklist simple) · détail officiel **`TODOS_A_VALIDER.md` § « File de validation porteur »**.
 
 ### Phase C — Déploiement VPS / OTA mobile (**préparé agent — actions porteur**)
 
@@ -85,8 +88,15 @@ Backlog détaillé historique : sections **Lot A–H** plus bas dans ce fichier 
 | **BL-26-12** | C mobile / prod | **API_BASE_URL centralisée** | Toute l'app utilise `ApiService.baseUrl` (`--dart-define=API_BASE_URL`, login debug, `ApiConfigStore`) ; doc build prod | `mobile/PROCESSUS_APPLICATION_MOBILE_ET_API.md` | **C1** |
 
 | **BL-26-13** | D backoffice | **Recherche & filtres unifiés** | Un seul composant recherche/filtres réutilisable (tableaux, mobile-logs, analytics) ; plage dates + user/type/date ; personnalisation layout (cartes/tableaux/graphes) | `docs/BACKLOG.md` | **P2** |
+| **BL-26-14** | C mobile / QA | **Matrice compat Android multi-API** | Parc 3–5 paliers API (21, 28, 30, 34, 36) : AVD + Samsung + Blackview si API ancienne ; **pas avant** clôture étapes mobile 1→5 ; gate bêta / Play Store | `docs/mobile/STRATEGIE_COMPATIBILITE_ANDROID.md` | **Après étape 5** |
+| **BL-26-15** | A mobile | **Actualisation listes au retour arrière** | Au retour système ou navigation arrière, les listes (candidatures, relances, etc.) se rafraîchissent ; reprise après coupure réseau sans état incohérent | providers + `RefreshIndicator` / lifecycle resume | **Après étape 2** |
+| **BL-26-16** | A mobile | **Double retour système → arrière-plan** | Sur Accueil (racine shell) : 1er retour = snackbar explicite ; 2e retour (< 2 s) = `SystemNavigator.pop()` (arrière-plan Android). Comportement documenté porteur | `main_shell_screen.dart` | **Étape 2** (correctif 17/06 — validation porteur) |
+| **BL-26-17** | A mobile | **Impersonnalisation — sortie visible** | Bannière globale + entrée drawer **Désimpersonnaliser** ; retour session admin sur hub `/admin` ; navigation post-impersonate vers `/home` | `impersonation_banner.dart` | **Étape 2** (correctif 17/06 — validation porteur) |
+| **BL-26-18** | A mobile | **Recherche globale — récents + scope utilisateur** | À l’ouverture : recherches récentes ; recherche dans toutes entités user (candidatures, entretiens, relances, appels, contacts, entreprises, événements) avec filtres par type | `search_screen.dart` + API search | **Après étape 2** |
+| **BL-26-19** | A mobile | **Profil — UX email / téléphone moderne** | Email : nouvelle adresse + confirmation + envoi lien validation (pas toggle) ; téléphone : indicatif pays / détection 06… ; MDP : reset par email (OK actuel) | auth-service + `profile_screen.dart` | **Après étape 2** |
+| **BL-26-20** | D mobile / backoffice | **Logs mobile profil & erreurs porteur** | Erreurs modification profil (email, tél, MDP) remontées dans **Administration → Mobile — erreurs & retours** pour diagnostic admin | `MobileAnalyticsService` + API crashes/feedback | **Après étape 2** |
 
-**Ordre suggéré après étape 2 mobile** : BL-26-04→08 → BL-26-01 → BL-26-02 → BL-26-03 → **BL-26-09/12** (toolchain + URL prod) → **BL-26-10/11** (v2 produit) → **BL-26-13** (recherche unifiée).
+**Ordre suggéré après étape 2 mobile** : **BL-26-16/17** (re-test porteur) → BL-26-04→08 → BL-26-01 → BL-26-02 → BL-26-03 → **BL-26-09/12** (toolchain + URL prod) → **BL-26-15/18/19/20** → **BL-26-14** (matrice Android) → **BL-26-10/11** (v2 produit) → **BL-26-13** (recherche unifiée backoffice).
 
 ## Backlog produit — tutoriels & refonte navigation (29/06 porteur)
 
@@ -97,7 +107,7 @@ Backlog détaillé historique : sections **Lot A–H** plus bas dans ce fichier 
 | **BL-NAV-01** | Section backoffice **Tests** | Web admin | Regrouper émulateur mobile, Playwright, smokes ADB, nettoyage comptes test, rapports comparatifs avant/après release — sortir des sous-menus **Administration** / **Développement** éparpillés |
 | **BL-NAV-02** | Section **Utilisateur / Produit** | Web admin | Hub séparé d’**Administration** infra : tutoriels backoffice, aide contextuelle, parcours guidé admin |
 | **BL-NAV-03** | **Mobile logs** — emplacement | Web admin | Aujourd’hui **Administration → Mobile — erreurs & retours** ; à reclasser avec la vague Tests/Observabilité (pas de déplacement avant refonte globale) |
-| **BL-TUT-01** | Tutoriel guidé **app mobile** | Flutter | Parcours complet skip/replay ; entrée **Paramètres → Revoir le tutoriel** ; persistance « tutoriel vu » |
+| **BL-TUT-01** | Tutoriel guidé **app mobile** | Flutter | Parcours complet bout par bout ; **bypass** global ou par section ; **reprise** aux blocs clés (persistance session / flags par étape) ; entrée **Paramètres → Revoir le tutoriel** ; persistance « tutoriel vu » |
 | **BL-TUT-02** | Tutoriel **admin mobile** | Flutter (compte admin) | Même contenu + variante éditable / prévisualisable pour admin (contenu géré côté backoffice) |
 | **BL-TUT-03** | Tutoriel **backoffice web** | Next.js | Parcours guidé par section ; skip ; **Revoir le tutoriel** ; éditeur admin (steps, textes, cibles UI) synchronisé avec évolutions UI |
 | **BL-TUT-04** | Tests réguliers & **comparatifs** | CI + Tests hub | Campagnes planifiées avant/après MEP ; rapports comparatifs (smokes ADB, Playwright, pipeline crash) — lié à BL-NAV-01 |

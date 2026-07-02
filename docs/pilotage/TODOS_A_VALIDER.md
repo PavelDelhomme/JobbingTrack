@@ -1,6 +1,43 @@
 # TODOs à valider par le porteur
 
-Dernière mise à jour : 17 juin 2026 (file de validation porteur stricte — étapes 1→5 mobile ; **Phase C déploiement** en parallèle)
+Dernière mise à jour : 17 juin 2026 (retours porteur partiels étape 2 ; correctifs impersonnalisation + double retour)
+
+---
+
+## Porteur — lire en premier
+
+| | |
+|---|---|
+| **Guide pas à pas (mobile, étape par étape)** | **[`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md)** ← **commencer ici** |
+| **Vous êtes ici** | **Étape 2 / 5** — navigation + FAB → [checklist § étape 2](#étape-2--ligne-320--navigation-retour-admin-relances-ajouts-candidature) |
+| **Registre à cocher après test** | Ligne **517** du [tableau Lot D](#à-valider-maintenant--lot-d-mobile-phase-b--ordre-strict) (ligne 320 dans la file 1→5) |
+| **Ne pas utiliser pour valider** | [`TODOS.md`](TODOS.md) = backlog **agent** uniquement |
+
+**Réponse attendue après l’étape 2** (OK **global** uniquement si points 1–11 + impersonnalisation + FAB 6–11 confirmés) :
+
+```text
+OK Mobile — navigation retour, admin, relances, ajouts candidature
+```
+
+**Retours porteur 17/06/2026 (partiel — pas d’OK global)** : navigation retour Profil/Accueil et listes candidatures **OK** ; drawer USER sans admin et hub ADMIN **OK** ; édition prénom/nom/email/tél **OK** ; **KO** sortie impersonnalisation (bloquant) ; points FAB 6–11 **non confirmés** ; backlog produit noté (tutoriel, recherche globale, profil email/tél, logs backoffice, actualisation listes au retour, double retour système).
+
+---
+
+## File mobile 1→5 (ordre strict)
+
+| Étape | Statut | Aller à |
+|-------|--------|---------|
+| **1** Inscription + email | ✅ OK 25/06 | [§ étape 1](#étape-1--ligne-319--inscription--télémétrie--vérif-email-ok-2506) |
+| **2** Navigation + FAB | **▶ EN COURS — retours partiels porteur** | [§ étape 2](#étape-2--ligne-320--navigation-retour-admin-relances-ajouts-candidature) · [guide](GUIDE_VALIDATION_PORTEUR.md#étape-2--5--checklist-mobile-samsung) |
+| **3** SMTP OVH | ⏸ après 2 | [§ étape 3](#étape-3--ligne-321--email-migration-smtp-jobbingtrackcom-ovh) |
+| **4** Agent email | ⏸ après 3 | [§ étape 4](#étape-4--ligne-322--agent-email--activation-admin--gestion) |
+| **5** Consentements RGPD | ⏸ après 4 | [§ étape 5](#étape-5--ligne-323--consentements-rgpd-agent-sync-mobile) |
+
+**Déploiement VPS** (parallèle, indépendant de l’étape 2) : [`../production/PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md)
+
+**Compat Android multi-appareils** (bêta / Play Store — **pas maintenant**) : [`../mobile/STRATEGIE_COMPATIBILITE_ANDROID.md`](../mobile/STRATEGIE_COMPATIBILITE_ANDROID.md)
+
+---
 
 ## Règle
 
@@ -405,7 +442,11 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 
 **Prérequis** : étape **1** validée et archivée dans `TODOS_DONE.md`.
 
-**Comptes** (`.env`) : `TEST_USER_*` (user normal) + `TEST_ADMIN_*` (admin mobile).
+> **Données trop volumineuses ?** Si le compte porteur (`admin@jobbingtrack.com`) affiche des centaines de candidatures, exécuter d’abord :
+> `node scripts/mobile/reset-porteur-validation-data.js --confirm`
+> Guide : [`docs/mobile/RESET_DONNEES_PORTEUR_VALIDATION.md`](../../mobile/RESET_DONNEES_PORTEUR_VALIDATION.md) — jeu minimal **7 candidatures** (1 / entreprise) + contacts, relances, appels, entretiens, calendrier.
+
+**Comptes** (`.env`) : `TEST_USER_*` (user normal) + `TEST_ADMIN_*` (admin mobile). Pour parcours métier sur votre compte réel : **`admin@jobbingtrack.com`** après reset ci-dessus.
 
 | # | Action | Résultat attendu | Preuve à noter |
 |---|--------|------------------|----------------|
@@ -423,7 +464,23 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 
 **Smokes agent (référence)** : `smoke-mobile-navigation-adb.js`, `smoke-mobile-application-detail-fab-adb.js`, `smoke-mobile-admin-hub-adb.js`. **Preuve agent 02/07** : batterie rapide Samsung **12/16 OK** — navigation (#10 re-tap Candidatures, #11 FAB Contacts), shell, FAB candidature/relance/appel-entretien **OK** ; `smoke-mobile-admin-hub-adb.js` **OK** (~4 min) — hub + Statistiques + restore TEST_USER ; fix actions admin détail utilisateur (garde biométrique → dialogue de confirmation).
 
-**Décision** : `OK Mobile — navigation retour, admin, relances, ajouts candidature` **ou** `KO …`.
+**Retours porteur 17/06/2026** :
+
+| Sujet | Statut porteur | Suite agent |
+|-------|----------------|-------------|
+| Retour Profil → Accueil | **OK** | — |
+| Retour listes candidatures | **OK** (actualisation listes au retour + reprise offline à renforcer — **BL-26-15**) | backlog |
+| Drawer USER sans Administration | **OK** | — |
+| Hub ADMIN + navigation | **OK** | — |
+| Édition prénom/nom/email/tél | **OK** (refonte UX email/tél — **BL-26-20**) | backlog |
+| Impersonnalisation sans **Désimpersonnaliser** | **KO bloquant** | **Correctif 17/06** : bannière globale + drawer + retour hub `/admin` — **rebuild APK + re-test porteur** |
+| Double/triple retour système (arrière-plan) | à spécifier / valider | **Correctif 17/06** : double retour sur Accueil → snackbar puis arrière-plan Android |
+| FAB relances / appels / entretiens / contacts (6–11) | **non confirmés** | re-test porteur après APK |
+| Tutoriel première connexion (skip + reprise) | backlog | **BL-TUT-01** |
+| Recherche globale (récents + toutes entités) | backlog | **BL-26-19** |
+| Logs mobile profil/erreurs visibles backoffice | backlog | **BL-26-21** |
+
+**Décision** : **pas d’OK global** tant que impersonnalisation + points 6–11 non re-validés. Après rebuild : `OK Mobile — navigation retour…` **ou** `KO …` point par point.
 
 ---
 
@@ -510,7 +567,7 @@ Seulement alors : lignes **324+** (intérim, entities, notifications, picker/pla
 | Lot D | Mobile — déconnexion drawer/menu (régression 19/06) | Samsung R5CT7263YJL | (1) Drawer → **Déconnexion** → confirmer → écran **Connexion** en ~2 s (session effacée). (2) Menu **⋮** → **Déconnexion** → idem. (3) Écran empreinte → **Se déconnecter** → idem. (4) Après déconnexion : cold start → login (pas d’accueil direct). | OK logout | Samsung R5CT7263YJL | OK déconnexion drawer menu | [x] | **Validation porteur 19/06** : OK. Archivé `TODOS_DONE.md`. **Preuve agent 19/06** : `appNavigatorKey`, smoke ADB drawer **OK**. |
 | Lot D | Mobile — biométrie (login, déverrouillage, reconnexion empreinte) | Samsung R5CT7263YJL | (1) Login : cocher biométrie → déverrouillage immédiat sans fermer app. (2) Cold start : empreinte → accueil. (3) Après déconnexion : compte enregistré + **Connexion par empreinte**. (4) Paramètres : activation biométrie. (5) **Fallback mot de passe** : formulaire visible + « Se connecter avec le mot de passe » si empreinte refusée/changée. | biométrie OK | Samsung R5CT7263YJL | OK biométrie mobile | [x] | **Validation porteur 19/06** : « biométrie carrément OK ». Archivé `TODOS_DONE.md`. **Suite agent 19/06** : fallback mot de passe + smokes `TEST_USER_*` **OK** ADB sans empreinte. |
 | Lot D | Mobile — Inscription + télémétrie obligatoire + vérif email | appareil + local | **Étape 1 file stricte** — voir § « File de validation porteur » ci-dessus. | mail reçu + vérif OK | Samsung + smoke agent | OK Mobile — Inscription + télémétrie obligatoire + vérif email | [x] | **Validation porteur 25/06** + smoke `smoke-etape1-inscription-adb.js` A→E. Fix alias `+`. Archivé `TODOS_DONE.md`. |
-| Lot D | Mobile — navigation retour, admin, relances, ajouts candidature | appareil + local | **Étape 2** — **ACTIVE** (ligne 320). (1) Retour shell. (2) Admin USER/ADMIN — login : bloc **Comptes de test (debug)** avec emails/mots de passe réels + bouton connexion rapide. (3) Relances sans FAB global. (4–5) FAB appel/entretien/contact depuis détail candidature. (6) **FAB accueil** : candidature **ou** contact (entreprise existante/nouvelle). (7) **Analytics** : ON par défaut, pas de bannière « Analytics OFF ». (8) **Détail appel** : page complète avec liens cliquables. | biométrie OK porteur 17/06 | | | **[ ] EN COURS** | **Preuve agent 02/07** : smokes navigation (#10–11), FAB relance/appel/entretien, admin-hub (hub + Statistiques + restore USER) **OK** Samsung ; batterie **12/16**. **Reste porteur** : checklist § étape 2 points 1–11 sur Samsung (retour Profil/Calendrier, drawer USER sans admin, FAB accueil contact, etc.).
+| Lot D | Mobile — navigation retour, admin, relances, ajouts candidature | appareil + local | **Étape 2** — **ACTIVE** (ligne 320). (1) Retour shell. (2) Admin USER/ADMIN — login : bloc **Comptes de test (debug)** avec emails/mots de passe réels + bouton connexion rapide. (3) Relances sans FAB global. (4–5) FAB appel/entretien/contact depuis détail candidature. (6) **FAB accueil** : candidature **ou** contact (entreprise existante/nouvelle). (7) **Analytics** : ON par défaut, pas de bannière « Analytics OFF ». (8) **Détail appel** : page complète avec liens cliquables. | biométrie OK porteur 17/06 | | | **[ ] EN COURS** | **Preuve agent 02/07** : smokes navigation (#10–11), FAB relance/appel/entretien, admin-hub **OK** Samsung ; batterie **12/16**. **Retours porteur 17/06** : retour shell + drawer USER/ADMIN **OK** ; **KO** sortie impersonnalisation ; FAB 6–11 **non confirmés**. **Correctif agent 17/06** : `ImpersonationBanner` global (bannière + drawer **Désimpersonnaliser** → hub `/admin`) ; double retour Accueil → arrière-plan ; rebuild APK requis. **Reste porteur** : re-test impersonnalisation + checklist 6–11.
 | Infra | Email — migration SMTP `@jobbingtrack.com` (OVH) | OVH + préprod | **Étape 3** — après OK ligne 320. Checklist `docs/emails/OVH_MX_PLAN_JOBBINGTRACK.md`. | | | | **[ ] bloquée par 320** | **Preuve agent 25/06** : diagnostic documenté ; MX/SPF OK ; blocage = offre redirect. Transition : `maily.ovh`.
 | Backoffice | Agent email — activation admin + gestion | local | **Étape 4** — après OK ligne 321 (ou dérogation porteur si IMAP dev suffit). | | | | **[ ] bloquée par 321** | **Preuve agent 25/06** : UI toggle + API `PUT …/agent-enabled`. **Reste porteur** : activer admin + triage IMAP.
 | Lot D | Agent email — consentements RGPD `/agent` (sync mobile) | local | **Étape 5** — après OK ligne 322. Même compte mobile + `/agent`. | | | | **[ ] bloquée par 322** | **Preuve agent 17/06** : switches `AgentEmailContent.tsx`. **Reste porteur** : sync mobile→web.

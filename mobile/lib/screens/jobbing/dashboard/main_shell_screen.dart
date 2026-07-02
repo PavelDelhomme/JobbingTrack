@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
-import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/applications_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/calendar/events_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/home_dashboard_tab.dart';
@@ -34,6 +33,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
   int? _previousTabIndex;
   int? _pendingReturnTab;
   int _applicationsResetEpoch = 0;
+  DateTime? _lastBackToBackgroundPrompt;
 
   @override
   void initState() {
@@ -91,7 +91,25 @@ class _MainShellScreenState extends State<MainShellScreen> {
         _selectedIndex = 0;
         _syncShellRegistry();
       });
+      return;
     }
+    _promptBackgroundOnDoubleBack();
+  }
+
+  void _promptBackgroundOnDoubleBack() {
+    final now = DateTime.now();
+    if (_lastBackToBackgroundPrompt == null ||
+        now.difference(_lastBackToBackgroundPrompt!) > const Duration(seconds: 2)) {
+      _lastBackToBackgroundPrompt = now;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Appuyez à nouveau pour mettre l\'application en arrière-plan'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    SystemNavigator.pop();
   }
 
   void _reselectApplicationsTab() {
@@ -121,34 +139,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
         if (!didPop) _handleSystemBack();
       },
       child: Scaffold(
-        body: Column(
-          children: [
-            Consumer<AuthProvider>(
-              builder: (context, auth, _) {
-                if (!auth.isImpersonating) return const SizedBox.shrink();
-                final email = auth.user?.email ?? '';
-                return MaterialBanner(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  backgroundColor: Colors.orange.shade100,
-                  content: Text('Mode diagnostic — connecté en tant que $email'),
-                  actions: [
-                    TextButton(
-                      onPressed: () async {
-                        await auth.exitImpersonation();
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Retour session admin')),
-                          );
-                        }
-                      },
-                      child: const Text('Quitter'),
-                    ),
-                  ],
-                );
-              },
-            ),
-            Expanded(
-              child: IndexedStack(
+        body: IndexedStack(
                 index: _selectedIndex,
                 children: [
             HomeDashboardTab(
@@ -165,9 +156,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
             const EventsScreen(),
             const ProfileScreen(),
                 ],
-              ),
-            ),
-          ],
         ),
         bottomNavigationBar: SafeArea(
           top: false,

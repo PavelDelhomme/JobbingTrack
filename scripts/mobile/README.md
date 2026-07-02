@@ -59,6 +59,10 @@ ADB_FAST=1 node scripts/mobile/smoke/adb/smoke-mobile-admin-hub-adb.js
 
 # Restaurer empreinte / déverrouillage après smokes (hors mode test ADB)
 node scripts/mobile/clear-smoke-device-adb.js
+
+# Reset jeu porteur (7 candidatures lisibles) — validation étape 2
+node scripts/mobile/reset-porteur-validation-data.js --dry-run
+node scripts/mobile/reset-porteur-validation-data.js --confirm
 ```
 
 ## Biométrie vs smokes

@@ -571,6 +571,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 32),
 
+                if (kDebugMode && !DebugTestAccounts.isConfigured)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      'Comptes debug absents : sur le PC lancez\n'
+                      'node scripts/mobile/setup/sync-admin-mobile-login.js\n'
+                      'puis rebuild APK debug (build-apk-debug.sh).',
+                      style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 if (kDebugMode && DebugTestAccounts.isConfigured) ...[
                   Container(
                     padding: const EdgeInsets.all(16),

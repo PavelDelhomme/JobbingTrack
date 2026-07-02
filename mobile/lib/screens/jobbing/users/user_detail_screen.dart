@@ -273,7 +273,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Session ouverte en tant que ${u.email}')),
         );
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
       }
     } catch (e) {
       if (mounted) {

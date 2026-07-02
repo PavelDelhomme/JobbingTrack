@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 2 juillet 2026 (feuille de route mobile phase B ; **Phase C déploiement préparée** ; backlog BL-26)
+Dernière mise à jour : 17 juin 2026 (retours porteur étape 2 ; correctifs impersonnalisation + double retour)
 
 ## Rôle
 
@@ -16,7 +16,7 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | A2 | Attente email smokes — bonne boîte + diagnostic | Helper IMAP poll avec timeout ; ordre EmailLog → MailHog → Gmail → OVH ; logs indiquent boîte et tentative ; échec = message actionnable (mauvaise boîte, token absent, délai). **25/06** : doc [`BOITE_MAIL_INSCRIPTION_TESTS.md`](../../mobile/BOITE_MAIL_INSCRIPTION_TESTS.md) + `diagnose-registration-email.js` — `candidatures@…` ≠ inbox vérif inscription ; lire **`test@delhomme.ovh`** pour alias `test+…`. EmailLog **SENT** vers `test+mob…@delhomme.ovh` confirmé. | [x] doc + diagnostic |
 | A3 | Bypass biométrie smokes (pas produit) | Pref `test_automation_skip_biometric` (debug APK) ; smokes sans prompt Samsung ; **restauration auto** fin batterie + `clear-smoke-device-adb.js` ; biométrie porteur inchangée hors pref | [x] |
 | A4 | Hub admin ADB multi-comptes | `smoke-mobile-admin-hub-adb.js` OK : admin visible → hub → retour TEST_USER sans blocage login | [x] **02/07** : `SMOKE_SHARED_SHELL=1 ADB_FAST=1 smoke-mobile-admin-hub-adb.js` **OK** (~4 min) — drawer logout + `Connexion ADMIN` / `Connexion USER` ; hub + Statistiques + restore porteur ; fix `logoutViaDrawer` dans `tools/adb-lib/flows.js` |
-| A4b | Admin mobile — actions détail utilisateur | Hub → Utilisateurs → détail : désactiver/activer, modifier email, reset MDP, renvoi vérif, impersonation | [ ] **02/07 agent** : garde admin **dialogue seul** (plus biométrie bloquante) ; édition profil (email/prénom/nom/tél) ; crash logs enrichis (stack trace + metadata) ; **rebuild APK requis** + redémarrer `api-gateway` pour GET `/crashes` |
+| A4b | Admin mobile — actions détail utilisateur | Hub → Utilisateurs → détail : désactiver/activer, modifier email, reset MDP, renvoi vérif, impersonation + **désimpersonnalisation** | [ ] **17/06 agent** : `ImpersonationBanner` global + drawer **Désimpersonnaliser** → `/admin` ; post-impersonate `/home` ; double retour Accueil → arrière-plan ; **`dart analyze` ciblé OK** ; **rebuild APK + re-test porteur Samsung** |
 | A5 | Consentements agent `/agent` — sync mobile→web | Consentements sauvés mobile visibles sur `/agent` (même compte) ; UI switches statut OK/KO + `grantedAt` ; `hasRequiredConsents` cohérent | [ ] UI switches OK ; **porteur 17/06** : à revoir plus tard. **Reste** : preuve sync même compte si besoin |
 | A6 | Comptes test prêts | `ensure-test-accounts-ready.js` : `TEST_USER` + `TEST_ADMIN` login API + `emailVerified=true` | [x] |
 | A6b | Login mobile — comptes test réels (debug) | **26/06** : `generate-debug-test-accounts.js` + boutons **Connexion USER/ADMIN** ; smoke `smoke-login-debug-test-accounts-adb.js` Samsung **OK** (USER + ADMIN, emails/mots de passe visibles). APK réinstallé via `build-apk-debug.sh`. | [x] |
@@ -28,7 +28,7 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | Étape | Ligne | Statut agent | Statut porteur | Action porteur |
 |-------|-------|--------------|----------------|----------------|
 | 1 | 319 Inscription + vérif email | `smoke-etape1-inscription-adb.js` **OK** + porteur mail/vérif OK | **[x] OK** | Archivé `TODOS_DONE.md` 25/06 |
-| 2 | 320 Navigation + FAB | smokes ADB OK | **[ ] EN COURS** | § étape 2 — **02/07 agent** : `smoke-mobile-navigation-adb` **OK** ; `smoke-mobile-application-detail-fab-adb` **OK** ; `smoke-mobile-fab-relance-adb` **OK** ; `smoke-mobile-fab-call-entretien-adb` **OK** ; APK rebuild + reinstall Samsung ; **validation porteur** checklist § étape 2 |
+| 2 | 320 Navigation + FAB | smokes ADB OK ; correctif impersonnalisation 17/06 | **[ ] EN COURS** | Retours porteur partiels 17/06 — **pas OK global** ; re-test impersonnalisation + FAB 6–11 après rebuild APK |
 | 3 | 321 OVH SMTP `@jobbingtrack.com` | doc + diagnostic OK | bloquée par 320 | MX Plan OVH — § étape 3 |
 | 4 | 322 Agent admin `/agent` | UI + API OK | bloquée par 321 | § étape 4 |
 | 5 | 323 Consentements RGPD sync | UI switches OK | bloquée par 322 | § étape 5 |
@@ -54,6 +54,12 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | BL-26-07 | smoke `company-create-adb` | Champ **Nom** introuvable (dialogue entreprise) | [ ] après étape 2 |
 | BL-26-08 | smoke `offline-business-adb` | Option **créer entreprise offline** introuvable | [ ] après étape 2 |
 | BL-26-09 | Toolchain mobile build | Gradle ≥8.14, Built-in Kotlin, `flutter pub outdated` | [ ] phase C1 |
+| BL-26-15 | Actualisation listes au retour | Rafraîchir listes + reprise offline | [ ] après étape 2 |
+| BL-26-16 | Double retour → arrière-plan | Snackbar + `SystemNavigator.pop` sur Accueil | [x] **17/06** code — validation porteur |
+| BL-26-17 | Désimpersonnalisation visible | Bannière globale + drawer | [x] **17/06** code — validation porteur |
+| BL-26-18 | Recherche globale récents + entités | `search_screen.dart` | [ ] après étape 2 |
+| BL-26-19 | Profil email/tél moderne | Lien validation email + indicatif tél | [ ] après étape 2 |
+| BL-26-20 | Logs profil → backoffice | Remontée erreurs modification profil | [ ] après étape 2 |
 
 ### Note porteur — architecture modulaire / deployment-service (27/06)
 
@@ -120,6 +126,13 @@ Index scripts : `scripts/mobile/README.md`.
 | C6 | OTA mobile Android | API `/api/v1/mobile/releases/latest?channel=` + install in-app | [x] **02/07** |
 | C7 | Backoffice releases | `/backoffice/administration/mobile-releases` — upload dev, promote prod | [x] **02/07** |
 | C8 | Tests gateway releases | Jest `mobileReleaseConfig` + `mobileReleaseStore` **5/5 OK** | [x] **02/07** |
+
+### Porteur — reset données validation mobile (02/07)
+
+| Priorité | Vérification agent | Preuve attendue | Statut |
+|----------|--------------------|-----------------|--------|
+| P-RESET | Script reset porteur | `reset-porteur-validation-data.js --confirm` sur `admin@jobbingtrack.com` : purge 1043→0 candidatures puis seed **7** scénarios ; smoke API **OK** | [x] **02/07** |
+| P-RESET | Doc porteur | `docs/mobile/RESET_DONNEES_PORTEUR_VALIDATION.md` + lien étape 2 `TODOS_A_VALIDER.md` | [x] **02/07** |
 
 ## Phase D — Lot H triage scripts (17/06)
 

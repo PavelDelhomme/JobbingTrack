@@ -41,6 +41,7 @@ import 'package:jobbingtrack_mobile/screens/admin/admin_screen.dart';
 import 'package:jobbingtrack_mobile/widgets/admin_guard.dart';
 import 'package:jobbingtrack_mobile/widgets/telemetry_lifecycle_bridge.dart';
 import 'package:jobbingtrack_mobile/widgets/telemetry_dev_status_banner.dart';
+import 'package:jobbingtrack_mobile/widgets/impersonation_banner.dart';
 import 'package:jobbingtrack_mobile/navigation/app_navigator.dart';
 import 'package:jobbingtrack_mobile/utils/locale_init.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
@@ -145,7 +146,9 @@ class JobbingTrackMobileApp extends StatelessWidget {
         navigatorKey: appNavigatorKey,
         title: 'JobbingTrack Mobile',
         debugShowCheckedModeBanner: false,
-        builder: (context, child) => TelemetryDevStatusBanner(child: child),
+        builder: (context, child) => ImpersonationBanner(
+          child: TelemetryDevStatusBanner(child: child),
+        ),
         navigatorObservers: [MobileAnalyticsRouteObserver()],
         theme: ThemeData(
           primarySwatch: Colors.blue,

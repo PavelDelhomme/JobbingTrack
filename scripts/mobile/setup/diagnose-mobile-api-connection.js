@@ -83,27 +83,55 @@ async function main() {
   }
 
   try {
-    const { loadRootEnv } = require('../../ops/load-root-env.cjs');
+    const fs = require('fs');
+    const path = require('path');
+    const { loadRootEnv, probeLogin, listAdminCredentialCandidates } = require('../lib/resolve-admin-credentials');
     loadRootEnv();
-    const email = process.env.TEST_USER_EMAIL;
-    const password = process.env.TEST_USER_PASSWORD;
-    if (email && password) {
+
+    const generated = path.resolve(
+      __dirname,
+      '../../../mobile/lib/config/debug_test_accounts.generated.dart',
+    );
+    if (fs.existsSync(generated)) {
+      ok('debug_test_accounts.generated.dart présent (boutons Connexion USER/ADMIN)');
+    } else {
+      ko('debug_test_accounts.generated.dart ABSENT — lancez node scripts/mobile/setup/sync-admin-mobile-login.js puis rebuild APK debug');
+      failures += 1;
+    }
+
+    const userEmail = process.env.TEST_USER_EMAIL;
+    const userPassword = process.env.TEST_USER_PASSWORD;
+    if (userEmail && userPassword) {
       const r = await fetch(`${GATEWAY}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: userEmail, password: userPassword }),
       });
-      if (r.status === 200) ok(`Login API TEST_USER (${email}) → 200`);
-      else ko(`Login API → ${r.status}`);
+      if (r.status === 200) ok(`Login API TEST_USER (${userEmail}) → 200`);
+      else {
+        ko(`Login API TEST_USER → ${r.status}`);
+        failures += 1;
+      }
+    }
+
+    for (const c of listAdminCredentialCandidates()) {
+      const okLogin = await probeLogin(c.email, c.password);
+      if (okLogin) ok(`Login API admin (${c.source} ${c.email}) → OK`);
+      else {
+        ko(`Login API admin (${c.source} ${c.email}) → KO — lancez sync-admin-mobile-login.js`);
+        failures += 1;
+      }
     }
   } catch (e) {
     ko(`Login API : ${e.message}`);
+    failures += 1;
   }
 
   console.log('\n--- Actions si échec ---');
+  console.log('  node scripts/mobile/setup/sync-admin-mobile-login.js');
+  console.log('  bash scripts/mobile/setup/build-apk-debug.sh && adb install -r mobile/build/app/outputs/flutter-apk/app-debug.apk');
   console.log('  node scripts/mobile/setup/ensure-device-api-ready.js');
-  console.log('  bash scripts/mobile/setup/reinstall-apk-adb.sh');
-  console.log('  Sur le téléphone : écran Connexion → touchez « API » en bas → 127.0.0.1 ou IP LAN du PC\n');
+  console.log('  Sur le téléphone : login → « Connexion ADMIN » (APK debug) — ne pas retaper ADMIN_PASSWORD à la main');
 
   if (failures > 0) process.exit(1);
   ok('Diagnostic complet — relancez l\'app et reconnectez-vous');
