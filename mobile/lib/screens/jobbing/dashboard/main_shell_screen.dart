@@ -32,10 +32,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
   late int _selectedIndex;
   late int _applicationsTabIndex;
   String? _applicationStatusFilter;
-  int? _previousTabIndex;
   int? _pendingReturnTab;
   int _applicationsResetEpoch = 0;
   DateTime? _lastBackToBackgroundPrompt;
+  bool _handlingSystemBack = false;
 
   @override
   void initState() {
@@ -45,12 +45,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
     _applicationStatusFilter = widget.applicationStatusFilter;
     _pendingReturnTab = widget.returnTabOnBack;
     _syncShellRegistry();
-    ShellBackRegistry.register(_handleSystemBack);
   }
 
   @override
   void dispose() {
-    ShellBackRegistry.register(null);
     super.dispose();
   }
 
@@ -65,7 +63,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
     if (index == _selectedIndex) return;
     ShellDrawerRegistry.closeAllDrawers();
     setState(() {
-      _previousTabIndex = previousIndex ?? _selectedIndex;
       _selectedIndex = index;
       _pendingReturnTab = null;
       _syncShellRegistry();
@@ -75,7 +72,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
   void _openApplications({required int tabIndex, String? statusFilter}) {
     ShellDrawerRegistry.closeAllDrawers();
     setState(() {
-      _previousTabIndex = _selectedIndex;
       _selectedIndex = 1;
       _applicationsTabIndex = tabIndex;
       _applicationStatusFilter = statusFilter;
@@ -85,10 +81,20 @@ class _MainShellScreenState extends State<MainShellScreen> {
   }
 
   void _handleSystemBack() {
+    if (_handlingSystemBack) return;
+    _handlingSystemBack = true;
+    try {
+      _handleSystemBackImpl();
+    } finally {
+      _handlingSystemBack = false;
+    }
+  }
+
+  /// Hiérarchie retour shell — voir docs/mobile/NAVIGATION_RETOUR_MOBILE.md
+  void _handleSystemBackImpl() {
     if (_pendingReturnTab != null && _pendingReturnTab != _selectedIndex) {
       setState(() {
         _selectedIndex = _pendingReturnTab!.clamp(0, 3);
-        _previousTabIndex = null;
         _pendingReturnTab = null;
         _syncShellRegistry();
       });
@@ -98,14 +104,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
       ApplicationsSubTabRegistry.goToFirstSubTab();
       setState(() {
         _applicationsTabIndex = 0;
-        _syncShellRegistry();
-      });
-      return;
-    }
-    if (_previousTabIndex != null && _previousTabIndex != _selectedIndex) {
-      setState(() {
-        _selectedIndex = _previousTabIndex!.clamp(0, 3);
-        _previousTabIndex = null;
         _syncShellRegistry();
       });
       return;
@@ -182,8 +180,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
               statusFilter: _applicationStatusFilter,
               isShellVisible: _selectedIndex == 1,
             ),
-            const EventsScreen(),
-            const ProfileScreen(),
+            EventsScreen(isShellVisible: _selectedIndex == 2),
+            ProfileScreen(isShellVisible: _selectedIndex == 3),
                 ],
         ),
         bottomNavigationBar: SafeArea(

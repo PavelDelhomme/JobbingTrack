@@ -65,7 +65,8 @@ Numéros = colonnes du tableau dans `TODOS_A_VALIDER.md` § étape 2.
 |---|-----|--------|--------|
 | **1** | **Profil** (barre basse) → **Paramètres** | Touchez **retour** (←) | Vous revenez sur **Profil**, pas sur Accueil |
 | **2** | **Calendrier** (barre basse) → icône **Profil** / drawer | Puis **retour** | Vous revenez au **Calendrier** (ou écran d’avant) |
-| **2b** | **Candidatures** → sous-onglet **Entreprises** (ou Contacts, Entretiens, Relances, Appels) | Retour système | Retour à la liste **Candidatures** (1er sous-onglet), **pas** Accueil direct |
+| **2b** | **Candidatures** → sous-onglet **Entreprises** (ou Contacts, …) | Retour système | Liste **Candidatures** (sous-onglet 0) — **ne doit pas** fermer l’app |
+| **2b2** | Liste **Candidatures** (sous-onglet 0) | Retour | **Accueil** |
 | **2c** | Drawer → **Entreprises** depuis **Calendrier** | Puis retour | Retour **Calendrier** (onglet d’avant), pas Accueil |
 
 #### B — Comptes USER vs ADMIN
@@ -210,4 +211,5 @@ Ne bloque **pas** l’étape 2 mobile. Si vous avez un VPS prêt :
 | Login admin mobile | `node scripts/mobile/setup/sync-admin-mobile-login.js` + rebuild APK debug |
 | Erreur réseau mobile | `adb reverse tcp:5002 tcp:5002` + `diagnose-mobile-api-connection.js` |
 | Perdu dans la doc | Revenir **ici** — [`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md) |
+| Logique retour complète | [`../mobile/NAVIGATION_RETOUR_MOBILE.md`](../mobile/NAVIGATION_RETOUR_MOBILE.md) |
 | Bloqué en impersonnalisation | Drawer → **Désimpersonnaliser** ou bannière orange en haut → hub admin |

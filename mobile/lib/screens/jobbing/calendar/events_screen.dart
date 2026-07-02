@@ -13,7 +13,9 @@ import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 /// Calendrier — vue Planning (défaut) ou liste événements.
 class EventsScreen extends StatefulWidget {
-  const EventsScreen({super.key});
+  final bool isShellVisible;
+
+  const EventsScreen({super.key, this.isShellVisible = true});
 
   @override
   State<EventsScreen> createState() => _EventsScreenState();
@@ -142,6 +144,7 @@ class _EventsScreenState extends State<EventsScreen> {
       ),
       body: DrawerBackScope(
         scaffoldKey: _scaffoldKey,
+        active: widget.isShellVisible,
         child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

@@ -469,7 +469,7 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 | Sujet | Statut porteur | Suite agent |
 |-------|----------------|-------------|
 | Retour Profil → Accueil | **OK** | — |
-| Retour listes candidatures | **OK** (actualisation listes au retour + reprise offline à renforcer — **BL-26-15**) | **Correctif 17/06 (v3)** : sous-onglet Entreprises/Contacts/… → retour = liste **Candidatures** (pas Accueil direct) ; drawer avec `returnTabOnBack` inchangé |
+| Retour listes candidatures | **KO 17/06 v3** — Entreprises → retour fermait l’app | **Correctif 17/06 (v4)** : un seul `PopScope` shell ; `DrawerBackScope(active:)` ; doc [`NAVIGATION_RETOUR_MOBILE.md`](../mobile/NAVIGATION_RETOUR_MOBILE.md) — **rebuild APK + re-test 2b** |
 | Drawer USER sans Administration | **OK** | — |
 | Hub ADMIN + navigation | **OK** | — |
 | Édition prénom/nom/email/tél | **OK** (refonte UX email/tél — **BL-26-20**) | backlog |

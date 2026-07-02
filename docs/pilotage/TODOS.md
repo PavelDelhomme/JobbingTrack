@@ -95,6 +95,9 @@ Backlog détaillé historique : sections **Lot A–H** plus bas dans ce fichier 
 | **BL-26-18** | A mobile | **Recherche globale — récents + scope utilisateur** | À l’ouverture : recherches récentes ; recherche dans toutes entités user (candidatures, entretiens, relances, appels, contacts, entreprises, événements) avec filtres par type | `search_screen.dart` + API search | **Après étape 2** |
 | **BL-26-19** | A mobile | **Profil — UX email / téléphone moderne** | Email : nouvelle adresse + confirmation + envoi lien validation (pas toggle) ; téléphone : indicatif pays / détection 06… ; MDP : reset par email (OK actuel) | auth-service + `profile_screen.dart` | **Après étape 2** |
 | **BL-26-20** | D mobile / backoffice | **Logs mobile profil & erreurs porteur** | Erreurs modification profil (email, tél, MDP) remontées dans **Administration → Mobile — erreurs & retours** pour diagnostic admin | `MobileAnalyticsService` + API crashes/feedback | **Après étape 2** |
+| **BL-26-25** | A mobile / UX | **AppBar contextuelle + cloche notifications** | Action AppBar **contextuelle** par écran (Planning, etc.) ; **déplacer** le centre notifications in-app — choix porteur avant prod | `MobileNotificationCenter`, `shell_app_bar_menu.dart` | **Gate prod** |
+| **BL-26-26** | C mobile / prod | **Biométrie — re-validation release** | OK debug 19/06 ; **obligatoire** re-test APK release sans bypass smokes avant prod | `A_VALIDER_AVANT_PRODUCTION.md` · **BL-26-26** | **Gate prod** |
+
 
 **Ordre suggéré après étape 2 mobile** : **BL-26-16/17** (re-test porteur) → BL-26-04→08 → BL-26-01 → BL-26-02 → BL-26-03 → **BL-26-09/12** (toolchain + URL prod) → **BL-26-15/18/19/20** → **BL-26-14** (matrice Android) → **BL-26-10/11** (v2 produit) → **BL-26-13** (recherche unifiée backoffice).
 

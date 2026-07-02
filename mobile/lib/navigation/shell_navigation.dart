@@ -14,19 +14,6 @@ class ShellTabRegistry {
   }
 }
 
-/// Retour système délégué au shell (onglets + double retour Accueil).
-class ShellBackRegistry {
-  static VoidCallback? _handler;
-
-  static void register(VoidCallback? handler) {
-    _handler = handler;
-  }
-
-  static void handleBack() {
-    _handler?.call();
-  }
-}
-
 /// Sous-onglets Candidatures (Entreprises, Contacts, …) — retour vers liste principale.
 class ApplicationsSubTabRegistry {
   static VoidCallback? _goToFirstSubTab;

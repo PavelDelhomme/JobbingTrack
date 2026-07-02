@@ -89,6 +89,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
       ),
       body: DrawerBackScope(
         scaffoldKey: _scaffoldKey,
+        active: widget.isShellVisible,
         child: SafeArea(
           child: SingleChildScrollView(
             padding: scrollSafePadding(context, top: 0, extraBottom: shellBottomExtra(context) + 72),

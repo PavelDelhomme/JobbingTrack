@@ -195,6 +195,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
       ),
       body: DrawerBackScope(
         scaffoldKey: _scaffoldKey,
+        active: widget.isShellVisible,
         child: TabBarView(
           controller: _tabController,
           children: [

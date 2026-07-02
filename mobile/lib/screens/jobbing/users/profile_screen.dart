@@ -8,7 +8,9 @@ import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final bool isShellVisible;
+
+  const ProfileScreen({super.key, this.isShellVisible = true});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -77,6 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: DrawerBackScope(
         scaffoldKey: _scaffoldKey,
+        active: widget.isShellVisible,
         child: SafeArea(
           child: ListView(
           padding: const EdgeInsets.all(16),
