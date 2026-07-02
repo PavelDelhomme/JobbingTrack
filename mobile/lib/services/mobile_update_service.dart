@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/app_version_info.dart';
@@ -81,10 +82,18 @@ class AppVersionParts {
 class MobileUpdateService {
   MobileUpdateService._();
 
+  /// Canal dev en debug, production en release — surcharge via `--dart-define=MOBILE_RELEASE_CHANNEL=dev`.
+  static String get releaseChannel {
+    const fromEnv = String.fromEnvironment('MOBILE_RELEASE_CHANNEL', defaultValue: '');
+    if (fromEnv.trim().isNotEmpty) return fromEnv.trim();
+    return kDebugMode ? 'dev' : 'production';
+  }
+
   static Future<MobileReleaseInfo?> fetchLatestRelease() async {
     final platform = Platform.isIOS ? 'ios' : 'android';
+    final channel = releaseChannel;
     final uri = Uri.parse(
-      '${ApiService.baseUrl}/api/v1/mobile/releases/latest?platform=$platform',
+      '${ApiService.baseUrl}/api/v1/mobile/releases/latest?platform=$platform&channel=$channel',
     );
     final response = await http.get(uri).timeout(const Duration(seconds: 8));
     if (response.statusCode != 200) return null;

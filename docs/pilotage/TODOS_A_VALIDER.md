@@ -656,8 +656,9 @@ bash scripts/run-all-tests-with-reports.sh
 | 2 | Variables stack depuis `deploy/production/.env.example` (secrets forts, domaines réels) | Pas de secret dans Git ; login backoffice OK | [ ] |
 | 3 | NPM : `api.<domaine>` → `127.0.0.1:3000`, web → `127.0.0.1:3001`, SSL | HTTPS + CORS OK (`ALLOWED_ORIGINS`) | [ ] |
 | 4 | (Optionnel phase B) GitHub secret `DEV_DEPLOY_URL` = webhook Portainer | Push `dev` → redeploy auto | [ ] |
+| 5 | Backoffice → **Mobile — releases OTA** | Upload APK dev, test Samsung, **Valider → PRODUCTION** | [ ] |
 
-Guide : [`docs/production/PORTAINER_STACK.md`](../production/PORTAINER_STACK.md).
+Guide : [`docs/production/PORTAINER_STACK.md`](../production/PORTAINER_STACK.md) · UI : `/backoffice/administration/mobile-releases`
 
 
 Les chantiers non encore prêts pour validation porteur restent dans `docs/TODOS.md` (env strictes, pentest, PQC, purge menaces après OK P0, etc.).

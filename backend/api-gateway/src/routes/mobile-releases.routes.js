@@ -6,7 +6,8 @@ const { getMobileReleaseInfo } = require('../lib/mobileReleaseConfig');
 const router = express.Router();
 
 router.get('/latest', (req, res) => {
-  const info = getMobileReleaseInfo(req.query.platform);
+  const channel = req.query.channel || 'production';
+  const info = getMobileReleaseInfo(req.query.platform, channel);
   if (!info) {
     return res.status(400).json({
       success: false,

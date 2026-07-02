@@ -118,6 +118,7 @@ Index scripts : `scripts/mobile/README.md`.
 | C4 | Stage prod frontend | `frontend/Dockerfile` target `production` (`npm run build` + `next start`) | [x] **17/06** |
 | C5 | Stack Portainer live VPS | Porteur : stack `jobbingtrack`, ref `refs/heads/dev`, healthchecks OK, NPM HTTPS | [ ] porteur |
 | C6 | OTA mobile Android | API `/api/v1/mobile/releases/latest` + install in-app ; workflow `mobile-release-android.yml` ; doc `PREMIER_DEPLOIEMENT.md` §5 | [x] **17/06** |
+| C7 | Backoffice releases mobile | Page `/backoffice/administration/mobile-releases` — upload dev, promote prod, force update | [x] **02/07** |
 
 ## Phase D — Lot H triage scripts (17/06)
 

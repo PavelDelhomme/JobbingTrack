@@ -1,4 +1,4 @@
-const { getMobileReleaseInfo, buildDownloadUrl } = require('../src/lib/mobileReleaseConfig');
+const { getMobileReleaseInfoFromEnv, buildDownloadUrl } = require('../src/lib/mobileReleaseConfigEnv');
 
 describe('mobileReleaseConfig', () => {
   const envBackup = { ...process.env };
@@ -24,7 +24,7 @@ describe('mobileReleaseConfig', () => {
     process.env.MOBILE_ANDROID_FORCE_UPDATE = 'true';
     process.env.MOBILE_ANDROID_DOWNLOAD_URL = 'https://cdn.example/apk';
 
-    const info = getMobileReleaseInfo('android');
+    const info = getMobileReleaseInfoFromEnv('android');
     expect(info.version).toBe('1.2.0');
     expect(info.buildNumber).toBe(5);
     expect(info.forceUpdate).toBe(true);

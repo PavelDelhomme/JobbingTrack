@@ -68,6 +68,13 @@ Pour upgrades successifs, utiliser **le même keystore**. Documenter secrets CI 
 
 (À configurer avant publication Play Store.)
 
-## Backoffice (futur)
+## Backoffice (implémenté)
 
-Afficher version API/mobile en prod, activer bannière « mise à jour obligatoire » — pilotage métier, pas remplacement du pipeline ci-dessus.
+Page **`/backoffice/administration/mobile-releases`** (menu Administration) :
+
+1. **Publier en DEV** — upload APK + version/build + notes
+2. Tester sur appareils (build debug → canal `dev` automatique)
+3. **Valider → passer en PRODUCTION** — promotion one-click
+4. Cocher **Mise à jour obligatoire** par canal si besoin
+
+Stockage : volume `jobbingtrack_mobile_releases` + fichier `mobile-releases.json` sur l’API gateway.

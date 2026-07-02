@@ -7,6 +7,8 @@ const trashController = require('../controllers/trash.controller');
 const dataManagementController = require('../controllers/data-management.controller');
 const testdataController = require('../controllers/testdata.controller');
 const logsController = require('../controllers/logs.controller');
+const mobileReleasesController = require('../controllers/mobile-releases.controller');
+const { mobileApkUpload } = require('../middleware/mobileApkUpload');
 
 // Middleware d'authentification basique pour le développement
 const authenticate = (req, res, next) => {
@@ -119,5 +121,26 @@ router.get('/tables/:tableName/export', authenticate, dataManagementController.e
 router.get('/test', authenticate, (req, res) => {
   res.json({ success: true, message: 'Route admin test fonctionne!' });
 });
+
+// Mobile releases (OTA) — pilotage dev / production depuis backoffice
+router.get('/mobile/releases', authenticate, mobileReleasesController.listReleases);
+router.post(
+  '/mobile/releases/upload',
+  authenticate,
+  mobileApkUpload.single('apk'),
+  mobileReleasesController.uploadRelease,
+);
+router.post('/mobile/releases/promote', authenticate, mobileReleasesController.promoteToProduction);
+router.post('/mobile/releases/ios', authenticate, mobileReleasesController.registerIosRelease);
+router.patch(
+  '/mobile/releases/channels/:channel/:platform',
+  authenticate,
+  mobileReleasesController.patchChannelPolicy,
+);
+router.post(
+  '/mobile/releases/:id/activate',
+  authenticate,
+  mobileReleasesController.activateExistingRelease,
+);
 
 module.exports = router;

@@ -478,6 +478,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           href: "/backoffice/administration/mobile-logs",
           icon: "📱",
         },
+        {
+          name: "Mobile — releases OTA",
+          href: "/backoffice/administration/mobile-releases",
+          icon: "🚀",
+        },
       ],
     },
     {
