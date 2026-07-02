@@ -14,6 +14,8 @@ const PORT = parseInt(process.env.EMULATOR_CONTROLLER_PORT || '5055', 10);
 const HOST = process.env.EMULATOR_CONTROLLER_HOST || '127.0.0.1';
 const BASE_PATH = (process.env.EMULATOR_CONTROLLER_BASE_PATH || '').replace(/\/$/, '');
 const MOBILE_PATH = process.env.MOBILE_PROJECT_PATH || path.resolve(__dirname, '../../mobile');
+const REPO_ROOT = path.resolve(MOBILE_PATH, '..');
+const BUILD_APK_SCRIPT = path.join(REPO_ROOT, 'scripts/mobile/setup/build-apk-debug.sh');
 let ANDROID_HOME = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT || '';
 if (!ANDROID_HOME && process.env.HOME) {
   const p = path.join(process.env.HOME, 'Android', 'Sdk');
@@ -68,6 +70,38 @@ function execCapture(cmd, opts = {}) {
       });
     });
   });
+}
+
+function parsePubspecVersion() {
+  try {
+    const yaml = fs.readFileSync(path.join(MOBILE_PATH, 'pubspec.yaml'), 'utf8');
+    const m = yaml.match(/^version:\s*([0-9.]+)\+(\d+)/m);
+    if (!m) return null;
+    return { version: m[1], buildNumber: parseInt(m[2], 10) || 1 };
+  } catch {
+    return null;
+  }
+}
+
+function resolveApkPath() {
+  const apkPathFlutter = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
+  const apkPathLegacy = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'apk', 'debug', 'app-debug.apk');
+  if (fs.existsSync(apkPathFlutter)) return apkPathFlutter;
+  if (fs.existsSync(apkPathLegacy)) return apkPathLegacy;
+  return null;
+}
+
+function sendFile(res, filePath, downloadName) {
+  const stat = fs.statSync(filePath);
+  res.writeHead(200, {
+    'Content-Type': 'application/vnd.android.package-archive',
+    'Content-Disposition': `attachment; filename="${downloadName}"`,
+    'Content-Length': stat.size,
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  });
+  fs.createReadStream(filePath).pipe(res);
 }
 
 function parseAdbDevices(stdout) {
@@ -281,33 +315,29 @@ const routes = {
       const baseEnv = envWithAndroid();
       const gradleCache = ensureWritableFlutterGradle();
       if (gradleCache) baseEnv.FLUTTER_GRADLE_BUILD_PATH = gradleCache;
+      if (process.env.API_BASE_URL) baseEnv.API_BASE_URL = process.env.API_BASE_URL;
+      if (process.env.MOBILE_DEV_LAN_HOST) baseEnv.MOBILE_DEV_LAN_HOST = process.env.MOBILE_DEV_LAN_HOST;
 
-      // 1) Supprimer tout le dossier outputs (et build/app si besoin) pour éviter "Zip already contains entry ... cannot overwrite"
-      const outputsDir = path.join(MOBILE_PATH, 'build', 'app', 'outputs');
-      const buildAppDir = path.join(MOBILE_PATH, 'build', 'app');
-      try {
-        if (fs.existsSync(outputsDir)) fs.rmSync(outputsDir, { recursive: true, force: true });
-        // Au cas où outputs a échoué : supprimer les dossiers apk et flutter-apk un par un
-        const apkDir = path.join(buildAppDir, 'outputs', 'apk');
-        const flutterApkDir = path.join(buildAppDir, 'outputs', 'flutter-apk');
-        if (fs.existsSync(apkDir)) fs.rmSync(apkDir, { recursive: true, force: true });
-        if (fs.existsSync(flutterApkDir)) fs.rmSync(flutterApkDir, { recursive: true, force: true });
-      } catch (_) { /* ignore */ }
+      let stdout = '';
+      let stderr = '';
+      let code = 1;
 
-      // 2) flutter clean (vide le cache build Flutter)
-      await execCapture('flutter clean', { cwd: MOBILE_PATH, env: baseEnv });
+      if (fs.existsSync(BUILD_APK_SCRIPT)) {
+        const cmd = `bash "${BUILD_APK_SCRIPT}"`;
+        ({ stdout, stderr, code } = await execCapture(cmd, { cwd: REPO_ROOT, env: baseEnv }));
+      } else {
+        const outputsDir = path.join(MOBILE_PATH, 'build', 'app', 'outputs');
+        try {
+          if (fs.existsSync(outputsDir)) fs.rmSync(outputsDir, { recursive: true, force: true });
+        } catch (_) { /* ignore */ }
+        await execCapture('flutter clean', { cwd: MOBILE_PATH, env: baseEnv });
+        ({ stdout, stderr, code } = await execCapture('flutter build apk --debug', { cwd: MOBILE_PATH, env: baseEnv }));
+      }
 
-      // 3) Re-supprimer outputs après clean au cas où clean aurait recréé un dossier
-      try {
-        if (fs.existsSync(outputsDir)) fs.rmSync(outputsDir, { recursive: true, force: true });
-      } catch (_) { /* ignore */ }
-
-      const { stdout, stderr, code } = await execCapture('flutter build apk --debug', { cwd: MOBILE_PATH, env: baseEnv });
-      const apkPathFlutter = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
-      const apkPathLegacy = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'apk', 'debug', 'app-debug.apk');
-      const apkPath = fs.existsSync(apkPathFlutter) ? apkPathFlutter : apkPathLegacy;
-      const exists = fs.existsSync(apkPath);
+      const apkPath = resolveApkPath();
+      const exists = apkPath && fs.existsSync(apkPath);
       const ok = exists && code === 0;
+      const pubspec = parsePubspecVersion();
       const stdoutStr = typeof stdout === 'string' ? stdout : String(stdout || '');
       const stderrStr = typeof stderr === 'string' ? stderr : String(stderr || '');
       return send(res, 200, {
@@ -315,6 +345,9 @@ const routes = {
         message: ok ? 'Build APK réussi' : (exists ? 'Build terminé avec erreur (voir stderr)' : 'Build échoué (voir stderr)'),
         path: exists ? apkPath : null,
         exitCode: code,
+        version: pubspec?.version || null,
+        buildNumber: pubspec?.buildNumber || null,
+        downloadUrl: exists ? '/download-apk' : null,
         stdout: stdoutStr.slice(-4000),
         stderr: stderrStr.slice(-2000),
       });
@@ -873,8 +906,52 @@ const routes = {
     }
   },
 
+  async '/download-apk'(req, res) {
+    try {
+      const apkPath = resolveApkPath();
+      if (!apkPath) {
+        return send(res, 404, { success: false, error: 'APK introuvable. Lancez d’abord « Build APK ».' });
+      }
+      sendFile(res, apkPath, 'app-debug.apk');
+    } catch (e) {
+      send(res, 500, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
+  async '/apk-info'(req, res) {
+    try {
+      const apkPath = resolveApkPath();
+      const pubspec = parsePubspecVersion();
+      if (!apkPath) {
+        return send(res, 200, {
+          exists: false,
+          version: pubspec?.version || null,
+          buildNumber: pubspec?.buildNumber || null,
+        });
+      }
+      const stat = fs.statSync(apkPath);
+      send(res, 200, {
+        exists: true,
+        path: apkPath,
+        sizeBytes: stat.size,
+        modifiedAt: stat.mtime.toISOString(),
+        version: pubspec?.version || null,
+        buildNumber: pubspec?.buildNumber || null,
+      });
+    } catch (e) {
+      send(res, 500, { success: false, error: (e && e.message) || String(e) });
+    }
+  },
+
   async '/health'(req, res) {
-    send(res, 200, { ok: true, service: 'emulator-controller', mobilePath: MOBILE_PATH });
+    send(res, 200, {
+      ok: true,
+      service: 'emulator-controller',
+      mobilePath: MOBILE_PATH,
+      repoRoot: REPO_ROOT,
+      buildScript: fs.existsSync(BUILD_APK_SCRIPT),
+      apkReady: !!resolveApkPath(),
+    });
   },
 
   /** GET: indique si un build est nécessaire (APK plus ancien que mobile/lib). */

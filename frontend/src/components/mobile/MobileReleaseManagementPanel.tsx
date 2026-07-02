@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useAuth } from "@/lib/hooks/auth";
 import { FRONTEND_URLS } from "@/config/ports.config";
+import { MobileApkBuildPanel } from "@/components/mobile/MobileApkBuildPanel";
+import { fetchBuiltApkBlob } from "@/lib/mobile/emulatorControllerClient";
 
 type MobileRelease = {
   id: string;
@@ -56,8 +58,8 @@ function resolveDownloadHref(release: Pick<MobileRelease, "filename" | "download
 
 const DEPLOY_STEPS = [
   {
-    title: "1 — Compiler l’APK sur votre poste",
-    body: "À la racine du dépôt. Vérifiez d’abord la version dans mobile/pubspec.yaml (ex. 1.0.0+42) : vous la recopierez à l’étape 3.",
+    title: "1 — Build APK (backoffice ou terminal)",
+    body: "Depuis cette page : bouton « Lancer le build APK » (contrôleur local requis). Sinon en terminal : script ci-dessous. Alignez mobile/pubspec.yaml avant le build.",
     code: BUILD_APK_CMD,
   },
   {
@@ -200,15 +202,14 @@ export function MobileReleaseManagementPanel() {
     void load();
   }, [load]);
 
-  const handleUpload = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!token || !apkFile) return;
+  const uploadApkFile = async (file: File) => {
+    if (!token) return;
     setUploading(true);
     setMessage(null);
     setError(null);
     try {
       const form = new FormData();
-      form.append("apk", apkFile);
+      form.append("apk", file);
       form.append("version", version.trim());
       form.append("buildNumber", buildNumber.trim());
       form.append("channel", channel);
@@ -228,6 +229,24 @@ export function MobileReleaseManagementPanel() {
       setError(detail);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleUpload = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!apkFile) return;
+    await uploadApkFile(apkFile);
+  };
+
+  const publishBuiltApk = async () => {
+    try {
+      const blob = await fetchBuiltApkBlob();
+      const file = new File([blob], "app-debug.apk", {
+        type: "application/vnd.android.package-archive",
+      });
+      await uploadApkFile(file);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Impossible de récupérer l’APK buildé");
     }
   };
 
@@ -290,6 +309,15 @@ export function MobileReleaseManagementPanel() {
 
   return (
     <div className="space-y-6">
+      <MobileApkBuildPanel
+        onBuilt={({ version: v, buildNumber: b }) => {
+          setVersion(v);
+          setBuildNumber(b);
+        }}
+        onPublishRequest={() => void publishBuiltApk()}
+        publishing={uploading}
+      />
+
       {state ? (
         <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-200">
           <p className="font-semibold">État serveur OTA</p>
