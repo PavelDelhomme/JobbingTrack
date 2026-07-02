@@ -85,12 +85,27 @@ class _MainShellScreenState extends State<MainShellScreen> {
   }
 
   void _handleSystemBack() {
-    final target = _pendingReturnTab ?? _previousTabIndex;
-    if (target != null && target != _selectedIndex) {
+    if (_pendingReturnTab != null && _pendingReturnTab != _selectedIndex) {
       setState(() {
-        _selectedIndex = target.clamp(0, 3);
+        _selectedIndex = _pendingReturnTab!.clamp(0, 3);
         _previousTabIndex = null;
         _pendingReturnTab = null;
+        _syncShellRegistry();
+      });
+      return;
+    }
+    if (_selectedIndex == 1 && ShellTabRegistry.currentApplicationsSubTab > 0) {
+      ApplicationsSubTabRegistry.goToFirstSubTab();
+      setState(() {
+        _applicationsTabIndex = 0;
+        _syncShellRegistry();
+      });
+      return;
+    }
+    if (_previousTabIndex != null && _previousTabIndex != _selectedIndex) {
+      setState(() {
+        _selectedIndex = _previousTabIndex!.clamp(0, 3);
+        _previousTabIndex = null;
         _syncShellRegistry();
       });
       return;

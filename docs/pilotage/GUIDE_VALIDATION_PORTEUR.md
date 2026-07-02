@@ -65,6 +65,8 @@ Numéros = colonnes du tableau dans `TODOS_A_VALIDER.md` § étape 2.
 |---|-----|--------|--------|
 | **1** | **Profil** (barre basse) → **Paramètres** | Touchez **retour** (←) | Vous revenez sur **Profil**, pas sur Accueil |
 | **2** | **Calendrier** (barre basse) → icône **Profil** / drawer | Puis **retour** | Vous revenez au **Calendrier** (ou écran d’avant) |
+| **2b** | **Candidatures** → sous-onglet **Entreprises** (ou Contacts, Entretiens, Relances, Appels) | Retour système | Retour à la liste **Candidatures** (1er sous-onglet), **pas** Accueil direct |
+| **2c** | Drawer → **Entreprises** depuis **Calendrier** | Puis retour | Retour **Calendrier** (onglet d’avant), pas Accueil |
 
 #### B — Comptes USER vs ADMIN
 

@@ -63,3 +63,15 @@ String contactDisplayNameFromMap(Map<String, dynamic>? c) {
   if (full.isNotEmpty) return full;
   return c['email']?.toString() ?? 'Contact';
 }
+
+/// Contact lié exploitable (id + au moins un libellé) — évite navigation vers fiche vide.
+bool isMeaningfulContactMap(Map<String, dynamic>? c) {
+  if (c == null) return false;
+  final id = c['id']?.toString().trim();
+  if (id == null || id.isEmpty) return false;
+  final first = c['firstName']?.toString().trim() ?? '';
+  final last = c['lastName']?.toString().trim() ?? '';
+  final email = c['email']?.toString().trim() ?? '';
+  final phone = c['phone']?.toString().trim() ?? '';
+  return '$first$last$email$phone'.isNotEmpty;
+}

@@ -199,7 +199,7 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
                     ),
                   ),
                 const EntityLinkSectionHeader('Contact'),
-                if (_contact == null)
+                if (!isMeaningfulContactMap(_contact))
                   const EntityLinksEmptyHint('Aucun contact')
                 else
                   EntityLinkTile(

@@ -57,7 +57,7 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
           _interview = Interview.fromJson(raw);
           _application = app;
           _company = companyFromLinkedMap(nestedMap(raw, 'company')) ?? app?.company;
-          _contacts = contacts;
+          _contacts = contacts.where(isMeaningfulContactMap).toList();
           _loading = false;
         });
       }

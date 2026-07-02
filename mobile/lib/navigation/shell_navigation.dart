@@ -9,7 +9,7 @@ class ShellTabRegistry {
   static void setCurrentTab(int tab, {int? applicationsSubTab}) {
     currentTab = tab.clamp(0, 3);
     if (applicationsSubTab != null) {
-      currentApplicationsSubTab = applicationsSubTab.clamp(0, 4);
+      currentApplicationsSubTab = applicationsSubTab.clamp(0, 5);
     }
   }
 }
@@ -24,6 +24,19 @@ class ShellBackRegistry {
 
   static void handleBack() {
     _handler?.call();
+  }
+}
+
+/// Sous-onglets Candidatures (Entreprises, Contacts, …) — retour vers liste principale.
+class ApplicationsSubTabRegistry {
+  static VoidCallback? _goToFirstSubTab;
+
+  static void registerGoToFirstSubTab(VoidCallback? callback) {
+    _goToFirstSubTab = callback;
+  }
+
+  static void goToFirstSubTab() {
+    _goToFirstSubTab?.call();
   }
 }
 
@@ -74,6 +87,7 @@ class ShellNavigation {
     '/contacts': MainShellArgs(initialTab: 1, applicationsTabIndex: 2),
     '/interviews': MainShellArgs(initialTab: 1, applicationsTabIndex: 3),
     '/followups': MainShellArgs(initialTab: 1, applicationsTabIndex: 4),
+    '/calls': MainShellArgs(initialTab: 1, applicationsTabIndex: 5),
     '/events': MainShellArgs(initialTab: 2),
     '/profile': MainShellArgs(initialTab: 3),
   };

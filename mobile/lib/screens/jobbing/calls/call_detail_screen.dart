@@ -179,7 +179,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                   EntityDetailField(label: 'Créé le', value: formatUserLocalDateTime(call.createdAt.toIso8601String())),
                   const SizedBox(height: 8),
                   const EntityLinkSectionHeader('Liens'),
-                  if (_contact != null)
+                  if (isMeaningfulContactMap(_contact))
                     EntityLinkTile(
                       icon: Icons.person_outline,
                       title: contactDisplayNameFromMap(_contact),

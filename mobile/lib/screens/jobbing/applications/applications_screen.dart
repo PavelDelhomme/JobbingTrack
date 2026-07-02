@@ -7,7 +7,10 @@ import 'package:jobbingtrack_mobile/providers/contact_provider.dart';
 import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
+import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
+import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
+import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
@@ -20,6 +23,7 @@ import 'package:jobbingtrack_mobile/screens/jobbing/companies/company_detail_scr
 import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contact_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/widgets/application_card.dart';
@@ -46,20 +50,35 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   late TabController _tabController;
   String? _statusFilter;
+  List<Call> _calls = [];
+  bool _callsLoading = false;
 
   @override
   void initState() {
     super.initState();
     _statusFilter = widget.statusFilter;
     _tabController = TabController(
-      length: 5,
+      length: 6,
       vsync: this,
-      initialIndex: widget.initialTabIndex.clamp(0, 4),
+      initialIndex: widget.initialTabIndex.clamp(0, 5),
     );
-    _tabController.addListener(() {
-      if (mounted) setState(() {});
-    });
+    _tabController.addListener(_onSubTabChanged);
+    ApplicationsSubTabRegistry.registerGoToFirstSubTab(_goToFirstSubTab);
+    ShellTabRegistry.setCurrentTab(1, applicationsSubTab: _tabController.index);
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadAll());
+  }
+
+  void _onSubTabChanged() {
+    if (!_tabController.indexIsChanging && mounted) {
+      ShellTabRegistry.setCurrentTab(1, applicationsSubTab: _tabController.index);
+      setState(() {});
+    }
+  }
+
+  void _goToFirstSubTab() {
+    if (_tabController.index != 0) {
+      _tabController.animateTo(0);
+    }
   }
 
   @override
@@ -67,7 +86,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialTabIndex != widget.initialTabIndex &&
         _tabController.index != widget.initialTabIndex) {
-      _tabController.animateTo(widget.initialTabIndex.clamp(0, 4));
+      _tabController.animateTo(widget.initialTabIndex.clamp(0, 5));
     }
     if (oldWidget.statusFilter != widget.statusFilter) {
       setState(() => _statusFilter = widget.statusFilter);
@@ -76,8 +95,21 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
 
   @override
   void dispose() {
+    ApplicationsSubTabRegistry.registerGoToFirstSubTab(null);
+    _tabController.removeListener(_onSubTabChanged);
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCalls() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    setState(() => _callsLoading = true);
+    try {
+      final list = await ApiService.getCalls(token: auth.token);
+      if (mounted) setState(() { _calls = list; _callsLoading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _callsLoading = false);
+    }
   }
 
   Future<void> _loadAll() async {
@@ -89,6 +121,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
     final interviewProvider = Provider.of<InterviewProvider>(context, listen: false);
     final followUpProvider = Provider.of<FollowUpProvider>(context, listen: false);
 
+    setState(() => _callsLoading = true);
+
     await Future.wait([
       appProvider.loadApplications(token: token),
       companyProvider.loadCompanies(token: token).catchError((_) {}),
@@ -96,6 +130,13 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
       interviewProvider.loadInterviews(token: token).catchError((_) {}),
       followUpProvider.loadFollowUps(token: token).catchError((_) {}),
     ]);
+
+    try {
+      _calls = await ApiService.getCalls(token: token);
+    } catch (_) {}
+
+    if (!mounted) return;
+    setState(() => _callsLoading = false);
 
     final names = {for (final c in companyProvider.companies) c.id: c.name};
     appProvider.enrichCompanies(names);
@@ -148,6 +189,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
             Tab(icon: Icon(Icons.people, size: 20), text: 'Contacts'),
             Tab(icon: Icon(Icons.event, size: 20), text: 'Entretiens'),
             Tab(icon: Icon(Icons.schedule_send, size: 20), text: 'Relances'),
+            Tab(icon: Icon(Icons.phone, size: 20), text: 'Appels'),
           ],
         ),
       ),
@@ -161,6 +203,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
             _buildContactsTab(),
             _buildEntretiensTab(),
             _buildRelancesTab(),
+            _buildAppelsTab(),
           ],
         ),
       ),
@@ -511,6 +554,47 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAppelsTab() {
+    if (_callsLoading) {
+      return const Center(child: CircularProgressIndicator(color: Colors.blue));
+    }
+    if (_calls.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.phone_in_talk, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text('Aucun appel', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _loadCalls,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        itemCount: _calls.length,
+        itemBuilder: (context, index) {
+          final c = _calls[index];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: const Icon(Icons.phone, color: Colors.green),
+              title: Text(c.subject.trim().isNotEmpty ? c.subject : 'Appel téléphonique'),
+              subtitle: Text(formatSmartEventDate(c.callDate)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => CallDetailScreen(call: c)),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

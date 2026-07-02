@@ -469,7 +469,7 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 | Sujet | Statut porteur | Suite agent |
 |-------|----------------|-------------|
 | Retour Profil → Accueil | **OK** | — |
-| Retour listes candidatures | **OK** (actualisation listes au retour + reprise offline à renforcer — **BL-26-15**) | backlog |
+| Retour listes candidatures | **OK** (actualisation listes au retour + reprise offline à renforcer — **BL-26-15**) | **Correctif 17/06 (v3)** : sous-onglet Entreprises/Contacts/… → retour = liste **Candidatures** (pas Accueil direct) ; drawer avec `returnTabOnBack` inchangé |
 | Drawer USER sans Administration | **OK** | — |
 | Hub ADMIN + navigation | **OK** | — |
 | Édition prénom/nom/email/tél | **OK** (refonte UX email/tél — **BL-26-20**) | backlog |
@@ -478,7 +478,9 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 | FAB relances / appels / entretiens / contacts (6–11) | **non confirmés** | re-test porteur après APK |
 | Tutoriel première connexion (skip + reprise) | backlog | **BL-TUT-01** |
 | Recherche globale (récents + toutes entités) | backlog | **BL-26-19** |
-| Logs mobile profil/erreurs visibles backoffice | backlog | **BL-26-21** |
+| Liste historique **Appels** | manquante dans hub Candidatures | **Correctif 17/06** : 6e sous-onglet **Appels** + drawer `/calls` → shell |
+| Contact vide cliquable (détail relance) | **KO** | **Correctif 17/06** : `isMeaningfulContactMap` — pas de navigation si contact vide |
+| Warnings build Kotlin / pub outdated | build **OK** | **BL-26-09** — dette documentée, pas bloquant debug |
 
 **Décision** : **pas d’OK global** tant que impersonnalisation + points 6–11 non re-validés. Après rebuild : `OK Mobile — navigation retour…` **ou** `KO …` point par point.
 
