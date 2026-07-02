@@ -4,6 +4,7 @@ const path = require('path');
 const {
   createRelease,
   getPublicReleaseInfo,
+  listAdminState,
   promoteRelease,
   updateChannelPolicy,
 } = require('../src/services/mobileReleaseStore');
@@ -62,5 +63,20 @@ describe('mobileReleaseStore', () => {
     updateChannelPolicy('production', 'android', { forceUpdate: true });
     const info = getPublicReleaseInfo('android', 'production');
     expect(info.forceUpdate).toBe(true);
+  });
+
+  it('listAdminState expose deployHints', () => {
+    createRelease({
+      channel: 'dev',
+      platform: 'android',
+      version: '1.0.0',
+      buildNumber: 7,
+      filename: 'jobbingtrack-1.0.0+7.apk',
+    });
+
+    const state = listAdminState();
+    expect(state.deployHints.publicApiUrl).toBe('https://api.example.com');
+    expect(state.deployHints.suggestedVersion).toBe('1.0.0');
+    expect(state.deployHints.suggestedBuild).toBeGreaterThanOrEqual(8);
   });
 });

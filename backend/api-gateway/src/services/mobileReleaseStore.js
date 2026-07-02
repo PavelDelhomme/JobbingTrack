@@ -108,6 +108,27 @@ function releaseToPublicInfo(release, channelState) {
   };
 }
 
+function getDeployHints(store) {
+  const androidReleases = store.releases.filter((r) => r.platform === 'android');
+  const latest = androidReleases[0] || null;
+  const activeDev = getActiveRelease(store, 'dev', 'android');
+  const versionSource = activeDev || latest;
+  const latestBuild = androidReleases.reduce(
+    (max, r) => Math.max(max, r.buildNumber || 0),
+    0,
+  );
+
+  return {
+    publicApiUrl:
+      process.env.PUBLIC_API_URL?.trim()
+      || process.env.NEXT_PUBLIC_API_URL?.trim()
+      || null,
+    suggestedVersion: versionSource?.version || '1.0.0',
+    suggestedBuild: Math.max(latestBuild + 1, (versionSource?.buildNumber || 0) + 1, 1),
+    latestAndroidRelease: latest,
+  };
+}
+
 function listAdminState() {
   const store = readStore();
   const channels = {};
@@ -123,6 +144,7 @@ function listAdminState() {
   }
   return {
     releasesDir: releasesDir(),
+    deployHints: getDeployHints(store),
     channels,
     releases: [...store.releases].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),

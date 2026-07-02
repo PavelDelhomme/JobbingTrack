@@ -30,6 +30,12 @@ type ChannelPlatformState = {
 
 type AdminReleaseState = {
   releasesDir: string;
+  deployHints?: {
+    publicApiUrl: string | null;
+    suggestedVersion: string;
+    suggestedBuild: number;
+    latestAndroidRelease: MobileRelease | null;
+  };
   channels: Record<string, Record<string, ChannelPlatformState>>;
   releases: MobileRelease[];
 };
@@ -40,6 +46,13 @@ const INSTALL_APK_CMD =
 const ADB_REVERSE_CMD = "adb reverse tcp:5002 tcp:5002";
 const APK_OUTPUT =
   "mobile/build/app/outputs/flutter-apk/app-debug.apk";
+
+function resolveDownloadHref(release: Pick<MobileRelease, "filename" | "downloadUrl">): string | null {
+  if (release.filename) {
+    return `/api/v1/mobile/releases/download/${encodeURIComponent(release.filename)}`;
+  }
+  return release.downloadUrl ?? null;
+}
 
 const DEPLOY_STEPS = [
   {
@@ -112,6 +125,7 @@ export function MobileReleaseManagementPanel() {
   const [channel, setChannel] = useState<"dev" | "production">("dev");
   const [releaseNotes, setReleaseNotes] = useState("");
   const [apkFile, setApkFile] = useState<File | null>(null);
+  const [hintsApplied, setHintsApplied] = useState(false);
 
   const apiBase =
     typeof window !== "undefined" ? "" : FRONTEND_URLS.api.replace(/\/$/, "");
@@ -140,6 +154,12 @@ export function MobileReleaseManagementPanel() {
       );
       if (res.data.success) {
         setState(res.data.data);
+        const hints = res.data.data.deployHints;
+        if (hints && !hintsApplied) {
+          setVersion(hints.suggestedVersion);
+          setBuildNumber(String(hints.suggestedBuild));
+          setHintsApplied(true);
+        }
       } else {
         setError("Réponse API inattendue.");
       }
@@ -174,7 +194,7 @@ export function MobileReleaseManagementPanel() {
     } finally {
       setLoading(false);
     }
-  }, [authHeaders, token]);
+  }, [authHeaders, hintsApplied, token]);
 
   useEffect(() => {
     void load();
@@ -265,9 +285,39 @@ export function MobileReleaseManagementPanel() {
 
   const devAndroid = state?.channels?.dev?.android;
   const prodAndroid = state?.channels?.production?.android;
+  const publicApiUrl = state?.deployHints?.publicApiUrl;
+  const otaBaseUrl = publicApiUrl || (typeof window !== "undefined" ? window.location.origin : null);
 
   return (
     <div className="space-y-6">
+      {state ? (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-200">
+          <p className="font-semibold">État serveur OTA</p>
+          <ul className="mt-2 list-inside list-disc space-y-1 text-xs">
+            <li>
+              Stockage APK : <code>{state.releasesDir}</code>
+            </li>
+            <li>
+              URL publique API (liens OTA mobile) :{" "}
+              {publicApiUrl ? (
+                <code>{publicApiUrl}</code>
+              ) : (
+                <span className="text-amber-700 dark:text-amber-300">
+                  non configurée — définir <code>PUBLIC_API_URL</code> dans <code>.env</code>
+                </span>
+              )}
+            </li>
+            <li>
+              Prochain build suggéré :{" "}
+              <strong>
+                {state.deployHints?.suggestedVersion ?? version}+
+                {state.deployHints?.suggestedBuild ?? buildNumber}
+              </strong>{" "}
+              (aligner <code>mobile/pubspec.yaml</code> avant compilation)
+            </li>
+          </ul>
+        </div>
+      ) : null}
       {apiDiag ? (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
           <p className="font-semibold">Diagnostic API (404)</p>
@@ -326,6 +376,7 @@ export function MobileReleaseManagementPanel() {
           subtitle="Appareils de test, émulateurs, APK fraîche avant prod"
           channelState={devAndroid}
           loading={loading}
+          otaBaseUrl={otaBaseUrl}
         />
         <ChannelCard
           title="Canal PRODUCTION"
@@ -334,6 +385,7 @@ export function MobileReleaseManagementPanel() {
           loading={loading}
           onPromote={promoteDevToProd}
           promoteLoading={actionId === "promote"}
+          otaBaseUrl={otaBaseUrl}
         />
       </div>
 
@@ -344,8 +396,12 @@ export function MobileReleaseManagementPanel() {
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Sélectionnez le fichier <code>{APK_OUTPUT}</code>. La <strong>version</strong> et le{" "}
           <strong>build</strong> doivent correspondre à{" "}
-          <code>mobile/pubspec.yaml</code> (actuellement réf. repo :{" "}
-          <code>1.0.0+1</code> — mettez à jour pubspec avant le build si besoin).
+          <code>mobile/pubspec.yaml</code> (suggestion serveur :{" "}
+          <code>
+            {state?.deployHints?.suggestedVersion ?? version}+
+            {state?.deployHints?.suggestedBuild ?? buildNumber}
+          </code>
+          ).
         </p>
         <form onSubmit={handleUpload} className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="block text-sm">
@@ -360,13 +416,27 @@ export function MobileReleaseManagementPanel() {
           </label>
           <label className="block text-sm">
             <span className="font-medium">Numéro de build</span>
-            <input
-              required
-              value={buildNumber}
-              onChange={(e) => setBuildNumber(e.target.value)}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
-              placeholder="42"
-            />
+            <div className="mt-1 flex gap-2">
+              <input
+                required
+                value={buildNumber}
+                onChange={(e) => setBuildNumber(e.target.value)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
+                placeholder="42"
+              />
+              {state?.deployHints ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVersion(state.deployHints!.suggestedVersion);
+                    setBuildNumber(String(state.deployHints!.suggestedBuild));
+                  }}
+                  className="shrink-0 rounded-md border border-gray-300 px-2 text-xs hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
+                >
+                  Suggestion
+                </button>
+              ) : null}
+            </div>
           </label>
           <label className="block text-sm">
             <span className="font-medium">Canal</span>
@@ -450,18 +520,21 @@ export function MobileReleaseManagementPanel() {
                     <td className="px-2 py-2">{r.channel}</td>
                     <td className="px-2 py-2">{formatDate(r.createdAt)}</td>
                     <td className="px-2 py-2">
-                      {r.downloadUrl ? (
-                        <a
-                          href={r.downloadUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline dark:text-blue-400"
-                        >
-                          APK
-                        </a>
-                      ) : (
-                        "—"
-                      )}
+                      {(() => {
+                        const href = resolveDownloadHref(r);
+                        return href ? (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline dark:text-blue-400"
+                          >
+                            APK
+                          </a>
+                        ) : (
+                          "—"
+                        );
+                      })()}
                     </td>
                     <td className="px-2 py-2">
                       {r.platform === "android" ? (
@@ -505,6 +578,7 @@ function ChannelCard({
   loading,
   onPromote,
   promoteLoading,
+  otaBaseUrl,
 }: {
   title: string;
   subtitle: string;
@@ -512,8 +586,15 @@ function ChannelCard({
   loading: boolean;
   onPromote?: () => void;
   promoteLoading?: boolean;
+  otaBaseUrl?: string | null;
 }) {
   const active = channelState?.activeRelease;
+  const downloadHref = active ? resolveDownloadHref(active) : null;
+  const otaCheckUrl =
+    otaBaseUrl && active
+      ? `${String(otaBaseUrl).replace(/\/$/, "")}/api/v1/mobile/releases/latest?platform=android&channel=${encodeURIComponent(active.channel)}`
+      : null;
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
       <h3 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
@@ -527,15 +608,21 @@ function ChannelCard({
             {active.buildNumber})
           </p>
           <p className="text-xs text-gray-500">{formatDate(active.createdAt)}</p>
-          {active.downloadUrl ? (
+          {downloadHref ? (
             <a
-              href={active.downloadUrl}
+              href={downloadHref}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block text-blue-600 hover:underline dark:text-blue-400"
             >
-              Lien OTA / téléchargement
+              Télécharger l’APK
             </a>
+          ) : null}
+          {otaCheckUrl ? (
+            <p className="text-xs text-gray-500">
+              OTA :{" "}
+              <code className="break-all">{otaCheckUrl}</code>
+            </p>
           ) : null}
           {channelState?.forceUpdate ? (
             <p className="text-xs font-medium text-amber-700 dark:text-amber-300">Mise à jour forcée</p>
