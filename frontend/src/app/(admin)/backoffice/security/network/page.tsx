@@ -7,7 +7,6 @@ import { SecurityPageShell } from "../SecuritySubNav";
 import { FacetAutocompleteField, FilterBar } from "@/components/filters";
 import { SectionLoader } from "@/lib/ui";
 import { FRONTEND_URLS } from "@/config/ports.config";
-import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import { facetOptionsFromValues } from "@/lib/filters/facetUtils";
 import type { FilterBadge } from "@/lib/filters/types";
@@ -89,7 +88,6 @@ function getIpMonitoringReason(
 }
 
 export default function NetworkStatsPage() {
-  useDocumentTitle("Sécurité réseau");
 
   const [stats, setStats] = useState<NetworkStats | null>(null);
   const [connections, setConnections] = useState<

@@ -8,7 +8,6 @@ import { Pagination } from "@/components/ui/Pagination";
 import { useUrlPagination } from "@/hooks/useUrlPagination";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
-import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
   formatBlockOriginLabelOrUnknown,
   formatFirewallActionLabel,
@@ -108,7 +107,6 @@ function firewallBlockedIpEventType(blockOrigin?: string | null): string {
 const BLOCKED_IPS_PAGE_SIZE = 25;
 
 export default function FirewallPage() {
-  useDocumentTitle("Firewall");
 
   const [rules, setRules] = useState<FirewallRule[]>([]);
   const [blockedIps, setBlockedIps] = useState<BlockedIp[]>([]);

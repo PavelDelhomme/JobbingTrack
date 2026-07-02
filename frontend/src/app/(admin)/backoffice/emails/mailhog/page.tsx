@@ -1,14 +1,11 @@
 "use client";
 
-import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { EmailBackofficePageShell } from "../EmailBackofficeSubNav";
 
 const MAILHOG_URL =
   process.env.NEXT_PUBLIC_MAILHOG_UI_URL || "http://localhost:8025";
 
 export default function MailHogBackofficePage() {
-  useDocumentTitle("MailHog");
-
   return (
     <EmailBackofficePageShell
       title="MailHog"

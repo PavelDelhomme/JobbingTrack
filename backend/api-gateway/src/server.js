@@ -1023,6 +1023,7 @@ api_gateway_info{version="1.0.0",environment="${process.env.NODE_ENV || 'develop
 const adminRoutes = require('./routes/admin.routes');
 app.use('/api/v1/admin', adminRoutes);
 logger.info('📋 Routes admin montées sur /api/v1/admin');
+logger.info('📱 Admin mobile releases: GET/POST /api/v1/admin/mobile/releases*');
 
 // ✅ Routes WAF
 const wafRoutes = require('./routes/waf.routes');

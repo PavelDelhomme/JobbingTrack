@@ -6,7 +6,6 @@ import { AdminLayout } from "@/components/features";
 import { SecurityPageShell } from "../SecuritySubNav";
 import { SectionLoader } from "@/lib/ui";
 import { FRONTEND_URLS } from "@/config/ports.config";
-import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
   formatBlockOriginLabel,
   formatFirewallActionLabel,
@@ -77,7 +76,6 @@ function policyStatusClass(status: SecurityPolicyPostureItem["status"]) {
 }
 
 export default function SecurityPoliciesPage() {
-  useDocumentTitle("Politiques sécurité");
 
   const [wafConfig, setWafConfig] = useState<WafConfig | null>(null);
   const [wafSaving, setWafSaving] = useState(false);

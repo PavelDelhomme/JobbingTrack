@@ -9,7 +9,7 @@ import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/calendar_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
-import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
+import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
 
 /// Calendrier — vue Planning (défaut) ou liste événements.
 class EventsScreen extends StatefulWidget {
@@ -126,7 +126,7 @@ class _EventsScreenState extends State<EventsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = _viewMode == CalendarViewMode.planner ? 'Planning' : 'Événements & Rappels';
+    final viewLabel = _viewMode == CalendarViewMode.planner ? 'Planning' : 'Liste';
 
     return Scaffold(
       key: _scaffoldKey,
@@ -139,8 +139,31 @@ class _EventsScreenState extends State<EventsScreen> {
       appBar: AppBar(
         leading: const AppDrawerLeadingButton(),
         automaticallyImplyLeading: false,
-        title: Text(title),
-        actions: const [MobileNotificationCenter()],
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Calendrier'),
+            Text(
+              viewLabel,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.normal,
+                  ),
+            ),
+          ],
+        ),
+        actions: [
+          ShellAppBarActions(
+            leadingActions: [
+              IconButton(
+                tooltip: 'Affichage et filtres',
+                icon: const Icon(Icons.tune),
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              ),
+            ],
+          ),
+        ],
       ),
       body: DrawerBackScope(
         scaffoldKey: _scaffoldKey,

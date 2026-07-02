@@ -11,7 +11,6 @@ import {
 import { useAppliedFilters } from "@/hooks/useAppliedFilters";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
-import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { TablePanelSkeleton, uiSurfaces, uiText } from "@/lib/ui";
 import type { FilterBadge } from "@/lib/filters/types";
 import { Download, RefreshCw } from "lucide-react";
@@ -122,7 +121,6 @@ function authHeaders(): HeadersInit {
 }
 
 export default function SecurityInvestigationPage() {
-  useDocumentTitle("Investigation sécurité");
 
   const [activeTab, setActiveTab] = useState<TabId>("audit");
   const [loading, setLoading] = useState(true);

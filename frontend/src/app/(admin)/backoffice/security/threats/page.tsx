@@ -20,7 +20,6 @@ import {
 import { parseMultiFilterValues } from "@/lib/filters/multiValueFilter";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
-import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { TableSkeleton } from "@/lib/ui";
 import {
   formatSecuritySeverity,
@@ -106,7 +105,6 @@ function buildInitialThreatFilters(
 }
 
 export default function ThreatsPage() {
-  useDocumentTitle("Menaces sécurité");
 
   const router = useRouter();
   const searchParams = useSearchParams();

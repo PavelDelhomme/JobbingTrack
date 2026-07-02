@@ -8,7 +8,6 @@ const dataManagementController = require('../controllers/data-management.control
 const testdataController = require('../controllers/testdata.controller');
 const logsController = require('../controllers/logs.controller');
 const mobileReleasesController = require('../controllers/mobile-releases.controller');
-const { mobileApkUpload } = require('../middleware/mobileApkUpload');
 
 // Middleware d'authentification basique pour le développement
 const authenticate = (req, res, next) => {
@@ -124,12 +123,24 @@ router.get('/test', authenticate, (req, res) => {
 
 // Mobile releases (OTA) — pilotage dev / production depuis backoffice
 router.get('/mobile/releases', authenticate, mobileReleasesController.listReleases);
-router.post(
-  '/mobile/releases/upload',
-  authenticate,
-  mobileApkUpload.single('apk'),
-  mobileReleasesController.uploadRelease,
-);
+router.post('/mobile/releases/upload', authenticate, (req, res, next) => {
+  let mobileApkUpload;
+  try {
+    ({ mobileApkUpload } = require('../middleware/mobileApkUpload'));
+  } catch (error) {
+    return res.status(503).json({
+      success: false,
+      error:
+        'Upload APK indisponible : dépendance multer absente. '
+        + 'Dans le conteneur api-gateway : npm install puis redémarrer le service.',
+      detail: error.message,
+    });
+  }
+  return mobileApkUpload.single('apk')(req, res, (uploadErr) => {
+    if (uploadErr) return next(uploadErr);
+    return mobileReleasesController.uploadRelease(req, res);
+  });
+});
 router.post('/mobile/releases/promote', authenticate, mobileReleasesController.promoteToProduction);
 router.post('/mobile/releases/ios', authenticate, mobileReleasesController.registerIosRelease);
 router.patch(

@@ -9,7 +9,6 @@ import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/utils/upcoming_timeline.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
-import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
@@ -82,9 +81,8 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
         automaticallyImplyLeading: false,
         title: Text('Bonjour ${user?.firstName ?? ''} 👋'),
         centerTitle: true,
-        actions: [
-          const MobileNotificationCenter(),
-          const ShellAppBarMenu(),
+        actions: const [
+          ShellAppBarActions(),
         ],
       ),
       body: DrawerBackScope(

@@ -5,9 +5,7 @@ import axios from "axios";
 import { useAuth } from "@/lib/hooks/auth";
 import { FRONTEND_URLS } from "@/config/ports.config";
 
-const API_URL = FRONTEND_URLS.api;
-
-type Release = {
+type MobileRelease = {
   id: string;
   channel: string;
   platform: string;
@@ -15,11 +13,11 @@ type Release = {
   buildNumber: number;
   releaseNotes?: string;
   filename?: string | null;
-  storeUrl?: string | null;
   downloadUrl?: string | null;
+  storeUrl?: string | null;
   createdAt: string;
   createdBy?: string | null;
-  status: string;
+  status?: string;
 };
 
 type ChannelPlatformState = {
@@ -27,267 +25,474 @@ type ChannelPlatformState = {
   minVersion: string;
   minBuild: number;
   forceUpdate: boolean;
-  activeRelease?: Release | null;
+  activeRelease: MobileRelease | null;
 };
 
-type AdminMobileReleaseState = {
+type AdminReleaseState = {
   releasesDir: string;
   channels: Record<string, Record<string, ChannelPlatformState>>;
-  releases: Release[];
+  releases: MobileRelease[];
 };
 
-function authHeaders(token: string | null) {
-  return token ? { Authorization: `Bearer ${token}` } : {};
+const BUILD_APK_CMD = "bash scripts/mobile/setup/build-apk-debug.sh";
+const INSTALL_APK_CMD =
+  "adb install -r mobile/build/app/outputs/flutter-apk/app-debug.apk";
+const ADB_REVERSE_CMD = "adb reverse tcp:5002 tcp:5002";
+const APK_OUTPUT =
+  "mobile/build/app/outputs/flutter-apk/app-debug.apk";
+
+const DEPLOY_STEPS = [
+  {
+    title: "1 — Compiler l’APK sur votre poste",
+    body: "À la racine du dépôt. Vérifiez d’abord la version dans mobile/pubspec.yaml (ex. 1.0.0+42) : vous la recopierez à l’étape 3.",
+    code: BUILD_APK_CMD,
+  },
+  {
+    title: "2 — Installer et valider sur téléphone / émulateur",
+    body: "Installez l’APK, testez le parcours métier (connexion, navigation, FAB). USB : adb reverse pour joindre l’API locale.",
+    code: `${INSTALL_APK_CMD}\n${ADB_REVERSE_CMD}`,
+  },
+  {
+    title: "3 — Publier sur le canal DEV (formulaire ci-dessous)",
+    body: "Choisissez le fichier APK compilé, saisissez la même version et le même numéro de build que pubspec.yaml, canal « dev ». L’upload active automatiquement cette build pour les apps en mode debug.",
+    code: APK_OUTPUT,
+  },
+  {
+    title: "4 — Bêta-testeurs reçoivent la mise à jour",
+    body: "Les APK debug interrogent le canal dev au démarrage (OTA in-app). Partagez le lien « Téléchargement OTA » de la carte DEV, ou laissez l’app proposer la MAJ. Wi‑Fi : MOBILE_DEV_LAN_HOST dans .env.",
+  },
+  {
+    title: "5 — Promouvoir en PRODUCTION",
+    body: "Quand la validation porteur est OK, cliquez « Promouvoir dev → production » sur la carte Production. Les builds release (APK release / store) utilisent le canal production.",
+  },
+] as const;
+
+function CopyBlock({ text, label }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="mt-2 flex flex-wrap items-start gap-2">
+      <pre className="max-w-full flex-1 overflow-x-auto rounded-md bg-gray-900 px-3 py-2 text-xs text-gray-100">
+        {text}
+      </pre>
+      <button
+        type="button"
+        onClick={() => {
+          void navigator.clipboard.writeText(text.split("\n")[0] ?? text).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          });
+        }}
+        className="shrink-0 rounded-md border border-gray-300 px-2 py-1 text-xs font-medium hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
+      >
+        {copied ? "Copié" : label ?? "Copier"}
+      </button>
+    </div>
+  );
+}
+
+function formatDate(value?: string) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString("fr-FR");
 }
 
 export function MobileReleaseManagementPanel() {
   const { token } = useAuth();
-  const [data, setData] = useState<AdminMobileReleaseState | null>(null);
+  const [state, setState] = useState<AdminReleaseState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [apiDiag, setApiDiag] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [actionId, setActionId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const [uploadVersion, setUploadVersion] = useState("1.0.0");
-  const [uploadBuild, setUploadBuild] = useState("1");
-  const [uploadNotes, setUploadNotes] = useState("");
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [version, setVersion] = useState("1.0.0");
+  const [buildNumber, setBuildNumber] = useState("1");
+  const [channel, setChannel] = useState<"dev" | "production">("dev");
+  const [releaseNotes, setReleaseNotes] = useState("");
+  const [apkFile, setApkFile] = useState<File | null>(null);
+
+  const apiBase =
+    typeof window !== "undefined" ? "" : FRONTEND_URLS.api.replace(/\/$/, "");
+
+  const authHeaders = useMemo(
+    () => (token ? { Authorization: `Bearer ${token}` } : {}),
+    [token],
+  );
+
+  const adminApi = (path: string) =>
+    `${apiBase}/api/v1/admin${path.startsWith("/") ? path : `/${path}`}`;
 
   const load = useCallback(async () => {
-    if (!token) return;
+    if (!token) {
+      setError("Connectez-vous au backoffice pour gérer les releases mobile.");
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
+    setApiDiag(null);
     try {
-      const res = await axios.get(`${API_URL}/api/v1/admin/mobile/releases`, {
-        headers: authHeaders(token),
-      });
-      setData(res.data.data);
-    } catch (e: unknown) {
-      const msg = axios.isAxiosError(e)
-        ? e.response?.data?.error || e.message
-        : "Erreur chargement releases mobile";
-      setError(String(msg));
+      const res = await axios.get<{ success: boolean; data: AdminReleaseState }>(
+        adminApi("/mobile/releases"),
+        { headers: authHeaders },
+      );
+      if (res.data.success) {
+        setState(res.data.data);
+      } else {
+        setError("Réponse API inattendue.");
+      }
+    } catch (e) {
+      if (axios.isAxiosError(e)) {
+        const status = e.response?.status;
+        const body = e.response?.data as { error?: string; message?: string } | undefined;
+        const detail = body?.error || body?.message || e.message;
+        if (status === 404) {
+          let testHint = "";
+          try {
+            const testRes = await axios.get(adminApi("/test"), { headers: authHeaders });
+            if (testRes.status === 200) {
+              testHint =
+                " La route admin générale répond (GET /admin/test OK) mais pas mobile/releases "
+                + "→ le processus gateway doit être redémarré pour charger le code à jour.";
+            }
+          } catch {
+            testHint = " Même GET /admin/test en échec → conteneur api-gateway arrêté ou code admin non chargé.";
+          }
+          setApiDiag(
+            "Route `/api/v1/admin/mobile/releases` introuvable (404)."
+              + testHint
+              + " Correction : `docker compose up -d api-gateway` (npm install au démarrage) "
+              + "ou `docker compose restart api-gateway` après `docker compose exec api-gateway npm install`.",
+          );
+        }
+        setError(`Erreur ${status ?? "réseau"} : ${detail}`);
+      } else {
+        setError(e instanceof Error ? e.message : "Erreur inconnue");
+      }
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [authHeaders, token]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const devAndroid = data?.channels?.dev?.android;
-  const prodAndroid = data?.channels?.production?.android;
-
-  const recentReleases = useMemo(
-    () => (data?.releases || []).slice(0, 12),
-    [data?.releases],
-  );
-
-  async function uploadDevApk() {
-    if (!token || !uploadFile) return;
-    setBusy(true);
+  const handleUpload = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!token || !apkFile) return;
+    setUploading(true);
     setMessage(null);
     setError(null);
     try {
       const form = new FormData();
-      form.append("apk", uploadFile);
-      form.append("channel", "dev");
+      form.append("apk", apkFile);
+      form.append("version", version.trim());
+      form.append("buildNumber", buildNumber.trim());
+      form.append("channel", channel);
       form.append("platform", "android");
-      form.append("version", uploadVersion);
-      form.append("buildNumber", uploadBuild);
-      form.append("releaseNotes", uploadNotes);
-      await axios.post(`${API_URL}/api/v1/admin/mobile/releases/upload`, form, {
-        headers: {
-          ...authHeaders(token),
-          "Content-Type": "multipart/form-data",
-        },
+      form.append("releaseNotes", releaseNotes.trim());
+      await axios.post(adminApi("/mobile/releases/upload"), form, {
+        headers: { ...authHeaders, "Content-Type": "multipart/form-data" },
       });
-      setMessage("APK dev publié — les appareils debug recevront cette version.");
-      setUploadFile(null);
+      setMessage(`APK ${version} (build ${buildNumber}) publié sur le canal ${channel}.`);
+      setApkFile(null);
+      setReleaseNotes("");
       await load();
-    } catch (e: unknown) {
-      const msg = axios.isAxiosError(e)
-        ? e.response?.data?.error || e.message
+    } catch (e) {
+      const detail = axios.isAxiosError(e)
+        ? (e.response?.data as { error?: string })?.error || e.message
         : "Upload échoué";
-      setError(String(msg));
+      setError(detail);
     } finally {
-      setBusy(false);
+      setUploading(false);
     }
-  }
+  };
 
-  async function promoteDevToProd() {
+  const promoteDevToProd = async () => {
     if (!token) return;
-    setBusy(true);
+    if (
+      !confirm(
+        "Promouvoir la release Android active du canal DEV vers PRODUCTION ? Les testeurs production recevront l’OTA.",
+      )
+    ) {
+      return;
+    }
+    setActionId("promote");
     setMessage(null);
-    setError(null);
     try {
       await axios.post(
-        `${API_URL}/api/v1/admin/mobile/releases/promote`,
+        adminApi("/mobile/releases/promote"),
         { platform: "android", fromChannel: "dev", toChannel: "production" },
-        { headers: authHeaders(token) },
+        { headers: authHeaders },
       );
-      setMessage("Version dev promue en production.");
+      setMessage("Release dev promue en production.");
       await load();
-    } catch (e: unknown) {
-      const msg = axios.isAxiosError(e)
-        ? e.response?.data?.error || e.message
-        : "Promotion échouée";
-      setError(String(msg));
+    } catch (e) {
+      setError(
+        axios.isAxiosError(e)
+          ? (e.response?.data as { error?: string })?.error || e.message
+          : "Promotion échouée",
+      );
     } finally {
-      setBusy(false);
+      setActionId(null);
     }
-  }
+  };
 
-  async function patchPolicy(
-    channel: "dev" | "production",
-    patch: Partial<{ minVersion: string; minBuild: number; forceUpdate: boolean }>,
-  ) {
+  const activateRelease = async (id: string, targetChannel: "dev" | "production") => {
     if (!token) return;
-    setBusy(true);
-    setError(null);
+    setActionId(id);
     try {
-      await axios.patch(
-        `${API_URL}/api/v1/admin/mobile/releases/channels/${channel}/android`,
-        patch,
-        { headers: authHeaders(token) },
+      await axios.post(
+        adminApi(`/mobile/releases/${id}/activate`),
+        { channel: targetChannel, platform: "android" },
+        { headers: authHeaders },
       );
-      setMessage(`Politique ${channel} mise à jour.`);
+      setMessage(`Release ${id} activée sur ${targetChannel}.`);
       await load();
-    } catch (e: unknown) {
-      const msg = axios.isAxiosError(e)
-        ? e.response?.data?.error || e.message
-        : "Mise à jour politique échouée";
-      setError(String(msg));
+    } catch (e) {
+      setError(
+        axios.isAxiosError(e)
+          ? (e.response?.data as { error?: string })?.error || e.message
+          : "Activation échouée",
+      );
     } finally {
-      setBusy(false);
+      setActionId(null);
     }
-  }
+  };
 
-  if (loading) {
-    return (
-      <p className="text-sm text-gray-600 dark:text-gray-400">Chargement des releases mobile…</p>
-    );
-  }
+  const devAndroid = state?.channels?.dev?.android;
+  const prodAndroid = state?.channels?.production?.android;
 
   return (
     <div className="space-y-6">
-      {error ? (
-        <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
-          {error}
+      {apiDiag ? (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+          <p className="font-semibold">Diagnostic API (404)</p>
+          <p className="mt-2">{apiDiag}</p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="mt-3 rounded-md bg-amber-600 px-3 py-1.5 text-white hover:bg-amber-700"
+          >
+            Réessayer
+          </button>
         </div>
       ) : null}
+
+      <section className="rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm dark:border-indigo-800 dark:from-indigo-950/40 dark:to-gray-900">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          Comment déployer une release Android
+        </h2>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          Suivez ces étapes dans l’ordre. Le backoffice héberge l’APK ; l’app mobile vérifie les mises à jour
+          via <code className="text-xs">/api/v1/mobile/releases/latest</code> (canal{" "}
+          <strong>dev</strong> en debug, <strong>production</strong> en release).
+        </p>
+        <div className="mt-4 space-y-3">
+          {DEPLOY_STEPS.map((step) => (
+            <div
+              key={step.title}
+              className="rounded-lg border border-indigo-100 bg-white/80 p-4 dark:border-indigo-900/50 dark:bg-gray-900/60"
+            >
+              <p className="font-semibold text-indigo-900 dark:text-indigo-200">{step.title}</p>
+              <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{step.body}</p>
+              {"code" in step && step.code ? <CopyBlock text={step.code} /> : null}
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+          Config serveur : <code>MOBILE_RELEASES_DIR</code>, <code>PUBLIC_API_URL</code> ({" "}
+          <code>.env.example</code>). Stockage actuel : <code>{state?.releasesDir ?? "—"}</code>
+        </p>
+      </section>
+
       {message ? (
         <div className="rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900 dark:border-green-800 dark:bg-green-950/30 dark:text-green-100">
           {message}
         </div>
       ) : null}
+      {error ? (
+        <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950/30 dark:text-red-100">
+          {error}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <ChannelCard
-          title="Canal DEV (appareils debug / tests)"
-          state={devAndroid}
-          onForceUpdate={(forceUpdate) => patchPolicy("dev", { forceUpdate })}
+          title="Canal DEV (bêta-testeurs)"
+          subtitle="Appareils de test, émulateurs, APK fraîche avant prod"
+          channelState={devAndroid}
+          loading={loading}
         />
         <ChannelCard
-          title="Canal PRODUCTION (app release)"
-          state={prodAndroid}
-          onForceUpdate={(forceUpdate) => patchPolicy("production", { forceUpdate })}
+          title="Canal PRODUCTION"
+          subtitle="OTA pour utilisateurs finaux (promotion depuis dev)"
+          channelState={prodAndroid}
+          loading={loading}
+          onPromote={promoteDevToProd}
+          promoteLoading={actionId === "promote"}
         />
       </div>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
+      <section className="rounded-xl border border-blue-200 bg-white p-5 shadow-sm dark:border-blue-800 dark:bg-gray-900">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Pousser une nouvelle version DEV (Android)
+          Étape 3 — Publier un APK sur le canal DEV
         </h2>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Upload APK → canal dev. Les builds debug de l&apos;app consultent automatiquement ce canal.
+          Sélectionnez le fichier <code>{APK_OUTPUT}</code>. La <strong>version</strong> et le{" "}
+          <strong>build</strong> doivent correspondre à{" "}
+          <code>mobile/pubspec.yaml</code> (actuellement réf. repo :{" "}
+          <code>1.0.0+1</code> — mettez à jour pubspec avant le build si besoin).
         </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="text-sm">
-            <span className="mb-1 block font-medium">Version</span>
+        <form onSubmit={handleUpload} className="mt-4 grid gap-4 md:grid-cols-2">
+          <label className="block text-sm">
+            <span className="font-medium">Version (semver)</span>
             <input
-              className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
-              value={uploadVersion}
-              onChange={(e) => setUploadVersion(e.target.value)}
+              required
+              value={version}
+              onChange={(e) => setVersion(e.target.value)}
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
+              placeholder="1.2.0"
             />
           </label>
-          <label className="text-sm">
-            <span className="mb-1 block font-medium">Build</span>
+          <label className="block text-sm">
+            <span className="font-medium">Numéro de build</span>
             <input
-              className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
-              value={uploadBuild}
-              onChange={(e) => setUploadBuild(e.target.value)}
+              required
+              value={buildNumber}
+              onChange={(e) => setBuildNumber(e.target.value)}
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
+              placeholder="42"
             />
           </label>
-          <label className="text-sm sm:col-span-2">
-            <span className="mb-1 block font-medium">Notes</span>
-            <input
-              className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
-              value={uploadNotes}
-              onChange={(e) => setUploadNotes(e.target.value)}
+          <label className="block text-sm">
+            <span className="font-medium">Canal</span>
+            <select
+              value={channel}
+              onChange={(e) => setChannel(e.target.value as "dev" | "production")}
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
+            >
+              <option value="dev">dev — bêta / validation (recommandé)</option>
+              <option value="production">production — utilisateurs finaux (après promote)</option>
+            </select>
+            <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+              En pratique : uploadez d’abord en <strong>dev</strong>, validez, puis utilisez le bouton
+              « Promouvoir dev → production » plutôt qu’un upload direct prod.
+            </p>
+          </label>
+          <label className="block text-sm md:col-span-2">
+            <span className="font-medium">Notes de version</span>
+            <textarea
+              value={releaseNotes}
+              onChange={(e) => setReleaseNotes(e.target.value)}
+              rows={2}
+              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
             />
           </label>
-          <label className="text-sm sm:col-span-2 lg:col-span-4">
-            <span className="mb-1 block font-medium">Fichier APK</span>
+          <label className="block text-sm md:col-span-2">
+            <span className="font-medium">Fichier APK</span>
             <input
+              required
               type="file"
               accept=".apk,application/vnd.android.package-archive"
-              onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => setApkFile(e.target.files?.[0] ?? null)}
+              className="mt-1 block w-full text-sm"
             />
           </label>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={busy || !uploadFile}
-            onClick={() => void uploadDevApk()}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            Publier en DEV
-          </button>
-          <button
-            type="button"
-            disabled={busy || !devAndroid?.activeRelease}
-            onClick={() => void promoteDevToProd()}
-            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-          >
-            Valider → passer en PRODUCTION
-          </button>
-        </div>
+          <div className="md:col-span-2">
+            <button
+              type="submit"
+              disabled={uploading || !apkFile}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {uploading ? "Envoi…" : "Publier sur le canal (étape 3)"}
+            </button>
+          </div>
+        </form>
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Historique</h2>
-        <div className="mt-3 overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="px-2 py-2">Canal</th>
-                <th className="px-2 py-2">Plateforme</th>
-                <th className="px-2 py-2">Version</th>
-                <th className="px-2 py-2">Statut</th>
-                <th className="px-2 py-2">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentReleases.map((r) => (
-                <tr key={r.id} className="border-b border-gray-100 dark:border-gray-800">
-                  <td className="px-2 py-2">{r.channel}</td>
-                  <td className="px-2 py-2">{r.platform}</td>
-                  <td className="px-2 py-2">
-                    {r.version}+{r.buildNumber}
-                  </td>
-                  <td className="px-2 py-2">{r.status}</td>
-                  <td className="px-2 py-2">{new Date(r.createdAt).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">Historique des builds</h2>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+          >
+            Actualiser
+          </button>
         </div>
-        {data?.releasesDir ? (
-          <p className="mt-3 text-xs text-gray-500">Stockage serveur : {data.releasesDir}</p>
-        ) : null}
+        {loading ? (
+          <p className="mt-4 text-sm text-gray-500">Chargement…</p>
+        ) : !state?.releases?.length ? (
+          <p className="mt-4 text-sm text-gray-500">Aucune release enregistrée. Uploadez un premier APK.</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="px-2 py-2">Version</th>
+                  <th className="px-2 py-2">Build</th>
+                  <th className="px-2 py-2">Canal</th>
+                  <th className="px-2 py-2">Date</th>
+                  <th className="px-2 py-2">Téléchargement</th>
+                  <th className="px-2 py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {state.releases.map((r) => (
+                  <tr key={r.id} className="border-b border-gray-100 dark:border-gray-800">
+                    <td className="px-2 py-2 font-medium">{r.version}</td>
+                    <td className="px-2 py-2">{r.buildNumber}</td>
+                    <td className="px-2 py-2">{r.channel}</td>
+                    <td className="px-2 py-2">{formatDate(r.createdAt)}</td>
+                    <td className="px-2 py-2">
+                      {r.downloadUrl ? (
+                        <a
+                          href={r.downloadUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          APK
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-2 py-2">
+                      {r.platform === "android" ? (
+                        <div className="flex flex-wrap gap-1">
+                          <button
+                            type="button"
+                            disabled={actionId === r.id}
+                            onClick={() => void activateRelease(r.id, "dev")}
+                            className="rounded border border-gray-300 px-2 py-0.5 text-xs hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
+                          >
+                            Activer dev
+                          </button>
+                          <button
+                            type="button"
+                            disabled={actionId === r.id}
+                            onClick={() => void activateRelease(r.id, "production")}
+                            className="rounded border border-gray-300 px-2 py-0.5 text-xs hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
+                          >
+                            Activer prod
+                          </button>
+                        </div>
+                      ) : (
+                        "iOS"
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   );
@@ -295,49 +500,60 @@ export function MobileReleaseManagementPanel() {
 
 function ChannelCard({
   title,
-  state,
-  onForceUpdate,
+  subtitle,
+  channelState,
+  loading,
+  onPromote,
+  promoteLoading,
 }: {
   title: string;
-  state?: ChannelPlatformState;
-  onForceUpdate: (force: boolean) => void;
+  subtitle: string;
+  channelState?: ChannelPlatformState;
+  loading: boolean;
+  onPromote?: () => void;
+  promoteLoading?: boolean;
 }) {
-  const active = state?.activeRelease;
+  const active = channelState?.activeRelease;
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
       <h3 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
-      {active ? (
-        <dl className="mt-3 space-y-1 text-sm text-gray-700 dark:text-gray-300">
-          <div>
-            <dt className="inline font-medium">Version active : </dt>
-            <dd className="inline">
-              {active.version}+{active.buildNumber}
-            </dd>
-          </div>
-          {active.releaseNotes ? (
-            <div>
-              <dt className="font-medium">Notes</dt>
-              <dd>{active.releaseNotes}</dd>
-            </div>
-          ) : null}
+      <p className="text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
+      {loading ? (
+        <p className="mt-3 text-sm text-gray-500">…</p>
+      ) : active ? (
+        <div className="mt-3 space-y-1 text-sm">
+          <p>
+            <span className="text-gray-500">Active :</span> v{active.version} (build{" "}
+            {active.buildNumber})
+          </p>
+          <p className="text-xs text-gray-500">{formatDate(active.createdAt)}</p>
           {active.downloadUrl ? (
-            <div className="truncate">
-              <dt className="inline font-medium">URL : </dt>
-              <dd className="inline break-all">{active.downloadUrl}</dd>
-            </div>
+            <a
+              href={active.downloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block text-blue-600 hover:underline dark:text-blue-400"
+            >
+              Lien OTA / téléchargement
+            </a>
           ) : null}
-        </dl>
+          {channelState?.forceUpdate ? (
+            <p className="text-xs font-medium text-amber-700 dark:text-amber-300">Mise à jour forcée</p>
+          ) : null}
+        </div>
       ) : (
         <p className="mt-3 text-sm text-gray-500">Aucune release active.</p>
       )}
-      <label className="mt-4 flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={state?.forceUpdate === true}
-          onChange={(e) => onForceUpdate(e.target.checked)}
-        />
-        Mise à jour obligatoire
-      </label>
+      {onPromote ? (
+        <button
+          type="button"
+          onClick={onPromote}
+          disabled={promoteLoading || !channelState?.activeRelease}
+          className="mt-4 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-700 disabled:opacity-50"
+        >
+          {promoteLoading ? "Promotion…" : "Étape 5 — Promouvoir dev → production"}
+        </button>
+      ) : null}
     </div>
   );
 }

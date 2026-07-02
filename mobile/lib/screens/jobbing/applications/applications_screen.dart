@@ -11,7 +11,6 @@ import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
-import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
@@ -174,8 +173,15 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
         title: const Text('Candidatures'),
         centerTitle: true,
         actions: [
-          const MobileNotificationCenter(),
-          const ShellAppBarMenu(),
+          ShellAppBarActions(
+            leadingActions: [
+              IconButton(
+                tooltip: 'Actualiser',
+                icon: const Icon(Icons.refresh),
+                onPressed: _loadAll,
+              ),
+            ],
+          ),
         ],
         bottom: TabBar(
           controller: _tabController,

@@ -7,7 +7,6 @@ import { SecurityPageShell } from "../SecuritySubNav";
 import { SectionLoader } from "@/lib/ui";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
-import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { formatBlockOriginLabelOrUnknown } from "@/lib/security/securityLabels";
 import {
   ANALYSIS_BLOCKED_IPS_PAGE_SIZE,
@@ -23,7 +22,6 @@ import { Shield, AlertTriangle, Lock, Eye, Activity } from "@/lib/icons";
 const API_URL = FRONTEND_URLS.api;
 
 export default function SecurityAnalysisPage() {
-  useDocumentTitle("Analyse sécurité");
 
   const [summary, setSummary] = useState<SecurityAnalysisSummary | null>(null);
   const [loading, setLoading] = useState(true);

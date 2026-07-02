@@ -15,7 +15,6 @@ import { facetOptionsFromValues } from "@/lib/filters/facetUtils";
 import { parseMultiFilterValues } from "@/lib/filters/multiValueFilter";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
-import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
   type IncidentRow,
   alertHref,
@@ -104,7 +103,6 @@ function incidentNatureBadge(item: IncidentRow) {
 }
 
 export default function SecurityIncidentsPage() {
-  useDocumentTitle("Incidents & menaces");
   const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);

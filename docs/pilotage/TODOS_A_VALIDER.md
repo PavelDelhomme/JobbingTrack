@@ -412,7 +412,8 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 
 | Lot | Sujet | Environnement | Action porteur | Statut |
 |-----|-------|---------------|----------------|--------|
-| Mobile | Administration → **Mobile — erreurs & retours** | local + Samsung | (1) **Paramètres → Aide & retours → Signaler un bug** — message test → **Envoyer**. (2) Backoffice : **Administration → Mobile — erreurs & retours** — ligne « message de test » (~20 s). (3) Clic ligne : diagnostic + capture. (4) « Erreurs auto » si télémétrie ON. | **[ ]** | **Preuve agent 29/06 17:18** : porteur mobile OK — `verify-porteur-mobile-feedback.js` → `[bug] message de test`, diagnostic + capture, écran `help_feedback/bug`, Samsung. **Reste porteur** : clic détail backoffice → `OK Mobile logs backoffice`. |
+| Mobile | Administration → **Mobile — erreurs & retours** | local + Samsung | (1) **Paramètres → Aide & retours → Signaler un bug** — message test → **Envoyer**. (2) Backoffice : menu **Mobile → Mobile — erreurs & retours** (`/backoffice/mobile/logs`) — ligne « message de test » (~20 s). (3) Clic ligne : diagnostic + capture. (4) « Erreurs auto » si télémétrie ON. | **[ ]** | **Preuve agent 29/06 17:18** : porteur mobile OK — `verify-porteur-mobile-feedback.js` → `[bug] message de test`, diagnostic + capture, écran `help_feedback/bug`, Samsung. **Reste porteur** : clic détail backoffice → `OK Mobile logs backoffice`. |
+| Mobile | **Mobile — releases OTA** | local | (1) Menu **Mobile → Mobile — releases OTA** — **pas** de 404 console. (2) Lire le parcours **Comment déployer une release Android** (5 étapes). (3) Upload APK debug canal **dev** (version = pubspec). (4) Optionnel : **Promouvoir dev → production**. | **[ ]** | **Preuve agent 02/07** : API **200**, guide 5 étapes + formulaire étape 3, promote étape 5. **Reste porteur** : `OK Mobile releases OTA backoffice` ou KO + capture. |
 
 **Décision** : `OK Mobile logs backoffice` **ou** `KO …` + capture route.
 

@@ -86,15 +86,19 @@ services:
       - WAF_ENABLED=${WAF_ENABLED:?set WAF_ENABLED in .env}
       - WAF_INTERNAL_BYPASS_CIDRS=${WAF_INTERNAL_BYPASS_CIDRS:?set WAF_INTERNAL_BYPASS_CIDRS in .env}
       - WAF_INTERNAL_BYPASS_ENABLED=${WAF_INTERNAL_BYPASS_ENABLED:?set WAF_INTERNAL_BYPASS_ENABLED in .env}
+      - MOBILE_RELEASES_DIR=${MOBILE_RELEASES_DIR:-/app/mobile-releases}
+      - PUBLIC_API_URL=${PUBLIC_API_URL:-https://api.jobbingtrack.localhost:5443}
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/api-gateway/src:/app/src
       - ./backend/api-gateway/logs:/app/logs
+      - mobile_releases_data:/app/mobile-releases
       - ./config:/app/config:ro
       - ./backend/api-gateway/package.json:/app/package.json:ro
       # Script génération données de test (route admin generate-test-data)
       - ./backend/scripts/testing/generate-test-data.js:/app/generate-test-data.js:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: ["sh", "-c", "npm install --omit=dev --no-audit --no-fund && exec npm start"]
     networks:
       - jobbingtrack-network
     healthcheck:
@@ -1073,6 +1077,8 @@ volumes:
     name: jobbingtrack_postgres_data
   jobbingtrack_metrics_data:
     name: jobbingtrack_metrics_data
+  mobile_releases_data:
+    name: jobbingtrack_mobile_releases_data
 
 networks:
   jobbingtrack-network:

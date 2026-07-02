@@ -7,7 +7,6 @@ import {
   StatisticsRefreshButton,
 } from "../StatisticsSubNav";
 import { analyticsService } from "@/lib/api/analytics.service";
-import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { buildSecurityConsistencySummary, buildSecurityCrossPageRows } from "@/lib/metrics/securityStatisticsComparison";
 import {
   fetchSecurityAnalysisSummary,
@@ -52,7 +51,6 @@ type DayBucket = {
 };
 
 export default function StatisticsSecurityPage() {
-  useDocumentTitle("Statistiques sécurité");
 
   const [metrics, setMetrics] = useState<Record<string, unknown>[]>([]);
   const [pSummary, setPSummary] = useState<Record<string, unknown> | null>(

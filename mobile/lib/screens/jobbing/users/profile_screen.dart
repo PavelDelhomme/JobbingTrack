@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/users/profile_edit_screen.dart';
-import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
+import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
@@ -74,7 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               MaterialPageRoute(builder: (_) => const ProfileEditScreen()),
             ),
           ),
-          const MobileNotificationCenter(),
+          const ShellAppBarMenu(),
         ],
       ),
       body: DrawerBackScope(

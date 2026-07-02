@@ -11,6 +11,7 @@ import {
   formatSecurityEventTypeLabel,
   formatSecuritySeverity,
 } from "@/lib/security/securityLabels";
+import { extendBackofficeDocumentTitle } from "@/lib/backofficeDocumentTitles";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import axios from "axios";
 import { SecurityPageShell } from "../../../SecuritySubNav";
@@ -35,7 +36,14 @@ export default function SecurityAlertDetailPage() {
   const [alert, setAlert] = useState<SecurityAlert | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  useDocumentTitle(alert?.title ? `Alerte · ${alert.title}` : "Détail alerte");
+  useDocumentTitle(
+    alert?.title
+      ? extendBackofficeDocumentTitle(
+          "/backoffice/security/incidents",
+          `Alerte · ${alert.title}`,
+        )
+      : extendBackofficeDocumentTitle("/backoffice/security/incidents", "Détail alerte"),
+  );
 
   useEffect(() => {
     if (!alertId) return;

@@ -76,6 +76,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     security: true,
     emails: true,
     admin: true,
+    mobile: true,
     dev: true,
     cleanup: false,
   });
@@ -96,6 +97,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       security: true,
       emails: true,
       admin: true,
+      mobile: true,
       dev: true,
       cleanup: false,
     };
@@ -473,15 +475,28 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           ],
         },
         { name: "Utilisateurs", href: "/backoffice/users", icon: "👥" },
+      ],
+    },
+    {
+      id: "mobile",
+      label: "Mobile",
+      icon: "📱",
+      isCollapsible: true,
+      items: [
         {
           name: "Mobile — erreurs & retours",
-          href: "/backoffice/administration/mobile-logs",
-          icon: "📱",
+          href: "/backoffice/mobile/logs",
+          icon: "🐞",
         },
         {
           name: "Mobile — releases OTA",
-          href: "/backoffice/administration/mobile-releases",
+          href: "/backoffice/mobile/releases",
           icon: "🚀",
+        },
+        {
+          name: "Émulateur mobile",
+          href: "/backoffice/mobile-emulator",
+          icon: "📲",
         },
       ],
     },
@@ -497,11 +512,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           icon: "🧪",
         },
         { name: "Données de test", href: "/backoffice/test-data", icon: "🎲" },
-        {
-          name: "Émulateur mobile",
-          href: "/backoffice/mobile-emulator",
-          icon: "📱",
-        },
         {
           name: "Tests",
           href: "/backoffice/tests",

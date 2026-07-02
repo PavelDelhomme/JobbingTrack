@@ -8,6 +8,7 @@ import { SecurityPageShell } from "../../SecuritySubNav";
 import { SectionLoader } from "@/lib/ui";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { formatLocalDateTime } from "@/lib/utils/date";
+import { extendBackofficeDocumentTitle } from "@/lib/backofficeDocumentTitles";
 import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
   formatSecuritySeverity,
@@ -93,8 +94,11 @@ export default function ThreatDetailsPage() {
     useState<BlockedIpConsolidatedEntry | null>(null);
   useDocumentTitle(
     threat
-      ? `Menace ${formatThreatTypeLabel(threat.threatType)} · ${threat.sourceIp || String(params.id).slice(0, 8)}`
-      : "Détail menace",
+      ? extendBackofficeDocumentTitle(
+          "/backoffice/security/threats",
+          `${formatThreatTypeLabel(threat.threatType)} · ${threat.sourceIp || String(params.id).slice(0, 8)}`,
+        )
+      : extendBackofficeDocumentTitle("/backoffice/security/threats", "Détail"),
   );
 
   useEffect(() => {

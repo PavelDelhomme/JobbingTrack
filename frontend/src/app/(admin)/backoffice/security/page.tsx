@@ -5,7 +5,6 @@ import Link from "next/link";
 import { SecurityPageShell } from "./SecuritySubNav";
 import { formatLocalDateTime } from "@/lib/utils/date";
 import { FRONTEND_URLS } from "@/config/ports.config";
-import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import {
   countDetectionLikeLogs,
   isDdosThreat,
@@ -142,8 +141,6 @@ const defaultOverview: SecurityOverview = {
 };
 
 export default function SecurityOverviewPage() {
-  useDocumentTitle("Sécurité");
-
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState<SecurityOverview>(defaultOverview);
   const [recentIncidents, setRecentIncidents] = useState<IncidentItem[]>([]);

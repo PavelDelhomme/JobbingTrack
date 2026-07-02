@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:jobbingtrack_mobile/providers/notification_provider.dart';
 import 'package:jobbingtrack_mobile/services/global_search.dart';
 import 'package:jobbingtrack_mobile/utils/auth_logout.dart';
+import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
-/// Menu ⋮ : recherche, paramètres, déconnexion (logout retiré de l'app bar accueil).
+/// Menu ⋮ shell : notifications (hors icône AppBar), recherche, paramètres, déconnexion.
 class ShellAppBarMenu extends StatelessWidget {
   const ShellAppBarMenu({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final unread = context.watch<NotificationProvider>().unreadCount;
+
     return PopupMenuButton<String>(
       tooltip: 'Menu',
       onSelected: (value) async {
         switch (value) {
+          case 'notifications':
+            await MobileNotificationCenter.openSheet(context);
           case 'search':
             openGlobalSearch(context);
           case 'settings':
@@ -21,6 +28,22 @@ class ShellAppBarMenu extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'notifications',
+          child: Material(
+            color: Colors.transparent,
+            child: ListTile(
+              leading: Badge(
+                isLabelVisible: unread > 0,
+                label: Text(unread > 9 ? '9+' : '$unread'),
+                child: const Icon(Icons.notifications_outlined),
+              ),
+              title: Text(unread > 0 ? 'Notifications ($unread)' : 'Notifications'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        ),
+        const PopupMenuDivider(),
         PopupMenuItem(
           value: 'search',
           child: Material(
@@ -55,6 +78,24 @@ class ShellAppBarMenu extends StatelessWidget {
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Actions AppBar shell : action contextuelle optionnelle + menu ⋮ (notifications dedans).
+class ShellAppBarActions extends StatelessWidget {
+  final List<Widget> leadingActions;
+
+  const ShellAppBarActions({super.key, this.leadingActions = const []});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ...leadingActions,
+        const ShellAppBarMenu(),
       ],
     );
   }

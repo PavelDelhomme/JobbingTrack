@@ -1,6 +1,11 @@
+import {
+  BACKOFFICE_DOCUMENT_TITLES,
+  resolveBackofficeDocumentTitle,
+} from "./backofficeDocumentTitles";
+
 export const APP_NAME = "JobbingTrack";
 
-/** Titres exacts par chemin (sans query string). */
+/** Titres exacts par chemin (sans query string) — hors backoffice (voir backofficeDocumentTitles). */
 export const PAGE_TITLE_BY_PATH: Record<string, string> = {
   "/": "Accueil",
 
@@ -21,109 +26,6 @@ export const PAGE_TITLE_BY_PATH: Record<string, string> = {
   "/entities/followups": "Relances",
   "/entities/interviews": "Entretiens",
   "/entities/users": "Utilisateurs",
-
-  // Backoffice — hub
-  "/backoffice": "Vue d'ensemble",
-
-  // Performances
-  "/backoffice/performances": "Performances — Synthèse",
-  "/backoffice/performances/cpu-memory": "Performances — CPU & Mémoire",
-  "/backoffice/performances/latency": "Performances — Temps de réponse",
-  "/backoffice/performances/containers": "Performances — Conteneurs",
-  "/backoffice/performances/disk": "Performances — Disque",
-  "/backoffice/performances/network": "Performances — Réseau",
-  "/backoffice/performances/correlation": "Performances — Corrélation",
-  "/backoffice/performances/correlation/containers":
-    "Performances — Signaux conteneurs",
-
-  // Statistiques
-  "/backoffice/statistics": "Statistiques — Vue d'ensemble",
-  "/backoffice/statistics/app-data": "Statistiques — App data",
-  "/backoffice/statistics/security": "Statistiques — Sécurité",
-  "/backoffice/statistics/log-stats": "Statistiques — Logs",
-  "/backoffice/statistique": "Statistiques",
-
-  // Analytics
-  "/backoffice/analytics": "Analytics",
-  "/backoffice/analytics/application": "Analytics — Application",
-  "/backoffice/analytics/application/performance":
-    "Analytics — Performances live",
-  "/backoffice/analytics/application/activity":
-    "Analytics — Activité & traces",
-  "/backoffice/analytics/application/feedback":
-    "Analytics — Retours & signalements",
-  "/backoffice/administration/mobile-logs":
-    "Administration — Mobile erreurs & retours",
-  "/backoffice/administration/mobile-releases":
-    "Administration — Mobile releases OTA",
-  "/backoffice/analytics/containers": "Analytics — Conteneurs",
-  "/backoffice/analytics/network": "Analytics — Réseau",
-  "/backoffice/analytics/performances": "Analytics — Performances infra",
-  "/backoffice/user-analytics": "Analytics utilisateur",
-
-  // Sécurité
-  "/backoffice/security": "Sécurité — Vue d'ensemble",
-  "/backoffice/security/analysis": "Sécurité — Analyse",
-  "/backoffice/security/logs": "Sécurité — Logs",
-  "/backoffice/security/incidents": "Sécurité — Incidents & menaces",
-  "/backoffice/security/investigation": "Sécurité — Investigation",
-  "/backoffice/security/firewall": "Sécurité — Firewall",
-  "/backoffice/security/network": "Sécurité — Réseau",
-  "/backoffice/security/alerts": "Sécurité — Alertes email",
-  "/backoffice/security/policies": "Sécurité — Politiques",
-  "/backoffice/security/threats": "Sécurité — Menaces",
-
-  // Recherche emploi (backoffice)
-  "/backoffice/applications": "Candidatures",
-  "/backoffice/companies": "Entreprises",
-  "/backoffice/contacts": "Contacts",
-  "/backoffice/calls": "Appels",
-  "/backoffice/events": "Événements",
-  "/backoffice/followups": "Relances",
-  "/backoffice/interviews": "Entretiens",
-  "/backoffice/search": "Recherche",
-
-  // Administration
-  "/backoffice/services": "Services — Liste",
-  "/backoffice/services/logs": "Services & Logs",
-  "/backoffice/services/service-logs": "Services — Logs détaillés",
-  "/backoffice/datas": "Données applicatives",
-  "/backoffice/suivi-interim": "Suivi intérim",
-  "/backoffice/user-stats": "Stats utilisateur",
-  "/backoffice/billing": "Abonnement & facturation",
-  "/backoffice/test-data": "Données de test",
-  "/backoffice/archives": "Archives",
-  "/backoffice/trash": "Corbeille",
-  "/backoffice/users": "Utilisateurs",
-  "/backoffice/notifications": "Notifications",
-  "/backoffice/data-management": "Gestion des données",
-
-  // Emails
-  "/backoffice/emails": "Emails — Dashboard",
-  "/backoffice/email-monitor": "Email Monitor",
-  "/backoffice/emails/templates": "Emails — Templates",
-  "/backoffice/emails/settings": "Emails — Configuration",
-  "/backoffice/emails/deliverability": "Emails — Déliverabilité",
-  "/backoffice/emails/mailhog": "MailHog",
-  "/backoffice/emails/logs": "Emails — Logs",
-
-  // Développement / tests
-  "/backoffice/api-tester": "Testeur d'API",
-  "/backoffice/mobile-emulator": "Émulateur mobile",
-  "/backoffice/tests": "Tests — Vue d'ensemble",
-  "/backoffice/playwright-tests": "Tests Playwright",
-  "/backoffice/tests-api": "Tests API",
-  "/backoffice/tests-backend": "Tests Backend",
-  "/backoffice/tests-frontend": "Tests Frontend",
-  "/backoffice/tests-backoffice": "Tests Backoffice",
-  "/backoffice/tests-security": "Tests Sécurité",
-  "/backoffice/tests-performance": "Tests Performance",
-  "/backoffice/performance-tests": "Tests Performance",
-  "/backoffice/performance-tests/schedule": "Programmer tests",
-  "/backoffice/test-reports": "Rapports de tests",
-  "/backoffice/user-journey": "Parcours utilisateur",
-  "/backoffice/user-journey/custom": "Parcours personnalisé",
-  "/backoffice/user-journey/reports": "Rapports parcours",
 
   // Admin legacy routes (hors /backoffice)
   "/analytics": "Analytics",
@@ -163,19 +65,19 @@ const DYNAMIC_TITLE_RULES: Array<{ test: RegExp; title: string }> = [
   { test: /^\/docs\//, title: "Documentation" },
   {
     test: /^\/backoffice\/applications\/[^/]+$/,
-    title: "Détail candidature",
+    title: "Recherche emploi / Candidatures / Détail",
   },
   {
     test: /^\/applications\/applications\/[^/]+$/,
     title: "Détail candidature",
   },
-  { test: /^\/backoffice\/companies\/[^/]+$/, title: "Détail entreprise" },
+  { test: /^\/backoffice\/companies\/[^/]+$/, title: "Recherche emploi / Entreprises / Détail" },
   { test: /^\/entities\/companies\/[^/]+$/, title: "Détail entreprise" },
-  { test: /^\/backoffice\/users\/[^/]+$/, title: "Détail utilisateur" },
+  { test: /^\/backoffice\/users\/[^/]+$/, title: "Administration / Utilisateurs / Détail" },
   { test: /^\/entities\/calls\/[^/]+$/, title: "Détail appel" },
   {
     test: /^\/backoffice\/services\/[^/]+$/,
-    title: "Détail service",
+    title: "Administration / Services / Détail service",
   },
   {
     test: /^\/services\/backoffice\/[^/]+$/,
@@ -187,11 +89,11 @@ const DYNAMIC_TITLE_RULES: Array<{ test: RegExp; title: string }> = [
   },
   {
     test: /^\/backoffice\/security\/threats\/[^/]+$/,
-    title: "Détail menace",
+    title: "Sécurité / Menaces / Détail",
   },
   {
     test: /^\/backoffice\/security\/incidents\/alert\/[^/]+$/,
-    title: "Détail alerte",
+    title: "Sécurité / Incidents / Détail alerte",
   },
 ];
 
@@ -233,6 +135,9 @@ function humanizePath(pathname: string): string {
 export function resolvePageTitle(pathname: string): string {
   const path = normalizePath(pathname);
 
+  const backofficeTitle = resolveBackofficeDocumentTitle(path);
+  if (backofficeTitle) return backofficeTitle;
+
   const exact = PAGE_TITLE_BY_PATH[path];
   if (exact) return exact;
 
@@ -242,6 +147,8 @@ export function resolvePageTitle(pathname: string): string {
 
   return humanizePath(path);
 }
+
+export { BACKOFFICE_DOCUMENT_TITLES };
 
 export function formatDocumentTitle(title: string): string {
   const trimmed = title.trim();

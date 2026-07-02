@@ -48,7 +48,7 @@ Détail pas à pas porteur : **[`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_
 | C2 | NPM + HTTPS | Doc `PORTAINER_STACK.md` | Proxy `api.*` + web → 127.0.0.1:3000/3001 | [ ] porteur |
 | C3 | CI images GHCR | `build-push-images.yml`, webhooks documentés | Secrets `DEV_DEPLOY_URL` / `PROD_DEPLOY_URL` | [ ] porteur |
 | C4 | OTA Android in-app | API releases + install au démarrage | Tester Samsung canal **dev** | [ ] porteur |
-| C5 | Backoffice push mobile | `/backoffice/administration/mobile-releases` | Upload dev → **Valider → PRODUCTION** | [ ] porteur |
+| C5 | Backoffice push mobile | `/backoffice/mobile/releases` | Upload dev → **Valider → PRODUCTION** | [ ] porteur |
 | C6 | Builds mobile | `build-apk-release.sh`, `mobile-release-android.yml` | `API_BASE_URL` prod + rebuild APK | [ ] porteur |
 | C7 | SMTP `@jobbingtrack.com` | doc OVH | Action **porteur** OVH (MX Plan) — après étape 2 mobile | [ ] bloqué 320 |
 | C8 | Gate préprod 9 étapes | `A_VALIDER_AVANT_PRODUCTION.md` | Après C1–C6 + clôture mobile B | [ ] |
@@ -95,7 +95,7 @@ Backlog détaillé historique : sections **Lot A–H** plus bas dans ce fichier 
 | **BL-26-18** | A mobile | **Recherche globale — récents + scope utilisateur** | À l’ouverture : recherches récentes ; recherche dans toutes entités user (candidatures, entretiens, relances, appels, contacts, entreprises, événements) avec filtres par type | `search_screen.dart` + API search | **Après étape 2** |
 | **BL-26-19** | A mobile | **Profil — UX email / téléphone moderne** | Email : nouvelle adresse + confirmation + envoi lien validation (pas toggle) ; téléphone : indicatif pays / détection 06… ; MDP : reset par email (OK actuel) | auth-service + `profile_screen.dart` | **Après étape 2** |
 | **BL-26-20** | D mobile / backoffice | **Logs mobile profil & erreurs porteur** | Erreurs modification profil (email, tél, MDP) remontées dans **Administration → Mobile — erreurs & retours** pour diagnostic admin | `MobileAnalyticsService` + API crashes/feedback | **Après étape 2** |
-| **BL-26-25** | A mobile / UX | **AppBar contextuelle + cloche notifications** | Action AppBar **contextuelle** par écran (Planning, etc.) ; **déplacer** le centre notifications in-app — choix porteur avant prod | `MobileNotificationCenter`, `shell_app_bar_menu.dart` | **Gate prod** |
+| **BL-26-25** | A mobile / UX | **AppBar contextuelle + cloche notifications** | Action AppBar **contextuelle** par écran (Planning filtres, Candidatures refresh) ; cloche **dans menu ⋮** (shell) — **re-test porteur APK** | `shell_app_bar_menu.dart`, `events_screen.dart` | **Gate prod** — impl. partielle 02/07 |
 | **BL-26-26** | C mobile / prod | **Biométrie — re-validation release** | OK debug 19/06 ; **obligatoire** re-test APK release sans bypass smokes avant prod | `A_VALIDER_AVANT_PRODUCTION.md` · **BL-26-26** | **Gate prod** |
 
 

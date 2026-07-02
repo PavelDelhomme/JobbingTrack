@@ -23,4 +23,5 @@ COPY shared/ /shared/
 RUN npx prisma generate --schema=./prisma/schema.prisma
 
 EXPOSE 3000
-CMD ["npm", "start"]
+RUN chmod +x docker-entrypoint.sh
+ENTRYPOINT ["./docker-entrypoint.sh"]
