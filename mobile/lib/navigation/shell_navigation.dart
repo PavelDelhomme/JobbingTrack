@@ -14,6 +14,19 @@ class ShellTabRegistry {
   }
 }
 
+/// Retour système délégué au shell (onglets + double retour Accueil).
+class ShellBackRegistry {
+  static VoidCallback? _handler;
+
+  static void register(VoidCallback? handler) {
+    _handler = handler;
+  }
+
+  static void handleBack() {
+    _handler?.call();
+  }
+}
+
 /// Ferme les drawers des onglets shell encore montés (IndexedStack).
 class ShellDrawerRegistry {
   static final Set<GlobalKey<ScaffoldState>> _keys = {};

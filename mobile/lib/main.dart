@@ -144,6 +144,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
       child: TelemetryLifecycleBridge(
         child: MaterialApp(
         navigatorKey: appNavigatorKey,
+        scaffoldMessengerKey: rootScaffoldMessengerKey,
         title: 'JobbingTrack Mobile',
         debugShowCheckedModeBanner: false,
         builder: (context, child) => ImpersonationBanner(

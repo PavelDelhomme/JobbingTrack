@@ -474,7 +474,7 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 | Hub ADMIN + navigation | **OK** | — |
 | Édition prénom/nom/email/tél | **OK** (refonte UX email/tél — **BL-26-20**) | backlog |
 | Impersonnalisation sans **Désimpersonnaliser** | **KO bloquant** | **Correctif 17/06** : bannière globale + drawer + retour hub `/admin` — **rebuild APK + re-test porteur** |
-| Double/triple retour système (arrière-plan) | à spécifier / valider | **Correctif 17/06** : double retour sur Accueil → snackbar puis arrière-plan Android |
+| Double/triple retour système (arrière-plan) | à spécifier / valider | **Correctif 17/06 (v2)** : `DrawerBackScope` délègue au shell ; snackbar globale flottante ; `canPop: false` — **rebuild APK + re-test Accueil** |
 | FAB relances / appels / entretiens / contacts (6–11) | **non confirmés** | re-test porteur après APK |
 | Tutoriel première connexion (skip + reprise) | backlog | **BL-TUT-01** |
 | Recherche globale (récents + toutes entités) | backlog | **BL-26-19** |

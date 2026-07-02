@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
+import 'package:jobbingtrack_mobile/navigation/app_navigator.dart';
+import 'package:jobbingtrack_mobile/utils/shell_layout.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/applications_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/calendar/events_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/home_dashboard_tab.dart';
@@ -43,6 +45,13 @@ class _MainShellScreenState extends State<MainShellScreen> {
     _applicationStatusFilter = widget.applicationStatusFilter;
     _pendingReturnTab = widget.returnTabOnBack;
     _syncShellRegistry();
+    ShellBackRegistry.register(_handleSystemBack);
+  }
+
+  @override
+  void dispose() {
+    ShellBackRegistry.register(null);
+    super.dispose();
   }
 
   void _syncShellRegistry() {
@@ -101,10 +110,15 @@ class _MainShellScreenState extends State<MainShellScreen> {
     if (_lastBackToBackgroundPrompt == null ||
         now.difference(_lastBackToBackgroundPrompt!) > const Duration(seconds: 2)) {
       _lastBackToBackgroundPrompt = now;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Appuyez à nouveau pour mettre l\'application en arrière-plan'),
-          duration: Duration(seconds: 2),
+      final bottom = mounted ? shellBottomExtra(context) + 8 : kShellBottomNavHeight + 8;
+      rootScaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Appuyez à nouveau pour mettre l\'application en arrière-plan (pas de fermeture forcée)',
+          ),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.fromLTRB(16, 0, 16, bottom),
         ),
       );
       return;
@@ -134,7 +148,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: _selectedIndex == 0,
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _handleSystemBack();
       },

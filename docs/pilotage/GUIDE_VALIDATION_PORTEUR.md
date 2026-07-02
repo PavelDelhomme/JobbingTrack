@@ -103,7 +103,7 @@ Ouvrez une candidature (ex. **Capgemini** ou **Orange**) → bouton **+** (FAB) 
 
 | # | Où | Action | OK si… |
 |---|-----|--------|--------|
-| **12** | Onglet **Accueil** (barre basse, pile vide) | Appuyez **deux fois** sur retour système (< 2 s) | 1er appui : snackbar « Appuyez à nouveau pour mettre l'application en arrière-plan » ; 2e appui : app en **arrière-plan** (pas fermeture forcée) |
+| **12** | Onglet **Accueil** (barre basse, pile vide, drawer fermé) | Appuyez **deux fois** sur retour système (< 2 s) | 1er appui : snackbar **flottante au-dessus de la barre basse** — *« Appuyez à nouveau pour mettre l'application en arrière-plan (pas de fermeture forcée) »* ; 2e appui : app en **arrière-plan** Android (processus conservé, pas kill) |
 
 ### Retours porteur déjà confirmés (17/06)
 
