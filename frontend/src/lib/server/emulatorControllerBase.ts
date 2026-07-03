@@ -26,8 +26,10 @@ export function resolveEmulatorControllerBase(clientBaseUrl?: string): string {
   const envUrl = process.env.EMULATOR_CONTROLLER_URL?.trim();
   if (envUrl && (envUrl.startsWith("http://") || envUrl.startsWith("https://"))) {
     const normalized = envUrl.replace(/\/$/, "");
-    if (runningInDocker() && isLocalhostControllerUrl(normalized)) {
-      return DOCKER_HOST_CONTROLLER;
+    if (runningInDocker()) {
+      if (isLocalhostControllerUrl(normalized)) {
+        return DOCKER_HOST_CONTROLLER;
+      }
     }
     return normalized;
   }

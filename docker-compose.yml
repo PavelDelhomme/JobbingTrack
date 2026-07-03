@@ -109,6 +109,24 @@ services:
       start_period: 40s
     restart: unless-stopped
 
+  # Contrôleur mobile (ADB + build APK) — réseau hôte, redémarrage auto (dev local).
+  emulator-controller:
+    build:
+      context: ./tools/emulator-controller
+      dockerfile: Dockerfile
+    container_name: jobbingtrack-emulator-controller
+    network_mode: host
+    volumes:
+      - .:/workspace
+      - ${HOME}/flutter-sdk:/opt/flutter:ro
+    environment:
+      - ANDROID_HOME=${ANDROID_HOME:-${HOME}/Android/Sdk}
+      - ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-${ANDROID_HOME:-${HOME}/Android/Sdk}}
+      - MOBILE_PROJECT_PATH=/workspace/mobile
+      - EMULATOR_CONTROLLER_HOST=0.0.0.0
+      - FLUTTER_BIN=/opt/flutter/bin/flutter
+    restart: unless-stopped
+
   
   # Frontend Dashboard Administrateur
   frontend:
@@ -130,8 +148,8 @@ services:
       - API_GATEWAY_PORT=${API_GATEWAY_PORT:-5002}
       - API_GATEWAY_URL=http://api-gateway:${API_GATEWAY_INTERNAL_PORT:-3000}
       - AUTH_SERVICE_PORT=${AUTH_SERVICE_PORT:-5005}
-      - EMULATOR_CONTROLLER_URL=${EMULATOR_CONTROLLER_URL:-http://host.docker.internal:5055}
-      - EMULATOR_LAUNCHER_URL=${EMULATOR_LAUNCHER_URL:-http://host.docker.internal:5056}
+      - EMULATOR_CONTROLLER_URL=http://host.docker.internal:5055
+      - EMULATOR_LAUNCHER_URL=http://host.docker.internal:5056
       - FRONTEND_PORT=${FRONTEND_PORT:-5003}
       - HOST_IP=${HOST_IP:-localhost}
       - HOSTNAME=0.0.0.0

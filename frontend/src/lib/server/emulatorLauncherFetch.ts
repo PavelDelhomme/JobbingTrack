@@ -13,9 +13,10 @@ function runningInDocker(): boolean {
 }
 
 export function resolveEmulatorLauncherBase(): string {
+  if (runningInDocker()) return DOCKER_HOST_LAUNCHER;
   const envUrl = process.env.EMULATOR_LAUNCHER_URL?.trim();
   if (envUrl && envUrl.startsWith("http")) return envUrl.replace(/\/$/, "");
-  return runningInDocker() ? DOCKER_HOST_LAUNCHER : LOCAL_LAUNCHER;
+  return LOCAL_LAUNCHER;
 }
 
 export function emulatorLauncherFallbackBases(primary: string): string[] {
