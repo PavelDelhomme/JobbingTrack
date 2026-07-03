@@ -35,14 +35,15 @@ export async function GET(
   }
 
   if (result.buffer) {
+    const headers: Record<string, string> = {
+      "Content-Type": result.contentType || "application/octet-stream",
+    };
+    if (result.contentDisposition) {
+      headers["Content-Disposition"] = result.contentDisposition;
+    }
     return new NextResponse(result.buffer, {
       status: result.status,
-      headers: {
-        "Content-Type": result.contentType || "application/octet-stream",
-        ...(segment === "/download-apk"
-          ? { "Content-Disposition": 'attachment; filename="app-debug.apk"' }
-          : {}),
-      },
+      headers,
     });
   }
 

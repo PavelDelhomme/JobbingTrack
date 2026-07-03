@@ -16,7 +16,17 @@ export type ApkInfo = {
   buildNumber?: number | null;
   sizeBytes?: number;
   modifiedAt?: string;
+  downloadFilename?: string | null;
 };
+
+export function formatApkDownloadFilename(
+  version?: string | null,
+  buildNumber?: number | string | null,
+): string {
+  const v = String(version || "0.0.0").replace(/[^a-zA-Z0-9._+-]/g, "_");
+  const b = String(buildNumber ?? 1).replace(/[^a-zA-Z0-9._+-]/g, "_");
+  return `jobbingtrack-v${v}+${b}-debug.apk`;
+}
 
 export type BuildApkResult = {
   success?: boolean;

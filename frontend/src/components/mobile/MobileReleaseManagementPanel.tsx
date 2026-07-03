@@ -5,7 +5,7 @@ import axios from "axios";
 import { useAuth } from "@/lib/hooks/auth";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { MobileApkBuildPanel } from "@/components/mobile/MobileApkBuildPanel";
-import { fetchBuiltApkBlob } from "@/lib/mobile/emulatorControllerClient";
+import { fetchBuiltApkBlob, formatApkDownloadFilename } from "@/lib/mobile/emulatorControllerClient";
 
 type MobileRelease = {
   id: string;
@@ -238,7 +238,11 @@ export function MobileReleaseManagementPanel() {
   const publishBuiltApk = async () => {
     try {
       const blob = await fetchBuiltApkBlob();
-      const file = new File([blob], "app-debug.apk", {
+      const fileName = formatApkDownloadFilename(
+        state?.deployHints?.suggestedVersion ?? version,
+        state?.deployHints?.suggestedBuild ?? buildNumber,
+      );
+      const file = new File([blob], fileName, {
         type: "application/vnd.android.package-archive",
       });
       await uploadApkFile(file);

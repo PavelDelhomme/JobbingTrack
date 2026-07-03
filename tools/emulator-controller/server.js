@@ -110,6 +110,17 @@ function parsePubspecVersion() {
   }
 }
 
+function sanitizeApkFilenamePart(value) {
+  return String(value ?? '').replace(/[^a-zA-Z0-9._+-]/g, '_') || '0';
+}
+
+/** Nom de fichier téléchargement PC : jobbingtrack-v1.0.0+101-debug.apk */
+function buildApkDownloadFilename(version, buildNumber) {
+  const v = sanitizeApkFilenamePart(version || '0.0.0');
+  const b = sanitizeApkFilenamePart(buildNumber ?? 1);
+  return `jobbingtrack-v${v}+${b}-debug.apk`;
+}
+
 function resolveApkPath() {
   const apkPathFlutter = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
   const apkPathLegacy = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'apk', 'debug', 'app-debug.apk');
@@ -1025,7 +1036,9 @@ const routes = {
       if (!apkPath) {
         return send(res, 404, { success: false, error: 'APK introuvable. Lancez d’abord « Build APK ».' });
       }
-      sendFile(res, apkPath, 'app-debug.apk');
+      const pubspec = parsePubspecVersion();
+      const downloadName = buildApkDownloadFilename(pubspec?.version, pubspec?.buildNumber);
+      sendFile(res, apkPath, downloadName);
     } catch (e) {
       send(res, 500, { success: false, error: (e && e.message) || String(e) });
     }
@@ -1043,13 +1056,16 @@ const routes = {
         });
       }
       const stat = fs.statSync(apkPath);
+      const version = pubspec?.version || null;
+      const buildNumber = pubspec?.buildNumber || null;
       send(res, 200, {
         exists: true,
         path: apkPath,
         sizeBytes: stat.size,
         modifiedAt: stat.mtime.toISOString(),
-        version: pubspec?.version || null,
-        buildNumber: pubspec?.buildNumber || null,
+        version,
+        buildNumber,
+        downloadFilename: buildApkDownloadFilename(version, buildNumber),
       });
     } catch (e) {
       send(res, 500, { success: false, error: (e && e.message) || String(e) });

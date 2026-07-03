@@ -109,29 +109,6 @@ services:
       start_period: 40s
     restart: unless-stopped
 
-  # Contrôleur mobile (ADB + build APK) sur la machine hôte — démarrage auto avec docker compose up
-  emulator-controller:
-    image: alpine:3.20
-    container_name: jobbingtrack-emulator-controller
-    network_mode: host
-    pid: host
-    volumes:
-      - .:/workspace
-      - /usr/bin:/usr/bin:ro
-      - /usr/lib:/usr/lib:ro
-      - /lib:/lib:ro
-      - ${HOME}:${HOME}
-    environment:
-      - HOME=${HOME}
-      - USER=${USER:-}
-      - ANDROID_HOME=${ANDROID_HOME:-${HOME}/Android/Sdk}
-      - ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-${ANDROID_HOME:-${HOME}/Android/Sdk}}
-      - MOBILE_PROJECT_PATH=/workspace/mobile
-      - EMULATOR_CONTROLLER_HOST=0.0.0.0
-    working_dir: /workspace/tools/emulator-controller
-    command: ["/usr/bin/node", "launcher.js"]
-    restart: unless-stopped
-
   
   # Frontend Dashboard Administrateur
   frontend:

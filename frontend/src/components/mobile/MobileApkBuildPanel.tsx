@@ -9,6 +9,7 @@ import {
   fetchEmulatorHealth,
   installApkOnDevice,
   localApkDownloadHref,
+  formatApkDownloadFilename,
   type AdbDevice,
   type ApkInfo,
 } from "@/lib/mobile/emulatorControllerClient";
@@ -199,9 +200,14 @@ export function MobileApkBuildPanel({
           {apkInfo?.exists ? (
             <a
               href={localApkDownloadHref()}
+              download={
+                apkInfo.downloadFilename ||
+                formatApkDownloadFilename(apkInfo.version, apkInfo.buildNumber)
+              }
               className="rounded-lg border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-50 dark:text-emerald-200 dark:hover:bg-emerald-950/40"
             >
-              Télécharger sur mon PC
+              Télécharger{" "}
+              {formatApkDownloadFilename(apkInfo.version, apkInfo.buildNumber)}
             </a>
           ) : null}
         </div>
