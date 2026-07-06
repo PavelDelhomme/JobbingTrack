@@ -62,7 +62,7 @@ class _AppDrawerState extends State<AppDrawer> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                subtitle: const Text('Retour à la session administrateur'),
+                subtitle: const Text('Retour à la liste des utilisateurs'),
                 onTap: () async {
                   Navigator.of(context).pop();
                   await ImpersonationBanner.exitAndRestoreAdminSession(context);

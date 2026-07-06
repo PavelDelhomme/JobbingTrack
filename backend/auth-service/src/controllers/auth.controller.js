@@ -978,26 +978,85 @@ const deleteUser = async (req, res, next) => {
 };
 
 /**
- * Nettoyer les utilisateurs de test (isTestData === true ou email @jobbingtrack.test). ADMIN uniquement.
- * Ne supprime pas l'utilisateur connecté.
+ * Emails jamais supprimés par cleanTestUsers (admin + comptes porteur .env).
+ */
+function buildProtectedUserEmails() {
+  const emails = new Set();
+  const add = (value) => {
+    const v = String(value || '').trim().toLowerCase();
+    if (v) emails.add(v);
+  };
+  add(process.env.ADMIN_EMAIL);
+  add(process.env.TEST_ADMIN_EMAIL);
+  add(process.env.TEST_USER_EMAIL);
+  for (const part of String(process.env.PROTECTED_USER_EMAILS || '').split(',')) {
+    add(part);
+  }
+  return emails;
+}
+
+function isDisposableSmokeUser(user) {
+  const email = String(user.email || '').toLowerCase();
+  if (user.isTestData) return true;
+  if (email.endsWith('@jobbingtrack.test')) return true;
+  if (email.endsWith('@mailhog.local')) return true;
+  if (email.endsWith('@example.com')) return true;
+  if (email.endsWith('@test.com')) return true;
+  if (/^test\+mob/i.test(email)) return true;
+  if (/^test\+e2e/i.test(email)) return true;
+  if (/^test\+api/i.test(email)) return true;
+  if (/^e2e-/i.test(email)) return true;
+  if (/^mob-/i.test(email)) return true;
+  if (/^verify-/i.test(email)) return true;
+  if (email.includes('+mob') && email.includes('@delhomme.ovh')) return true;
+  const fn = user.firstName || '';
+  const ln = user.lastName || '';
+  if ((fn === 'Porteur' || fn === 'Porteur2') && ln === 'Auto') return true;
+  if (email === 'candidatures@delhomme.ovh') return true;
+  return false;
+}
+
+/**
+ * Nettoyer les utilisateurs de test / smoke inscription. ADMIN uniquement.
+ * Conserve ADMIN_EMAIL, TEST_* et PROTECTED_USER_EMAILS ; ne supprime pas l'utilisateur connecté.
  */
 const cleanTestUsers = async (req, res, next) => {
   try {
     const currentUserId = req.user?.id || req.user?.userId;
-    const result = await prisma.user.deleteMany({
+    const protectedEmails = buildProtectedUserEmails();
+
+    const candidates = await prisma.user.findMany({
       where: {
+        deletedAt: null,
         ...(currentUserId ? { id: { not: currentUserId } } : {}),
-        OR: [
-          { isTestData: true },
-          { email: { endsWith: '@jobbingtrack.test' } }
-        ]
-      }
+      },
+      select: {
+        id: true,
+        email: true,
+        isTestData: true,
+        firstName: true,
+        lastName: true,
+      },
     });
-    logger.info(`[cleanTestUsers] ${result.count} utilisateur(s) de test supprimé(s)`);
+
+    const idsToDelete = candidates
+      .filter((u) => {
+        const email = String(u.email || '').toLowerCase();
+        if (protectedEmails.has(email)) return false;
+        return isDisposableSmokeUser(u);
+      })
+      .map((u) => u.id);
+
+    const result = idsToDelete.length
+      ? await prisma.user.deleteMany({ where: { id: { in: idsToDelete } } })
+      : { count: 0 };
+
+    logger.info(`[cleanTestUsers] ${result.count} utilisateur(s) smoke/test supprimé(s)`);
     res.json({
       success: true,
       message: `${result.count} utilisateur(s) de test supprimé(s)`,
-      deletedCount: result.count
+      deletedCount: result.count,
+      remainingHint: 'Comptes conservés : admin et TEST_USER_EMAIL / PROTECTED_USER_EMAILS',
     });
   } catch (error) {
     logger.error('Erreur nettoyage utilisateurs de test:', error);

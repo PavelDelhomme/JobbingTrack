@@ -6,6 +6,8 @@ import 'package:jobbingtrack_mobile/models/user.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
+enum _UserListFilter { all, active, inactive, admins }
+
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
 
@@ -19,6 +21,7 @@ class _UsersScreenState extends State<UsersScreen> {
   bool _loading = true;
   String? _error;
   String _query = '';
+  _UserListFilter _listFilter = _UserListFilter.all;
 
   @override
   void initState() {
@@ -26,18 +29,34 @@ class _UsersScreenState extends State<UsersScreen> {
     _load();
   }
 
+  bool _isAdmin(User u) => u.role == 'ADMIN' || u.role == 'SUPER_ADMIN';
+
   void _applyFilter() {
-    final q = _query.trim().toLowerCase();
-    if (q.isEmpty) {
-      _filtered = _users;
-      return;
+    Iterable<User> list = _users;
+    switch (_listFilter) {
+      case _UserListFilter.active:
+        list = list.where((u) => u.isActive);
+        break;
+      case _UserListFilter.inactive:
+        list = list.where((u) => !u.isActive);
+        break;
+      case _UserListFilter.admins:
+        list = list.where(_isAdmin);
+        break;
+      case _UserListFilter.all:
+        break;
     }
-    _filtered = _users.where((u) {
-      return u.email.toLowerCase().contains(q) ||
-          u.firstName.toLowerCase().contains(q) ||
-          u.lastName.toLowerCase().contains(q) ||
-          u.role.toLowerCase().contains(q);
-    }).toList();
+
+    final q = _query.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      list = list.where((u) {
+        return u.email.toLowerCase().contains(q) ||
+            u.firstName.toLowerCase().contains(q) ||
+            u.lastName.toLowerCase().contains(q) ||
+            u.role.toLowerCase().contains(q);
+      });
+    }
+    _filtered = list.toList();
   }
 
   Future<void> _load() async {
@@ -66,7 +85,10 @@ class _UsersScreenState extends State<UsersScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Nettoyer utilisateurs test'),
-        content: const Text('Supprimer les comptes marqués comme données de test ?'),
+        content: const Text(
+          'Supprime les comptes smoke (test+mob…, @jobbingtrack.test, Porteur Auto, isTestData).\n\n'
+          'Les comptes admin et TEST_USER_EMAIL du .env sont conservés.',
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Nettoyer')),
@@ -78,7 +100,9 @@ class _UsersScreenState extends State<UsersScreen> {
       final token = Provider.of<AuthProvider>(context, listen: false).token;
       await AdminApiService.cleanTestUsers(token: token);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Utilisateurs test nettoyés')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Utilisateurs test / smoke supprimés')),
+        );
         await _load();
       }
     } catch (e) {
@@ -88,17 +112,29 @@ class _UsersScreenState extends State<UsersScreen> {
     }
   }
 
+  void _setFilter(_UserListFilter filter) {
+    setState(() {
+      _listFilter = filter;
+      _applyFilter();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final active = _users.where((u) => u.isActive).length;
-    final admins = _users.where((u) => u.role == 'ADMIN' || u.role == 'SUPER_ADMIN').length;
+    final inactive = _users.where((u) => !u.isActive).length;
+    final admins = _users.where(_isAdmin).length;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Utilisateurs'),
         centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.cleaning_services_outlined), tooltip: 'Nettoyer test', onPressed: _cleanTestUsers),
+          IconButton(
+            icon: const Icon(Icons.cleaning_services_outlined),
+            tooltip: 'Nettoyer comptes smoke',
+            onPressed: _cleanTestUsers,
+          ),
           const MobileNotificationCenter(),
         ],
       ),
@@ -106,17 +142,30 @@ class _UsersScreenState extends State<UsersScreen> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Row(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
                 children: [
-                  _kpi('Total', '${_users.length}'),
-                  const SizedBox(width: 8),
-                  _kpi('Actifs', '$active'),
-                  const SizedBox(width: 8),
-                  _kpi('Admins', '$admins'),
+                  _filterChip('Tous', '${_users.length}', _UserListFilter.all),
+                  _filterChip('Actifs', '$active', _UserListFilter.active),
+                  _filterChip('Inactifs', '$inactive', _UserListFilter.inactive),
+                  _filterChip('Admins', '$admins', _UserListFilter.admins),
                 ],
               ),
             ),
+            if (_listFilter != _UserListFilter.all)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _filterSubtitle(_listFilter, _filtered.length),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.all(12),
               child: TextField(
@@ -139,15 +188,50 @@ class _UsersScreenState extends State<UsersScreen> {
     );
   }
 
-  Widget _kpi(String label, String value) {
-    return Expanded(
-      child: Card(
+  String _filterSubtitle(_UserListFilter f, int shown) {
+    switch (f) {
+      case _UserListFilter.active:
+        return 'Filtre : comptes actifs — $shown affiché(s)';
+      case _UserListFilter.inactive:
+        return 'Filtre : comptes inactifs — $shown affiché(s)';
+      case _UserListFilter.admins:
+        return 'Filtre : administrateurs — $shown affiché(s)';
+      case _UserListFilter.all:
+        return '';
+    }
+  }
+
+  Widget _filterChip(String label, String value, _UserListFilter filter) {
+    final selected = _listFilter == filter;
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      color: selected ? colorScheme.primaryContainer : colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _setFilter(filter),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: selected ? colorScheme.onPrimaryContainer : null,
+                ),
+              ),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: selected
+                      ? colorScheme.onPrimaryContainer.withValues(alpha: 0.85)
+                      : Colors.grey.shade600,
+                ),
+              ),
             ],
           ),
         ),
@@ -174,7 +258,16 @@ class _UsersScreenState extends State<UsersScreen> {
       child: _filtered.isEmpty
           ? ListView(
               padding: adminScrollPadding(context),
-              children: const [SizedBox(height: 80), Center(child: Text('Aucun utilisateur'))],
+              children: [
+                const SizedBox(height: 80),
+                Center(
+                  child: Text(
+                    _listFilter == _UserListFilter.all
+                        ? 'Aucun utilisateur'
+                        : 'Aucun utilisateur pour ce filtre',
+                  ),
+                ),
+              ],
             )
           : ListView.builder(
               padding: adminScrollPadding(context),
@@ -184,9 +277,14 @@ class _UsersScreenState extends State<UsersScreen> {
                 return ListTile(
                   leading: CircleAvatar(child: Text(u.firstName.isNotEmpty ? u.firstName[0] : '?')),
                   title: Text('${u.firstName} ${u.lastName}'.trim()),
-                  subtitle: Text('${u.email}\n${u.role}${u.emailVerified ? '' : ' · email non vérifié'}'),
+                  subtitle: Text(
+                    '${u.email}\n${u.role}${u.emailVerified ? '' : ' · email non vérifié'}${u.isActive ? '' : ' · inactif'}',
+                  ),
                   isThreeLine: true,
-                  trailing: Icon(u.isActive ? Icons.check_circle_outline : Icons.block, color: u.isActive ? Colors.green : Colors.grey),
+                  trailing: Icon(
+                    u.isActive ? Icons.check_circle_outline : Icons.block,
+                    color: u.isActive ? Colors.green : Colors.grey,
+                  ),
                   onTap: () async {
                     await Navigator.of(context).pushNamed('/user-detail', arguments: u.id);
                     if (mounted) _load();

@@ -17,13 +17,14 @@ class ImpersonationBanner extends StatelessWidget {
   static Future<void> exitAndRestoreAdminSession(BuildContext context) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (!auth.isImpersonating) return;
+    final returnRoute = auth.impersonationReturnRoute;
     await auth.exitImpersonation();
     final nav = appNavigatorKey.currentState;
     if (nav == null) return;
-    nav.pushNamedAndRemoveUntil('/admin', (route) => route.isFirst);
+    nav.pushNamedAndRemoveUntil(returnRoute, (route) => false);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Session administrateur restaurée')),
+        const SnackBar(content: Text('Session administrateur restaurée — liste utilisateurs')),
       );
     }
   }

@@ -268,7 +268,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     }
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      await auth.impersonateUser(u.id);
+      await auth.impersonateUser(u.id, returnRoute: '/users');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Session ouverte en tant que ${u.email}')),

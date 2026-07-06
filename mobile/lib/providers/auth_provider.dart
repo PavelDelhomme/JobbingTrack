@@ -25,6 +25,7 @@ class AuthProvider with ChangeNotifier {
   String? _impersonatorToken;
   User? _impersonatorUser;
   String? _impersonatorRefreshToken;
+  String? _impersonationReturnRoute;
 
   AuthProvider() {
     _wireSecurityCallbacks();
@@ -356,6 +357,7 @@ class AuthProvider with ChangeNotifier {
     _impersonatorToken = null;
     _impersonatorUser = null;
     _impersonatorRefreshToken = null;
+    _impersonationReturnRoute = null;
     _tokenStale = false;
     _sessionRestored = false;
     CrashReporter.setToken(null);
@@ -481,13 +483,20 @@ class AuthProvider with ChangeNotifier {
 
   bool get isImpersonating => _impersonatorToken != null;
 
+  /// Route admin à rouvrir après désimpersonnalisation (défaut : liste utilisateurs).
+  String get impersonationReturnRoute => _impersonationReturnRoute ?? '/users';
+
   /// Ouvre la session de l'utilisateur cible (admin requis).
-  Future<void> impersonateUser(String targetUserId) async {
+  Future<void> impersonateUser(
+    String targetUserId, {
+    String returnRoute = '/users',
+  }) async {
     if (_token == null) throw Exception('Non connecté');
     final result = await AdminApiService.impersonateUser(targetUserId, token: _token);
     _impersonatorToken = _token;
     _impersonatorUser = _user;
     _impersonatorRefreshToken = _refreshToken;
+    _impersonationReturnRoute = returnRoute;
     _token = result.token;
     _user = User.fromJson(result.user);
     _refreshToken = null;
@@ -506,6 +515,7 @@ class AuthProvider with ChangeNotifier {
     _impersonatorToken = null;
     _impersonatorUser = null;
     _impersonatorRefreshToken = null;
+    _impersonationReturnRoute = null;
     _tokenStale = false;
     CrashReporter.setToken(_token);
     await MobileAnalyticsService.instance.updateAuthToken(_token);
