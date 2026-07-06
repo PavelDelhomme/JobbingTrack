@@ -1,13 +1,22 @@
-# Contrôleur ADB + build APK (dev local). Réseau hôte pour joindre adb/appareils USB.
+# Contrôleur ADB + build APK (dev local). Réseau hôte + USB pour appareils physiques.
 FROM node:20-bookworm-slim
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends android-tools-adb bash curl ca-certificates \
+  && apt-get install -y --no-install-recommends \
+    android-tools-adb \
+    bash \
+    ca-certificates \
+    curl \
+    git \
+    openjdk-17-jdk-headless \
   && rm -rf /var/lib/apt/lists/*
 
 ENV MOBILE_PROJECT_PATH=/workspace/mobile
 ENV EMULATOR_CONTROLLER_HOST=0.0.0.0
-ENV PATH="/opt/flutter/bin:${PATH}"
+ENV ANDROID_HOME=/opt/android-sdk
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH="/opt/flutter/bin:${JAVA_HOME}/bin:${PATH}"
 
 WORKDIR /workspace/tools/emulator-controller
 

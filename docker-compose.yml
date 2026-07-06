@@ -109,19 +109,24 @@ services:
       start_period: 40s
     restart: unless-stopped
 
-  # Contrôleur mobile (ADB + build APK) — réseau hôte, redémarrage auto (dev local).
+  # Contrôleur mobile (ADB + build APK) — réseau hôte + USB, redémarrage auto (dev local).
   emulator-controller:
     build:
       context: ./tools/emulator-controller
       dockerfile: Dockerfile
     container_name: jobbingtrack-emulator-controller
     network_mode: host
+    privileged: true
     volumes:
       - .:/workspace
       - ${HOME}/flutter-sdk:/opt/flutter:ro
+      # SDK Android hôte (chemin canonique ; ignore ANDROID_HOME hôte si erroné ex. /opt/android-sdk)
+      - ${HOME}/Android/Sdk:/opt/android-sdk:ro
+      # Accès USB pour adb devices (téléphone physique)
+      - /dev/bus/usb:/dev/bus/usb
     environment:
-      - ANDROID_HOME=${ANDROID_HOME:-${HOME}/Android/Sdk}
-      - ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-${ANDROID_HOME:-${HOME}/Android/Sdk}}
+      - ANDROID_HOME=/opt/android-sdk
+      - ANDROID_SDK_ROOT=/opt/android-sdk
       - MOBILE_PROJECT_PATH=/workspace/mobile
       - EMULATOR_CONTROLLER_HOST=0.0.0.0
       - FLUTTER_BIN=/opt/flutter/bin/flutter

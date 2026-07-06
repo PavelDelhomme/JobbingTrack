@@ -52,6 +52,23 @@ export type AdbDevice = {
   updateNeeded?: boolean;
 };
 
+export type AdbDiagnostics = {
+  readyCount?: number;
+  pendingCount?: number;
+  hints?: string[];
+  flutterDevices?: { id: string; name: string; platform?: string }[];
+};
+
+export type BuildSession = {
+  finishedAt?: string;
+  success?: boolean;
+  exitCode?: number;
+  version?: string | null;
+  buildNumber?: number | null;
+  message?: string;
+  stderrTail?: string;
+};
+
 async function proxyGet<T>(path: string, timeoutMs = 15_000): Promise<T | null> {
   try {
     const res = await fetch(`${PROXY}${path}`, { signal: AbortSignal.timeout(timeoutMs) });
@@ -85,9 +102,28 @@ export async function fetchApkInfo(): Promise<ApkInfo | null> {
   return proxyGet<ApkInfo>("/apk-info", 8000);
 }
 
-export async function fetchAdbDevices(): Promise<AdbDevice[]> {
-  const data = await proxyGet<{ devices?: AdbDevice[] }>("/devices", 20_000);
-  return (data?.devices || []).filter((d) => d.status === "device");
+export async function fetchAdbDevices(): Promise<{
+  devices: AdbDevice[];
+  pendingDevices: AdbDevice[];
+  diagnostics: AdbDiagnostics | null;
+}> {
+  const data = await proxyGet<{
+    devices?: AdbDevice[];
+    pendingDevices?: AdbDevice[];
+    diagnostics?: AdbDiagnostics;
+  }>("/devices", 20_000);
+  return {
+    devices: (data?.devices || []).filter((d) => d.status === "device"),
+    pendingDevices: data?.pendingDevices || [],
+    diagnostics: data?.diagnostics || null,
+  };
+}
+
+export async function fetchBuildSession(): Promise<{
+  session: BuildSession | null;
+  apkInfo?: { exists?: boolean; modifiedAt?: string; version?: string; buildNumber?: number };
+} | null> {
+  return proxyGet("/build-session", 8000);
 }
 
 export async function buildApkFromBackoffice(

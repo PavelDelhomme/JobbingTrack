@@ -33,6 +33,7 @@ migrate_working_dir/
 .pub/
 /build/
 .flutter-gradle-cache/
+.build-session.json
 **/flutter/ephemeral/
 **/Flutter/ephemeral/
 

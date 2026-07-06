@@ -145,9 +145,96 @@ function sendFile(res, filePath, downloadName) {
 function parseAdbDevices(stdout) {
   const lines = stdout.split('\n').filter((l) => l.trim() && !l.startsWith('List'));
   return lines.map((line) => {
-    const [id, ...rest] = line.split(/\s+/);
-    return { id, status: rest.join(' ') || 'device' };
+    const parts = line.trim().split(/\s+/);
+    const id = parts[0];
+    const status = parts[1] || 'unknown';
+    return { id, status };
   });
+}
+
+const BUILD_SESSION_FILE = path.join(MOBILE_PATH, '.build-session.json');
+
+function readBuildSession() {
+  try {
+    if (fs.existsSync(BUILD_SESSION_FILE)) {
+      return JSON.parse(fs.readFileSync(BUILD_SESSION_FILE, 'utf8'));
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+function writeBuildSession(session) {
+  try {
+    fs.writeFileSync(BUILD_SESSION_FILE, JSON.stringify(session, null, 2), 'utf8');
+  } catch (e) {
+    console.error('writeBuildSession:', e.message);
+  }
+}
+
+async function collectAdbDiagnostics() {
+  const hints = [];
+  let adbVersion = null;
+  let rawList = '';
+  let allDevices = [];
+  let flutterDevices = [];
+
+  try {
+    const { stdout } = await execPromise('adb version', { timeout: 8000 });
+    adbVersion = (stdout || '').split('\n')[0] || null;
+  } catch (e) {
+    hints.push(`adb indisponible : ${e.message}`);
+  }
+
+  try {
+    const { stdout } = await execPromise('adb devices -l', { timeout: 10000 });
+    rawList = stdout || '';
+    allDevices = parseAdbDevices(stdout);
+  } catch (e) {
+    hints.push(`adb devices échoué : ${e.message}`);
+  }
+
+  const ready = allDevices.filter((d) => d.status === 'device');
+  const pending = allDevices.filter((d) => d.status !== 'device');
+
+  if (allDevices.length === 0) {
+    hints.push('Aucun appareil ADB — branchez le téléphone USB, activez le débogage, acceptez la clé RSA sur l’écran.');
+  }
+  for (const d of pending) {
+    if (d.status === 'unauthorized') {
+      hints.push(`${d.id} : non autorisé — déverrouillez le téléphone et acceptez « Autoriser le débogage USB ».`);
+    } else if (d.status === 'offline') {
+      hints.push(`${d.id} : hors ligne — rebrancher le câble ou relancer adb.`);
+    } else {
+      hints.push(`${d.id} : état « ${d.status} » — vérifiez le câble et le mode USB (transfert fichiers).`);
+    }
+  }
+
+  try {
+    const { stdout } = await execPromise('flutter devices --machine', { cwd: MOBILE_PATH, timeout: 15000 });
+    const arr = JSON.parse(stdout || '[]');
+    if (Array.isArray(arr)) {
+      flutterDevices = arr.map((o) => ({
+        id: o.id,
+        name: o.name || o.id,
+        platform: o.platformType || o.platform,
+      }));
+    }
+  } catch { /* flutter devices optionnel */ }
+
+  if (ready.length === 0 && flutterDevices.length > 0) {
+    hints.push(`${flutterDevices.length} appareil(s) Flutter (émulateur) — ADB USB peut nécessiter un redémarrage du contrôleur après branchement.`);
+  }
+
+  return {
+    adbVersion,
+    rawList,
+    readyCount: ready.length,
+    pendingCount: pending.length,
+    flutterDeviceCount: flutterDevices.length,
+    hints,
+    pending,
+    flutterDevices,
+  };
 }
 
 async function queryDeviceDetails(deviceId) {
@@ -364,8 +451,8 @@ const routes = {
 
   async '/devices'(req, res) {
     try {
-      const { stdout } = await execPromise('adb devices');
-      const raw = parseAdbDevices(stdout).filter((d) => d.status === 'device');
+      const diag = await collectAdbDiagnostics();
+      const raw = parseAdbDevices(diag.rawList).filter((d) => d.status === 'device');
       const pubspec = parsePubspecVersion();
       const devices = await Promise.all(
         raw.map(async (d) => {
@@ -385,9 +472,37 @@ const routes = {
           };
         }),
       );
-      send(res, 200, { success: true, devices, package: ANDROID_PACKAGE });
+      send(res, 200, {
+        success: true,
+        devices,
+        pendingDevices: diag.pending,
+        diagnostics: {
+          readyCount: diag.readyCount,
+          pendingCount: diag.pendingCount,
+          hints: diag.hints,
+          flutterDevices: diag.flutterDevices,
+        },
+        package: ANDROID_PACKAGE,
+      });
     } catch (e) {
       send(res, 500, { success: false, error: e.message, devices: [] });
+    }
+  },
+
+  async '/adb-diagnostics'(req, res) {
+    try {
+      const diag = await collectAdbDiagnostics();
+      send(res, 200, {
+        success: true,
+        ...diag,
+        androidSdkPresent: !!(ANDROID_HOME && fs.existsSync(ANDROID_HOME)),
+        androidSdkPath: ANDROID_HOME || null,
+        gitAvailable: await execPromise('git --version', { timeout: 5000 })
+          .then((r) => (r.stdout || '').trim())
+          .catch(() => null),
+      });
+    } catch (e) {
+      send(res, 500, { success: false, error: e.message });
     }
   },
 
@@ -440,6 +555,18 @@ const routes = {
       const pubspec = parsePubspecVersion();
       const stdoutStr = typeof stdout === 'string' ? stdout : String(stdout || '');
       const stderrStr = typeof stderr === 'string' ? stderr : String(stderr || '');
+
+      writeBuildSession({
+        finishedAt: new Date().toISOString(),
+        success: !!ok,
+        exitCode: code,
+        version: pubspec?.version || null,
+        buildNumber: pubspec?.buildNumber || null,
+        message: ok ? 'Build APK réussi' : (exists ? 'Build terminé avec erreur' : 'Build échoué'),
+        stderrTail: stderrStr.slice(-1500),
+        apkPath: exists ? apkPath : null,
+      });
+
       return send(res, 200, {
         success: !!ok,
         message: ok ? 'Build APK réussi' : (exists ? 'Build terminé avec erreur (voir stderr)' : 'Build échoué (voir stderr)'),
@@ -1073,6 +1200,11 @@ const routes = {
   },
 
   async '/health'(req, res) {
+    const gitOk = await execPromise('git --version', { timeout: 5000 })
+      .then(() => true)
+      .catch(() => false);
+    const sdkOk = !!(ANDROID_HOME && fs.existsSync(ANDROID_HOME));
+    const diag = await collectAdbDiagnostics().catch(() => null);
     send(res, 200, {
       ok: true,
       service: 'emulator-controller',
@@ -1080,6 +1212,27 @@ const routes = {
       repoRoot: REPO_ROOT,
       buildScript: fs.existsSync(BUILD_APK_SCRIPT),
       apkReady: !!resolveApkPath(),
+      gitAvailable: gitOk,
+      androidSdkPresent: sdkOk,
+      androidSdkPath: ANDROID_HOME || null,
+      adbReadyCount: diag?.readyCount ?? null,
+      adbPendingCount: diag?.pendingCount ?? null,
+      lastBuildSession: readBuildSession(),
+    });
+  },
+
+  async '/build-session'(req, res) {
+    const session = readBuildSession();
+    const apkPath = resolveApkPath();
+    send(res, 200, {
+      session,
+      apkInfo: apkPath && fs.existsSync(apkPath)
+        ? {
+            exists: true,
+            modifiedAt: fs.statSync(apkPath).mtime.toISOString(),
+            ...parsePubspecVersion(),
+          }
+        : { exists: false },
     });
   },
 
