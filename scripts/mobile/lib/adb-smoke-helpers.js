@@ -1,7 +1,8 @@
+#!/usr/bin/env node
 /**
  * Helpers partagés smokes ADB — session shell réutilisée, champs labelText Flutter.
- * @used-by scripts/mobile/smoke/adb/smoke-mobile-*.js, scripts/mobile/smoke/adb/smoke-login-*.js
  */
+require('./smoke-runtime');
 
 const adbLib = require('../../../tools/adb-lib');
 const smokeApp = require('../lib/smoke-application-target');
@@ -61,6 +62,7 @@ async function openProfileEdit(phone) {
   const editVisible = ({ contains, nodes }) =>
     contains('Enregistrer') ||
     contains('Sauvegarder') ||
+    contains('Modifier le profil') ||
     (contains('Email') && (contains('Prénom') || contains('Nom'))) ||
     nodes.some(
       (n) =>

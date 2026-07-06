@@ -1,8 +1,7 @@
 /**
- * Ignore les appels téléphoniques entrants pendant les smokes ADB.
- * Refuse l'appel (jamais « Répondre ») et ramène JobbingTrack au premier plan.
- *
- * Activé par défaut si SMOKE_IGNORE_INCOMING_CALLS !== '0'.
+ * Refuse les appels entrants système pendant les smokes ADB uniquement.
+ * Activé seulement si le process est un script sous scripts/mobile/smoke/
+ * (voir scripts/mobile/lib/smoke-runtime.js) — jamais via .env produit.
  */
 
 const JOBINGTRACK_PKG = 'com.example.jobbingtrack_mobile';
@@ -26,10 +25,8 @@ const DECLINE_LABELS = [
   'Dismiss',
 ];
 
-function smokeIgnoreIncomingCallsEnabled() {
-  const raw = process.env.SMOKE_IGNORE_INCOMING_CALLS;
-  if (raw === '0' || raw === 'false') return false;
-  return true;
+function smokeDismissIncomingCallsEnabled() {
+  return process.env.SMOKE_DISMISS_INCOMING_CALLS === '1';
 }
 
 function xmlLooksLikeIncomingCall(xml) {
@@ -80,20 +77,18 @@ async function shellEndCall(adb) {
 
 async function bringJobbingTrackToFront(adb) {
   try {
-    await adb.shellCommand(
-      `am start -n ${JOBINGTRACK_PKG}/.MainActivity`,
-    );
+    await adb.shellCommand(`am start -n ${JOBINGTRACK_PKG}/.MainActivity`);
   } catch {
     /* ignore */
   }
 }
 
 /**
- * Détecte et refuse un appel entrant système. Ne répond jamais à l'appel.
+ * Refuse un appel entrant système (jamais « Répondre »).
  * @returns {boolean} true si un overlay appel a été traité
  */
 async function dismissIncomingPhoneCall(adb, { log = true } = {}) {
-  if (!smokeIgnoreIncomingCallsEnabled()) return false;
+  if (!smokeDismissIncomingCallsEnabled()) return false;
 
   let xml = '';
   try {
@@ -107,7 +102,7 @@ async function dismissIncomingPhoneCall(adb, { log = true } = {}) {
   }
 
   if (log && adb._log) {
-    adb._log('appel entrant détecté — refus automatique (smoke)');
+    adb._log('appel entrant — refus auto (smoke uniquement)');
   }
 
   for (const label of DECLINE_LABELS) {
@@ -137,5 +132,5 @@ async function dismissIncomingPhoneCall(adb, { log = true } = {}) {
 module.exports = {
   dismissIncomingPhoneCall,
   xmlLooksLikeIncomingCall,
-  smokeIgnoreIncomingCallsEnabled,
+  smokeDismissIncomingCallsEnabled,
 };

@@ -8,6 +8,7 @@
 
 const adbLib = require('../../../../tools/adb-lib');
 const { loadRootEnv, getGatewayUrl } = require('../../lib/resolve-admin-credentials');
+require('../../lib/smoke-runtime');
 const { isRunningInContainer } = require('../../../lib/gateway-url');
 const { ensureTestAccountsReady } = require('../../setup/ensure-test-accounts-ready');
 const { acquireSmokeLock } = require('./smoke-lock');
@@ -79,7 +80,7 @@ async function runPreflight(opts = {}) {
   console.log('✅ Verrou smoke actif (pas de script parallèle sur cet appareil)');
 
   await checkEmulatorController(phone);
-  console.log('✅ Appels entrants — refus auto pendant smokes (SMOKE_IGNORE_INCOMING_CALLS)');
+  console.log('✅ Garde-fous smoke actifs (appels entrants refusés — scripts smoke uniquement)');
 
   if (prepare) {
     await adbLib.flows.prepareSmokeSession(phone, { restart: true });

@@ -64,6 +64,7 @@ function runScript(relPath, label, envExtra = {}) {
       ADB_FAST: '1',
       ADB_UI_CACHE_MS: '220',
       ADB_WAIT_POLL_MS: '260',
+      SMOKE_DISMISS_INCOMING_CALLS: '1',
       SMOKE_SHARED_SHELL: '1',
       SMOKE_PREFLIGHT_DONE: '1',
       ...envExtra,

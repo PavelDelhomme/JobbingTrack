@@ -6,6 +6,7 @@
  */
 
 const adbLib = require('../../../../tools/adb-lib');
+require('../../lib/smoke-runtime');
 const { ensureUserShell, openProfileEdit, typeInLabeledField } = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');

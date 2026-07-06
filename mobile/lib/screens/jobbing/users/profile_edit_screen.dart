@@ -188,24 +188,36 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               const SizedBox(height: 16),
             ],
             const Divider(height: 32),
-            TextFormField(
-              controller: _firstNameCtrl,
-              decoration: const InputDecoration(labelText: 'Prénom'),
-              textCapitalization: TextCapitalization.words,
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Prénom requis' : null,
+            Semantics(
+              label: 'Prénom',
+              textField: true,
+              child: TextFormField(
+                controller: _firstNameCtrl,
+                decoration: const InputDecoration(labelText: 'Prénom'),
+                textCapitalization: TextCapitalization.words,
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Prénom requis' : null,
+              ),
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _lastNameCtrl,
-              decoration: const InputDecoration(labelText: 'Nom'),
-              textCapitalization: TextCapitalization.words,
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Nom requis' : null,
+            Semantics(
+              label: 'Nom',
+              textField: true,
+              child: TextFormField(
+                controller: _lastNameCtrl,
+                decoration: const InputDecoration(labelText: 'Nom'),
+                textCapitalization: TextCapitalization.words,
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Nom requis' : null,
+              ),
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _phoneCtrl,
-              decoration: const InputDecoration(labelText: 'Téléphone'),
-              keyboardType: TextInputType.phone,
+            Semantics(
+              label: 'Téléphone',
+              textField: true,
+              child: TextFormField(
+                controller: _phoneCtrl,
+                decoration: const InputDecoration(labelText: 'Téléphone'),
+                keyboardType: TextInputType.phone,
+              ),
             ),
           ],
         ),
