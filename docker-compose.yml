@@ -127,6 +127,8 @@ services:
       - ${HOME}/Android/Sdk:/opt/android-sdk:ro
       # Accès USB pour adb devices (téléphone physique)
       - /dev/bus/usb:/dev/bus/usb
+      # Même clés RSA que l'hôte — évite la boucle « Autoriser le débogage USB » à chaque poll
+      - ${HOME}/.android:/root/.android
     environment:
       - ANDROID_HOME=/opt/android-sdk
       - ANDROID_SDK_ROOT=/opt/android-sdk

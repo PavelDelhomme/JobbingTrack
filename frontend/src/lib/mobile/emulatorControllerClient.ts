@@ -8,6 +8,7 @@ export type EmulatorHealth = {
   mobilePath?: string;
   apkReady?: boolean;
   buildScript?: boolean;
+  lastBuildSession?: BuildSession | null;
 };
 
 export type ApkInfo = {
@@ -60,7 +61,9 @@ export type AdbDiagnostics = {
 };
 
 export type BuildSession = {
+  startedAt?: string;
   finishedAt?: string;
+  inProgress?: boolean;
   success?: boolean;
   exitCode?: number;
   version?: string | null;
@@ -102,16 +105,17 @@ export async function fetchApkInfo(): Promise<ApkInfo | null> {
   return proxyGet<ApkInfo>("/apk-info", 8000);
 }
 
-export async function fetchAdbDevices(): Promise<{
+export async function fetchAdbDevices(options?: { light?: boolean }): Promise<{
   devices: AdbDevice[];
   pendingDevices: AdbDevice[];
   diagnostics: AdbDiagnostics | null;
 }> {
+  const q = options?.light ? "?light=1" : "";
   const data = await proxyGet<{
     devices?: AdbDevice[];
     pendingDevices?: AdbDevice[];
     diagnostics?: AdbDiagnostics;
-  }>("/devices", 20_000);
+  }>(`/devices${q}`, 20_000);
   return {
     devices: (data?.devices || []).filter((d) => d.status === "device"),
     pendingDevices: data?.pendingDevices || [],
@@ -145,11 +149,21 @@ export function localApkDownloadHref(): string {
 
 export async function installApkOnDevice(
   deviceId: string,
-): Promise<{ success?: boolean; message?: string; error?: string }> {
-  const { data } = await proxyPost<{ success?: boolean; message?: string; error?: string }>(
+): Promise<{
+  success?: boolean;
+  message?: string;
+  error?: string;
+  steps?: { phase: string; ok: boolean; detail?: string; at?: string }[];
+}> {
+  const { data } = await proxyPost<{
+    success?: boolean;
+    message?: string;
+    error?: string;
+    steps?: { phase: string; ok: boolean; detail?: string; at?: string }[];
+  }>(
     "/install-run",
     { deviceId },
-    180_000,
+    300_000,
   );
   return data;
 }

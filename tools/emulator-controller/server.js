@@ -50,7 +50,13 @@ function pickLanIPv4() {
   return null;
 }
 
-async function setupAdbReverseForDevice(deviceId) {
+async function setupAdbReverseForDevice(deviceId, { force = false } = {}) {
+  const REVERSE_TTL_MS = 120_000;
+  const now = Date.now();
+  const cached = adbReverseCache.get(deviceId);
+  if (!force && cached && now - cached.at < REVERSE_TTL_MS) {
+    return cached.ports;
+  }
   const portsToReverse = [5002, 5003, 3000, 3001, 3002, 3003, 3004, 3005, 8025];
   let ok = 0;
   for (const port of portsToReverse) {
@@ -59,8 +65,13 @@ async function setupAdbReverseForDevice(deviceId) {
       ok += 1;
     } catch (_) { /* ignore */ }
   }
+  adbReverseCache.set(deviceId, { at: now, ports: ok });
   return ok;
 }
+
+const adbReverseCache = new Map();
+const deviceDetailsCache = new Map();
+const DEVICE_DETAILS_TTL_MS = 25_000;
 
 function envWithAndroid() {
   return { ...process.env, ANDROID_HOME, ANDROID_SDK_ROOT: ANDROID_HOME };
@@ -183,7 +194,7 @@ function writeBuildSession(session) {
   }
 }
 
-async function collectAdbDiagnostics() {
+async function collectAdbDiagnostics({ skipFlutter = false } = {}) {
   const hints = [];
   let adbVersion = null;
   let rawList = '';
@@ -221,20 +232,28 @@ async function collectAdbDiagnostics() {
     }
   }
 
-  try {
-    const { stdout } = await execPromise('flutter devices --machine', { cwd: MOBILE_PATH, timeout: 15000 });
-    const arr = JSON.parse(stdout || '[]');
-    if (Array.isArray(arr)) {
-      flutterDevices = arr.map((o) => ({
-        id: o.id,
-        name: o.name || o.id,
-        platform: o.platformType || o.platform,
-      }));
-    }
-  } catch { /* flutter devices optionnel */ }
+  if (!skipFlutter) {
+    try {
+      const { stdout } = await execPromise('flutter devices --machine', { cwd: MOBILE_PATH, timeout: 15000 });
+      const arr = JSON.parse(stdout || '[]');
+      if (Array.isArray(arr)) {
+        flutterDevices = arr.map((o) => ({
+          id: o.id,
+          name: o.name || o.id,
+          platform: o.platformType || o.platform,
+        }));
+      }
+    } catch { /* flutter devices optionnel */ }
+  }
 
-  if (ready.length === 0 && flutterDevices.length > 0) {
+  if (!skipFlutter && ready.length === 0 && flutterDevices.length > 0) {
     hints.push(`${flutterDevices.length} appareil(s) Flutter (émulateur) — ADB USB peut nécessiter un redémarrage du contrôleur après branchement.`);
+  }
+
+  if (pending.some((d) => d.status === 'unauthorized')) {
+    hints.push(
+      'Sur le téléphone : cochez « Toujours autoriser depuis cet ordinateur » pour éviter la demande en boucle.',
+    );
   }
 
   return {
@@ -249,7 +268,13 @@ async function collectAdbDiagnostics() {
   };
 }
 
-async function queryDeviceDetails(deviceId) {
+async function queryDeviceDetails(deviceId, { useCache = true } = {}) {
+  if (useCache) {
+    const hit = deviceDetailsCache.get(deviceId);
+    if (hit && Date.now() - hit.at < DEVICE_DETAILS_TTL_MS) {
+      return hit.data;
+    }
+  }
   const details = {
     id: deviceId,
     model: null,
@@ -288,6 +313,7 @@ async function queryDeviceDetails(deviceId) {
       details.appInstalled = Boolean((pmOut || '').trim());
     }
   } catch { /* ignore */ }
+  deviceDetailsCache.set(deviceId, { at: Date.now(), data: details });
   return details;
 }
 
@@ -461,21 +487,25 @@ const routes = {
     }
   },
 
-  async '/devices'(req, res) {
+  async '/devices'(req, res, _body, url = '') {
     try {
-      const diag = await collectAdbDiagnostics();
+      const light = /[?&]light=1/.test(url || '');
+      const diag = await collectAdbDiagnostics({ skipFlutter: light });
       const raw = parseAdbDevices(diag.rawList).filter((d) => d.status === 'device');
       const pubspec = parsePubspecVersion();
       const devices = await Promise.all(
         raw.map(async (d) => {
-          const extra = await queryDeviceDetails(d.id);
+          const extra = light
+            ? { id: d.id, model: null, androidVersion: null, appInstalled: undefined }
+            : await queryDeviceDetails(d.id);
           return {
             ...d,
             ...extra,
             localApkVersion: pubspec?.version || null,
             localApkBuild: pubspec?.buildNumber || null,
             updateNeeded:
-              extra.appInstalled
+              !light
+              && extra.appInstalled
               && pubspec
               && (
                 extra.appVersionName !== pubspec.version
@@ -536,6 +566,15 @@ const routes = {
   async '/build-apk'(req, res) {
     try {
       ensureGitSafeDirectories();
+      const pubspecStart = parsePubspecVersion();
+      writeBuildSession({
+        startedAt: new Date().toISOString(),
+        inProgress: true,
+        success: false,
+        version: pubspecStart?.version || null,
+        buildNumber: pubspecStart?.buildNumber || null,
+        message: 'Build APK en cours…',
+      });
       if (!fs.existsSync(path.join(MOBILE_PATH, 'pubspec.yaml'))) {
         return send(res, 400, { success: false, error: `Projet Flutter introuvable: ${MOBILE_PATH}` });
       }
@@ -571,6 +610,7 @@ const routes = {
 
       writeBuildSession({
         finishedAt: new Date().toISOString(),
+        inProgress: false,
         success: !!ok,
         exitCode: code,
         version: pubspec?.version || null,
@@ -597,25 +637,39 @@ const routes = {
   },
 
   async '/install-run'(req, res, body) {
+    const steps = [];
+    const push = (phase, ok, detail) => {
+      steps.push({ phase, ok, detail, at: new Date().toISOString() });
+    };
     try {
       const deviceId = body && body.deviceId;
       if (!deviceId) {
-        return send(res, 400, { success: false, error: 'Body { "deviceId": "emulator-5554" } requis' });
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "emulator-5554" } requis', steps });
       }
       const apkPathFlutter = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'flutter-apk', 'app-debug.apk');
       const apkPathLegacy = path.join(MOBILE_PATH, 'build', 'app', 'outputs', 'apk', 'debug', 'app-debug.apk');
       const apkPath = fs.existsSync(apkPathFlutter) ? apkPathFlutter : (fs.existsSync(apkPathLegacy) ? apkPathLegacy : null);
       if (!apkPath || !fs.existsSync(apkPath)) {
-        return send(res, 400, { success: false, error: 'APK non trouvé. Lancez d\'abord "Build APK".' });
+        return send(res, 400, { success: false, error: 'APK non trouvé. Lancez d\'abord "Build APK" (étape 1).', steps });
       }
       const execOpts = { cwd: MOBILE_PATH };
-      await setupAdbReverseForDevice(deviceId);
+      const reversed = await setupAdbReverseForDevice(deviceId, { force: true });
+      push('adb_reverse', true, `${reversed} port(s) API mappés`);
+      push('install', true, 'Installation APK en cours…');
       await execPromise(`adb -s ${deviceId} install -r "${apkPath}"`, execOpts);
+      push('install', true, 'APK installé');
       await execPromise(`adb -s ${deviceId} shell am force-stop ${ANDROID_PACKAGE}`, execOpts);
+      push('restart', true, 'Application relancée');
       await execPromise(`adb -s ${deviceId} shell am start -n ${ANDROID_PACKAGE}/.MainActivity`, execOpts);
-      send(res, 200, { success: true, message: 'App installée, fermée puis relancée (adb reverse activé sur ports API)' });
+      deviceDetailsCache.delete(deviceId);
+      send(res, 200, {
+        success: true,
+        steps,
+        message: 'App installée et relancée sur l’appareil.',
+      });
     } catch (e) {
-      send(res, 500, { success: false, error: e.message });
+      push('error', false, e.message);
+      send(res, 500, { success: false, error: e.message, steps });
     }
   },
 
@@ -1217,7 +1271,7 @@ const routes = {
       .then(() => true)
       .catch(() => false);
     const sdkOk = !!(ANDROID_HOME && fs.existsSync(ANDROID_HOME));
-    const diag = await collectAdbDiagnostics().catch(() => null);
+    const diag = await collectAdbDiagnostics({ skipFlutter: true }).catch(() => null);
     send(res, 200, {
       ok: true,
       service: 'emulator-controller',

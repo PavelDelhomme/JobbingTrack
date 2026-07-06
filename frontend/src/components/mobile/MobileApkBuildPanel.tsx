@@ -23,8 +23,18 @@ type MobileApkBuildPanelProps = {
   publishing?: boolean;
 };
 
+type LogLine = { ts: string; msg: string };
+
+const INSTALL_OK_KEY = "jt-mobile-releases-install-ok";
+
+function nowLabel(): string {
+  return new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
 function deviceLabel(d: AdbDevice): string {
   const name = d.model ? `${d.model}` : d.id;
+  if (d.appInstalled === false) return `${name} — app non installée`;
+  if (d.appInstalled === undefined) return name;
   if (!d.appInstalled) return `${name} — app non installée`;
   return `${name} — v${d.appVersionName ?? "?"} (${d.appVersionCode ?? "?"})`;
 }
@@ -32,13 +42,34 @@ function deviceLabel(d: AdbDevice): string {
 function formatWhen(iso?: string | null): string {
   if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleString("fr-FR", {
-      dateStyle: "short",
-      timeStyle: "short",
-    });
+    return new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
   } catch {
     return iso;
   }
+}
+
+function StepPill({
+  n,
+  label,
+  state,
+}: {
+  n: number;
+  label: string;
+  state: "done" | "active" | "locked" | "error" | "ready";
+}) {
+  const styles = {
+    done: "border-emerald-500 bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100",
+    active: "border-blue-500 bg-blue-100 text-blue-900 ring-2 ring-blue-300 dark:bg-blue-900/40 dark:text-blue-100",
+    ready: "border-gray-300 bg-white text-gray-800 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100",
+    locked: "border-gray-200 bg-gray-50 text-gray-400 dark:border-gray-700 dark:bg-gray-900/50 dark:text-gray-500",
+    error: "border-red-500 bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-100",
+  };
+  return (
+    <div className={`flex flex-1 min-w-[120px] flex-col items-center rounded-lg border px-2 py-2 text-center text-xs ${styles[state]}`}>
+      <span className="font-bold">{n}</span>
+      <span className="mt-0.5 leading-tight">{label}</span>
+    </div>
+  );
 }
 
 export function MobileApkBuildPanel({
@@ -57,50 +88,69 @@ export function MobileApkBuildPanel({
   const [building, setBuilding] = useState(false);
   const [buildSeconds, setBuildSeconds] = useState(0);
   const [installing, setInstalling] = useState(false);
-  const [logs, setLogs] = useState<string[]>([]);
+  const [installPhase, setInstallPhase] = useState<string | null>(null);
+  const [activityLog, setActivityLog] = useState<LogLine[]>([]);
   const [lastBuildError, setLastBuildError] = useState<string | null>(null);
+  const [installDone, setInstallDone] = useState(false);
+  const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
   const buildAbortRef = useRef<AbortController | null>(null);
   const bootstrapOnceRef = useRef(false);
 
-  const addLog = useCallback((line: string) => {
-    setLogs((prev) => [...prev.slice(-24), line]);
+  useEffect(() => {
+    try {
+      setInstallDone(sessionStorage.getItem(INSTALL_OK_KEY) === "1");
+    } catch { /* ignore */ }
   }, []);
 
-  const refreshStatus = useCallback(async () => {
-    const health = await fetchEmulatorHealth();
-    setControllerOk(!!health?.ok);
-    setApkInfo(await fetchApkInfo());
-    const adb = await fetchAdbDevices();
-    setDevices(adb.devices);
-    setPendingDevices(adb.pendingDevices);
-    setDiagnostics(adb.diagnostics);
-    setSelectedDevice((prev) => {
-      if (prev && adb.devices.some((d) => d.id === prev)) return prev;
-      return adb.devices[0]?.id || "";
-    });
-    const sessionData = await fetchBuildSession();
-    if (sessionData?.session) setBuildSession(sessionData.session);
+  const pushLog = useCallback((msg: string) => {
+    setActivityLog((prev) => [...prev.slice(-30), { ts: nowLabel(), msg }]);
   }, []);
+
+  const clearLog = useCallback(() => setActivityLog([]), []);
+
+  const refreshStatus = useCallback(
+    async (opts?: { full?: boolean }) => {
+      const health = await fetchEmulatorHealth();
+      setControllerOk(!!health?.ok);
+      setApkInfo(await fetchApkInfo());
+      const adb = await fetchAdbDevices({ light: !opts?.full });
+      setDevices(adb.devices);
+      setPendingDevices(adb.pendingDevices);
+      setDiagnostics(adb.diagnostics);
+      setSelectedDevice((prev) => {
+        if (prev && adb.devices.some((d) => d.id === prev)) return prev;
+        return adb.devices[0]?.id || "";
+      });
+      const sessionData = await fetchBuildSession();
+      if (sessionData?.session) setBuildSession(sessionData.session);
+      if (health?.lastBuildSession && typeof health.lastBuildSession === "object") {
+        setBuildSession(health.lastBuildSession as BuildSession);
+      }
+      setLastRefreshAt(nowLabel());
+    },
+    [],
+  );
 
   const runBootstrap = useCallback(async () => {
     setBootstrapping(true);
-    addLog("Préparation automatique (contrôleur + ADB)…");
+    clearLog();
+    pushLog("Préparation contrôleur + ADB (une fois)…");
     const result = await bootstrapEmulatorDev();
     if (result.steps?.length) {
-      for (const step of result.steps) addLog(step);
+      for (const step of result.steps) pushLog(step);
     }
     if (result.ok) {
-      addLog(
+      pushLog(
         result.deviceCount
-          ? `${result.deviceCount} appareil(s) détecté(s).`
-          : "Environnement prêt — branchez un téléphone USB si besoin.",
+          ? `${result.deviceCount} appareil(s) prêt(s).`
+          : "Contrôleur OK — branchez le téléphone si besoin.",
       );
     } else {
-      addLog(result.error || "Préparation incomplète — nouvel essai dans quelques secondes…");
+      pushLog(result.error || "Préparation incomplète.");
     }
-    await refreshStatus();
+    await refreshStatus({ full: true });
     setBootstrapping(false);
-  }, [addLog, refreshStatus]);
+  }, [clearLog, pushLog, refreshStatus]);
 
   useEffect(() => {
     if (bootstrapOnceRef.current) return;
@@ -109,152 +159,164 @@ export function MobileApkBuildPanel({
   }, [runBootstrap]);
 
   useEffect(() => {
-    if (bootstrapping) return;
-    // Rafraîchissement rapide tant qu'aucun appareil prêt (détection USB / autorisation RSA)
-    const intervalMs =
-      devices.length === 0 || pendingDevices.length > 0 ? 3000 : 8000;
-    const poll = window.setInterval(() => void refreshStatus(), intervalMs);
+    if (bootstrapping || building || installing) return;
+    const hasPending = pendingDevices.length > 0;
+    const intervalMs = hasPending ? 5000 : devices.length === 0 ? 5000 : 10000;
+    const poll = window.setInterval(() => void refreshStatus({ full: false }), intervalMs);
     return () => window.clearInterval(poll);
-  }, [bootstrapping, refreshStatus, devices.length, pendingDevices.length]);
+  }, [bootstrapping, building, installing, refreshStatus, devices.length, pendingDevices.length]);
 
   useEffect(() => {
     if (!building) return;
-    const id = window.setInterval(() => setBuildSeconds((s) => s + 1), 1000);
-    return () => window.clearInterval(id);
-  }, [building]);
+    const tick = window.setInterval(() => setBuildSeconds((s) => s + 1), 1000);
+    const poll = window.setInterval(() => void refreshStatus({ full: false }), 4000);
+    return () => {
+      window.clearInterval(tick);
+      window.clearInterval(poll);
+    };
+  }, [building, refreshStatus]);
 
-  const selected = devices.find((d) => d.id === selectedDevice);
+  const apkReady = !!apkInfo?.exists;
+  const step1State = building
+    ? "active"
+    : buildSession?.success
+      ? "done"
+      : buildSession && !buildSession.success && !buildSession.inProgress
+        ? "error"
+        : apkReady
+          ? "done"
+          : "ready";
+
+  const step2State = !apkReady
+    ? "locked"
+    : installing
+      ? "active"
+      : installDone
+        ? "done"
+        : devices.length > 0
+          ? "ready"
+          : "ready";
+
+  const step3State = !apkReady || !installDone ? "locked" : publishing ? "active" : "ready";
 
   const runBuild = async () => {
     if (!controllerOk) await runBootstrap();
+    clearLog();
     setBuilding(true);
     setBuildSeconds(0);
     setLastBuildError(null);
-    addLog("Build APK en cours (1–3 min)…");
+    pushLog("Étape 1 — compilation Flutter/Gradle (1–3 min)…");
     buildAbortRef.current = new AbortController();
     try {
       const { ok, data } = await buildApkFromBackoffice(buildAbortRef.current.signal);
-      addLog(data.message || (ok ? "Build réussi." : data.error || "Build échoué."));
-      if (data.stderr) addLog(data.stderr.slice(-600));
+      pushLog(data.message || (ok ? "Build réussi." : data.error || "Build échoué."));
+      if (data.stderr) pushLog(data.stderr.slice(-400));
       if (ok) {
         setLastBuildError(null);
-        await refreshStatus();
+        await refreshStatus({ full: true });
         onBuilt?.({
           version: data.version || apkInfo?.version || "1.0.0",
           buildNumber: String(data.buildNumber || apkInfo?.buildNumber || "1"),
         });
       } else {
-        const err = data.stderr || data.error || data.message || "Build échoué";
-        setLastBuildError(err);
+        setLastBuildError(data.stderr || data.error || data.message || "Build échoué");
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      addLog(msg);
+      pushLog(`Erreur : ${msg}`);
       setLastBuildError(msg);
     } finally {
       setBuilding(false);
       buildAbortRef.current = null;
-      await refreshStatus();
+      await refreshStatus({ full: true });
     }
   };
 
   const runInstall = async () => {
+    if (!apkReady) {
+      pushLog("Étape 2 bloquée — terminez l’étape 1 (APK requis).");
+      return;
+    }
     if (!selectedDevice) return;
-    if (!controllerOk) await runBootstrap();
+    clearLog();
     setInstalling(true);
-    addLog(`Installation + lancement sur ${selectedDevice}…`);
+    setInstallPhase("Préparation…");
+    pushLog(`Étape 2 — installation sur ${selectedDevice}…`);
     try {
+      setInstallPhase("adb reverse + installation APK…");
       const result = await installApkOnDevice(selectedDevice);
-      addLog(result.message || result.error || "Terminé.");
-      if (result.success) await refreshStatus();
+      if (result.steps?.length) {
+        for (const s of result.steps) {
+          pushLog(`${s.phase} : ${s.detail || (s.ok ? "OK" : "échec")}`);
+        }
+      }
+      pushLog(result.message || result.error || "Terminé.");
+      if (result.success) {
+        setInstallDone(true);
+        try {
+          sessionStorage.setItem(INSTALL_OK_KEY, "1");
+        } catch { /* ignore */ }
+        await refreshStatus({ full: true });
+      }
     } finally {
       setInstalling(false);
+      setInstallPhase(null);
     }
   };
 
-  const sessionLabel = buildSession?.finishedAt
-    ? buildSession.success
-      ? `Dernier build réussi — ${formatWhen(buildSession.finishedAt)} · v${buildSession.version}+${buildSession.buildNumber}`
-      : `Dernier build en erreur — ${formatWhen(buildSession.finishedAt)}`
-  : apkInfo?.modifiedAt
-    ? `APK sur disque — compilé le ${formatWhen(apkInfo.modifiedAt)}`
-    : null;
-
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
+        <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
+          Parcours (dans l’ordre) — actualisé {lastRefreshAt ?? "…"}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <StepPill n={1} label="Build APK" state={step1State as "done"} />
+          <span className="self-center text-gray-300">→</span>
+          <StepPill n={2} label="Install appareil" state={step2State as "done"} />
+          <span className="self-center text-gray-300">→</span>
+          <StepPill n={3} label="Publish dev" state={step3State as "done"} />
+        </div>
+      </div>
+
       {bootstrapping ? (
         <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-100">
-          Préparation automatique de l’environnement mobile (contrôleur, adb reverse)…
+          Préparation automatique…
         </div>
       ) : null}
 
       <section className="rounded-xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm dark:border-emerald-900 dark:from-emerald-950/30 dark:to-gray-900">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Étape 1 — Build APK
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Étape 1 — Build APK</h2>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Tout est piloté depuis ici — pas de terminal requis. Le contrôleur démarre automatiquement
-          au chargement de la page.
+          Compile l’APK debug. Obligatoire avant l’installation sur appareil.
         </p>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-              controllerOk
-                ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200"
-                : controllerOk === false
-                  ? "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200"
-                  : "bg-gray-100 text-gray-600"
-            }`}
-          >
-            Contrôleur :{" "}
-            {bootstrapping ? "préparation…" : controllerOk ? "connecté" : "en attente"}
+          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${controllerOk ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-900"}`}>
+            Contrôleur : {bootstrapping ? "…" : controllerOk ? "connecté" : "attente"}
           </span>
-          {apkInfo?.exists ? (
+          {apkReady ? (
             <span className="text-xs text-gray-600 dark:text-gray-400">
-              APK v{apkInfo.version}+{apkInfo.buildNumber}
-              {apkInfo.sizeBytes
-                ? ` · ${Math.round(apkInfo.sizeBytes / 1024 / 1024)} Mo`
-                : ""}
+              APK v{apkInfo?.version}+{apkInfo?.buildNumber}
+              {apkInfo?.sizeBytes ? ` · ${Math.round(apkInfo.sizeBytes / 1024 / 1024)} Mo` : ""}
+              {apkInfo?.modifiedAt ? ` · ${formatWhen(apkInfo.modifiedAt)}` : ""}
             </span>
           ) : (
-            <span className="text-xs text-amber-700 dark:text-amber-300">Aucun APK compilé</span>
+            <span className="text-xs text-amber-700">Aucun APK — lancez le build</span>
           )}
-          <button
-            type="button"
-            disabled={bootstrapping}
-            onClick={() => void runBootstrap().then(() => refreshStatus())}
-            className="text-xs text-blue-600 hover:underline dark:text-blue-400"
-          >
-            Relancer la préparation
-          </button>
         </div>
 
-        {sessionLabel ? (
-          <p
-            className={`mt-2 text-xs ${
-              buildSession && !buildSession.success
-                ? "font-medium text-red-700 dark:text-red-300"
-                : "text-gray-600 dark:text-gray-400"
-            }`}
-          >
-            {sessionLabel}
+        {building ? (
+          <p className="mt-2 text-sm font-medium text-blue-700 dark:text-blue-300">
+            Compilation en cours… {buildSeconds}s
+            {buildSession?.inProgress ? ` — ${buildSession.message || ""}` : ""}
           </p>
         ) : null}
 
         {lastBuildError ? (
-          <div className="mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100">
-            <p className="font-semibold">Erreur du dernier build</p>
-            <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap text-xs">{lastBuildError}</pre>
-            {lastBuildError.includes("git") || lastBuildError.includes("safe.directory") ? (
-              <p className="mt-2 text-xs">
-                Cause : dépôt Flutter monté depuis l’hôte (ownership git). Rebuild le contrôleur :{" "}
-                <code className="rounded bg-red-100 px-1 dark:bg-red-900">
-                  docker compose build emulator-controller &amp;&amp; docker compose up -d emulator-controller
-                </code>
-                {" "}puis relancez le build.
-              </p>
-            ) : null}
+          <div className="mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100">
+            <p className="font-semibold">Dernier build en erreur</p>
+            <pre className="mt-1 max-h-24 overflow-auto whitespace-pre-wrap">{lastBuildError}</pre>
           </div>
         ) : null}
 
@@ -267,155 +329,111 @@ export function MobileApkBuildPanel({
           >
             {building ? `Build… ${buildSeconds}s` : "Lancer le build APK"}
           </button>
-          {apkInfo?.exists ? (
+          {apkReady ? (
             <a
               href={localApkDownloadHref()}
-              download={
-                apkInfo.downloadFilename ||
-                formatApkDownloadFilename(apkInfo.version, apkInfo.buildNumber)
-              }
-              className="rounded-lg border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-50 dark:text-emerald-200 dark:hover:bg-emerald-950/40"
+              download={apkInfo?.downloadFilename || formatApkDownloadFilename(apkInfo?.version, apkInfo?.buildNumber)}
+              className="rounded-lg border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-50 dark:text-emerald-200"
             >
-              Télécharger{" "}
-              {formatApkDownloadFilename(apkInfo.version, apkInfo.buildNumber)}
+              Télécharger APK
             </a>
           ) : null}
         </div>
       </section>
 
-      <section className="rounded-xl border-2 border-sky-200 bg-gradient-to-br from-sky-50 to-white p-5 shadow-sm dark:border-sky-900 dark:from-sky-950/30 dark:to-gray-900">
+      <section
+        className={`rounded-xl border-2 p-5 shadow-sm transition-opacity ${
+          apkReady
+            ? "border-sky-200 bg-gradient-to-br from-sky-50 to-white dark:border-sky-900 dark:from-sky-950/30 dark:to-gray-900"
+            : "border-gray-200 bg-gray-50 opacity-75 dark:border-gray-700 dark:bg-gray-900/50"
+        }`}
+      >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Étape 2 — Tester sur appareil (ADB)
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Étape 2 — Appareil (ADB)</h2>
           <button
             type="button"
             disabled={bootstrapping}
-            onClick={() => void refreshStatus()}
-            className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+            onClick={() => void refreshStatus({ full: true })}
+            className="text-xs text-blue-600 hover:underline"
           >
-            Actualiser appareils
+            Actualiser (détails)
           </button>
         </div>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Appareils détectés automatiquement (rafraîchissement 8 s).{" "}
-          <code>adb reverse</code> est appliqué à la préparation.
-        </p>
 
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-sky-900 dark:bg-sky-900/50 dark:text-sky-100">
-            {devices.length} prêt(s)
-          </span>
-          {pendingDevices.length > 0 ? (
-            <span className="animate-pulse rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-900 dark:bg-amber-900/50 dark:text-amber-100">
-              {pendingDevices.length} en attente — acceptez le débogage USB sur le téléphone
-            </span>
-          ) : null}
-          <span className="text-gray-400">
-            ↻ auto {devices.length === 0 || pendingDevices.length > 0 ? "3 s" : "8 s"}
-          </span>
-          {(diagnostics?.flutterDevices?.length ?? 0) > 0 ? (
-            <span className="rounded-full bg-violet-100 px-2 py-0.5 text-violet-900 dark:bg-violet-900/50 dark:text-violet-100">
-              {diagnostics?.flutterDevices?.length} émulateur(s) Flutter
-            </span>
-          ) : null}
-        </div>
-
-        {pendingDevices.length > 0 ? (
-          <ul className="mt-3 space-y-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
-            {pendingDevices.map((d) => (
-              <li key={d.id}>
-                <strong>{d.id}</strong> — état « {d.status} »
-                {d.status === "unauthorized"
-                  ? " : déverrouillez le téléphone et acceptez le débogage USB."
-                  : ""}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        {diagnostics?.hints && diagnostics.hints.length > 0 && devices.length === 0 ? (
-          <ul className="mt-3 space-y-1 rounded-md border border-dashed border-gray-300 px-3 py-2 text-xs text-gray-600 dark:border-gray-600 dark:text-gray-400">
-            {diagnostics.hints.map((h) => (
-              <li key={h}>• {h}</li>
-            ))}
-          </ul>
-        ) : null}
-
-        {devices.length === 0 ? (
-          <p className="mt-3 rounded-md border border-dashed border-gray-300 px-3 py-4 text-sm text-gray-500 dark:border-gray-600">
-            Aucun appareil <strong>prêt</strong> — branchez le téléphone (débogage USB + autorisation RSA).
-            {pendingDevices.length > 0
-              ? " Un appareil est visible mais pas encore autorisé (voir ci-dessus)."
-              : null}
+        {!apkReady ? (
+          <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+            Complétez l’<strong>étape 1</strong> avant d’installer sur le téléphone.
           </p>
         ) : (
-          <div className="mt-3 space-y-2">
-            {devices.map((d) => (
-              <label
-                key={d.id}
-                className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${
-                  selectedDevice === d.id
-                    ? "border-sky-500 bg-sky-50/80 dark:border-sky-600 dark:bg-sky-950/40"
-                    : "border-gray-200 dark:border-gray-700"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="adb-device"
-                  checked={selectedDevice === d.id}
-                  onChange={() => setSelectedDevice(d.id)}
-                  className="mt-1"
-                />
-                <div className="min-w-0 flex-1 text-sm">
-                  <p className="font-medium text-gray-900 dark:text-gray-100">{deviceLabel(d)}</p>
-                  <p className="text-xs text-gray-500">
-                    {d.id}
-                    {d.androidVersion ? ` · Android ${d.androidVersion}` : ""}
-                  </p>
-                  {d.appInstalled && d.updateNeeded ? (
-                    <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-300">
-                      Mise à jour recommandée (pubspec v{d.localApkVersion}+{d.localApkBuild})
-                    </p>
-                  ) : null}
-                </div>
-              </label>
-            ))}
-
-            <div className="flex flex-wrap gap-2 pt-2">
-              <button
-                type="button"
-                disabled={!apkInfo?.exists || installing || !selectedDevice || bootstrapping}
-                onClick={() => void runInstall()}
-                className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
-              >
-                {installing ? "Installation…" : "Installer / mettre à jour sur l’appareil"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {(diagnostics?.flutterDevices?.length ?? 0) > 0 ? (
-          <div className="mt-4 rounded-lg border border-violet-200 bg-violet-50/50 px-3 py-2 dark:border-violet-800 dark:bg-violet-950/20">
-            <p className="text-xs font-medium text-violet-900 dark:text-violet-200">
-              Émulateurs Flutter détectés
+          <>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              Détection légère toutes les 5–10 s (moins de sollicitation USB). Cochez « Toujours autoriser » sur le téléphone.
             </p>
-            <ul className="mt-1 text-xs text-violet-800 dark:text-violet-300">
-              {diagnostics?.flutterDevices?.map((fd) => (
-                <li key={fd.id}>
-                  {fd.name} ({fd.id})
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full bg-sky-100 px-2 py-0.5 text-sky-900">{devices.length} prêt(s)</span>
+              {pendingDevices.length > 0 ? (
+                <span className="animate-pulse rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-900">
+                  {pendingDevices.length} non autorisé — validez sur l’écran du téléphone
+                </span>
+              ) : null}
+            </div>
+
+            {pendingDevices.length > 0 ? (
+              <ul className="mt-2 space-y-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+                {pendingDevices.map((d) => (
+                  <li key={d.id}>
+                    <strong>{d.id}</strong> — {d.status}
+                    {d.status === "unauthorized"
+                      ? " : acceptez RSA + « Toujours autoriser depuis cet ordinateur »"
+                      : ""}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            {devices.length === 0 ? (
+              <p className="mt-3 text-sm text-gray-500">Aucun appareil prêt — USB débogage activé, mode transfert fichiers.</p>
+            ) : (
+              <div className="mt-3 space-y-2">
+                {devices.map((d) => (
+                  <label
+                    key={d.id}
+                    className={`flex cursor-pointer gap-3 rounded-lg border p-3 ${selectedDevice === d.id ? "border-sky-500 bg-sky-50/80" : "border-gray-200"}`}
+                  >
+                    <input
+                      type="radio"
+                      name="adb-device"
+                      checked={selectedDevice === d.id}
+                      onChange={() => setSelectedDevice(d.id)}
+                      className="mt-1"
+                    />
+                    <div className="text-sm">
+                      <p className="font-medium">{deviceLabel(d)}</p>
+                      <p className="text-xs text-gray-500">{d.id}{d.androidVersion ? ` · Android ${d.androidVersion}` : ""}</p>
+                    </div>
+                  </label>
+                ))}
+                <button
+                  type="button"
+                  disabled={installing || !selectedDevice}
+                  onClick={() => void runInstall()}
+                  className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+                >
+                  {installing ? installPhase || "Installation…" : "Installer sur l’appareil"}
+                </button>
+                {installDone ? (
+                  <p className="text-xs text-emerald-700 dark:text-emerald-300">Installation réussie — passez à l’étape 3.</p>
+                ) : null}
+              </div>
+            )}
+          </>
+        )}
       </section>
 
-      {apkInfo?.exists && onPublishRequest ? (
+      {apkReady && installDone && onPublishRequest ? (
         <section className="rounded-lg border border-blue-200 bg-blue-50/50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950/20">
           <p className="text-sm text-gray-800 dark:text-gray-200">
-            <strong>Étape 3</strong> — Après test sur appareil, publiez sur le canal <strong>dev</strong>.
-            Les liens OTA utilisent l’API déjà configurée sur le téléphone (plus de *.localhost).
+            <strong>Étape 3</strong> — Publier sur le canal <strong>dev</strong> (copie serveur, pas d’upload 171 Mo).
           </p>
           <button
             type="button"
@@ -423,16 +441,32 @@ export function MobileApkBuildPanel({
             onClick={onPublishRequest}
             className="mt-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {publishing ? "Publication…" : "Publier sur canal dev (étape 3)"}
+            {publishing ? "Publication…" : "Publier sur canal dev"}
           </button>
         </section>
+      ) : apkReady && !installDone ? (
+        <p className="text-xs text-gray-500">Étape 3 débloquée après installation réussie (étape 2).</p>
       ) : null}
 
-      {logs.length > 0 ? (
-        <pre className="max-h-48 overflow-auto rounded-md bg-gray-900 p-3 text-xs text-gray-100">
-          {logs.join("\n")}
-        </pre>
-      ) : null}
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2 dark:border-gray-700">
+          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Journal de session</span>
+          <button type="button" onClick={clearLog} className="text-xs text-blue-600 hover:underline">
+            Effacer
+          </button>
+        </div>
+        {activityLog.length === 0 ? (
+          <p className="px-3 py-4 text-xs text-gray-400">Les actions en cours s’affichent ici en temps réel.</p>
+        ) : (
+          <ul className="max-h-40 overflow-auto px-3 py-2 font-mono text-xs text-gray-800 dark:text-gray-200">
+            {activityLog.map((line, i) => (
+              <li key={`${line.ts}-${i}`} className="py-0.5">
+                <span className="text-gray-400">[{line.ts}]</span> {line.msg}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
