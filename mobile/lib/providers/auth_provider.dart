@@ -509,6 +509,7 @@ class AuthProvider with ChangeNotifier {
     _tokenStale = false;
     CrashReporter.setToken(_token);
     await MobileAnalyticsService.instance.updateAuthToken(_token);
+    await _persistSession();
     notifyListeners();
   }
 }
