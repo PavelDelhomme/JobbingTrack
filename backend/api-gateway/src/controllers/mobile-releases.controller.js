@@ -5,7 +5,21 @@ const {
   activateRelease,
   promoteRelease,
   updateChannelPolicy,
+  attachGithubReleaseMetadata,
 } = require('../services/mobileReleaseStore');
+const { createGitHubReleaseForMobile } = require('../lib/mobileGithubRelease');
+
+async function maybeAttachGithubRelease(release) {
+  try {
+    const downloadUrl = release.downloadUrl || null;
+    const gh = await createGitHubReleaseForMobile(release, { downloadUrl });
+    if (!gh) return release;
+    return attachGithubReleaseMetadata(release.id, gh) || release;
+  } catch (error) {
+    console.warn('[mobile-releases] GitHub Release ignorée:', error.message);
+    return release;
+  }
+}
 
 exports.listReleases = (_req, res) => {
   try {
@@ -15,20 +29,17 @@ exports.listReleases = (_req, res) => {
   }
 };
 
-exports.publishBuiltRelease = (req, res) => {
+exports.publishBuiltRelease = async (req, res) => {
   try {
     const channel = String(req.body.channel || 'dev').toLowerCase();
     const version = req.body.version;
     const buildNumber = req.body.buildNumber;
 
-    if (!version || !buildNumber) {
-      return res.status(400).json({ success: false, error: 'version et buildNumber requis' });
-    }
     if (!['dev', 'production'].includes(channel)) {
       return res.status(400).json({ success: false, error: 'channel invalide (dev | production)' });
     }
 
-    const release = publishBuiltApk({
+    let release = publishBuiltApk({
       channel,
       version,
       buildNumber,
@@ -36,14 +47,18 @@ exports.publishBuiltRelease = (req, res) => {
       createdBy: req.user?.email || null,
     });
 
+    release = await maybeAttachGithubRelease(release);
+
     return res.status(201).json({ success: true, release });
   } catch (error) {
-    const status = error.message.includes('introuvable') ? 404 : 500;
+    const status = error.message.includes('introuvable') || error.message.includes('requis')
+      ? 400
+      : 500;
     return res.status(status).json({ success: false, error: error.message });
   }
 };
 
-exports.uploadRelease = (req, res) => {
+exports.uploadRelease = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'Fichier APK requis' });
@@ -64,7 +79,7 @@ exports.uploadRelease = (req, res) => {
       return res.status(400).json({ success: false, error: 'Seul android supporte l’upload APK pour l’instant' });
     }
 
-    const release = createRelease({
+    let release = createRelease({
       channel,
       platform,
       version,
@@ -74,19 +89,21 @@ exports.uploadRelease = (req, res) => {
       createdBy: req.user?.email || null,
     });
 
+    release = await maybeAttachGithubRelease(release);
+
     return res.status(201).json({ success: true, release });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
 };
 
-exports.promoteToProduction = (req, res) => {
+exports.promoteToProduction = async (req, res) => {
   try {
     const platform = String(req.body.platform || 'android').toLowerCase();
     const fromChannel = String(req.body.fromChannel || 'dev').toLowerCase();
     const toChannel = String(req.body.toChannel || 'production').toLowerCase();
 
-    const promoted = promoteRelease({
+    let promoted = promoteRelease({
       platform,
       fromChannel,
       toChannel,
@@ -99,6 +116,8 @@ exports.promoteToProduction = (req, res) => {
         error: `Aucune release active sur ${fromChannel}/${platform}`,
       });
     }
+
+    promoted = await maybeAttachGithubRelease(promoted);
 
     return res.json({ success: true, release: promoted });
   } catch (error) {

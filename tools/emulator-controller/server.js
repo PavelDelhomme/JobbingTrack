@@ -74,7 +74,36 @@ const deviceDetailsCache = new Map();
 const DEVICE_DETAILS_TTL_MS = 25_000;
 
 function envWithAndroid() {
-  return { ...process.env, ANDROID_HOME, ANDROID_SDK_ROOT: ANDROID_HOME };
+  const flutterSdk =
+    getFlutterSdkPath()
+    || process.env.FLUTTER_ROOT
+    || '/opt/flutter';
+  const flutterBinDir = path.join(flutterSdk, 'bin');
+  const pathParts = String(process.env.PATH || '')
+    .split(':')
+    .filter((part) => part && part !== flutterBinDir);
+  return {
+    ...process.env,
+    ANDROID_HOME,
+    ANDROID_SDK_ROOT: ANDROID_HOME,
+    FLUTTER_ROOT: flutterSdk,
+    FLUTTER_BIN: path.join(flutterBinDir, 'flutter'),
+    PATH: [flutterBinDir, ...pathParts].join(':'),
+  };
+}
+
+function isGradleCacheCorrupted(gradleCache) {
+  const pluginKt = path.join(gradleCache, 'src', 'main', 'kotlin', 'FlutterPlugin.kt');
+  if (!fs.existsSync(pluginKt)) return false;
+  try {
+    const content = fs.readFileSync(pluginKt, 'utf8');
+    return (
+      content.includes('"/usr/bin/flutter"')
+      || content.includes('Paths.get("/usr", "bin", flutterExecutableName)')
+    );
+  } catch {
+    return true;
+  }
 }
 
 function send(res, statusCode, body, contentType = 'application/json') {
@@ -419,12 +448,19 @@ function copyDirRecursive(src, dest) {
 
 /** Assure qu'une copie writable de flutter_tools/gradle existe et retourne son chemin (pour SDK en lecture seule). */
 function ensureWritableFlutterGradle() {
-  const flutterSdk = getFlutterSdkPath();
-  if (!flutterSdk) return null;
+  const flutterSdk = getFlutterSdkPath() || process.env.FLUTTER_ROOT || '/opt/flutter';
   const sourceGradle = path.join(flutterSdk, 'packages', 'flutter_tools', 'gradle');
   if (!fs.existsSync(sourceGradle)) return null;
   const cacheDir = path.join(MOBILE_PATH, '.flutter-gradle-cache');
   const gradleCache = path.join(cacheDir, 'gradle');
+  if (fs.existsSync(gradleCache) && isGradleCacheCorrupted(gradleCache)) {
+    try {
+      fs.rmSync(cacheDir, { recursive: true, force: true });
+      console.warn('[emulator-controller] Cache Gradle Flutter corrompu supprimé — recopie depuis SDK');
+    } catch (e) {
+      console.error('Suppression cache Gradle corrompu échouée:', e.message);
+    }
+  }
   if (!fs.existsSync(gradleCache)) {
     try {
       copyDirRecursive(sourceGradle, gradleCache);
@@ -597,6 +633,10 @@ const routes = {
         try {
           if (fs.existsSync(outputsDir)) fs.rmSync(outputsDir, { recursive: true, force: true });
         } catch (_) { /* ignore */ }
+        const patchScript = path.join(REPO_ROOT, 'scripts/mobile/setup/patch-android-plugin-gradle-kts.sh');
+        if (fs.existsSync(patchScript)) {
+          await execCapture(`bash "${patchScript}"`, { cwd: REPO_ROOT, env: baseEnv });
+        }
         await execCapture('flutter clean', { cwd: MOBILE_PATH, env: baseEnv });
         ({ stdout, stderr, code } = await execCapture('flutter build apk --debug', { cwd: MOBILE_PATH, env: baseEnv }));
       }

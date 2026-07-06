@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:jobbingtrack_mobile/models/app_notification.dart';
+import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/utils/in_app_notification_types.dart';
+import 'package:jobbingtrack_mobile/utils/notification_load_errors.dart';
 
 class NotificationProvider with ChangeNotifier {
   List<AppNotification> _notifications = [];
@@ -14,19 +16,76 @@ class NotificationProvider with ChangeNotifier {
 
   int get unreadCount => _notifications.where((n) => !n.read).length;
 
-  Future<void> loadNotifications({String? token}) async {
+  bool _looksLikeAuthError(Object error) {
+    final s = error.toString().toLowerCase();
+    return s.contains('401') || s.contains('403') || s.contains('non autoris');
+  }
+
+  bool _looksLikeNetworkError(Object error) {
+    if (ApiService.lastRequestWasNetworkFailure) return true;
+    final s = error.toString().toLowerCase();
+    return s.contains('réseau') ||
+        s.contains('timeout') ||
+        s.contains('socket') ||
+        s.contains('failed host') ||
+        s.contains('connection');
+  }
+
+  Future<List<AppNotification>> _fetchInApp(String? token) async {
+    final raw = await ApiService.getNotifications(token: token, scope: 'in_app');
+    return filterInAppNotifications(raw, (n) => n.type);
+  }
+
+  Future<void> loadNotifications({String? token, AuthProvider? auth}) async {
     _isLoading = true;
     _lastError = null;
     notifyListeners();
+
+    var activeToken = token ?? auth?.token;
+
+    Future<void> fail(Object e) async {
+      _lastError = friendlyNotificationLoadError(e, apiBaseUrl: ApiService.baseUrl);
+      _isLoading = false;
+      notifyListeners();
+    }
+
     try {
-      final raw = await ApiService.getNotifications(token: token, scope: 'in_app');
-      _notifications = filterInAppNotifications(raw, (n) => n.type);
+      _notifications = await _fetchInApp(activeToken);
       _isLoading = false;
       notifyListeners();
+      return;
     } catch (e) {
-      _lastError = e.toString().replaceAll('Exception: ', '');
-      _isLoading = false;
-      notifyListeners();
+      if (auth != null && _looksLikeAuthError(e)) {
+        final refreshed = await auth.trySilentTokenRefresh();
+        if (refreshed) {
+          activeToken = auth.token;
+          try {
+            _notifications = await _fetchInApp(activeToken);
+            _isLoading = false;
+            notifyListeners();
+            return;
+          } catch (retryErr) {
+            await fail(retryErr);
+            rethrow;
+          }
+        }
+      }
+
+      if (_looksLikeNetworkError(e)) {
+        await ApiService.autoDetectApi();
+        activeToken = auth?.token ?? activeToken;
+        try {
+          _notifications = await _fetchInApp(activeToken);
+          _isLoading = false;
+          notifyListeners();
+          return;
+        } catch (retryErr) {
+          await fail(retryErr);
+          rethrow;
+        }
+      }
+
+      await fail(e);
       rethrow;
     }
   }

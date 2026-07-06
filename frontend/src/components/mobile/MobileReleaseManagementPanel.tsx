@@ -20,6 +20,33 @@ type MobileRelease = {
   createdAt: string;
   createdBy?: string | null;
   status?: string;
+  githubTag?: string;
+  githubReleaseUrl?: string | null;
+  fileSizeBytes?: number;
+  fileSizeLabel?: string | null;
+};
+
+type DeployHints = {
+  publicApiUrl: string | null;
+  mobileDownloadBaseUrl?: string | null;
+  suggestedVersion: string;
+  suggestedBuild: number;
+  pubspecVersion?: string | null;
+  pubspecBuild?: number | null;
+  pubspecPath?: string | null;
+  needsPubspecBump?: boolean;
+  githubReleasesEnabled?: boolean;
+  githubRepository?: string | null;
+  latestAndroidRelease: MobileRelease | null;
+  activeDevRelease?: MobileRelease | null;
+  activeProdRelease?: MobileRelease | null;
+};
+
+type AdminReleaseState = {
+  releasesDir: string;
+  deployHints?: DeployHints;
+  channels: Record<string, Record<string, ChannelPlatformState>>;
+  releases: MobileRelease[];
 };
 
 type ChannelPlatformState = {
@@ -30,19 +57,22 @@ type ChannelPlatformState = {
   activeRelease: MobileRelease | null;
 };
 
-type AdminReleaseState = {
-  releasesDir: string;
-  deployHints?: {
-    publicApiUrl: string | null;
-    mobileDownloadBaseUrl?: string | null;
-    suggestedVersion: string;
-    suggestedBuild: number;
-    latestAndroidRelease: MobileRelease | null;
+function statusBadge(status?: string, channel?: string) {
+  const label = status || "active";
+  const styles: Record<string, string> = {
+    active: "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100",
+    superseded: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+    promoted: "bg-indigo-100 text-indigo-900 dark:bg-indigo-900/40 dark:text-indigo-100",
   };
-  channels: Record<string, Record<string, ChannelPlatformState>>;
-  releases: MobileRelease[];
-};
-
+  return (
+    <span
+      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${styles[label] || styles.active}`}
+      title={channel ? `Canal ${channel}` : undefined}
+    >
+      {label}
+    </span>
+  );
+}
 const APK_OUTPUT =
   "mobile/build/app/outputs/flutter-apk/app-debug.apk";
 
@@ -380,14 +410,43 @@ export function MobileReleaseManagementPanel() {
               </li>
             ) : null}
             <li>
-              Prochain build suggéré :{" "}
+              <code>mobile/pubspec.yaml</code> actuel :{" "}
+              <strong>
+                {state.deployHints?.pubspecVersion ?? "—"}+{state.deployHints?.pubspecBuild ?? "—"}
+              </strong>
+            </li>
+            <li>
+              Prochaine publication suggérée :{" "}
               <strong>
                 {state.deployHints?.suggestedVersion ?? version}+
                 {state.deployHints?.suggestedBuild ?? buildNumber}
               </strong>{" "}
-              (aligner <code>mobile/pubspec.yaml</code> avant compilation)
+              (dernière release dev :{" "}
+              {state.deployHints?.activeDevRelease
+                ? `v${state.deployHints.activeDevRelease.version}+${state.deployHints.activeDevRelease.buildNumber}`
+                : "aucune"}
+              )
             </li>
+            {state.deployHints?.githubRepository ? (
+              <li>
+                GitHub : tag <code>mobile-v{version}+{buildNumber}</code>
+                {state.deployHints.githubReleasesEnabled
+                  ? " — création auto si token configuré"
+                  : " — activer MOBILE_GITHUB_RELEASES_ENABLED=true + GITHUB_TOKEN"}
+              </li>
+            ) : null}
           </ul>
+          {state.deployHints?.needsPubspecBump ? (
+            <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
+              Le build <strong>{state.deployHints.pubspecVersion}+{state.deployHints.pubspecBuild}</strong>{" "}
+              est déjà publié sur le canal dev. Incrémentez{" "}
+              <code>mobile/pubspec.yaml</code> (ex.{" "}
+              <code>
+                {state.deployHints.pubspecVersion}+{Number(state.deployHints.pubspecBuild) + 1}
+              </code>
+              ) avant de recompiler.
+            </p>
+          ) : null}
         </div>
       ) : null}
       {apiDiag ? (
@@ -576,7 +635,7 @@ export function MobileReleaseManagementPanel() {
 
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold">Historique des builds</h2>
+          <h2 className="text-lg font-semibold">Historique des versions</h2>
           <button
             type="button"
             onClick={() => void load()}
@@ -585,6 +644,10 @@ export function MobileReleaseManagementPanel() {
             Actualiser
           </button>
         </div>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          Chaque publication crée une entrée (package APK, notes, canal). La release{" "}
+          <strong>active</strong> par canal est celle servie par l’OTA.
+        </p>
         {loading ? (
           <p className="mt-4 text-sm text-gray-500">Chargement…</p>
         ) : !state?.releases?.length ? (
@@ -597,38 +660,78 @@ export function MobileReleaseManagementPanel() {
                   <th className="px-2 py-2">Version</th>
                   <th className="px-2 py-2">Build</th>
                   <th className="px-2 py-2">Canal</th>
+                  <th className="px-2 py-2">Statut</th>
+                  <th className="px-2 py-2">Package</th>
+                  <th className="px-2 py-2">Taille</th>
+                  <th className="px-2 py-2">Notes</th>
                   <th className="px-2 py-2">Date</th>
-                  <th className="px-2 py-2">Téléchargement</th>
+                  <th className="px-2 py-2">Auteur</th>
+                  <th className="px-2 py-2">GitHub</th>
                   <th className="px-2 py-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {state.releases.map((r) => (
-                  <tr key={r.id} className="border-b border-gray-100 dark:border-gray-800">
-                    <td className="px-2 py-2 font-medium">{r.version}</td>
+                {state.releases.map((r) => {
+                  const isActiveDev = devAndroid?.activeRelease?.id === r.id;
+                  const isActiveProd = prodAndroid?.activeRelease?.id === r.id;
+                  return (
+                  <tr
+                    key={r.id}
+                    className={`border-b border-gray-100 dark:border-gray-800 ${
+                      isActiveDev || isActiveProd ? "bg-emerald-50/50 dark:bg-emerald-950/20" : ""
+                    }`}
+                  >
+                    <td className="px-2 py-2 font-medium">
+                      {r.version}
+                      {isActiveDev || isActiveProd ? (
+                        <span className="ml-1 text-xs text-emerald-700 dark:text-emerald-300">● OTA</span>
+                      ) : null}
+                    </td>
                     <td className="px-2 py-2">{r.buildNumber}</td>
                     <td className="px-2 py-2">{r.channel}</td>
+                    <td className="px-2 py-2">{statusBadge(r.status, r.channel)}</td>
+                    <td className="px-2 py-2 max-w-[140px] truncate text-xs" title={r.filename ?? undefined}>
+                      {r.filename ?? "—"}
+                    </td>
+                    <td className="px-2 py-2 text-xs">{r.fileSizeLabel ?? "—"}</td>
+                    <td className="px-2 py-2 max-w-[160px] truncate text-xs" title={r.releaseNotes || undefined}>
+                      {r.releaseNotes?.trim() ? r.releaseNotes : "—"}
+                    </td>
                     <td className="px-2 py-2">{formatDate(r.createdAt)}</td>
-                    <td className="px-2 py-2">
-                      {(() => {
-                        const href = resolveDownloadHref(r);
-                        return href ? (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline dark:text-blue-400"
-                          >
-                            APK
-                          </a>
-                        ) : (
-                          "—"
-                        );
-                      })()}
+                    <td className="px-2 py-2 text-xs">{r.createdBy ?? "—"}</td>
+                    <td className="px-2 py-2 text-xs">
+                      {r.githubReleaseUrl ? (
+                        <a
+                          href={r.githubReleaseUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          {r.githubTag ?? "Release"}
+                        </a>
+                      ) : r.githubTag ? (
+                        <code>{r.githubTag}</code>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-2 py-2">
+                      <div className="flex flex-wrap items-center gap-1">
+                        {(() => {
+                          const href = resolveDownloadHref(r);
+                          return href ? (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded border border-gray-300 px-2 py-0.5 text-xs hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
+                            >
+                              APK
+                            </a>
+                          ) : null;
+                        })()}
                       {r.platform === "android" ? (
-                        <div className="flex flex-wrap gap-1">
+                        <>
                           <button
                             type="button"
                             disabled={actionId === r.id}
@@ -645,13 +748,15 @@ export function MobileReleaseManagementPanel() {
                           >
                             Activer prod
                           </button>
-                        </div>
+                        </>
                       ) : (
                         "iOS"
                       )}
+                      </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

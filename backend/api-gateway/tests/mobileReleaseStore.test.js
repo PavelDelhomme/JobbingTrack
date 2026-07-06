@@ -78,6 +78,33 @@ describe('mobileReleaseStore', () => {
     expect(state.deployHints.publicApiUrl).toBe('https://api.example.com');
     expect(state.deployHints.suggestedVersion).toBe('1.0.0');
     expect(state.deployHints.suggestedBuild).toBeGreaterThanOrEqual(8);
+    expect(state.releases[0].githubTag).toBe('mobile-v1.0.0+7');
+  });
+
+  it('publishBuiltApk lit version depuis pubspec si absente', () => {
+    const pubspecDir = path.join(tempDir, 'mobile');
+    fs.mkdirSync(pubspecDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(pubspecDir, 'pubspec.yaml'),
+      'name: test\nversion: 2.1.0+15\n',
+      'utf8',
+    );
+    process.env.MOBILE_PUBSPEC_PATH = path.join(pubspecDir, 'pubspec.yaml');
+
+    const apkDir = path.join(tempDir, 'apk-build');
+    fs.mkdirSync(apkDir, { recursive: true });
+    const apkPath = path.join(apkDir, 'app-debug.apk');
+    fs.writeFileSync(apkPath, 'fake apk');
+    process.env.MOBILE_APK_BUILD_PATH = apkPath;
+
+    const { publishBuiltApk } = require('../src/services/mobileReleaseStore');
+    const release = publishBuiltApk({ channel: 'dev', releaseNotes: 'from pubspec' });
+    expect(release.version).toBe('2.1.0');
+    expect(release.buildNumber).toBe(15);
+    expect(release.releaseNotes).toBe('from pubspec');
+
+    delete process.env.MOBILE_PUBSPEC_PATH;
+    delete process.env.MOBILE_APK_BUILD_PATH;
   });
 
   it('downloadUrl utilise chemin relatif en dev *.localhost', () => {

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
+import 'package:jobbingtrack_mobile/services/app_version_info.dart';
 import 'package:jobbingtrack_mobile/utils/admin_access.dart';
 import 'package:jobbingtrack_mobile/utils/auth_logout.dart';
 import 'package:jobbingtrack_mobile/widgets/impersonation_banner.dart';
@@ -16,11 +17,19 @@ class AppDrawer extends StatefulWidget {
 
 class _AppDrawerState extends State<AppDrawer> {
   bool _interimMode = false;
+  String? _appVersion;
 
   @override
   void initState() {
     super.initState();
     _loadInterimMode();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final version = await AppVersionInfo.get();
+    if (!mounted) return;
+    setState(() => _appVersion = version);
   }
 
   Future<void> _loadInterimMode() async {
@@ -235,18 +244,19 @@ class _AppDrawerState extends State<AppDrawer> {
             },
           ),
 
-          // Version de l'app
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Version 1.0.0',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
+          // Version de l'app (pubspec + build natif)
+          if (_appVersion != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Text(
+                'Version $_appVersion',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

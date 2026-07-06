@@ -88,12 +88,15 @@ services:
       - WAF_INTERNAL_BYPASS_ENABLED=${WAF_INTERNAL_BYPASS_ENABLED:?set WAF_INTERNAL_BYPASS_ENABLED in .env}
       - MOBILE_RELEASES_DIR=${MOBILE_RELEASES_DIR:-/app/mobile-releases}
       - MOBILE_APK_BUILD_PATH=${MOBILE_APK_BUILD_PATH:-/app/mobile-apk-build/app-debug.apk}
+      - MOBILE_PUBSPEC_PATH=/app/mobile/pubspec.yaml
       - PUBLIC_API_URL=${PUBLIC_API_URL:-https://api.jobbingtrack.localhost:5443}
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/api-gateway/src:/app/src
       - ./backend/api-gateway/logs:/app/logs
       - mobile_releases_data:/app/mobile-releases
+      # pubspec — suggestion version/build OTA alignée sur le code mobile
+      - ./mobile/pubspec.yaml:/app/mobile/pubspec.yaml:ro
       # APK debug buildé sur l'hôte — publication OTA sans upload navigateur (171 Mo)
       - ./mobile/build/app/outputs/flutter-apk:/app/mobile-apk-build:ro
       - ./config:/app/config:ro

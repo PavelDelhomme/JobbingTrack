@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { parsePubspecVersion, githubTagForRelease } = require('../lib/mobilePubspec');
 
 const DEFAULT_CHANNELS = ['dev', 'production'];
 const DEFAULT_PLATFORMS = ['android', 'ios'];
@@ -183,14 +184,95 @@ function releaseToPublicInfo(release, channelState) {
   };
 }
 
+const MIN_APK_BYTES = 100 * 1024; // 100 Ko — rejette les faux APK smoke (17 o)
+
+function assertValidApkOnDisk(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) {
+    throw new Error(`APK introuvable : ${filePath}`);
+  }
+  const size = fs.statSync(filePath).size;
+  if (size < MIN_APK_BYTES) {
+    throw new Error(
+      `APK invalide (${size} octets) — fichier trop petit pour être installé sur Android. `
+      + 'Utilisez un APK Flutter buildé (étape 1 backoffice), pas un fichier de test.',
+    );
+  }
+}
+
+function formatFileSize(bytes) {
+  if (!bytes || bytes <= 0) return null;
+  if (bytes < 1024) return `${bytes} o`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
+}
+
+function enrichReleaseForAdmin(release) {
+  if (!release) return null;
+  const enriched = {
+    ...release,
+    githubTag: release.githubTag || githubTagForRelease(release.version, release.buildNumber),
+  };
+
+  if (release.filename) {
+    const filePath = path.join(releasesDir(), release.filename);
+    if (fs.existsSync(filePath)) {
+      try {
+        assertValidApkOnDisk(filePath);
+      } catch (e) {
+        enriched.apkInvalid = true;
+        enriched.apkInvalidReason = e.message;
+      }
+      const stat = fs.statSync(filePath);
+      enriched.fileSizeBytes = stat.size;
+      enriched.fileSizeLabel = formatFileSize(stat.size);
+    }
+  }
+
+  return enriched;
+}
+
+function computeSuggestedVersion(androidReleases, activeDev, pubspec) {
+  const latestBuild = androidReleases.reduce(
+    (max, r) => Math.max(max, r.buildNumber || 0),
+    0,
+  );
+  const activeDevBuild = activeDev?.buildNumber || 0;
+
+  let suggestedVersion = pubspec?.version || activeDev?.version || '1.0.0';
+  let suggestedBuild = Math.max(latestBuild + 1, activeDevBuild + 1, pubspec?.buildNumber || 1, 1);
+
+  if (pubspec) {
+    suggestedVersion = pubspec.version;
+    const alreadyPublished = androidReleases.some(
+      (r) => r.version === pubspec.version && r.buildNumber === pubspec.buildNumber,
+    );
+    if (alreadyPublished) {
+      suggestedBuild = Math.max(suggestedBuild, pubspec.buildNumber + 1);
+    } else if (pubspec.buildNumber >= suggestedBuild) {
+      suggestedBuild = pubspec.buildNumber;
+    }
+  }
+
+  return { suggestedVersion, suggestedBuild, latestBuild };
+}
+
 function getDeployHints(store) {
   const androidReleases = store.releases.filter((r) => r.platform === 'android');
   const latest = androidReleases[0] || null;
   const activeDev = getActiveRelease(store, 'dev', 'android');
-  const versionSource = activeDev || latest;
-  const latestBuild = androidReleases.reduce(
-    (max, r) => Math.max(max, r.buildNumber || 0),
-    0,
+  const activeProd = getActiveRelease(store, 'production', 'android');
+  const pubspec = parsePubspecVersion();
+  const { suggestedVersion, suggestedBuild } = computeSuggestedVersion(
+    androidReleases,
+    activeDev,
+    pubspec,
+  );
+
+  const needsPubspecBump = Boolean(
+    pubspec
+    && activeDev
+    && pubspec.buildNumber <= activeDev.buildNumber
+    && pubspec.version === activeDev.version,
   );
 
   return {
@@ -199,9 +281,20 @@ function getDeployHints(store) {
       || process.env.NEXT_PUBLIC_API_URL?.trim()
       || null,
     mobileDownloadBaseUrl: resolvePublicApiBaseForMobileDownload(),
-    suggestedVersion: versionSource?.version || '1.0.0',
-    suggestedBuild: Math.max(latestBuild + 1, (versionSource?.buildNumber || 0) + 1, 1),
-    latestAndroidRelease: latest,
+    suggestedVersion,
+    suggestedBuild,
+    pubspecVersion: pubspec?.version || null,
+    pubspecBuild: pubspec?.buildNumber || null,
+    pubspecPath: pubspec?.pubspecPath || null,
+    needsPubspecBump,
+    activeDevRelease: enrichReleaseForAdmin(activeDev),
+    activeProdRelease: enrichReleaseForAdmin(activeProd),
+    latestAndroidRelease: enrichReleaseForAdmin(latest),
+    githubReleasesEnabled: process.env.MOBILE_GITHUB_RELEASES_ENABLED === 'true',
+    githubRepository:
+      process.env.GITHUB_REPOSITORY?.trim()
+      || process.env.MOBILE_GITHUB_REPOSITORY?.trim()
+      || null,
   };
 }
 
@@ -214,7 +307,7 @@ function listAdminState() {
       const channelState = store.channels[channel][platform];
       channels[channel][platform] = {
         ...channelState,
-        activeRelease: getActiveRelease(store, channel, platform),
+        activeRelease: enrichReleaseForAdmin(getActiveRelease(store, channel, platform)),
       };
     }
   }
@@ -222,9 +315,9 @@ function listAdminState() {
     releasesDir: releasesDir(),
     deployHints: getDeployHints(store),
     channels,
-    releases: [...store.releases].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    ),
+    releases: [...store.releases]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map((release) => enrichReleaseForAdmin(release)),
   };
 }
 
@@ -239,6 +332,9 @@ function createRelease({
   storeUrl,
 }) {
   const store = readStore();
+  if (platform === 'android' && filename) {
+    assertValidApkOnDisk(path.join(releasesDir(), filename));
+  }
   const release = {
     id: newReleaseId(),
     channel,
@@ -252,6 +348,8 @@ function createRelease({
     createdAt: new Date().toISOString(),
     createdBy: createdBy || null,
     status: 'active',
+    githubTag: githubTagForRelease(String(version), parseInt(String(buildNumber), 10) || 1),
+    githubReleaseUrl: null,
   };
 
   for (const existing of store.releases) {
@@ -326,6 +424,8 @@ function promoteRelease({ platform, fromChannel = 'dev', toChannel = 'production
     createdAt: new Date().toISOString(),
     createdBy: promotedBy || `promote:${fromChannel}->${toChannel}`,
     status: 'active',
+    githubTag: source.githubTag || githubTagForRelease(source.version, source.buildNumber),
+    githubReleaseUrl: source.githubReleaseUrl || null,
   };
 
   store.releases.unshift(promoted);
@@ -387,6 +487,32 @@ function resolveBuiltApkPath() {
 }
 
 /** Copie l'APK debug buildé (étape 1) vers le stockage OTA — sans upload navigateur. */
+function resolvePublishVersionInputs(version, buildNumber) {
+  const pubspec = parsePubspecVersion();
+  const resolvedVersion = version?.toString().trim() || pubspec?.version;
+  const resolvedBuild = buildNumber?.toString().trim()
+    ? parseInt(String(buildNumber), 10)
+    : pubspec?.buildNumber;
+
+  if (!resolvedVersion || !resolvedBuild) {
+    throw new Error(
+      'version et buildNumber requis — incrémentez mobile/pubspec.yaml (ex. 1.0.0+2) puis rebuild.',
+    );
+  }
+
+  return { version: resolvedVersion, buildNumber: resolvedBuild, pubspec };
+}
+
+function attachGithubReleaseMetadata(releaseId, { githubReleaseUrl, githubTag }) {
+  const store = readStore();
+  const release = findRelease(store, releaseId);
+  if (!release) return null;
+  if (githubReleaseUrl) release.githubReleaseUrl = githubReleaseUrl;
+  if (githubTag) release.githubTag = githubTag;
+  writeStore(store);
+  return release;
+}
+
 function publishBuiltApk({
   channel = 'dev',
   version,
@@ -401,18 +527,21 @@ function publishBuiltApk({
     );
   }
 
+  const resolved = resolvePublishVersionInputs(version, buildNumber);
+
   const { safeApkFilename } = require('../middleware/mobileApkUpload');
   const destFilename = safeApkFilename(
-    `jobbingtrack-v${version}+${buildNumber}-debug.apk`,
+    `jobbingtrack-v${resolved.version}+${resolved.buildNumber}-debug.apk`,
   );
   const destPath = path.join(releasesDir(), destFilename);
   fs.copyFileSync(srcPath, destPath);
+  assertValidApkOnDisk(destPath);
 
   return createRelease({
     channel,
     platform: 'android',
-    version,
-    buildNumber,
+    version: resolved.version,
+    buildNumber: resolved.buildNumber,
     releaseNotes,
     filename: destFilename,
     createdBy,
@@ -426,10 +555,14 @@ module.exports = {
   createRelease,
   publishBuiltApk,
   resolveBuiltApkPath,
+  resolvePublishVersionInputs,
+  attachGithubReleaseMetadata,
   activateRelease,
   promoteRelease,
   updateChannelPolicy,
   getPublicReleaseInfo,
   buildDownloadUrlForFilename,
   resolvePublicApiBaseForMobileDownload,
+  enrichReleaseForAdmin,
+  computeSuggestedVersion,
 };

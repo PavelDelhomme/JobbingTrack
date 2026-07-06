@@ -164,6 +164,14 @@ class MobileUpdateService {
       throw Exception('Téléchargement APK échoué (${response.statusCode})');
     }
 
+    final bytes = response.bodyBytes;
+    if (bytes.length < 100 * 1024) {
+      throw Exception(
+        'APK téléchargé invalide (${bytes.length} octets). '
+        'La release OTA serveur est corrompue ou factice — republiez un APK réel depuis le backoffice.',
+      );
+    }
+
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/jobbingtrack-update.apk');
     await file.writeAsBytes(response.bodyBytes, flush: true);

@@ -226,7 +226,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     if (previousStatus == null || current == previousStatus || !mounted) return;
     final auth = Provider.of<AuthProvider>(context, listen: false);
     Provider.of<NotificationProvider>(context, listen: false)
-        .loadNotifications(token: auth.token)
+        .loadNotifications(token: auth.token, auth: auth)
         .catchError((_) {});
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

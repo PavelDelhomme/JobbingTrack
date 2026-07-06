@@ -51,7 +51,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
       appProvider.loadApplications(token: token),
       interviewProvider.loadInterviews(token: token),
       followUpProvider.loadFollowUps(token: token),
-      notifProvider.loadNotifications(token: token).catchError((_) {}),
+      notifProvider.loadNotifications(token: token, auth: auth).catchError((_) {}),
     ]);
   }
 

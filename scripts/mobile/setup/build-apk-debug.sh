@@ -15,6 +15,8 @@ fi
 cd "$ROOT"
 node "$ROOT/scripts/mobile/setup/generate-debug-test-accounts.js"
 cd "$MOBILE_DIR"
+bash "$ROOT/scripts/mobile/setup/patch-android-plugin-gradle-kts.sh"
+bash "$ROOT/scripts/mobile/setup/ensure-flutter-gradle-cache.sh"
 "$FLUTTER_BIN" pub get
 "$FLUTTER_BIN" build apk --debug "${DART_DEFINES[@]}"
 echo "[build-apk-debug] OK → mobile/build/app/outputs/flutter-apk/app-debug.apk"

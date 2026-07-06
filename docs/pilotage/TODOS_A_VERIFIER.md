@@ -125,7 +125,14 @@ Index scripts : `scripts/mobile/README.md`.
 | C5 | Stack Portainer live VPS | Porteur : stack Running + NPM HTTPS | [ ] porteur |
 | C6 | OTA mobile Android | API `/api/v1/mobile/releases/latest?channel=` + install in-app | [x] **02/07** |
 | C7 | Backoffice releases | `/backoffice/administration/mobile-releases` — upload dev, promote prod | [x] **02/07** |
-| C8 | Tests gateway releases | Jest `mobileReleaseConfig` + `mobileReleaseStore` **5/5 OK** | [x] **02/07** |
+| C8 | Tests gateway releases | Jest `mobileReleaseConfig` + `mobileReleaseStore` **7/7 OK** | [x] **06/07** |
+| C9 | Historique versions OTA enrichi | `deployHints` lit `pubspec.yaml` ; historique backoffice : statut, package, taille, notes, tag GitHub ; publication auto-version ; smoke OTA **OK** | [x] **06/07** |
+| C10 | Build APK — fix Kotlin `local_auth_android` | Script `patch-android-plugin-gradle-kts.sh` ; Kotlin **2.3.20** ; `app/build.gradle.kts` compilerOptions ; build debug **OK** conteneur | [x] **06/07** |
+| C11 | Build backoffice — cache Gradle corrompu | `.flutter-gradle-cache` contenait hack `/usr/bin/flutter` ; `ensure-flutter-gradle-cache.sh` + détection dans `server.js` ; build API **OK** + install ADB Samsung **OK** | [x] **06/07** |
+| C12 | Notifications in-app — refresh mobile | API smoke **OK** ; retry JWT + `autoDetectApi` + messages explicites (adb reverse / session) ; bouton **Réessayer** cloche ; Jest Flutter `notification_load_errors` **2/2** conteneur | [x] **06/07** |
+| C13 | OTA Samsung — analyse package KO | Cause : release active **build 3** = faux APK smoke **17 o** ; republié **build 4** APK réel **171 Mo** canal dev ; garde-fous taille min APK serveur + app | [x] **06/07** |
+| C14 | api-gateway crash + splash mobile bloqué | `mobileReleaseStore.js` : `formatFileSize` orphelin → `SyntaxError` ligne 205 ; corrigé + `docker compose restart api-gateway` → `/health` **200** ; splash : timeouts (15/12/20 s), statuts étape par étape, erreur explicite + **Réessayer** / **Aller à la connexion**, télémétrie non bloquante ; fix compile `notification_provider` import + `mobile_update_service` `final bytes` ; build emulator-controller **OK** 1.0.0+4 ; `install-run` Samsung **OK** (~2m30) → UI **Bonjour** (accueil) | [x] **06/07** |
+| C15 | OTA Samsung build 4→5 canal dev | `pubspec` **1.0.0+5** ; build + `POST publish-built` dev ; téléphone **1.0.0+4** → dialog **Mise à jour disponible** ; download ~179 Mo + installateur Samsung **Application installée** ; pas de re-dialogue OTA après MAJ ; login USER **OK** | [x] **06/07** |
 
 ### Porteur — reset données validation mobile (02/07)
 

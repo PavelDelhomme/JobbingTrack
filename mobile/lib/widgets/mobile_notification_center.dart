@@ -13,7 +13,7 @@ class MobileNotificationCenter extends StatelessWidget {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final provider = Provider.of<NotificationProvider>(context, listen: false);
     try {
-      await provider.loadNotifications(token: auth.token);
+      await provider.loadNotifications(token: auth.token, auth: auth);
     } catch (_) {}
     if (!context.mounted) return;
     await showModalBottomSheet<void>(
@@ -79,7 +79,26 @@ class _NotificationSheet extends StatelessWidget {
             if (provider.lastError != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(provider.lastError!, style: TextStyle(color: Colors.red.shade700, fontSize: 13)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      provider.lastError!,
+                      style: TextStyle(color: Colors.red.shade700, fontSize: 13),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: provider.isLoading
+                            ? null
+                            : () => provider.loadNotifications(token: auth.token, auth: auth),
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Réessayer'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             Expanded(
               child: provider.isLoading && provider.notifications.isEmpty
@@ -92,7 +111,7 @@ class _NotificationSheet extends StatelessWidget {
                           ),
                         )
                       : RefreshIndicator(
-                          onRefresh: () => provider.loadNotifications(token: auth.token),
+                          onRefresh: () => provider.loadNotifications(token: auth.token, auth: auth),
                           child: ListView.builder(
                             itemCount: provider.notifications.length,
                             itemBuilder: (_, i) => _NotificationTile(n: provider.notifications[i]),

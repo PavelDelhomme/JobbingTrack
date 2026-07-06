@@ -160,6 +160,7 @@ async function main() {
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
   console.log("OK smoke-mobile-releases-ota-api — upload + OTA + promote");
+  console.log("NOTE: smoke utilise un faux APK minimal — republiez un vrai APK via publish-built après smoke.");
 }
 
 main().catch((error) => {

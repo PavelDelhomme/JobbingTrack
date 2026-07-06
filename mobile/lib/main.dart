@@ -242,6 +242,8 @@ class _SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<_SplashScreen> {
   String _status = 'Connexion...';
+  String? _error;
+  bool _retrying = false;
 
   @override
   void initState() {
@@ -249,16 +251,59 @@ class _SplashScreenState extends State<_SplashScreen> {
     _init();
   }
 
+  void _setStatus(String status) {
+    if (!mounted) return;
+    setState(() {
+      _status = status;
+      if (_error != null) _error = null;
+    });
+  }
+
   Future<void> _init() async {
+    if (_retrying) return;
+    _retrying = true;
+    try {
+      await _runInit();
+    } on TimeoutException {
+      if (!mounted) return;
+      setState(() {
+        _error =
+            'Le serveur met trop de temps à répondre (${ApiService.baseUrl}). '
+            'Vérifiez que l\'API tourne (docker) et adb reverse tcp:5002 tcp:5002.';
+        _status = 'Délai dépassé';
+      });
+    } catch (e, st) {
+      debugPrint('[SPLASH] init error: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _status = 'Erreur au démarrage';
+      });
+    } finally {
+      _retrying = false;
+    }
+  }
+
+  Future<void> _runInit() async {
+    _setStatus('Recherche du serveur...');
     debugPrint('[SPLASH] Vérification API...');
     try {
-      await ApiService.autoDetectApi();
+      await ApiService.autoDetectApi().timeout(const Duration(seconds: 15));
     } catch (e, st) {
       debugPrint('[SPLASH] autoDetectApi error (continuing): $e\n$st');
     }
     if (!mounted) return;
-    final update = await MobileUpdateService.evaluateUpdate();
+
+    _setStatus('Vérification des mises à jour...');
+    ({MobileReleaseInfo release, String current, bool optional, bool blocked})? update;
+    try {
+      update = await MobileUpdateService.evaluateUpdate()
+          .timeout(const Duration(seconds: 12));
+    } catch (e, st) {
+      debugPrint('[SPLASH] evaluateUpdate skipped: $e\n$st');
+    }
     if (!mounted) return;
+
     if (update != null) {
       if (update.blocked) {
         await showMobileUpdateDialog(
@@ -279,12 +324,16 @@ class _SplashScreenState extends State<_SplashScreen> {
       );
       if (!mounted) return;
     }
+
+    _setStatus('Restauration de la session...');
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final restored = await auth.restoreSession();
+    final restored = await auth.restoreSession().timeout(const Duration(seconds: 20));
     MobileAnalyticsService.instance.sessionRefreshBeforeFlush = auth.refreshSessionIfOnline;
-    await MobileAnalyticsService.instance.updateAuthToken(auth.token);
-    await MobileAnalyticsService.instance.initialize(authToken: auth.token);
+    // Télémétrie en arrière-plan — ne pas bloquer l'écran de démarrage.
+    unawaited(MobileAnalyticsService.instance.updateAuthToken(auth.token));
+    unawaited(MobileAnalyticsService.instance.initialize(authToken: auth.token));
     if (!mounted) return;
+
     if (restored) {
       final skipBioTest = kDebugMode && await ApiConfigStore.loadTestAutomationSkipBiometric();
       final bio = await ApiConfigStore.loadBiometricUnlockEnabled();
@@ -321,9 +370,34 @@ class _SplashScreenState extends State<_SplashScreen> {
               const SizedBox(height: 16),
               Text('JobbingTrack', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue[800])),
               const SizedBox(height: 24),
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text(_status, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600])),
+              if (_error == null) ...[
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(_status, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600])),
+              ] else ...[
+                Icon(Icons.cloud_off, size: 48, color: Colors.orange[700]),
+                const SizedBox(height: 16),
+                Text(_status, textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[800])),
+                const SizedBox(height: 8),
+                Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                ),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: _retrying ? null : _init,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Réessayer'),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: _retrying
+                      ? null
+                      : () => Navigator.of(context).pushReplacementNamed('/login'),
+                  child: const Text('Aller à la connexion'),
+                ),
+              ],
             ],
           ),
         ),
