@@ -574,8 +574,16 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: firstName, decoration: const InputDecoration(labelText: 'Prénom *'), textCapitalization: TextCapitalization.words),
-              TextField(controller: lastName, decoration: const InputDecoration(labelText: 'Nom *'), textCapitalization: TextCapitalization.words),
+              Semantics(
+                label: 'Prénom',
+                textField: true,
+                child: TextField(controller: firstName, decoration: const InputDecoration(labelText: 'Prénom *'), textCapitalization: TextCapitalization.words),
+              ),
+              Semantics(
+                label: 'Nom',
+                textField: true,
+                child: TextField(controller: lastName, decoration: const InputDecoration(labelText: 'Nom *'), textCapitalization: TextCapitalization.words),
+              ),
               TextField(controller: email, decoration: const InputDecoration(labelText: 'Email')),
               TextField(controller: phone, decoration: const InputDecoration(labelText: 'Téléphone')),
               TextField(

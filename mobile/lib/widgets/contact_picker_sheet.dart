@@ -383,6 +383,7 @@ class _ContactPickerBodyState extends State<_ContactPickerBody> {
                       decoration: const InputDecoration(
                         prefixIcon: Icon(Icons.search),
                         hintText: 'Rechercher un contact…',
+                        labelText: 'Rechercher',
                         border: OutlineInputBorder(),
                         isDense: true,
                       ),
@@ -414,21 +415,29 @@ class _ContactPickerBodyState extends State<_ContactPickerBody> {
                     ),
                     if (_showCreateForm) ...[
                       const SizedBox(height: 12),
-                      TextField(
-                        controller: _firstNameController,
-                        textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(
-                          labelText: 'Prénom *',
-                          border: OutlineInputBorder(),
+                      Semantics(
+                        label: 'Prénom',
+                        textField: true,
+                        child: TextField(
+                          controller: _firstNameController,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: const InputDecoration(
+                            labelText: 'Prénom *',
+                            border: OutlineInputBorder(),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
-                      TextField(
-                        controller: _lastNameController,
-                        textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(
-                          labelText: 'Nom *',
-                          border: OutlineInputBorder(),
+                      Semantics(
+                        label: 'Nom',
+                        textField: true,
+                        child: TextField(
+                          controller: _lastNameController,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: const InputDecoration(
+                            labelText: 'Nom *',
+                            border: OutlineInputBorder(),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
