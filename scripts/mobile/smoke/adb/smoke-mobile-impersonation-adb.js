@@ -129,14 +129,6 @@ async function openUsersList(phone) {
     throw new Error('Entrée drawer Désimpersonnaliser absente après impersonate');
   }
   console.log('✅ Drawer Désimpersonnaliser visible (sans bannière persistante)');
-  await phone.tap('Menu');
-  await phone.wait(500);
-
-  await phone.openNavigationDrawer();
-  await phone.wait(1000);
-  if (!(await phone.uiContains('Désimpersonnaliser'))) {
-    throw new Error('Entrée drawer Désimpersonnaliser absente');
-  }
   await phone.tapReliable('Désimpersonnaliser');
   await phone.wait(3500);
 
