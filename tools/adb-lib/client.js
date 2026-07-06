@@ -21,6 +21,7 @@ function scaleWait(ms) {
   if (!ADB_FAST || n <= 0) return n;
   return Math.max(60, Math.round(n * FAST_SCALE));
 }
+const { dismissIncomingPhoneCall } = require('./dismiss-incoming-call');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
@@ -86,8 +87,13 @@ class AdbClient {
 
   // ─── Tap ───────────────────────────────────────────────────────
 
+  async _dismissIncomingCallIfNeeded() {
+    await dismissIncomingPhoneCall(this, { log: true });
+  }
+
   /** Tap un element par son texte visible ou content-desc */
   async tap(text, index = 0) {
+    await this._dismissIncomingCallIfNeeded();
     const r = await this._post('/find-and-tap', { text, index });
     if (!r.success) throw new Error(r.error || `"${text}" introuvable`);
     this._invalidateUi();
@@ -133,6 +139,7 @@ class AdbClient {
 
   /** Tap a des coordonnees brutes */
   async tapXY(x, y) {
+    await this._dismissIncomingCallIfNeeded();
     await this._post('/input-tap', { x, y });
     this._invalidateUi();
     this._log(`tap (${x},${y})`);
@@ -302,6 +309,7 @@ class AdbClient {
 
   /** Verifie si un texte est present a l'ecran */
   async uiContains(text) {
+    await this._dismissIncomingCallIfNeeded();
     const xml = await this.uiDump();
     return xml.toLowerCase().includes(text.toLowerCase());
   }
@@ -346,6 +354,7 @@ class AdbClient {
 
   /** Asserte qu'un texte est present, sinon throw */
   async assertVisible(text) {
+    await this._dismissIncomingCallIfNeeded();
     const found = await this.uiContains(text);
     if (!found) throw new Error(`Assertion failed: "${text}" not visible`);
     this._log(`assert OK: "${text}" visible`);

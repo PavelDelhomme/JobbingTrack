@@ -14,6 +14,7 @@
  */
 
 const { ADB_FAST } = require('./client');
+const { dismissIncomingPhoneCall } = require('./dismiss-incoming-call');
 
 /** Shell mobile : Accueil, Candidatures, Calendrier, Profil (4 onglets). */
 const SHELL_TAB_COUNT = 4;
@@ -117,6 +118,7 @@ async function dismissSystemBiometricPrompt(adb) {
 
 async function prepareSmokeSession(adb, opts = {}) {
   const { skipBiometric = true, keepLoggedIn = true, restart = false } = opts;
+  await dismissIncomingPhoneCall(adb);
   if (skipBiometric) {
     await adb.setFlutterPrefBool('test_automation_skip_biometric', true);
     // Ne pas toucher auth_biometric_unlock : le bypass smoke est limité à la pref test ;
@@ -145,6 +147,7 @@ async function restoreSmokeSessionPrefs(adb) {
 }
 
 async function ensureAuthenticatedShell(adb, email, password) {
+  await dismissIncomingPhoneCall(adb);
   if (process.env.SMOKE_SHARED_SHELL === '1' && (await isShellVisible(adb))) {
     return 'Shell OK (session partagée)';
   }

@@ -79,6 +79,7 @@ async function runPreflight(opts = {}) {
   console.log('✅ Verrou smoke actif (pas de script parallèle sur cet appareil)');
 
   await checkEmulatorController(phone);
+  console.log('✅ Appels entrants — refus auto pendant smokes (SMOKE_IGNORE_INCOMING_CALLS)');
 
   if (prepare) {
     await adbLib.flows.prepareSmokeSession(phone, { restart: true });
