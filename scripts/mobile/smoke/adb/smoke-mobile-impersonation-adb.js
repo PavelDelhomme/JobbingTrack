@@ -117,16 +117,20 @@ async function openUsersList(phone) {
   await phone.wait(800);
 
   if (await phone.uiContains('Impersonation')) {
-    await phone.tapReliable('Ouvrir');
+    await phone.tapReliable('Confirmer');
   } else if (await phone.uiContains('OK')) {
     await phone.tap('OK');
   }
   await phone.wait(3500);
 
-  if (!(await phone.uiContains('Impersonnalisation'))) {
-    throw new Error('Bannière impersonnalisation absente après impersonate');
+  await phone.openNavigationDrawer();
+  await phone.wait(1000);
+  if (!(await phone.uiContains('Désimpersonnaliser'))) {
+    throw new Error('Entrée drawer Désimpersonnaliser absente après impersonate');
   }
-  console.log('✅ Bannière impersonnalisation visible');
+  console.log('✅ Drawer Désimpersonnaliser visible (sans bannière persistante)');
+  await phone.tap('Menu');
+  await phone.wait(500);
 
   await phone.openNavigationDrawer();
   await phone.wait(1000);
@@ -137,16 +141,16 @@ async function openUsersList(phone) {
   await phone.wait(3500);
 
   const onAdmin =
-    (await phone.uiContains('Administration')) ||
     (await phone.uiContains('Utilisateurs')) ||
+    (await phone.uiContains('Administration')) ||
     (await phone.uiContains('Hub'));
   if (!onAdmin) {
-    throw new Error('Hub admin non restauré après désimpersonnalisation');
+    throw new Error('Liste utilisateurs / hub admin non restauré après désimpersonnalisation');
   }
-  if (await phone.uiContains('Impersonnalisation')) {
-    throw new Error('Bannière impersonnalisation encore visible après sortie');
+  if (await phone.uiContains('Impersonnalisation —')) {
+    throw new Error('Bannière impersonnalisation persistante encore visible après sortie');
   }
-  console.log('✅ Désimpersonnalisation drawer → hub admin OK');
+  console.log('✅ Désimpersonnalisation drawer → liste utilisateurs OK');
 
   // Restaurer session user pour la suite
   await phone.back();

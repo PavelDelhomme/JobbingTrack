@@ -45,8 +45,11 @@ const adbTests = [
   'scripts/mobile/smoke/adb/smoke-mobile-profile-save-adb.js',
 ];
 
-/** Admin hub en fin — switch compte puis restauration porteur. */
-const adbLast = ['scripts/mobile/smoke/adb/smoke-mobile-admin-hub-adb.js'];
+/** Admin hub + impersonnalisation en fin — switch compte puis restauration porteur. */
+const adbLast = [
+  'scripts/mobile/smoke/adb/smoke-mobile-impersonation-adb.js',
+  'scripts/mobile/smoke/adb/smoke-mobile-admin-hub-adb.js',
+];
 
 function runScript(relPath, label, envExtra = {}) {
   const started = Date.now();

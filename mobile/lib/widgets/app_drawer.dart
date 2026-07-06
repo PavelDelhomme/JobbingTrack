@@ -52,7 +52,8 @@ class _AppDrawerState extends State<AppDrawer> {
         children: [
           if (isImpersonating)
             Material(
-              color: Colors.orange.shade50,
+              elevation: 4,
+              color: Colors.orange.shade100,
               child: ListTile(
                 leading: Icon(Icons.switch_account, color: Colors.orange.shade900),
                 title: Text(
@@ -62,7 +63,14 @@ class _AppDrawerState extends State<AppDrawer> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                subtitle: const Text('Retour à la liste des utilisateurs'),
+                subtitle: Text(
+                  'Impersonnalisation — ${user?.email ?? ''}\nRetour à la liste des utilisateurs',
+                  style: TextStyle(
+                    color: Colors.orange.shade900.withValues(alpha: 0.85),
+                    fontSize: 12,
+                  ),
+                ),
+                isThreeLine: true,
                 onTap: () async {
                   Navigator.of(context).pop();
                   await ImpersonationBanner.exitAndRestoreAdminSession(context);
