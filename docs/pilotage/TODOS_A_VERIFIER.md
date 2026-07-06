@@ -134,6 +134,7 @@ Index scripts : `scripts/mobile/README.md`.
 | C14 | api-gateway crash + splash mobile bloqué | `mobileReleaseStore.js` : `formatFileSize` orphelin → `SyntaxError` ligne 205 ; corrigé + `docker compose restart api-gateway` → `/health` **200** ; splash : timeouts (15/12/20 s), statuts étape par étape, erreur explicite + **Réessayer** / **Aller à la connexion**, télémétrie non bloquante ; fix compile `notification_provider` import + `mobile_update_service` `final bytes` ; build emulator-controller **OK** 1.0.0+4 ; `install-run` Samsung **OK** (~2m30) → UI **Bonjour** (accueil) | [x] **06/07** |
 | C15 | OTA Samsung build 4→5 canal dev | `pubspec` **1.0.0+5** ; build + `POST publish-built` dev ; téléphone **1.0.0+4** → dialog **Mise à jour disponible** ; download ~179 Mo + installateur Samsung **Application installée** ; pas de re-dialogue OTA après MAJ ; login USER **OK** | [x] **06/07** |
 | C16 | Drawer — version réelle | `AppDrawer` lit `AppVersionInfo.get()` → **Version 1.0.0+5** (plus de hardcodé `1.0.0`) ; `exitImpersonation` persiste session admin | [x] **06/07** |
+| C17 | Versionnement documenté | `docs/mobile/VERSIONNEMENT.md` (semver vs build) ; drawer **Version 1.0.0** + **Build 5** ; backoffice panneau explicatif ; dialog OTA labels lisibles | [x] **06/07** |
 
 ### Porteur — reset données validation mobile (02/07)
 

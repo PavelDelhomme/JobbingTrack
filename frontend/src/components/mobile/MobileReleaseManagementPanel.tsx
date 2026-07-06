@@ -436,6 +436,28 @@ export function MobileReleaseManagementPanel() {
               </li>
             ) : null}
           </ul>
+          <details className="mt-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-800 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200">
+            <summary className="cursor-pointer font-medium">
+              Versionnement : pourquoi <code>1.0.0+5</code> et pas <code>1.0.5</code> ?
+            </summary>
+            <ul className="mt-2 list-disc space-y-1 pl-4">
+              <li>
+                <strong>1.0.0</strong> = version semver (correctif → <code>1.0.1</code>, fonctionnalité →{" "}
+                <code>1.1.0</code>, refonte → <code>2.0.0</code>).
+              </li>
+              <li>
+                <strong>+5</strong> = numéro de <em>build</em> (chaque APK compilé ; toujours croissant).
+                Ce n’est pas le cinquième chiffre après la version.
+              </li>
+              <li>
+                En dev intensif : même semver <code>1.0.0</code> avec builds <code>+1</code>, <code>+2</code>…
+                est normal. Avant une release store, monter le patch ou le mineur.
+              </li>
+              <li>
+                Doc dépôt : <code>docs/mobile/VERSIONNEMENT.md</code>
+              </li>
+            </ul>
+          </details>
           {state.deployHints?.needsPubspecBump ? (
             <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
               Le build <strong>{state.deployHints.pubspecVersion}+{state.deployHints.pubspecBuild}</strong>{" "}

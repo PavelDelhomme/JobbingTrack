@@ -37,6 +37,12 @@ node scripts/mobile/smoke-login-adb.js
 
 **Rebuild obligatoire** après ces changements : `flutter build apk --debug` puis « Installer et lancer » depuis l'émulateur backoffice.
 
+### Versionnement (`1.0.0+5` — qu'est-ce que c'est ?)
+
+- **`1.0.0`** = version **semver** (patch `1.0.1`, mineur `1.1.0`, majeur `2.0.0`).
+- **`+5`** = **numéro de build** (chaque APK ; toujours croissant). Ce n'est **pas** `1.0.5`.
+- Guide complet : **[VERSIONNEMENT.md](../docs/mobile/VERSIONNEMENT.md)**.
+
 **En production** :
 ```bash
 flutter build apk --dart-define=API_BASE_URL=https://api.votredomaine.com

@@ -17,7 +17,7 @@ class AppDrawer extends StatefulWidget {
 
 class _AppDrawerState extends State<AppDrawer> {
   bool _interimMode = false;
-  String? _appVersion;
+  AppVersionDetails? _appVersion;
 
   @override
   void initState() {
@@ -27,9 +27,9 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   Future<void> _loadAppVersion() async {
-    final version = await AppVersionInfo.get();
+    final details = await AppVersionInfo.getDetails();
     if (!mounted) return;
-    setState(() => _appVersion = version);
+    setState(() => _appVersion = details);
   }
 
   Future<void> _loadInterimMode() async {
@@ -244,17 +244,31 @@ class _AppDrawerState extends State<AppDrawer> {
             },
           ),
 
-          // Version de l'app (pubspec + build natif)
+          // Version de l'app (semver + build — voir docs/mobile/VERSIONNEMENT.md)
           if (_appVersion != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Text(
-                'Version $_appVersion',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+              child: Column(
+                children: [
+                  Text(
+                    _appVersion!.displayVersionLine,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _appVersion!.displayBuildLine,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                ],
               ),
             ),
         ],

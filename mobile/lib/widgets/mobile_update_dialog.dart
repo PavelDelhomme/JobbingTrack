@@ -4,6 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:jobbingtrack_mobile/services/mobile_update_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+String _versionLabel(String raw) {
+  final parts = raw.split('+');
+  if (parts.length < 2 || parts[1].isEmpty) return raw;
+  return '${parts[0]} (build ${parts[1]})';
+}
+
 Future<bool> showMobileUpdateDialog(
   BuildContext context, {
   required MobileReleaseInfo release,
@@ -57,8 +63,15 @@ Future<bool> showMobileUpdateDialog(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Version installée : $currentVersion'),
-                  Text('Nouvelle version : ${release.displayVersion}'),
+                  Text('Installée : ${_versionLabel(currentVersion)}'),
+                  Text('Disponible : ${_versionLabel(release.displayVersion)}'),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      'Le +N est le numéro de build (chaque APK), pas un patch 1.0.N.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ),
                   if (release.releaseNotes.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Text(release.releaseNotes),
