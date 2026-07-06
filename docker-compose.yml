@@ -87,12 +87,15 @@ services:
       - WAF_INTERNAL_BYPASS_CIDRS=${WAF_INTERNAL_BYPASS_CIDRS:?set WAF_INTERNAL_BYPASS_CIDRS in .env}
       - WAF_INTERNAL_BYPASS_ENABLED=${WAF_INTERNAL_BYPASS_ENABLED:?set WAF_INTERNAL_BYPASS_ENABLED in .env}
       - MOBILE_RELEASES_DIR=${MOBILE_RELEASES_DIR:-/app/mobile-releases}
+      - MOBILE_APK_BUILD_PATH=${MOBILE_APK_BUILD_PATH:-/app/mobile-apk-build/app-debug.apk}
       - PUBLIC_API_URL=${PUBLIC_API_URL:-https://api.jobbingtrack.localhost:5443}
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
       - ./backend/api-gateway/src:/app/src
       - ./backend/api-gateway/logs:/app/logs
       - mobile_releases_data:/app/mobile-releases
+      # APK debug buildé sur l'hôte — publication OTA sans upload navigateur (171 Mo)
+      - ./mobile/build/app/outputs/flutter-apk:/app/mobile-apk-build:ro
       - ./config:/app/config:ro
       - ./backend/api-gateway/package.json:/app/package.json:ro
       # Script génération données de test (route admin generate-test-data)

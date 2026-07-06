@@ -123,6 +123,7 @@ router.get('/test', authenticate, (req, res) => {
 
 // Mobile releases (OTA) — pilotage dev / production depuis backoffice
 router.get('/mobile/releases', authenticate, mobileReleasesController.listReleases);
+router.post('/mobile/releases/publish-built', authenticate, mobileReleasesController.publishBuiltRelease);
 router.post('/mobile/releases/upload', authenticate, (req, res, next) => {
   let mobileApkUpload;
   try {

@@ -5,7 +5,7 @@ import axios from "axios";
 import { useAuth } from "@/lib/hooks/auth";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { MobileApkBuildPanel } from "@/components/mobile/MobileApkBuildPanel";
-import { fetchBuiltApkBlob, formatApkDownloadFilename } from "@/lib/mobile/emulatorControllerClient";
+import { formatApkDownloadFilename } from "@/lib/mobile/emulatorControllerClient";
 
 type MobileRelease = {
   id: string;
@@ -220,10 +220,16 @@ export function MobileReleaseManagementPanel() {
       setReleaseNotes("");
       await load();
     } catch (e) {
-      const detail = axios.isAxiosError(e)
-        ? (e.response?.data as { error?: string })?.error || e.message
-        : "Upload échoué";
-      setError(detail);
+      if (axios.isAxiosError(e) && e.response?.status === 413) {
+        setError(
+          "APK trop volumineux pour l’upload navigateur (limite nginx). Utilisez le bouton « Publier sur canal dev » du panneau vert (étape 1) — copie directe côté serveur.",
+        );
+      } else {
+        const detail = axios.isAxiosError(e)
+          ? (e.response?.data as { error?: string })?.error || e.message
+          : "Upload échoué";
+        setError(detail);
+      }
     } finally {
       setUploading(false);
     }
@@ -236,18 +242,38 @@ export function MobileReleaseManagementPanel() {
   };
 
   const publishBuiltApk = async () => {
+    if (!token) return;
+    setUploading(true);
+    setMessage(null);
+    setError(null);
     try {
-      const blob = await fetchBuiltApkBlob();
-      const fileName = formatApkDownloadFilename(
-        state?.deployHints?.suggestedVersion ?? version,
-        state?.deployHints?.suggestedBuild ?? buildNumber,
+      await axios.post(
+        adminApi("/mobile/releases/publish-built"),
+        {
+          version: version.trim(),
+          buildNumber: buildNumber.trim(),
+          channel,
+          releaseNotes: releaseNotes.trim(),
+          platform: "android",
+        },
+        { headers: authHeaders },
       );
-      const file = new File([blob], fileName, {
-        type: "application/vnd.android.package-archive",
-      });
-      await uploadApkFile(file);
+      setMessage(`APK ${version} (build ${buildNumber}) publié sur le canal ${channel} (copie serveur).`);
+      setReleaseNotes("");
+      await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Impossible de récupérer l’APK buildé");
+      if (axios.isAxiosError(e) && e.response?.status === 413) {
+        setError(
+          "Fichier trop volumineux (413). Utilisez « Publier sur canal dev » du panneau vert (copie serveur) ou augmentez client_max_body_size nginx.",
+        );
+      } else {
+        const detail = axios.isAxiosError(e)
+          ? (e.response?.data as { error?: string })?.error || e.message
+          : "Publication échouée";
+        setError(detail);
+      }
+    } finally {
+      setUploading(false);
     }
   };
 

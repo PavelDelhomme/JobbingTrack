@@ -1,6 +1,7 @@
 const {
   listAdminState,
   createRelease,
+  publishBuiltApk,
   activateRelease,
   promoteRelease,
   updateChannelPolicy,
@@ -11,6 +12,34 @@ exports.listReleases = (_req, res) => {
     return res.json({ success: true, data: listAdminState() });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+exports.publishBuiltRelease = (req, res) => {
+  try {
+    const channel = String(req.body.channel || 'dev').toLowerCase();
+    const version = req.body.version;
+    const buildNumber = req.body.buildNumber;
+
+    if (!version || !buildNumber) {
+      return res.status(400).json({ success: false, error: 'version et buildNumber requis' });
+    }
+    if (!['dev', 'production'].includes(channel)) {
+      return res.status(400).json({ success: false, error: 'channel invalide (dev | production)' });
+    }
+
+    const release = publishBuiltApk({
+      channel,
+      version,
+      buildNumber,
+      releaseNotes: req.body.releaseNotes || '',
+      createdBy: req.user?.email || null,
+    });
+
+    return res.status(201).json({ success: true, release });
+  } catch (error) {
+    const status = error.message.includes('introuvable') ? 404 : 500;
+    return res.status(status).json({ success: false, error: error.message });
   }
 };
 

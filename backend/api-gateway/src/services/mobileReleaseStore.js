@@ -373,11 +373,59 @@ function getPublicReleaseInfo(platformRaw, channelRaw) {
   };
 }
 
+function resolveBuiltApkPath() {
+  const candidates = [
+    process.env.MOBILE_APK_BUILD_PATH?.trim(),
+    '/app/mobile-apk-build/app-debug.apk',
+    path.join(process.cwd(), 'mobile/build/app/outputs/flutter-apk/app-debug.apk'),
+    path.join(process.cwd(), '../mobile/build/app/outputs/flutter-apk/app-debug.apk'),
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+/** Copie l'APK debug buildé (étape 1) vers le stockage OTA — sans upload navigateur. */
+function publishBuiltApk({
+  channel = 'dev',
+  version,
+  buildNumber,
+  releaseNotes = '',
+  createdBy = null,
+}) {
+  const srcPath = resolveBuiltApkPath();
+  if (!srcPath) {
+    throw new Error(
+      'APK debug introuvable sur le serveur. Lancez « Build APK » (étape 1) puis réessayez.',
+    );
+  }
+
+  const { safeApkFilename } = require('../middleware/mobileApkUpload');
+  const destFilename = safeApkFilename(
+    `jobbingtrack-v${version}+${buildNumber}-debug.apk`,
+  );
+  const destPath = path.join(releasesDir(), destFilename);
+  fs.copyFileSync(srcPath, destPath);
+
+  return createRelease({
+    channel,
+    platform: 'android',
+    version,
+    buildNumber,
+    releaseNotes,
+    filename: destFilename,
+    createdBy,
+  });
+}
+
 module.exports = {
   releasesDir,
   readStore,
   listAdminState,
   createRelease,
+  publishBuiltApk,
+  resolveBuiltApkPath,
   activateRelease,
   promoteRelease,
   updateChannelPolicy,

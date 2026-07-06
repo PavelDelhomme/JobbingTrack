@@ -263,9 +263,25 @@ app.use((req, res, next) => {
   if (req.method === 'POST' && req.path === '/api/v1/crashes') {
     return crashReportBodyParser(req, res, next);
   }
+  // Multipart APK : multer gère le corps (évite limite JSON 64kb)
+  if (req.method === 'POST' && (
+    req.path === '/api/v1/admin/mobile/releases/upload'
+    || req.path.startsWith('/api/v1/admin/mobile/releases/upload')
+  )) {
+    return next();
+  }
   return defaultBodyParser(req, res, next);
 });
-app.use(express.urlencoded({ extended: true, limit: '64kb' }));
+const defaultUrlencodedParser = express.urlencoded({ extended: true, limit: '64kb' });
+app.use((req, res, next) => {
+  if (req.method === 'POST' && (
+    req.path === '/api/v1/admin/mobile/releases/upload'
+    || req.path.startsWith('/api/v1/admin/mobile/releases/upload')
+  )) {
+    return next();
+  }
+  return defaultUrlencodedParser(req, res, next);
+});
 
 // ✅ Détection d’intrusion (après body parser pour analyser le corps ; avant WAF)
 // Désactiver : INTRUSION_DETECTION_ENABLED=false — contournement réservé au non-prod via DEV_TEST_BYPASS_TOKEN + en-tête X-JobbingTrack-Dev-Test-Token (voir utils/devTestBypassRequest.js).
