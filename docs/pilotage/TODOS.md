@@ -14,7 +14,7 @@
 
 | # | Sujet | Prochaine action | Preuve / script |
 |---|--------|------------------|-----------------|
-| A1 | **Smokes ADB fiables et rapides** | Gate par défaut : `node scripts/mobile/smoke-run-mobile-fast.js` (~8–15 min) ; pré-vol `smoke-preflight.js` (verrou ADB, session partagée, comptes `emailVerified`) ; diagnostic attente email (`fetch-imap-verification.js`, bonne boîte `.env`) | `TODOS_A_VERIFIER.md` § phase mobile |
+| A1 | **Smokes ADB fiables et rapides** | Gate par défaut : `node scripts/mobile/smoke-run-mobile-fast.js` (~8–15 min) ; pré-vol `smoke-preflight.js` (verrou ADB, session partagée, comptes `emailVerified`, **refus auto appels entrants spam**) ; diagnostic attente email (`fetch-imap-verification.js`, bonne boîte `.env`) | `TODOS_A_VERIFIER.md` § phase mobile |
 | A2 | **Bypass biométrie smokes uniquement** | Pref `test_automation_skip_biometric` + `prepareSmokeSession` ; ne pas casser biométrie produit (validée porteur 19/06) | APK debug rebuild après changements Flutter |
 | A3 | **Parcours mobile métier** | FAB candidature (ciblage exact poste/entreprise), navigation retour shell, offline, entités, profil | Smokes listés dans `smoke-run-mobile-fast.js` |
 | A4 | **Hub admin mobile** | ~~Switch TEST_ADMIN → hub → restore TEST_USER~~ **OK 02/07** ; **suite** : actions détail utilisateur (désactivation, rôle, reset, impersonation) | `smoke-mobile-admin-hub-adb.js` + test manuel hub → Utilisateurs → détail |
