@@ -135,6 +135,7 @@ Index scripts : `scripts/mobile/README.md`.
 | C15 | OTA Samsung build 4→5 canal dev | `pubspec` **1.0.0+5** ; build + `POST publish-built` dev ; téléphone **1.0.0+4** → dialog **Mise à jour disponible** ; download ~179 Mo + installateur Samsung **Application installée** ; pas de re-dialogue OTA après MAJ ; login USER **OK** | [x] **06/07** |
 | C16 | Drawer — version réelle | `AppDrawer` lit `AppVersionInfo.get()` → **Version 1.0.0+5** (plus de hardcodé `1.0.0`) ; `exitImpersonation` persiste session admin | [x] **06/07** |
 | C17 | Versionnement documenté | `docs/mobile/VERSIONNEMENT.md` (semver vs build) ; drawer **Version 1.0.0** + **Build 5** ; backoffice panneau explicatif ; dialog OTA labels lisibles | [x] **06/07** |
+| C18 | Rebuild + prod OTA build 5 | Rebuild drawer ; `install-run` Samsung **OK** ; promote dev→**production** build 5 APK **~158 Mo** (remplace smoke 17 o) ; smoke `smoke-mobile-impersonation-adb.js` ajouté (à stabiliser liste users) | [x] **06/07** |
 
 ### Porteur — reset données validation mobile (02/07)
 
