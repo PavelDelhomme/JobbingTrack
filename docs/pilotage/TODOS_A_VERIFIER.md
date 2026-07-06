@@ -98,6 +98,14 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | **APK debug étape 2 (02/07)** | `build-apk-debug.sh` + reinstall Samsung ; batterie `smoke-run-mobile-fast.js` **12/16 OK** — étape 2 navigation+FAB OK ; admin-hub isolé **OK** (restore USER via drawer + debug) | [x] |
 
 ```bash
+# Stack locale (prérequis smokes ADB)
+docker compose up -d
+
+# BL-26-05 / BL-26-06 — smokes ciblés (Samsung USB)
+node scripts/mobile/smoke/run/smoke-preflight.js
+node scripts/mobile/smoke/adb/smoke-mobile-profile-save-adb.js
+node scripts/mobile/smoke/adb/smoke-mobile-notification-nav-adb.js
+
 node scripts/mobile/setup/diagnose-mobile-api-connection.js
 node scripts/mobile/setup/ensure-device-api-ready.js
 node scripts/ops/smoke-mobile-crash-pipeline.js
@@ -555,7 +563,8 @@ Index scripts : `scripts/mobile/README.md`.
 | Docs | Conventions Git branches/commits | **26/06** : `docs/development/BRANCHES.md` aligné Conventional Branch (`feature/`, `bugfix/`, `hotfix/`, `release/`, `perf/`, `ci/`, etc.) + branches `main`/`dev`. | [x] |
 | Phase A | Mobile — APK debug Samsung + smokes étape 2 | **26/06** : `build-apk-debug.sh` OK ; install Samsung R5CT7263YJL OK ; `smoke-login-debug-test-accounts-adb.js` **OK** ; `smoke-mobile-navigation-adb.js` **OK** ; `smoke-full-journey-api.js` **19/19** ; seed `--seed-only` OK (37 candidatures). **KO** : `smoke-mobile-application-detail-fab-adb.js` timeout liste SmokeADB (candidature smoke absente après nettoyage — smoke à recibler Capgemini ou `ensureSmokeApplication` refresh). **Reste porteur** : parcours visuel seed (Orange relance→appel, FAB accueil contact). | [ ] |
 | Phase A | Mobile — smokes : garde-fous runtime (appels) | **07/07** : `smoke-runtime.js` — refus appels **uniquement** si `argv` = script sous `scripts/mobile/smoke/` ; hors smokes = désactivé, **pas de .env**. | [x] |
-| Phase A | Mobile — BL-26-05 smoke profil (a11y) | **07/07** branche **`feat/mobile-bl26-05-profile-save-smoke`** : Semantics Prénom/Nom/Téléphone ; build **+8** installé Samsung. Smoke `profile-save-adb` : **KO env** `Connexion echouee (Bonjour introuvable)` — stack locale down (`curl :3000/:8080` → 000). Re-test avec `docker compose up` + smoke. | [ ] |
+| Phase A | Mobile — BL-26-05 smoke profil (a11y) | **07/07** mergé `dev` `ece8f197` : Semantics + build **+8**. Smoke : **à re-tester** (stack Docker arrêtée hier soir). | [ ] |
+| Phase A | Mobile — BL-26-06 smoke notifications (Menu ⋮) | **07/07** branche **`feat/mobile-bl26-06-notification-nav`** : `openNotificationSheet` — cloche directe ou **Menu → Notifications** (accueil `ShellAppBarMenu`). Scripts : `notification-nav-adb`, `interim-home-adb`. | [ ] |
 | Phase A | Backoffice — Mobile releases OTA + section nav MOBILE | **06/07** : correctifs contrôleur Docker — **git** + **OpenJDK 17** + montage SDK Android (`~/Android/Sdk` → `/opt/android-sdk`) + **USB** (`/dev/bus/usb`, `privileged`) pour ADB physique ; endpoint `/adb-diagnostics` ; session build `.build-session.json` ; UI panel — appareils en attente (unauthorized), date dernier build, erreurs build visibles. **06/07** vérif : `git` + `sdk_ok` conteneur ; health `gitAvailable` + `androidSdkPresent` **true**. **Reste porteur** : Samsung USB branché → appareil visible étape 2 + build + OTA → `OK Mobile releases OTA backoffice`. | [ ] |
 | Phase A | Backoffice — titres onglet fil d'Ariane | **17/06** : `DocumentTitleManager` MutationObserver. **Smoke Playwright** : `backoffice-document-titles-smoke.spec.ts` **5/5 OK** (`PLAYWRIGHT_BASE_URL=http://localhost:5003`). **Reste porteur** : `OK Titres onglet backoffice`. | [ ] |
 | Phase A | Mobile — BL-26-25 AppBar (cloche + actions contextuelles) | **02/07** : notifications déplacées dans menu ⋮ (`ShellAppBarMenu`) ; `ShellAppBarActions` — calendrier titre **Calendrier** + sous-titre Planning/Liste + bouton filtres ; candidatures bouton **Actualiser** ; profil conserve **Modifier** + menu. **Reste porteur** : rebuild APK — cloche absente AppBar shell, notifications via ⋮ ; calendrier bouton tune ouvre drawer. | [ ] |

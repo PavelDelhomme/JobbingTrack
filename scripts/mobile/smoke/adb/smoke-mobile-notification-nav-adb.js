@@ -4,49 +4,21 @@
  *   node scripts/mobile/smoke/adb/smoke-mobile-notification-nav-adb.js
  */
 const adbLib = require('../../../../tools/adb-lib');
-const { ensureUserShell } = require('../../lib/adb-smoke-helpers');
+require('../../lib/smoke-runtime');
+const {
+  ensureUserShell,
+  boundsCenter,
+  openNotificationSheet,
+  isNotificationSheetOpen,
+} = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');
 
 loadRootEnv();
 
-function boundsCenter(bounds) {
-  const m = bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
-  if (!m) return null;
-  return {
-    cx: Math.round((+m[1] + +m[3]) / 2),
-    cy: Math.round((+m[2] + +m[4]) / 2),
-  };
-}
-
 async function ensureLoggedIn(phone, email, password) {
   await ensureUserShell(phone, email, password);
   await phone.assertVisible('Bonjour');
-}
-
-async function tapNotificationBell(phone) {
-  const nodes = await phone.uiNodes();
-  const menu = nodes.find((n) => n.contentDesc === 'Menu');
-  if (menu) {
-    const menuLeft = +menu.bounds.match(/\[(\d+),/)[1];
-    const bell = nodes.find((n) => {
-      if (!n.clickable) return false;
-      const desc = n.contentDesc || '';
-      if (desc === 'Menu' || desc === 'Open navigation menu') return false;
-      const m = n.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
-      if (!m) return false;
-      const y1 = +m[2];
-      const y2 = +m[4];
-      const x2 = +m[3];
-      return x2 <= menuLeft + 5 && y1 > 250 && y2 < 500;
-    });
-    if (bell) {
-      const c = boundsCenter(bell.bounds);
-      await phone.tapXY(c.cx, c.cy);
-      if (await phone.waitFor('Notifications', 8000, 1000)) return;
-    }
-  }
-  throw new Error('Icône notifications introuvable');
 }
 
 async function tapFirstNotificationTile(phone) {
@@ -92,11 +64,8 @@ async function tapFirstNotificationTile(phone) {
   await adbLib.flows.goToTab(phone, 1, { shell: true });
   await phone.wait(1500);
 
-  if (await phone.uiContains('Aucune notification candidature')) {
-    await tapNotificationBell(phone);
-  }
-  await tapNotificationBell(phone);
-  if (!(await phone.waitFor('Notifications', 8000, 500))) {
+  await openNotificationSheet(phone);
+  if (!(await isNotificationSheetOpen(phone))) {
     throw new Error('Sheet notifications non ouverte');
   }
   await phone.wait(800);

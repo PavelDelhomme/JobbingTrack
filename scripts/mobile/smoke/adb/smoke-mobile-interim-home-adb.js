@@ -7,6 +7,8 @@
  */
 
 const adbLib = require('../../../../tools/adb-lib');
+require('../../lib/smoke-runtime');
+const { openNotificationSheet } = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');
 
@@ -56,32 +58,7 @@ async function openDrawerItemWithScroll(phone, label) {
 }
 
 async function tapNotificationBell(phone) {
-  const nodes = await phone.uiNodes();
-  const menu = nodes.find((n) => n.contentDesc === 'Menu');
-  if (menu) {
-    const menuLeft = +menu.bounds.match(/\[(\d+),/)[1];
-    const bell = nodes.find((n) => {
-      if (!n.clickable) return false;
-      const desc = n.contentDesc || '';
-      if (desc === 'Menu' || desc === 'Open navigation menu') return false;
-      const m = n.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
-      if (!m) return false;
-      const y1 = +m[2];
-      const y2 = +m[4];
-      const x2 = +m[3];
-      return x2 <= menuLeft + 5 && y1 > 250 && y2 < 500;
-    });
-    if (bell) {
-      const m = bell.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
-      await phone.tapXY(Math.floor((+m[1] + +m[3]) / 2), Math.floor((+m[2] + +m[4]) / 2));
-      if (await phone.waitFor('Notifications', 8000, 1000)) return;
-    }
-  }
-  if (await phone.uiContains('Notifications')) {
-    await phone.tap('Notifications');
-    if (await phone.waitFor('Notifications', 8000, 1000)) return;
-  }
-  throw new Error('Icône notifications introuvable');
+  return openNotificationSheet(phone);
 }
 
 async function enableInterimMode(phone, email, password) {
