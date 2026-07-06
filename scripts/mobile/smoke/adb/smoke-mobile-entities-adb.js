@@ -31,9 +31,10 @@ async function ensureLoggedIn(phone, email, password) {
 
 async function openDrawerItemWithScroll(phone, label) {
   await openAppDrawer(phone);
-  if (!(await phone.uiContains(label))) {
+  for (let i = 0; i < 10; i++) {
+    if (await phone.uiContains(label)) break;
     await phone.drawerScrollDown();
-    await phone.wait(700);
+    await phone.wait(500);
   }
   await phone.tapReliable(label);
   await phone.wait(2500);
@@ -55,16 +56,28 @@ async function createContactFromApplicationDetail(phone, target, contactName) {
   await phone.tap('Contact');
   await phone.wait(2000);
   try {
-    await phone.tap('Créer un nouveau contact');
+    await phone.tapReliable('Créer un nouveau contact');
   } catch {
-    await phone.tap('nouveau contact');
+    try {
+      await phone.tap('nouveau contact');
+    } catch {
+      await phone.scrollDown(600);
+      await phone.wait(500);
+      await phone.tapReliable('Créer un nouveau contact');
+    }
   }
   await phone.wait(2000);
   if (!(await phone.uiContains('Nouveau contact'))) {
     throw new Error('Dialogue création contact (depuis candidature) introuvable');
   }
-  await typeInLabeledField(phone, 'Prénom', contactName, { editIndex: 0 });
-  await typeInLabeledField(phone, 'Nom', 'ADB', { editIndex: 1 });
+  await typeInLabeledField(phone, 'Prénom', contactName, {
+    hints: ['Prénom', 'Prénom *'],
+    editIndex: 0,
+  });
+  await typeInLabeledField(phone, 'Nom', 'ADB', {
+    hints: ['Nom', 'Nom *'],
+    editIndex: 1,
+  });
   await phone.wait(500);
   try {
     await phone.tap('Créer');
