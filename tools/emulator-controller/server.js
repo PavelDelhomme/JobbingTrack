@@ -6,7 +6,7 @@
  */
 
 const http = require('http');
-const { exec, spawn } = require('child_process');
+const { exec, spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -22,6 +22,18 @@ if (!ANDROID_HOME && process.env.HOME) {
   if (fs.existsSync(p)) ANDROID_HOME = p;
 }
 const ANDROID_PACKAGE = process.env.ANDROID_PACKAGE || 'com.example.jobbingtrack_mobile';
+
+/** Volume Flutter/repo hôte : git refuse le build sans safe.directory (dubious ownership). */
+function ensureGitSafeDirectories() {
+  const dirs = ['/opt/flutter', '/workspace', REPO_ROOT, MOBILE_PATH];
+  for (const dir of dirs) {
+    if (!dir || !fs.existsSync(dir)) continue;
+    try {
+      execSync(`git config --global --add safe.directory ${JSON.stringify(dir)}`, { stdio: 'ignore' });
+    } catch { /* déjà enregistré */ }
+  }
+}
+ensureGitSafeDirectories();
 
 function pickLanIPv4() {
   const os = require('os');
@@ -523,6 +535,7 @@ const routes = {
 
   async '/build-apk'(req, res) {
     try {
+      ensureGitSafeDirectories();
       if (!fs.existsSync(path.join(MOBILE_PATH, 'pubspec.yaml'))) {
         return send(res, 400, { success: false, error: `Projet Flutter introuvable: ${MOBILE_PATH}` });
       }

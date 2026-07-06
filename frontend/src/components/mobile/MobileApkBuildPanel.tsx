@@ -246,12 +246,13 @@ export function MobileApkBuildPanel({
           <div className="mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100">
             <p className="font-semibold">Erreur du dernier build</p>
             <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap text-xs">{lastBuildError}</pre>
-            {lastBuildError.includes("git") ? (
+            {lastBuildError.includes("git") || lastBuildError.includes("safe.directory") ? (
               <p className="mt-2 text-xs">
-                Cause fréquente : outils manquants dans le conteneur contrôleur — relancez{" "}
+                Cause : dépôt Flutter monté depuis l’hôte (ownership git). Rebuild le contrôleur :{" "}
                 <code className="rounded bg-red-100 px-1 dark:bg-red-900">
                   docker compose build emulator-controller &amp;&amp; docker compose up -d emulator-controller
                 </code>
+                {" "}puis relancez le build.
               </p>
             ) : null}
           </div>

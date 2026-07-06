@@ -122,7 +122,7 @@ services:
     privileged: true
     volumes:
       - .:/workspace
-      - ${HOME}/flutter-sdk:/opt/flutter:ro
+      - ${HOME}/flutter-sdk:/opt/flutter
       # SDK Android hôte (chemin canonique ; ignore ANDROID_HOME hôte si erroné ex. /opt/android-sdk)
       - ${HOME}/Android/Sdk:/opt/android-sdk:ro
       # Accès USB pour adb devices (téléphone physique)

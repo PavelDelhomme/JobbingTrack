@@ -9,7 +9,11 @@ RUN apt-get update \
     curl \
     git \
     openjdk-17-jdk-headless \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* \
+  # SDK Flutter monté depuis l'hôte (volume ro) : évite « dubious ownership » au build
+  && git config --global --add safe.directory /opt/flutter \
+  && git config --global --add safe.directory /workspace \
+  && git config --global --add safe.directory '*'
 
 ENV MOBILE_PROJECT_PATH=/workspace/mobile
 ENV EMULATOR_CONTROLLER_HOST=0.0.0.0
