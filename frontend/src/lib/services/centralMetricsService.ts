@@ -128,6 +128,35 @@ class CentralMetricsService {
     this.cacheTimestamp = 0;
   }
 
+  /** Retry court sur erreurs réseau transitoires (ex. ERR_NETWORK_CHANGED en dev/HMR). */
+  private async fetchWithTransientRetry(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+    retries = 1,
+  ): Promise<Response> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        return await fetch(input, init);
+      } catch (error) {
+        lastError = error;
+        const message = String((error as Error)?.message ?? error).toLowerCase();
+        const transient =
+          message.includes("failed to fetch") ||
+          message.includes("network") ||
+          message.includes("load failed") ||
+          (error as Error)?.name === "TypeError";
+        if (!transient || attempt >= retries) {
+          throw error;
+        }
+        await new Promise((resolve) =>
+          setTimeout(resolve, 350 * (attempt + 1)),
+        );
+      }
+    }
+    throw lastError;
+  }
+
   // Méthode pour éviter les requêtes simultanées identiques
   private async getWithCache<T>(
     key: string,
@@ -578,7 +607,7 @@ class CentralMetricsService {
 
     try {
       // Liste des services : metrics-aggregator (docker/services/all ou /api/v1/metrics)
-      const dockerRes = await fetch(
+      const dockerRes = await this.fetchWithTransientRetry(
         `${buildMetricsAggregatorUrl("docker/services/all")}?light=1`,
         {
           headers: {
@@ -599,13 +628,16 @@ class CentralMetricsService {
           return list;
         }
       }
-      const metricsRes = await fetch(buildMetricsAggregatorUrl("metrics"), {
-        headers: {
-          Accept: "application/json",
-          ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      const metricsRes = await this.fetchWithTransientRetry(
+        buildMetricsAggregatorUrl("metrics"),
+        {
+          headers: {
+            Accept: "application/json",
+            ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+          },
+          signal: AbortSignal.timeout(15000),
         },
-        signal: AbortSignal.timeout(15000),
-      });
+      );
       if (metricsRes.ok) {
         const data = await metricsRes.json();
         const fromMetrics =
@@ -622,13 +654,23 @@ class CentralMetricsService {
           return fromMetrics;
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = String((error as Error)?.message ?? error).toLowerCase();
       if (
-        error.name === "TimeoutError" &&
-        process.env.NODE_ENV === "development"
+        (error as Error)?.name === "TimeoutError" ||
+        message.includes("timeout")
+      ) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "[SERVICES] Timeout récupération services (metrics-aggregator)",
+          );
+        }
+      } else if (
+        process.env.NODE_ENV === "development" &&
+        (message.includes("network") || message.includes("failed to fetch"))
       ) {
         console.warn(
-          "[SERVICES] Timeout récupération services (metrics-aggregator)",
+          "[SERVICES] Erreur réseau transitoire (metrics/services) — fallback cache ou gateway",
         );
       }
     }
@@ -636,13 +678,16 @@ class CentralMetricsService {
     // Fallback API Gateway : éviter si l’agrégateur est en backoff (réduit les timeouts en rafale)
     if (now >= this.aggregatorUnavailableUntil) {
       try {
-        const response = await fetch(`${this.apiUrl}/api/v1/services`, {
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${this.token}`,
+        const response = await this.fetchWithTransientRetry(
+          `${this.apiUrl}/api/v1/services`,
+          {
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${this.token}`,
+            },
+            signal: AbortSignal.timeout(12000),
           },
-          signal: AbortSignal.timeout(12000),
-        });
+        );
 
         if (response.ok) {
           const data = await response.json();
