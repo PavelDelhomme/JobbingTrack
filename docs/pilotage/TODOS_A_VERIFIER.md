@@ -47,8 +47,8 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 |----|-------|--------------------------|--------|
 | BL-26-01 | Playwright MailHog | ✅ **07/07** : `run-playwright-mailhog-e2e.sh` — **3/3 passed** (auth-service → mailhog:1025 temporaire + TEST_ADMIN depuis `.env`) | [x] |
 | Mobile | Releases OTA — auteur historique | **07/07** : routes admin utilisent `authenticateAdmin` (JWT email réel) ; migration `user@jobbingtrack.test` → `ADMIN_EMAIL` dans `mobileReleaseStore` au chargement. Redémarrer api-gateway puis Actualiser l’historique. | [x] |
-| BL-26-02 | IMAP OVH candidatures | **AUTHENTICATIONFAILED** malgré changement MDP — `fetch-imap-verification.js --check-only` | [ ] après étape 2 |
-| BL-26-03 | Récap agent HTML | Markdown dans `<pre>` illisible — template HTML coloré normalisé | [ ] après étape 2 |
+| BL-26-02 | IMAP OVH candidatures | ✅ **07/07** : `node scripts/mobile/fetch-imap-verification.js --check-only --ovh-only` **OK** (`imap.mail.ovh.net:993`, AUTH PLAIN) ; import corrigé `smoke-email-agent-imap-sync.cjs` ; fallback `EMAIL_TRIAGE_READ_*` dans `mail-connection-policy.js`. Sync API smoke : **403** `job_search_agent_disabled` (hors auth IMAP — activer agent sur compte test). | [x] |
+| BL-26-03 | Récap agent HTML | ✅ **07/07** : `buildAgentRecapHtml()` + `scripts/ops/templates/agent-recap-email.html` ; `send-agent-recap-email.cjs --recap-json` ; Jest **3/3** ; envoi test `pauldelhomme.pro@gmail.com` **HTTP 202** | [x] |
 | BL-26-04 | smoke `entities-adb` | a11y **Prénom** / **Rechercher** introuvables (dialogue contact) | [ ] après étape 2 |
 | BL-26-05 | smoke `profile-save-adb` | Écran **Modifier** profil non détecté | [ ] après étape 2 |
 | BL-26-06 | smoke `notification-nav-adb` | Tap cloche fallback coords — centre notif non ouvert | [ ] après étape 2 |

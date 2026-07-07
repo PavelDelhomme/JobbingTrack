@@ -7,7 +7,7 @@
 
 const path = require('node:path');
 const { loadRootEnv, requestJson } = require('./load-root-env.cjs');
-const { resolveEmailTriageEnv } = require('../mobile/resolve-email-triage-env');
+const { resolveEmailTriageEnv } = require('../mobile/lib/resolve-email-triage-env');
 const {
   testImapConnection,
 } = require('../../backend/auth-service/src/services/imapMinimalClient');

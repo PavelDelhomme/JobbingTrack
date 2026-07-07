@@ -66,10 +66,16 @@ function evaluateImapConnection(env = process.env) {
     };
   }
 
-  const email = env.TEST_EMAIL_TRIAGE_IMAP_EMAIL;
-  const host = env.TEST_EMAIL_TRIAGE_IMAP_HOST;
-  const port = env.TEST_EMAIL_TRIAGE_IMAP_PORT;
-  const password = env.TEST_EMAIL_TRIAGE_IMAP_PASSWORD;
+  const email = env.TEST_EMAIL_TRIAGE_IMAP_EMAIL || env.EMAIL_TRIAGE_READ_ACCOUNT;
+  const host =
+    env.TEST_EMAIL_TRIAGE_IMAP_HOST ||
+    env.TEST_REAL_EMAIL_IMAP_HOST ||
+    'imap.mail.ovh.net';
+  const port = env.TEST_EMAIL_TRIAGE_IMAP_PORT || env.TEST_REAL_EMAIL_IMAP_PORT || '993';
+  const password =
+    env.TEST_EMAIL_TRIAGE_IMAP_PASSWORD ||
+    env.EMAIL_TRIAGE_READ_PASSWORD ||
+    env.TEST_REAL_EMAIL_IMAP_PASSWORD;
   const missing = [];
 
   if (!isPresent(email) || isPlaceholderCredential(email)) {
