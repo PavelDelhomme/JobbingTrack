@@ -12,6 +12,8 @@ Ensemble des tâches techniques organisées par priorité. `docs/STATUS.md` cont
 
 **Vue d’ensemble backoffice — carte Sessions actives (22/06/2026, gate préprod)** : retour porteur — KPI **2** sur la carte vs **~100** après clic ; sous-titre **« 10 utilisateurs »** incohérent ; destination **`/users?status=active`** mélange **sessions 30 min** (auth) et **comptes activés** (dont E2E). À traiter **avant prod** avec exclusion/filtre comptes test et alignement sémantique titre/lien. Détail : **`docs/pilotage/TODOS.md`** § Sessions actives.
 
+**Services & Logs backoffice (07/07/2026, gate préprod/prod — BL-26-27)** : retour porteur — Administration → Gestion des services → **Services & Logs** : **pas de logs** affichés. Lot **A2 partiel** ; pipeline Docker logs côté metrics-aggregator **désactivé** depuis budget perf 07/05 ; UI existante mais non validée bout-en-bout. **Obligatoire avant prod** — ne pas traiter pendant mobile étape 2. Détail : **`docs/pilotage/TODOS.md`** **BL-26-27**, **`docs/production/A_VALIDER_AVANT_PRODUCTION.md`**.
+
 **Backoffice admin utilisateurs — actions SUPER_ADMIN (22/06/2026)** : fiche **`/backoffice/users/[id]`** — renvoi email vérif (`Network Error` / `ERR_NETWORK_CHANGED` côté navigateur malgré `POST` gateway ; API directe **200** ~873 ms) ; reset MDP UI sur mauvaise route (`forgot-password` vs `users/:id/send-password-reset`) ; suppression = delete User seul sans cascade ni rétention analytics pour IA. Gate préprod + tâches **`TODOS.md`**.
 
 **Abonnement & facturation (22/06/2026)** : page **`/backoffice/billing`** (shell UI seulement) — définir modèle économique (prix tenables, inflation, frais paiement/hébergement), APIs, lien user↔plan, conformité facturation. Post-mobile / lot H. Voir **`STATUS.md`** § billing.

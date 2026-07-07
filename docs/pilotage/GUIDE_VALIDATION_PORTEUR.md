@@ -30,12 +30,22 @@ Dernière mise à jour : 17 juin 2026
 ```
 Étape 1  Inscription + email          ✅ OK (25/06)
 Étape 2  Navigation + FAB mobile      ▶ EN COURS — retours partiels (pas OK global)
+         └─ Parcours OTA (backoffice) ▶ EN COURS — build OK, reste publish dev + test Samsung
 Étape 3  SMTP @jobbingtrack.com       ⏸ bloquée par étape 2
 Étape 4  Agent email backoffice       ⏸ bloquée par étape 3
 Étape 5  Consentements RGPD /agent    ⏸ bloquée par étape 4
 ```
 
-**Détail officiel** : [`TODOS_A_VALIDER.md` § Étape 2](TODOS_A_VALIDER.md#étape-2--ligne-320--navigation-retour-admin-relances-ajouts-candidature)
+### Deux files en parallèle (étape 2)
+
+| File | Où | Statut typique | Pour clôturer |
+|------|-----|----------------|---------------|
+| **A — Mobile Samsung** | App Flutter | Navigation OK 17/06 ; FAB 6–11 + impersonnalisation à revalider | Rebuild APK **1.0.0+12** → checklist points 1–11 → `OK Mobile — navigation…` ligne 320 |
+| **B — Releases OTA** | `/backoffice/mobile/releases` | Build + install OK 06–07/07 ; publish dev + OTA Samsung reste | Étapes 1–2 build/install → **3 Publish dev** → **4 MAJ OTA Samsung** → `OK Mobile releases OTA backoffice` ligne 416 |
+
+**Warning Kotlin au build** : APK produit quand même — dette **BL-26-09** (`docs/mobile/ANDROID_TOOLCHAIN.md`), **pas bloquant** pour étape 2 ni OTA.
+
+**Détail officiel mobile** : [`TODOS_A_VALIDER.md` § Étape 2](TODOS_A_VALIDER.md#étape-2--ligne-320--navigation-retour-admin-relances-ajouts-candidature)
 
 ---
 

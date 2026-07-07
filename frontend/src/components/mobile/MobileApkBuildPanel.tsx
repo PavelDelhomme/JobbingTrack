@@ -6,6 +6,7 @@ import {
   buildApkFromBackoffice,
   fetchApkInfo,
   fetchAdbDevices,
+  fetchBuildHistory,
   fetchBuildSession,
   fetchEmulatorHealth,
   installApkOnDevice,
@@ -14,8 +15,15 @@ import {
   type AdbDevice,
   type AdbDiagnostics,
   type ApkInfo,
+  type BuildHistoryEntry,
   type BuildSession,
 } from "@/lib/mobile/emulatorControllerClient";
+import {
+  BUILD_LOG_LEVEL_CLASS,
+  classifyBuildLogLine,
+  splitBuildOutput,
+  type BuildLogLevel,
+} from "@/lib/mobile/buildLogUtils";
 
 type MobileApkBuildPanelProps = {
   onBuilt?: (info: { version: string; buildNumber: string }) => void;
@@ -23,7 +31,7 @@ type MobileApkBuildPanelProps = {
   publishing?: boolean;
 };
 
-type LogLine = { ts: string; msg: string };
+type LogLine = { ts: string; msg: string; level: BuildLogLevel };
 
 const INSTALL_OK_KEY = "jt-mobile-releases-install-ok";
 
@@ -75,6 +83,11 @@ function formatActivityLog(lines: LogLine[]): string {
   return lines.map((line) => `[${line.ts}] ${line.msg}`).join("\n");
 }
 
+function historyLabel(entry: BuildHistoryEntry): string {
+  const ver = entry.version ? `v${entry.version}+${entry.buildNumber ?? "?"}` : "version ?";
+  return `${ver} — ${entry.success ? "OK" : "KO"} — ${formatWhen(entry.finishedAt)}`;
+}
+
 function StepPill({
   n,
   label,
@@ -117,7 +130,10 @@ export function MobileApkBuildPanel({
   const [installing, setInstalling] = useState(false);
   const [installPhase, setInstallPhase] = useState<string | null>(null);
   const [activityLog, setActivityLog] = useState<LogLine[]>([]);
+  const [buildHistory, setBuildHistory] = useState<BuildHistoryEntry[]>([]);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [lastBuildError, setLastBuildError] = useState<string | null>(null);
+  const [lastBuildWarnings, setLastBuildWarnings] = useState<string[]>([]);
   const [copyHint, setCopyHint] = useState<string | null>(null);
   const [installDone, setInstallDone] = useState(false);
   const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
@@ -130,8 +146,23 @@ export function MobileApkBuildPanel({
     } catch { /* ignore */ }
   }, []);
 
-  const pushLog = useCallback((msg: string) => {
-    setActivityLog((prev) => [...prev.slice(-30), { ts: nowLabel(), msg }]);
+  const pushLog = useCallback((msg: string, level: BuildLogLevel = "info") => {
+    setActivityLog((prev) => [...prev.slice(-120), { ts: nowLabel(), msg, level }]);
+  }, []);
+
+  const pushOutputLines = useCallback(
+    (raw: string | undefined | null, defaultLevel: BuildLogLevel = "info") => {
+      for (const line of splitBuildOutput(raw)) {
+        pushLog(line, classifyBuildLogLine(line) === "info" ? defaultLevel : classifyBuildLogLine(line));
+      }
+    },
+    [pushLog],
+  );
+
+  const loadBuildHistory = useCallback(async () => {
+    const history = await fetchBuildHistory();
+    setBuildHistory(history);
+    return history;
   }, []);
 
   const clearLog = useCallback(() => setActivityLog([]), []);
@@ -161,13 +192,41 @@ export function MobileApkBuildPanel({
         if (!sessionData.session.success && sessionData.session.stderrTail) {
           setLastBuildError(sessionData.session.stderrTail);
         }
+        if (sessionData.session.warnings?.length) {
+          setLastBuildWarnings(sessionData.session.warnings);
+        }
       }
       if (health?.lastBuildSession && typeof health.lastBuildSession === "object") {
         setBuildSession(health.lastBuildSession as BuildSession);
       }
+      if (opts?.full) {
+        if (Array.isArray(sessionData?.history)) {
+          setBuildHistory(sessionData.history);
+        } else {
+          await loadBuildHistory();
+        }
+      }
       setLastRefreshAt(nowLabel());
     },
-    [],
+    [loadBuildHistory],
+  );
+
+  const seedJournalFromHistory = useCallback(
+    (history: BuildHistoryEntry[]) => {
+      if (history.length === 0) return;
+      const latest = history[0];
+      pushLog(
+        `Dernier build enregistré : ${historyLabel(latest)}`,
+        latest.success ? "success" : "error",
+      );
+      if (latest.warningCount && latest.warningCount > 0) {
+        pushLog(
+          `${latest.warningCount} avertissement(s) Flutter/Kotlin — build OK, voir historique ou doc BL-26-09`,
+          "warning",
+        );
+      }
+    },
+    [pushLog],
   );
 
   const runBootstrap = useCallback(async () => {
@@ -188,8 +247,10 @@ export function MobileApkBuildPanel({
       pushLog(result.error || "Préparation incomplète.");
     }
     await refreshStatus({ full: true });
+    const history = await loadBuildHistory();
+    seedJournalFromHistory(history);
     setBootstrapping(false);
-  }, [clearLog, pushLog, refreshStatus]);
+  }, [clearLog, pushLog, refreshStatus, loadBuildHistory, seedJournalFromHistory]);
 
   useEffect(() => {
     if (bootstrapOnceRef.current) return;
@@ -244,16 +305,28 @@ export function MobileApkBuildPanel({
     setBuilding(true);
     setBuildSeconds(0);
     setLastBuildError(null);
+    setLastBuildWarnings([]);
     pushLog("Étape 1 — compilation Flutter/Gradle (1–3 min)…");
     buildAbortRef.current = new AbortController();
     try {
       const { ok, data } = await buildApkFromBackoffice(buildAbortRef.current.signal);
-      pushLog(data.message || (ok ? "Build réussi." : data.error || "Build échoué."));
+      pushLog(data.message || (ok ? "Build réussi." : data.error || "Build échoué."), ok ? "success" : "error");
       const stderrFull = data.stderr || buildSession?.stderrTail || "";
-      if (stderrFull) pushLog(stderrFull);
+      const stdoutFull = data.stdout || "";
+      if (stdoutFull) pushOutputLines(stdoutFull);
+      if (stderrFull) pushOutputLines(stderrFull);
+      const warnings = data.warnings || [];
+      if (warnings.length > 0) {
+        setLastBuildWarnings(warnings);
+        pushLog(
+          `${warnings.length} avertissement(s) — non bloquant (dette Kotlin BL-26-09, voir docs/mobile/ANDROID_TOOLCHAIN.md)`,
+          "warning",
+        );
+      }
       if (ok) {
         setLastBuildError(null);
         await refreshStatus({ full: true });
+        await loadBuildHistory();
         onBuilt?.({
           version: data.version || apkInfo?.version || "1.0.0",
           buildNumber: String(data.buildNumber || apkInfo?.buildNumber || "1"),
@@ -264,7 +337,7 @@ export function MobileApkBuildPanel({
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      pushLog(`Erreur : ${msg}`);
+      pushLog(`Erreur : ${msg}`, "error");
       setLastBuildError(msg);
     } finally {
       setBuilding(false);
@@ -305,8 +378,26 @@ export function MobileApkBuildPanel({
     }
   };
 
+
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 px-4 py-3 text-sm text-indigo-950 dark:border-indigo-900 dark:bg-indigo-950/30 dark:text-indigo-100">
+        <p className="font-semibold">Porteur — où en suis-je ?</p>
+        <ul className="mt-2 list-inside list-disc space-y-1 text-xs leading-relaxed">
+          <li>
+            <strong>Étape 2 mobile</strong> (navigation + FAB points 1–11) : checklist{" "}
+            <code className="text-[11px]">GUIDE_VALIDATION_PORTEUR.md</code> — pas d&apos;OK global tant que points 6–11 + impersonnalisation non revalidés.
+          </li>
+          <li>
+            <strong>OTA backoffice</strong> (cette page) : 1 Build → 2 Install Samsung → 3 Publish dev → 4 MAJ OTA → 5 Promote prod.
+          </li>
+          <li>
+            Warning <strong>Kotlin / Built-in Kotlin</strong> après build réussi = normal — dette{" "}
+            <strong>BL-26-09</strong>, pas bloquant pour continuer l&apos;OTA.
+          </li>
+        </ul>
+      </div>
+
       <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
         <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
           Parcours (dans l’ordre) — actualisé {lastRefreshAt ?? "…"}
@@ -352,6 +443,34 @@ export function MobileApkBuildPanel({
             Compilation en cours… {buildSeconds}s
             {buildSession?.inProgress ? ` — ${buildSession.message || ""}` : ""}
           </p>
+        ) : null}
+
+        {lastBuildWarnings.length > 0 ? (
+          <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-semibold">
+                Avertissements build ({lastBuildWarnings.length}) — APK produit quand même
+              </p>
+              <button
+                type="button"
+                onClick={() => void handleCopy(lastBuildWarnings.join("\n\n"), "Avertissements")}
+                className="rounded-md border border-amber-400 bg-white px-2 py-1 text-xs font-medium hover:bg-amber-100 dark:border-amber-600 dark:bg-amber-950"
+              >
+                Copier
+              </button>
+            </div>
+            <p className="mt-1 text-xs">
+              Built-in Kotlin Flutter — voir{" "}
+              <code className="text-[11px]">docs/mobile/ANDROID_TOOLCHAIN.md</code> (BL-26-09). À traiter avant Flutter majeur, pas avant fin étape 2.
+            </p>
+            <ul className="mt-2 max-h-40 overflow-auto font-mono text-[12px] leading-relaxed">
+              {lastBuildWarnings.map((w, i) => (
+                <li key={i} className="border-t border-amber-200/60 py-1 first:border-0 dark:border-amber-800/60">
+                  {w}
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : null}
 
         {lastBuildError ? (
@@ -524,13 +643,97 @@ export function MobileApkBuildPanel({
         {activityLog.length === 0 ? (
           <p className="px-3 py-4 text-sm text-gray-400">Les actions en cours s’affichent ici en temps réel.</p>
         ) : (
-          <ul className="max-h-56 overflow-auto px-3 py-2 font-mono text-[13px] leading-relaxed text-gray-800 dark:text-gray-200">
+          <ul className="max-h-72 overflow-auto px-3 py-2 font-mono text-[13px] leading-relaxed">
             {activityLog.map((line, i) => (
-              <li key={`${line.ts}-${i}`} className="break-words py-0.5">
+              <li key={`${line.ts}-${i}`} className={`break-words py-0.5 ${BUILD_LOG_LEVEL_CLASS[line.level]}`}>
                 <span className="text-gray-400">[{line.ts}]</span> {line.msg}
               </li>
             ))}
           </ul>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-3 py-2 dark:border-gray-700">
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            Historique des builds ({buildHistory.length})
+          </span>
+          <button
+            type="button"
+            onClick={() => void loadBuildHistory()}
+            className="text-xs text-blue-600 hover:underline"
+          >
+            Actualiser
+          </button>
+        </div>
+        {buildHistory.length === 0 ? (
+          <p className="px-3 py-4 text-sm text-gray-400">
+            Aucun build enregistré — lancez un build ; les 30 derniers sont conservés côté contrôleur.
+          </p>
+        ) : (
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            {buildHistory.map((entry) => {
+              const expanded = selectedHistoryId === entry.id;
+              const detailText = [entry.stderrTail, entry.stdoutTail].filter(Boolean).join("\n\n");
+              return (
+                <div key={entry.id} className="px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedHistoryId(expanded ? null : entry.id)}
+                    className="flex w-full flex-wrap items-center gap-2 text-left text-sm"
+                  >
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        entry.success
+                          ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100"
+                          : "bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-100"
+                      }`}
+                    >
+                      {entry.success ? "OK" : "KO"}
+                    </span>
+                    <span className="font-medium">
+                      v{entry.version ?? "?"} +{entry.buildNumber ?? "?"}
+                    </span>
+                    <span className="text-xs text-gray-500">{formatWhen(entry.finishedAt)}</span>
+                    {entry.warningCount ? (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900">
+                        {entry.warningCount} warn
+                      </span>
+                    ) : null}
+                    <span className="text-xs text-blue-600">{expanded ? "Masquer" : "Journal"}</span>
+                  </button>
+                  {expanded ? (
+                    <div className="mt-2 space-y-2">
+                      <p className="text-xs text-gray-600 dark:text-gray-400">{entry.message}</p>
+                      {entry.warnings?.length ? (
+                        <ul className="rounded border border-amber-200 bg-amber-50/50 p-2 text-xs text-amber-950 dark:border-amber-900 dark:bg-amber-950/20">
+                          {entry.warnings.map((w, wi) => (
+                            <li key={wi} className="font-mono break-words py-0.5">
+                              {w}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {detailText ? (
+                        <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded bg-gray-900 p-2 font-mono text-[11px] leading-relaxed text-gray-100">
+                          {detailText}
+                        </pre>
+                      ) : (
+                        <p className="text-xs text-gray-400">Pas de log stderr/stdout conservé.</p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => void handleCopy(detailText || entry.message || "", "Historique build")}
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        Copier le journal
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

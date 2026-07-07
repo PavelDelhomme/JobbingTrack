@@ -205,6 +205,51 @@ function parseAdbDevices(stdout) {
 }
 
 const BUILD_SESSION_FILE = path.join(MOBILE_PATH, '.build-session.json');
+const BUILD_HISTORY_FILE = path.join(MOBILE_PATH, '.build-history.json');
+const BUILD_HISTORY_MAX = 30;
+
+function extractWarningsFromOutput(text) {
+  if (!text) return [];
+  const lines = String(text).split('\n');
+  const warnings = [];
+  const seen = new Set();
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t) continue;
+    const isWarn =
+      /^WARNING:/i.test(t) ||
+      /Built-in Kotlin/i.test(t) ||
+      /Kotlin Gradle Plugin/i.test(t) ||
+      (/warning/i.test(t) && /flutter|gradle|kotlin|plugin/i.test(t));
+    if (!isWarn) continue;
+    const key = t.slice(0, 240);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    warnings.push(t.slice(0, 800));
+  }
+  return warnings.slice(0, 25);
+}
+
+function readBuildHistory() {
+  try {
+    if (fs.existsSync(BUILD_HISTORY_FILE)) {
+      const arr = JSON.parse(fs.readFileSync(BUILD_HISTORY_FILE, 'utf8'));
+      return Array.isArray(arr) ? arr : [];
+    }
+  } catch { /* ignore */ }
+  return [];
+}
+
+function appendBuildHistory(entry) {
+  const history = readBuildHistory();
+  history.unshift(entry);
+  if (history.length > BUILD_HISTORY_MAX) history.length = BUILD_HISTORY_MAX;
+  try {
+    fs.writeFileSync(BUILD_HISTORY_FILE, JSON.stringify(history, null, 2), 'utf8');
+  } catch (e) {
+    console.error('appendBuildHistory:', e.message);
+  }
+}
 
 function readBuildSession() {
   try {
@@ -603,8 +648,10 @@ const routes = {
     try {
       ensureGitSafeDirectories();
       const pubspecStart = parsePubspecVersion();
+      const buildId = new Date().toISOString();
       writeBuildSession({
-        startedAt: new Date().toISOString(),
+        id: buildId,
+        startedAt: buildId,
         inProgress: true,
         success: false,
         version: pubspecStart?.version || null,
@@ -647,17 +694,40 @@ const routes = {
       const pubspec = parsePubspecVersion();
       const stdoutStr = typeof stdout === 'string' ? stdout : String(stdout || '');
       const stderrStr = typeof stderr === 'string' ? stderr : String(stderr || '');
+      const warnings = extractWarningsFromOutput(`${stderrStr}\n${stdoutStr}`);
+      const prevSession = readBuildSession();
+      const finishedAt = new Date().toISOString();
 
       writeBuildSession({
-        finishedAt: new Date().toISOString(),
+        id: prevSession?.id || buildId || finishedAt,
+        startedAt: prevSession?.startedAt || buildId,
+        finishedAt,
         inProgress: false,
         success: !!ok,
         exitCode: code,
         version: pubspec?.version || null,
         buildNumber: pubspec?.buildNumber || null,
         message: ok ? 'Build APK réussi' : (exists ? 'Build terminé avec erreur' : 'Build échoué'),
-        stderrTail: stderrStr.slice(-8000),
+        stderrTail: stderrStr.slice(-12000),
+        stdoutTail: stdoutStr.slice(-8000),
+        warnings,
+        warningCount: warnings.length,
         apkPath: exists ? apkPath : null,
+      });
+
+      appendBuildHistory({
+        id: prevSession?.id || buildId || finishedAt,
+        startedAt: prevSession?.startedAt || buildId,
+        finishedAt,
+        success: !!ok,
+        exitCode: code,
+        version: pubspec?.version || null,
+        buildNumber: pubspec?.buildNumber || null,
+        message: ok ? 'Build APK réussi' : (exists ? 'Build terminé avec erreur' : 'Build échoué'),
+        stderrTail: stderrStr.slice(-12000),
+        stdoutTail: stdoutStr.slice(-8000),
+        warnings,
+        warningCount: warnings.length,
       });
 
       return send(res, 200, {
@@ -670,6 +740,8 @@ const routes = {
         downloadUrl: exists ? '/download-apk' : null,
         stdout: stdoutStr.slice(-12000),
         stderr: stderrStr.slice(-12000),
+        warnings,
+        warningCount: warnings.length,
       });
     } catch (e) {
       return send(res, 200, { success: false, error: (e && e.message) || String(e), stderr: '' });
@@ -1333,6 +1405,7 @@ const routes = {
     const apkPath = resolveApkPath();
     send(res, 200, {
       session,
+      history: readBuildHistory(),
       apkInfo: apkPath && fs.existsSync(apkPath)
         ? {
             exists: true,
@@ -1341,6 +1414,10 @@ const routes = {
           }
         : { exists: false },
     });
+  },
+
+  async '/build-history'(req, res) {
+    send(res, 200, { history: readBuildHistory() });
   },
 
   /** GET: indique si un build est nécessaire (APK plus ancien que mobile/lib). */

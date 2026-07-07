@@ -42,9 +42,9 @@ class ApplicationFormScreen extends StatefulWidget {
           padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
           child: DraggableScrollableSheet(
             expand: false,
-            initialChildSize: 0.88,
-            minChildSize: 0.5,
-            maxChildSize: 0.95,
+            initialChildSize: 0.92,
+            minChildSize: 0.55,
+            maxChildSize: 0.96,
             builder: (_, scroll) => ApplicationFormScreen(
               modalMode: true,
               scrollController: scroll,
@@ -120,18 +120,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   }
 
   DateTime _applicationDateForSave() {
-    if (widget.application != null) {
-      return _applicationDate.toLocal();
-    }
-    final now = DateTime.now();
-    return DateTime(
-      _applicationDate.year,
-      _applicationDate.month,
-      _applicationDate.day,
-      now.hour,
-      now.minute,
-      now.second,
-    );
+    return _applicationDate.toLocal();
   }
 
   Future<void> _loadInterimPrefs() async {
@@ -266,19 +255,68 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     }
   }
 
-  List<Widget> _buildFormFields() {
-    return [
-      CompanyPickerField(
-        companies: _companies,
-        selectedCompanyId: _companyId,
-        companyName: _companyName,
-        validator: (v) => (v == null || v.trim().isEmpty) ? 'Choisir ou saisir une entreprise' : null,
-        onChanged: (sel) => setState(() {
-          _companyId = sel.companyId;
-          _companyName = sel.name;
-        }),
+  Future<void> _pickApplicationDateTime() async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _applicationDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (d == null || !mounted) return;
+    final t = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_applicationDate),
+    );
+    if (!mounted) return;
+    final time = t ?? TimeOfDay.fromDateTime(_applicationDate);
+    setState(() {
+      _applicationDate = DateTime(d.year, d.month, d.day, time.hour, time.minute);
+    });
+  }
+
+  Widget _positionField() {
+    return Semantics(
+      label: 'Poste',
+      textField: true,
+      child: TextFormField(
+        controller: _position,
+        decoration: const InputDecoration(labelText: 'Poste *', border: OutlineInputBorder()),
+        validator: (v) => (v == null || v.trim().isEmpty) ? 'Requis' : null,
+        textInputAction: TextInputAction.next,
       ),
-      const SizedBox(height: 12),
+    );
+  }
+
+  Widget _applicationDateTile() {
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.calendar_today),
+        title: Text(formatUserLocalDateTime(
+          _applicationDate.toUtc().toIso8601String(),
+          pattern: 'd MMM y HH:mm',
+        )),
+        subtitle: const Text('Date et heure de candidature'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: _pickApplicationDateTime,
+      ),
+    );
+  }
+
+  List<Widget> _buildFormFields({bool modalCreate = false}) {
+    final company = CompanyPickerField(
+      companies: _companies,
+      selectedCompanyId: _companyId,
+      companyName: _companyName,
+      validator: (v) => (v == null || v.trim().isEmpty) ? 'Choisir ou saisir une entreprise' : null,
+      onChanged: (sel) => setState(() {
+        _companyId = sel.companyId;
+        _companyName = sel.name;
+      }),
+    );
+
+    final optionalFields = <Widget>[
       if (_interimMode) ...[
         DropdownButtonFormField<String?>(
           value: _agencyId != null && _agencies.any((a) => a.id == _agencyId)
@@ -304,16 +342,10 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         onPlatformsChanged: _loadPlatforms,
       ),
       const SizedBox(height: 12),
-      Semantics(
-        label: 'Poste',
-        textField: true,
-        child: TextFormField(
-          controller: _position,
-          decoration: const InputDecoration(labelText: 'Poste *', border: OutlineInputBorder()),
-          validator: (v) => (v == null || v.trim().isEmpty) ? 'Requis' : null,
-        ),
-      ),
-      const SizedBox(height: 12),
+      if (!modalCreate) ...[
+        _positionField(),
+        const SizedBox(height: 12),
+      ],
       TextFormField(
         controller: _description,
         maxLines: 3,
@@ -351,22 +383,10 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         items: _applicationTypes.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
         onChanged: (v) => setState(() => _applicationType = v ?? 'OFFRE'),
       ),
-      const SizedBox(height: 12),
-      Material(
-        color: Colors.transparent,
-        child: ListTile(
-          title: const Text('Date de candidature'),
-          subtitle: Text(formatUserLocalDateTime(_applicationDate.toUtc().toIso8601String(), pattern: 'd MMM y HH:mm')),
-          trailing: const Icon(Icons.calendar_today),
-          onTap: () async {
-            final d = await showDatePicker(context: context, initialDate: _applicationDate, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365)));
-            if (d != null) {
-              final now = DateTime.now();
-              setState(() => _applicationDate = DateTime(d.year, d.month, d.day, now.hour, now.minute));
-            }
-          },
-        ),
-      ),
+      if (!modalCreate) ...[
+        const SizedBox(height: 12),
+        _applicationDateTile(),
+      ],
       const SizedBox(height: 12),
       Row(
         children: [
@@ -389,6 +409,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       ),
       const SizedBox(height: 12),
       CheckboxListTile(
+        contentPadding: EdgeInsets.zero,
         title: const Text('Salaire négociable'),
         value: _salaryNegotiable,
         onChanged: (v) => setState(() => _salaryNegotiable = v ?? false),
@@ -399,6 +420,42 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         maxLines: 3,
         decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder()),
       ),
+    ];
+
+    if (modalCreate) {
+      return [
+        company,
+        const SizedBox(height: 12),
+        _positionField(),
+        const SizedBox(height: 12),
+        _applicationDateTile(),
+        const SizedBox(height: 16),
+        Text(
+          'Options (optionnel)',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.grey.shade700),
+        ),
+        const SizedBox(height: 8),
+        ...optionalFields,
+        const SizedBox(height: 20),
+        FilledButton.icon(
+          onPressed: _saving ? null : _save,
+          icon: _saving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Icon(Icons.check),
+          label: Text(_saving ? 'Enregistrement…' : 'Créer la candidature'),
+        ),
+        const SizedBox(height: 8),
+      ];
+    }
+
+    return [
+      company,
+      const SizedBox(height: 12),
+      ...optionalFields,
       const SizedBox(height: 24),
       ElevatedButton(
         onPressed: _saving ? null : _save,
@@ -412,9 +469,45 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.application != null;
-    final bottomPad = widget.modalMode
-        ? scrollSafePadding(context, top: 4, extraBottom: 8)
-        : scrollSafePadding(context, top: 0);
+    final isModalCreate = widget.modalMode && !isEdit;
+
+    if (widget.modalMode) {
+      return Form(
+        key: _formKey,
+        child: ListView(
+          controller: widget.scrollController,
+          padding: scrollSafePadding(context, top: 0, extraBottom: 24),
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    isEdit ? 'Modifier la candidature' : 'Nouvelle candidature',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Fermer',
+                  onPressed: () => Navigator.of(context).pop(false),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            if (isModalCreate)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'Entreprise, poste et date en haut — faites défiler pour le reste.',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                ),
+              ),
+            ..._buildFormFields(modalCreate: isModalCreate),
+          ],
+        ),
+      );
+    }
+
+    final bottomPad = scrollSafePadding(context, top: 0);
     final form = Form(
       key: _formKey,
       child: ListView(
@@ -423,38 +516,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         children: _buildFormFields(),
       ),
     );
-
-    if (widget.modalMode) {
-      return Material(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-              child: Row(
-                children: [
-                  IconButton(
-                    tooltip: 'Fermer',
-                    onPressed: () => Navigator.of(context).pop(false),
-                    icon: const Icon(Icons.close),
-                  ),
-                  Expanded(
-                    child: Text(
-                      isEdit ? 'Modifier la candidature' : 'Nouvelle candidature',
-                      style: Theme.of(context).textTheme.titleMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(width: 48),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(child: form),
-          ],
-        ),
-      );
-    }
 
     return Scaffold(
       key: _scaffoldKey,

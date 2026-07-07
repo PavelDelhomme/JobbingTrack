@@ -1,6 +1,6 @@
 # À valider avant préproduction / production
 
-Dernière mise à jour : 2 juillet 2026
+Dernière mise à jour : 7 juillet 2026
 
 ## Rôle
 
@@ -56,6 +56,7 @@ Le porteur valide **chaque étape** avant la suivante. L’agent prépare les pr
 | **Fiche utilisateur admin — emails & suppression** | local / preprod | SUPER_ADMIN : **Renvoyer email de vérification** et **reset mot de passe** OK (message succès + `EmailLog` / MailHog) ; pas de `Network Error` ; suppression utilisateur avec politique documentée (données métier + **stats analytics conservées** anonymisées). Voir `docs/pilotage/TODOS.md` § actions admin. | [ ] | Retour porteur 22/06 : resend vérif → Network Error ; reset/suppression à valider. |
 | Refresh ciblé backoffice / budget CPU-RAM | preprod | Audit pages lourdes : aucun auto-refresh ne recharge toute une page ; seuls les composants utiles se rafraîchissent, onglet masqué respecté, requêtes obsolètes annulées, CPU/RAM navigateur + conteneur frontend mesurés et acceptables. | [ ] | |
 | Logs et alertes sécurité | preprod | WAF/logs/alertes mail critiques observables, sans fuite de secrets. | [ ] | |
+| **Monitoring — Services & Logs backoffice (A2 / BL-26-27)** | local / preprod | Administration → Gestion des services → **Services & Logs** (`/backoffice/services/logs`) : sélectionner un service actif (ex. `api-gateway`), appliquer filtres — **au moins quelques lignes** visibles (Docker live via metrics-aggregator ou fallback documenté) ; message explicite si collecteur/logs indisponibles (pas de page silencieuse) ; pas d’erreur 401/500 masquée. Preuve : smoke curl documenté ou E2E Playwright. Voir lot **A2**, **`docs/pilotage/TODOS.md`** **BL-26-27**. | [ ] | Retour porteur **07/07** : pas de logs affichés ; pipeline partiellement contourné/désactivé pour stabilité perf — **obligatoire avant prod**. |
 | Migration `audit_logs` (B7) | preprod/prod | **Après validations locales B7/B8** — appliquer migration Prisma ciblée `audit_logs` sur `security-service` en préprod/prod (pas de `db push --accept-data-loss` sur schéma complet). Vérifier `GET /api/v1/security/audit` et export `security_export` après migration. **Reporté volontairement** : ne pas bloquer la suite Lot B local ; gate explicite avant prod. | [ ] | Preuve agent 16/06 : table créée localement de façon ciblée ; smoke API B7/B8 OK. |
 | **Mobile — biométrie release** | preprod / Samsung | Rejouer parcours biométrie sur **APK release** (sans bypass smokes) : login, cold start, après déconnexion, fallback mot de passe. Validé debug 19/06 — **pas suffisant pour prod seul**. Doc : [`docs/mobile/NAVIGATION_RETOUR_MOBILE.md`](../mobile/NAVIGATION_RETOUR_MOBILE.md) § Biométrie · **BL-26-26**. | [ ] | |
 | Détails sensibles rapports sécurité | preprod | Notes brutes/payloads/proofs CVE accessibles seulement après réauth forte, jeton court non rejouable, rôle élevé, audit append-only, pas de cache. | [ ] | |

@@ -37,6 +37,9 @@ export type BuildApkResult = {
   stderr?: string;
   version?: string | null;
   buildNumber?: number | null;
+  warnings?: string[];
+  warningCount?: number;
+  exitCode?: number;
   _hint?: string;
 };
 
@@ -61,6 +64,7 @@ export type AdbDiagnostics = {
 };
 
 export type BuildSession = {
+  id?: string;
   startedAt?: string;
   finishedAt?: string;
   inProgress?: boolean;
@@ -70,6 +74,14 @@ export type BuildSession = {
   buildNumber?: number | null;
   message?: string;
   stderrTail?: string;
+  stdoutTail?: string;
+  warnings?: string[];
+  warningCount?: number;
+};
+
+export type BuildHistoryEntry = BuildSession & {
+  id: string;
+  finishedAt: string;
 };
 
 async function proxyGet<T>(path: string, timeoutMs = 15_000): Promise<T | null> {
@@ -125,9 +137,18 @@ export async function fetchAdbDevices(options?: { light?: boolean }): Promise<{
 
 export async function fetchBuildSession(): Promise<{
   session: BuildSession | null;
+  history?: BuildHistoryEntry[];
   apkInfo?: { exists?: boolean; modifiedAt?: string; version?: string; buildNumber?: number };
 } | null> {
   return proxyGet("/build-session", 8000);
+}
+
+export async function fetchBuildHistory(): Promise<BuildHistoryEntry[]> {
+  const data = await proxyGet<{ history?: BuildHistoryEntry[] }>("/build-history", 8000);
+  if (Array.isArray(data?.history)) return data.history;
+  const sessionData = await fetchBuildSession();
+  if (Array.isArray(sessionData?.history)) return sessionData.history;
+  return [];
 }
 
 export async function buildApkFromBackoffice(
