@@ -108,6 +108,7 @@ Le `deployment-service` doit devenir un **vrai orchestrateur** (pas seulement un
 
 ## Liens
 
+- [`docs/deployment/VERSIONNEMENT_PLATEFORME.md`](../deployment/VERSIONNEMENT_PLATEFORME.md) — **release plateforme `JT-x.y.z`**, versions par composant, manifeste Portainer (distinct du mobile OTA)
 - `docs/deployment/DEPLOIEMENT_FINAL.md` — déploiement depuis backoffice (à finaliser)
 - `docs/project/BACKLOG.md` § Lot P — plateforme réutilisable
 - `docs/project/ALLINONE_AND_LOT_P.md` — relation AllInOne / contrats API
