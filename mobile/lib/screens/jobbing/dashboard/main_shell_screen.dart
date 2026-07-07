@@ -45,10 +45,12 @@ class _MainShellScreenState extends State<MainShellScreen> {
     _applicationStatusFilter = widget.applicationStatusFilter;
     _pendingReturnTab = widget.returnTabOnBack;
     _syncShellRegistry();
+    ShellBackRegistry.registerSystemBackHandler(_handleSystemBack);
   }
 
   @override
   void dispose() {
+    ShellBackRegistry.registerSystemBackHandler(null);
     super.dispose();
   }
 

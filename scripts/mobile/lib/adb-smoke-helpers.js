@@ -215,6 +215,7 @@ async function openProfileEdit(phone) {
 }
 
 async function openAppDrawer(phone) {
+  await closeDrawerIfOpen(phone);
   const onShell =
     (await phone.uiContains('Bonjour')) ||
     (await adbLib.flows.isShellVisible(phone));
@@ -226,7 +227,21 @@ async function openAppDrawer(phone) {
       /* déjà sur accueil ou onglets absents du dump émulateur */
     }
   }
-  await phone.openNavigationDrawer();
+  const nodes = await phone.uiNodes();
+  const drawerBtn = nodes
+    .filter((n) => {
+      if (!n.clickable) return false;
+      const d = (n.contentDesc || '').toLowerCase();
+      return d.includes('navigation menu') || d.includes('menu de navigation');
+    })
+    .map((n) => ({ n, c: boundsCenter(n.bounds) }))
+    .filter((x) => x.c && x.c.cx < 220)
+    .sort((a, b) => a.c.cx - b.c.cx)[0];
+  if (drawerBtn?.c) {
+    await phone.tapXY(drawerBtn.c.cx, drawerBtn.c.cy);
+  } else {
+    await phone.openNavigationDrawer();
+  }
   await phone.wait(1000);
 }
 

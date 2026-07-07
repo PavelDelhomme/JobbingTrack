@@ -49,6 +49,19 @@ class ShellDrawerRegistry {
   }
 }
 
+/// Délègue le retour système au [MainShellScreen] quand un onglet shell consomme déjà le PopScope.
+class ShellBackRegistry {
+  static VoidCallback? _handler;
+
+  static void registerSystemBackHandler(VoidCallback? handler) {
+    _handler = handler;
+  }
+
+  static void invokeSystemBack() {
+    _handler?.call();
+  }
+}
+
 /// Arguments pour ouvrir le shell principal sur un onglet précis.
 class MainShellArgs {
   final int initialTab;

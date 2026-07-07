@@ -65,7 +65,9 @@ class _DrawerBackScopeState extends State<DrawerBackScope> {
         }
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
+          return;
         }
+        ShellBackRegistry.invokeSystemBack();
       },
       child: widget.child,
     );

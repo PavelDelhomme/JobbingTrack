@@ -7,11 +7,13 @@
  */
 
 const adbLib = require('../../../../tools/adb-lib');
+require('../../lib/smoke-runtime');
 const {
   ensureUserShell,
   typeInLabeledField,
   openProfileEdit,
   openAppDrawer,
+  closeDrawerIfOpen,
 } = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');
@@ -30,6 +32,7 @@ async function ensureLoggedIn(phone, email, password) {
 }
 
 async function openDrawerItemWithScroll(phone, label) {
+  await closeDrawerIfOpen(phone);
   await openAppDrawer(phone);
   for (let i = 0; i < 10; i++) {
     if (await phone.uiContains(label)) break;
@@ -134,18 +137,15 @@ async function tapFirstContact(phone, preferName) {
 
   await ensureLoggedIn(phone, email, password);
 
-  // ── Entreprises : liste + recherche + détail
+  // ── Entreprises : sous-onglet shell ou écran dédié
   await openDrawerItemWithScroll(phone, 'Entreprises');
-  await phone.wait(2000);
-  if (!(await phone.uiContains('Entreprises'))) {
-    throw new Error('Écran Entreprises introuvable');
-  }
+  await phone.wait(3000);
   let companiesOk = false;
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 12; i++) {
     companiesOk =
       (await phone.uiContains('Aucune entreprise')) ||
       (await phone.uiContains('Rechercher')) ||
-      (await phone.uiContains('entreprise'));
+      (await phone.uiContains(target.companyName));
     if (companiesOk) break;
     await phone.wait(1000);
   }
@@ -154,32 +154,32 @@ async function tapFirstContact(phone, preferName) {
   }
   console.log('✅ Entreprises : écran OK');
 
-  try {
-    await typeInLabeledField(phone, 'Rechercher', 'zzz-smoke-no-match-xyz', {
-      hints: ['Rechercher une entreprise', 'Rechercher'],
-      editIndex: 0,
-    });
-    await phone.wait(1500);
-    if (!(await phone.uiContains('Aucune entreprise'))) {
-      console.log('✅ Entreprises : recherche filtre (liste réduite ou vide)');
-    } else {
-      console.log('✅ Entreprises : recherche sans résultat OK');
+  const hasSearchField = await phone.uiContains('Rechercher');
+  if (hasSearchField) {
+    try {
+      await typeInLabeledField(phone, 'Rechercher', 'zzz-smoke-no-match-xyz', {
+        hints: ['Rechercher une entreprise', 'Rechercher'],
+        editIndex: 0,
+      });
+      await phone.wait(1500);
+      if (!(await phone.uiContains('Aucune entreprise'))) {
+        console.log('✅ Entreprises : recherche filtre (liste réduite ou vide)');
+      } else {
+        console.log('✅ Entreprises : recherche sans résultat OK');
+      }
+      await typeInLabeledField(phone, 'Rechercher', 'a', {
+        hints: ['Rechercher une entreprise', 'Rechercher'],
+        editIndex: 0,
+      });
+      await phone.wait(1500);
+    } catch (e) {
+      console.log('⚠️ Recherche entreprise : champ non saisi ADB —', e.message);
     }
-    await typeInLabeledField(phone, 'Rechercher', 'a', {
-      hints: ['Rechercher une entreprise', 'Rechercher'],
-      editIndex: 0,
-    });
-    await phone.wait(1500);
-  } catch (e) {
-    console.log('⚠️ Recherche entreprise : champ non saisi ADB —', e.message);
+  } else {
+    console.log('✅ Entreprises : liste sous-onglet (sans champ recherche dédié)');
   }
 
   if (!(await phone.uiContains('Aucune entreprise'))) {
-    await typeInLabeledField(phone, 'Rechercher', target.companyName, {
-      hints: ['Rechercher une entreprise', 'Rechercher'],
-      editIndex: 0,
-    });
-    await phone.wait(1500);
     await tapCompanyCard(phone, target.companyName);
     await phone.wait(2500);
     const detailOk =

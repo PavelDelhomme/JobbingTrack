@@ -104,7 +104,8 @@ docker compose up -d
 # BL-26-05 / BL-26-06 — smokes ciblés (Samsung USB)
 node scripts/mobile/smoke/run/smoke-preflight.js
 node scripts/mobile/smoke/adb/smoke-mobile-profile-save-adb.js
-node scripts/mobile/smoke/adb/smoke-mobile-notification-nav-adb.js
+node scripts/mobile/smoke/adb/smoke-mobile-entities-adb.js
+node scripts/mobile/smoke/adb/smoke-mobile-double-back-adb.js
 
 node scripts/mobile/setup/diagnose-mobile-api-connection.js
 node scripts/mobile/setup/ensure-device-api-ready.js
@@ -566,7 +567,8 @@ Index scripts : `scripts/mobile/README.md`.
 | Phase A | Mobile — BL-26-05 smoke profil (a11y) | **07/07** smoke **OK** (`profile-save-adb`, build **+10**). Prérequis : `node scripts/mobile/setup/ensure-device-api-ready.js`. | [x] |
 | Phase A | Mobile — BL-26-06 smoke notifications (Menu ⋮) | **07/07** smoke **OK** — Menu **droite** (pas drawer gauche) ; 0 notif métier = exit 0. | [x] |
 | Phase A | Mobile — BL-26-07 smoke création entreprise | **07/07** smoke **OK** `SmokeCo-*` — build **+11**. | [x] |
-| Phase A | Mobile — BL-26-08 smoke offline métier | **07/07** smoke **OK** — sheet `Rechercher` + création entreprise offline ; sync API validée. | [x] |
+| Phase A | Mobile — BL-26-04 smoke entités | **07/07** smoke **OK** — entreprises/contacts/profil ; drawer hamburger gauche. | [x] |
+| Phase A | Mobile — BL-26-16 double retour Accueil | **07/07** `ShellBackRegistry` délègue BACK shell ; smoke `double-back-adb` **OK**. | [x] |
 | Phase A | Backoffice — Mobile releases OTA + section nav MOBILE | **06/07** : correctifs contrôleur Docker — **git** + **OpenJDK 17** + montage SDK Android (`~/Android/Sdk` → `/opt/android-sdk`) + **USB** (`/dev/bus/usb`, `privileged`) pour ADB physique ; endpoint `/adb-diagnostics` ; session build `.build-session.json` ; UI panel — appareils en attente (unauthorized), date dernier build, erreurs build visibles. **06/07** vérif : `git` + `sdk_ok` conteneur ; health `gitAvailable` + `androidSdkPresent` **true**. **Reste porteur** : Samsung USB branché → appareil visible étape 2 + build + OTA → `OK Mobile releases OTA backoffice`. | [ ] |
 | Phase A | Backoffice — titres onglet fil d'Ariane | **17/06** : `DocumentTitleManager` MutationObserver. **Smoke Playwright** : `backoffice-document-titles-smoke.spec.ts` **5/5 OK** (`PLAYWRIGHT_BASE_URL=http://localhost:5003`). **Reste porteur** : `OK Titres onglet backoffice`. | [ ] |
 | Phase A | Mobile — BL-26-25 AppBar (cloche + actions contextuelles) | **02/07** : notifications déplacées dans menu ⋮ (`ShellAppBarMenu`) ; `ShellAppBarActions` — calendrier titre **Calendrier** + sous-titre Planning/Liste + bouton filtres ; candidatures bouton **Actualiser** ; profil conserve **Modifier** + menu. **Reste porteur** : rebuild APK — cloche absente AppBar shell, notifications via ⋮ ; calendrier bouton tune ouvre drawer. | [ ] |

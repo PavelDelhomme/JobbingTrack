@@ -82,14 +82,18 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Rechercher une entreprise…',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-                isDense: true,
+            child: Semantics(
+              label: 'Rechercher',
+              textField: true,
+              child: TextField(
+                decoration: const InputDecoration(
+                  hintText: 'Rechercher une entreprise…',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onChanged: (v) => setState(() => _query = v),
               ),
-              onChanged: (v) => setState(() => _query = v),
             ),
           ),
           Expanded(
