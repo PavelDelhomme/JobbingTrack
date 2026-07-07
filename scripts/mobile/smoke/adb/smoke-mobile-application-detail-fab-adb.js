@@ -6,6 +6,8 @@
  */
 
 const adbLib = require('../../../../tools/adb-lib');
+require('../../lib/smoke-runtime');
+const { ensureHomeTab } = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');
 const {
@@ -17,18 +19,23 @@ const {
 loadRootEnv();
 
 async function ensureLoggedIn(phone, email, password) {
+  await adbLib.flows.prepareSmokeSession(phone, { restart: false });
+  if (await adbLib.flows.isShellVisible(phone)) {
+    await ensureHomeTab(phone);
+    await phone.assertVisible('Bonjour');
+    return;
+  }
+  await adbLib.flows.restartApp(phone);
+  await phone.wait(4000);
   await adbLib.flows.dismissBiometricUnlock(phone, { password });
-  if (await phone.uiContains('Bonjour')) return;
-  if (
-    (await phone.uiContains('Email')) ||
-    (await phone.uiContains('Mot de passe')) ||
-    (await phone.uiContains('Se connecter'))
-  ) {
-    await adbLib.flows.login(phone, email, password);
-  } else {
+  if (await phone.uiContains('Connexion USER')) {
+    await phone.tap('Connexion USER');
+    await phone.wait(4000);
+  } else if (!(await adbLib.flows.isShellVisible(phone))) {
     await adbLib.flows.loginFresh(phone, email, password);
   }
   await adbLib.flows.dismissBiometricUnlock(phone, { password });
+  await ensureHomeTab(phone);
   await phone.assertVisible('Bonjour');
 }
 

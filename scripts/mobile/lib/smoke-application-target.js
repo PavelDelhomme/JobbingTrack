@@ -42,7 +42,6 @@ function labelExcluded(label) {
 function matchesApplicationTarget(label, target) {
   const l = String(label || '');
   if (!target?.position || !l.includes(target.position)) return false;
-  if (target.companyName && !l.includes(target.companyName)) return false;
   if (labelExcluded(l)) return false;
   return true;
 }
@@ -166,9 +165,11 @@ async function ensureApplicationsListTab(phone) {
 }
 
 async function waitApplicationTargetVisible(phone, target, timeoutMs = 20000) {
+  const pos = target?.position || '';
   const state = await phone.waitUntil(({ nodes, contains }) => {
     if (contains('Impossible de charger les candidatures')) return 'error';
     if (findApplicationCardNode(nodes, target)) return 'list';
+    if (pos && contains(pos)) return 'list';
     if (
       contains('Aucune candidature') ||
       contains('Créer ma première candidature')
@@ -192,6 +193,14 @@ async function tapApplicationCard(phone, target) {
       );
       return;
     }
+    if (await phone.uiContains(target.position)) {
+      try {
+        await phone.tapReliable(target.position);
+        return;
+      } catch {
+        /* scroll */
+      }
+    }
     await phone.scrollDown(500);
     await phone.wait(700);
   }
@@ -203,8 +212,10 @@ async function tapApplicationCard(phone, target) {
 async function refreshApplicationsList(phone) {
   await adbLib.flows.goToTab(phone, 2, { shell: true });
   await phone.wait(800);
-  await phone.scrollUp(950);
-  await phone.wait(3000);
+  for (let i = 0; i < 2; i++) {
+    await phone.scrollUp(950);
+    await phone.wait(2500);
+  }
 }
 
 async function openSmokeApplicationDetail(phone, target) {
@@ -214,6 +225,18 @@ async function openSmokeApplicationDetail(phone, target) {
   if (state !== 'list') {
     await refreshApplicationsList(phone);
     state = await waitApplicationTargetVisible(phone, target, 20000);
+  }
+  if (state === 'timeout') {
+    await adbLib.flows.restartApp(phone);
+    await phone.wait(4000);
+    await adbLib.flows.dismissBiometricUnlock(phone, {});
+    if (await phone.uiContains('Connexion USER')) {
+      await phone.tap('Connexion USER');
+      await phone.wait(4000);
+    }
+    await ensureApplicationsListTab(phone);
+    await refreshApplicationsList(phone);
+    state = await waitApplicationTargetVisible(phone, target, 30000);
   }
   if (state === 'empty') {
     throw new Error(
