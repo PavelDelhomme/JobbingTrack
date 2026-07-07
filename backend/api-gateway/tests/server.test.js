@@ -51,6 +51,17 @@ describe('API Gateway - Tests de base', () => {
     expect(response.headers['x-request-id']).toBe(id);
   });
 
+  test('GET /api/v1/public/release-info expose semver public', async () => {
+    const response = await request(app)
+      .get('/api/v1/public/release-info')
+      .expect(200);
+
+    expect(response.body).toHaveProperty('platformRelease');
+    expect(response.body.api).toHaveProperty('version');
+    expect(response.body.mobile).toHaveProperty('android');
+    expect(response.body.mobile.android).toHaveProperty('minVersion');
+  });
+
   test('POST /api/v1/auth/login en test retourne un JWT signé avec JWT_SECRET', async () => {
     const response = await request(app)
       .post('/api/v1/auth/login')

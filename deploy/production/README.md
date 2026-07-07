@@ -52,6 +52,14 @@ Activer **SSL** + **Force SSL** dans NPM. Aligner `ALLOWED_ORIGINS` et `NEXT_PUB
 
 Portainer ne déploie **pas** l’app Flutter. Voir [`docs/production/MOBILE_RELEASE_PIPELINE.md`](../../docs/production/MOBILE_RELEASE_PIPELINE.md).
 
+## Manifeste plateforme
+
+- Baseline : [`deploy/releases/JT-1.0.0.yaml`](../releases/JT-1.0.0.yaml)
+- Actif au deploy : [`deploy/releases/platform-manifest.yaml`](../releases/platform-manifest.yaml)
+- Sync JSON : `bash scripts/deps/sync-platform-manifest.sh`
+- Audit toolchain : `bash scripts/deps/audit-toolchain.sh`
+- Variable stack (optionnel) : `PLATFORM_MANIFEST_PATH=/app/deploy/releases/platform-manifest.json` si volume monté ; sinon JSON embarqué dans l’image gateway (`release-manifest/`).
+
 ## Validation locale du compose
 
 ```bash

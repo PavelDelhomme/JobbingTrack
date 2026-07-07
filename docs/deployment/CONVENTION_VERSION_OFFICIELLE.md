@@ -171,11 +171,11 @@ Public API      → semver minimal, pas de secrets ni infra
 **Ordre implémentation** (ne pas sauter) :
 
 1. ✅ Convention (ce document)  
-2. ⏳ Manifeste `JT-1.0.0`  
-3. ⏳ Scripts `bump-component-version.sh` + `deploy-portainer.sh`  
+2. ✅ Manifeste `JT-1.0.0` + `platform-manifest.yaml` + JSON runtime  
+3. ✅ Scripts `bump-component-version.sh` + `sync-platform-manifest.sh` + `audit-toolchain.sh`  
 4. ⏳ Stacks `jobbingtrack-preprod` / `jobbingtrack-prod` sur VPS  
-5. ⏳ Endpoint public `release-info` + admin deployment-service  
-6. ⏳ Mises à jour npm/Node **via pipeline** + compatibilité clients anciens — voir [`COMPATIBILITE_ET_MISES_A_JOUR.md`](COMPATIBILITE_ET_MISES_A_JOUR.md)
+5. ✅ Endpoint public `GET /api/v1/public/release-info` — admin deployment-service ⏳  
+6. ✅ Doc breaking change (`BREAKING_CHANGE_CHECKLIST.md`) + pipeline compat — voir [`COMPATIBILITE_ET_MISES_A_JOUR.md`](COMPATIBILITE_ET_MISES_A_JOUR.md)
 
 ---
 

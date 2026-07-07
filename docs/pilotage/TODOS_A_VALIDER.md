@@ -723,8 +723,9 @@ bash scripts/run-all-tests-with-reports.sh
 | C3 | NPM HTTPS | `api.<domaine>` → `:3000`, web → `:3001` ; login backoffice OK | [ ] |
 | C4 | Backoffice → **Mobile — releases OTA** | Upload APK **dev** ; test Samsung (canal dev) ; **Valider → PRODUCTION** | [ ] |
 | C5 | (Optionnel) Webhook CI | GitHub `DEV_DEPLOY_URL` ; `IMAGE_PULL_POLICY=always` | [ ] |
+| C6 | Baseline plateforme **JT-1.0.0** | Lire [`deploy/releases/JT-1.0.0.yaml`](../../deploy/releases/JT-1.0.0.yaml) ; `GET /api/v1/public/release-info` cohérent ; répondre **« OK baseline JT-1.0.0 »** | [ ] |
 
-**Validation agent (déjà OK)** : compose, docs, CI GHCR, API OTA, page backoffice — voir `TODOS_A_VERIFIER.md` § Phase C.
+**Validation agent (déjà OK)** : manifeste JT-1.0.0, scripts deps, endpoint `release-info` — voir `TODOS_A_VERIFIER.md` § Phase C.
 
 Guides : [`PORTAINER_STACK.md`](../production/PORTAINER_STACK.md) · [`MOBILE_RELEASE_PIPELINE.md`](../production/MOBILE_RELEASE_PIPELINE.md) · [`PREMIER_DEPLOIEMENT.md`](../../deploy/production/PREMIER_DEPLOIEMENT.md)
 

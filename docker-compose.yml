@@ -90,6 +90,7 @@ services:
       - MOBILE_RELEASES_DIR=${MOBILE_RELEASES_DIR:-/app/mobile-releases}
       - MOBILE_APK_BUILD_PATH=${MOBILE_APK_BUILD_PATH:-/app/mobile-apk-build/app-debug.apk}
       - MOBILE_PUBSPEC_PATH=/app/mobile/pubspec.yaml
+      - PLATFORM_MANIFEST_PATH=/app/deploy/releases/platform-manifest.json
       - PUBLIC_API_URL=${PUBLIC_API_URL:-https://api.jobbingtrack.localhost:5443}
     volumes:
       # ✅ Monter le code source pour le développement (hot reload)
@@ -101,6 +102,7 @@ services:
       # APK debug buildé sur l'hôte — publication OTA sans upload navigateur (171 Mo)
       - ./mobile/build/app/outputs/flutter-apk:/app/mobile-apk-build:ro
       - ./config:/app/config:ro
+      - ./deploy/releases:/app/deploy/releases:ro
       - ./backend/api-gateway/package.json:/app/package.json:ro
       # Script génération données de test (route admin generate-test-data)
       - ./backend/scripts/testing/generate-test-data.js:/app/generate-test-data.js:ro

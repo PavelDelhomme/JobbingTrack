@@ -18,6 +18,7 @@ COPY prisma/ ./prisma/
 COPY scripts/testing/generate-test-data.js ./generate-test-data.js
 # Les imports runtime api-gateway résolvent ../../shared vers /shared dans l'image.
 COPY shared/ /shared/
+COPY api-gateway/release-manifest/ ./release-manifest/
 
 # Générer le client Prisma pour le script generate-test-data.js
 RUN npx prisma generate --schema=./prisma/schema.prisma

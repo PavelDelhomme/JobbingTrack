@@ -393,6 +393,9 @@ app.get('/api/v1/health', (req, res) => {
   });
 });
 
+const publicRoutes = require('./routes/public.routes');
+app.use('/api/v1/public', publicRoutes);
+
 const mobileReleasesRoutes = require('./routes/mobile-releases.routes');
 app.use('/api/v1/mobile/releases', mobileReleasesRoutes);
 

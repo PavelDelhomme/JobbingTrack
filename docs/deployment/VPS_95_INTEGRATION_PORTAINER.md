@@ -169,7 +169,7 @@ Prod : mêmes clés avec domaines prod.
 | 5 | NPM → 2 proxy hosts préprod + SSL |
 | 6 | Test `/health` API + login backoffice |
 | 7 | Après validation → stack **`jobbingtrack-prod`** (branche `main`, secrets **distincts**) |
-| 8 | Figer manifeste **`JT-1.0.0`** |
+| 8 | Figer manifeste **`JT-1.0.0`** — ✅ fichier `deploy/releases/JT-1.0.0.yaml` ; validation porteur « OK baseline JT-1.0.0 » ⏳ |
 
 ---
 

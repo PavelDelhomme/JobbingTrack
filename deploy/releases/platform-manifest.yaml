@@ -1,0 +1,84 @@
+# Manifeste actif au déploiement — mis à jour à chaque release plateforme ou patch composant.
+# Copie courante = JT-1.0.0 baseline. Voir JT-1.0.0.yaml pour l’archive figée.
+platformRelease: JT-1.0.0
+releasedAt: "2026-07-07T16:31:16Z"
+gitCommit: "75519fe3"
+environment: baseline
+status: pending_porteur_validation
+
+toolchain:
+  node: "20.18.0"
+  npm: "11.6.4"
+  postgres: "15"
+  redis: "7-alpine"
+  flutter: "3.x"
+  imageTagPattern: "{semver}-{date}.{gitShaShort}"
+
+components:
+  frontend:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-frontend:1.0.1-20260707.75519fe3
+  api-gateway:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-api-gateway:1.0.1-20260707.75519fe3
+  auth-service:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-auth-service:1.0.1-20260707.75519fe3
+  application-service:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-application-service:1.0.1-20260707.75519fe3
+  company-service:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-company-service:1.0.1-20260707.75519fe3
+  contact-service:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-contact-service:1.0.1-20260707.75519fe3
+  interview-service:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-interview-service:1.0.1-20260707.75519fe3
+  dashboard-service:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-dashboard-service:1.0.1-20260707.75519fe3
+  call-service:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-call-service:1.0.1-20260707.75519fe3
+  profile-service:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-profile-service:1.0.1-20260707.75519fe3
+  event-service:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-event-service:1.0.1-20260707.75519fe3
+  followup-service:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-followup-service:1.0.1-20260707.75519fe3
+  workflow-service:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-workflow-service:1.0.1-20260707.75519fe3
+  notification-service:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-notification-service:1.0.1-20260707.75519fe3
+  security-service:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-security-service:1.0.1-20260707.75519fe3
+  metrics-aggregator:
+    version: "1.0.1"
+    image: ghcr.io/paveldelhomme/jobbingtrack-metrics-aggregator:1.0.1-20260707.75519fe3
+
+mobile:
+  android:
+    version: "1.0.12"
+    buildNumber: 12
+    channel: development
+    minVersion: "0.0.0"
+    minBuild: 0
+    forceUpdate: false
+  ios:
+    version: "1.0.0"
+    buildNumber: 1
+    channel: development
+    minVersion: "0.0.0"
+    minBuild: 0
+    forceUpdate: false
+
+notes: |
+  Manifeste actif — synchroniser avec sync-platform-manifest.sh après toute modification.

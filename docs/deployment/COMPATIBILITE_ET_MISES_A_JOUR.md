@@ -118,12 +118,12 @@ Permet au backoffice d’afficher : « Prod tourne Node 20.18 ; npm 11.6.4 ; une
 
 | ID | Tâche | Priorité |
 |----|-------|----------|
-| **BL-DEP-01** | Manifeste `JT-1.0.0` + section `toolchain` | P0 |
-| **BL-DEP-02** | Script `audit-toolchain.sh` (node, npm, outdated par service) | P1 |
-| **BL-DEP-03** | Script bump deps + rebuild images (CI ou local) | P1 |
-| **BL-DEP-04** | Backoffice : carte « Mises à jour disponibles » (lecture seule puis action) | P2 |
-| **BL-DEP-05** | `GET /api/v1/public/release-info` + politique min mobile | P1 |
-| **BL-DEP-06** | Doc breaking change : checklist avant major | P1 |
+| **BL-DEP-01** | Manifeste `JT-1.0.0` + section `toolchain` | P0 | ✅ **07/07** |
+| **BL-DEP-02** | Script `audit-toolchain.sh` (node, npm, outdated par service) | P1 | ✅ **07/07** |
+| **BL-DEP-03** | Script bump deps + rebuild images (CI ou local) | P1 | ✅ partiel — `bump-component-version.sh` ; rebuild CI ⏳ |
+| **BL-DEP-04** | Backoffice : carte « Mises à jour disponibles » (lecture seule puis action) | P2 | ⏳ |
+| **BL-DEP-05** | `GET /api/v1/public/release-info` + politique min mobile | P1 | ✅ **07/07** |
+| **BL-DEP-06** | Doc breaking change : checklist avant major | P1 | ✅ **07/07** — [`BREAKING_CHANGE_CHECKLIST.md`](BREAKING_CHANGE_CHECKLIST.md) |
 
 Référencé dans [`docs/pilotage/TODOS.md`](../pilotage/TODOS.md) § Phase C déploiement.
 
