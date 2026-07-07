@@ -175,6 +175,7 @@ Public API      → semver minimal, pas de secrets ni infra
 3. ⏳ Scripts `bump-component-version.sh` + `deploy-portainer.sh`  
 4. ⏳ Stacks `jobbingtrack-preprod` / `jobbingtrack-prod` sur VPS  
 5. ⏳ Endpoint public `release-info` + admin deployment-service  
+6. ⏳ Mises à jour npm/Node **via pipeline** + compatibilité clients anciens — voir [`COMPATIBILITE_ET_MISES_A_JOUR.md`](COMPATIBILITE_ET_MISES_A_JOUR.md)
 
 ---
 
