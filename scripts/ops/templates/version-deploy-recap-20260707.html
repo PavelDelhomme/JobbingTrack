@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>JobbingTrack — Versionnement &amp; déploiement VPS</title>
+</head>
+<body style="font-family:Arial,Helvetica,sans-serif;line-height:1.55;color:#111827;max-width:920px;margin:0 auto;padding:24px;background:#f9fafb;">
+  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:28px;">
+    <h1 style="margin:0 0 8px;font-size:22px;color:#1e3a5f;">JobbingTrack — Recap versionnement &amp; VPS Portainer</h1>
+    <p style="margin:0 0 20px;color:#6b7280;font-size:14px;">7 juillet 2026 — synthèse Cursor + Perplexity + décisions finales</p>
+
+    <h2 style="font-size:17px;color:#059669;border-bottom:2px solid #d1fae5;padding-bottom:6px;">Décision finale (convention unique)</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:12px 0;">
+      <tr style="background:#f3f4f6;"><th style="text-align:left;padding:8px;border:1px solid #e5e7eb;">Élément</th><th style="text-align:left;padding:8px;border:1px solid #e5e7eb;">Règle officielle</th></tr>
+      <tr><td style="padding:8px;border:1px solid #e5e7eb;">Backend services</td><td style="padding:8px;border:1px solid #e5e7eb;">SemVer <strong>MAJOR.MINOR.PATCH</strong> par service</td></tr>
+      <tr><td style="padding:8px;border:1px solid #e5e7eb;">Frontend / backoffice</td><td style="padding:8px;border:1px solid #e5e7eb;">SemVer classique (<code>frontend/package.json</code>)</td></tr>
+      <tr><td style="padding:8px;border:1px solid #e5e7eb;">Mobile</td><td style="padding:8px;border:1px solid #e5e7eb;"><strong>1.0.N+N</strong> (ex. 1.0.12+12) — RETENU définitivement</td></tr>
+      <tr><td style="padding:8px;border:1px solid #e5e7eb;">Release plateforme</td><td style="padding:8px;border:1px solid #e5e7eb;"><strong>JT-x.y.z</strong> — baseline <strong>JT-1.0.0</strong></td></tr>
+      <tr><td style="padding:8px;border:1px solid #e5e7eb;">Tags Docker prod</td><td style="padding:8px;border:1px solid #e5e7eb;"><code>1.0.5-20260707.a1b2c3d</code> (immuable, pas :latest)</td></tr>
+      <tr><td style="padding:8px;border:1px solid #e5e7eb;">Préprod / Prod VPS</td><td style="padding:8px;border:1px solid #e5e7eb;">2 stacks : <code>jobbingtrack-preprod</code> + <code>jobbingtrack-prod</code> sur 95.111.227.204</td></tr>
+    </table>
+
+    <p style="font-size:14px;"><strong>Pourquoi mobile 1.0.N+N et pas 1.0.0+N ?</strong> Visibilité immédiate de la build, OTA séparé du VPS, déjà implémenté. Backend reste SemVer pur.</p>
+
+    <h2 style="font-size:17px;color:#2563eb;border-bottom:2px solid #dbeafe;padding-bottom:6px;margin-top:28px;">Alignement Perplexity ↔ Cursor (~90 %)</h2>
+    <ul style="font-size:14px;padding-left:20px;">
+      <li>Release plateforme <code>JT-1.0.0</code> = jalon « tout fonctionne ensemble »</li>
+      <li>SemVer indépendant par composant</li>
+      <li>Manifeste YAML = source de vérité au deploy</li>
+      <li>Tags Docker immuables pour rollback Portainer</li>
+      <li>Mobile OTA découplé du stack Docker</li>
+    </ul>
+
+    <h2 style="font-size:17px;color:#7c3aed;border-bottom:2px solid #ede9fe;padding-bottom:6px;margin-top:28px;">VPS 95.111.227.204 — intégration</h2>
+    <ul style="font-size:14px;padding-left:20px;">
+      <li>Portainer + NPM déjà en place (cooking-recipes, cyna, n8n, nextcloud…)</li>
+      <li>JobbingTrack rejoint le réseau Docker <strong>web</strong> (comme cooking-recipes)</li>
+      <li>NPM : proxy par nom de conteneur, SSL Let&apos;s Encrypt</li>
+      <li>URLs préprod : <code>jobbingtrack-preprod.delhomme.ovh</code> + <code>api-preprod.jobbingtrack.delhomme.ovh</code></li>
+      <li>URLs prod : <code>jobbingtrack.delhomme.ovh</code> + <code>api.jobbingtrack.delhomme.ovh</code></li>
+      <li>Local PC : <code>jobbingtrack.localhost:5443</code> (inchangé)</li>
+    </ul>
+
+    <h2 style="font-size:17px;color:#dc2626;border-bottom:2px solid #fee2e2;padding-bottom:6px;margin-top:28px;">Sécurité</h2>
+    <ul style="font-size:14px;padding-left:20px;">
+      <li>Secrets stack <strong>uniquement Portainer</strong> — jamais Git / email</li>
+      <li>API publique : semver minimal (<code>/api/v1/public/release-info</code> à implémenter), pas de SHA/IP/admin en prod</li>
+      <li>Backend non open source : repo privé + images registry privées</li>
+      <li><strong>Action recommandée</strong> : si des mots de passe JWT/BDD ont été partagés en clair (chat, capture), les <strong>rotater</strong> dans Portainer</li>
+    </ul>
+
+    <h2 style="font-size:17px;color:#d97706;border-bottom:2px solid #fef3c7;padding-bottom:6px;margin-top:28px;">Ordre des prochaines étapes</h2>
+    <ol style="font-size:14px;padding-left:20px;">
+      <li>✅ Convention officielle documentée</li>
+      <li>⏳ Manifeste <code>deploy/releases/JT-1.0.0.yaml</code></li>
+      <li>⏳ Scripts bump + deploy Portainer</li>
+      <li>⏳ Stacks préprod/prod sur VPS</li>
+      <li>⏳ Endpoint public release-info</li>
+    </ol>
+
+    <h2 style="font-size:17px;margin-top:28px;">Docs dépôt</h2>
+    <ul style="font-size:13px;padding-left:20px;">
+      <li><code>docs/deployment/CONVENTION_VERSION_OFFICIELLE.md</code></li>
+      <li><code>docs/deployment/VPS_95_INTEGRATION_PORTAINER.md</code></li>
+      <li><code>docs/deployment/VERSIONNEMENT_PLATEFORME.md</code></li>
+      <li><code>docs/mobile/VERSIONNEMENT_EXPLICATION_PORTEUR.md</code></li>
+    </ul>
+
+    <p style="margin-top:24px;font-size:12px;color:#9ca3af;">Généré par agent JobbingTrack — branche dev</p>
+  </div>
+</body>
+</html>

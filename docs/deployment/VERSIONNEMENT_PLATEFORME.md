@@ -1,7 +1,8 @@
 # Versionnement plateforme JobbingTrack — stratégie déploiement Portainer
 
 Dernière mise à jour : **7 juillet 2026**  
-Public : porteur, agents, **toute IA externe** sans accès au dépôt.
+**Convention officielle unique** : [`CONVENTION_VERSION_OFFICIELLE.md`](CONVENTION_VERSION_OFFICIELLE.md)  
+**VPS Portainer** : [`VPS_95_INTEGRATION_PORTAINER.md`](VPS_95_INTEGRATION_PORTAINER.md)
 
 Documents liés :
 
