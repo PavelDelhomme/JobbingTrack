@@ -15,7 +15,7 @@ import 'package:jobbingtrack_mobile/providers/notification_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/login_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/register_screen.dart';
-import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
+import 'package:jobbingtrack_mobile/navigation/shell_list_refresh_mixin.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/users/settings_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/users/user_detail_screen.dart';
@@ -150,7 +150,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
         builder: (context, child) => ImpersonationBanner(
           child: TelemetryDevStatusBanner(child: child),
         ),
-        navigatorObservers: [MobileAnalyticsRouteObserver()],
+        navigatorObservers: [MobileAnalyticsRouteObserver(), shellListRouteObserver],
         theme: ThemeData(
           primarySwatch: Colors.blue,
           useMaterial3: true,

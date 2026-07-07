@@ -56,7 +56,7 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | BL-26-08 | smoke `offline-business-adb` | Option **créer entreprise offline** introuvable | [ ] après étape 2 |
 | BL-26-09 | Toolchain Android | ✅ **07/07** : `ANDROID_TOOLCHAIN.md` + `audit-android-toolchain.sh` — Gradle 8.14, dette pub outdated documentée | [x] |
 | BL-26-12 | API_BASE_URL centralisée | ✅ **07/07** : `audit-api-base-url.sh` OK ; `defaultApiPort` ; doc PROCESSUS § URL API | [x] |
-| BL-26-15 | Actualisation listes au retour | Rafraîchir listes + reprise offline | [ ] après étape 2 |
+| BL-26-15 | Refresh listes au retour | ✅ **07/07** : ShellDataRefreshService + RouteAware mixin Applications/Events | [x] |
 | BL-26-16 | Double retour → arrière-plan | Snackbar + `SystemNavigator.pop` sur Accueil | [x] **17/06** code — validation porteur |
 | BL-26-17 | Désimpersonnalisation visible | Bannière globale + drawer | [x] **17/06** code — validation porteur |
 | BL-26-18 | Recherche globale récents + entités | `search_screen.dart` | [ ] après étape 2 |

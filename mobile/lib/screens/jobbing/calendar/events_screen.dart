@@ -9,7 +9,7 @@ import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/calendar_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
-import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
+import 'package:jobbingtrack_mobile/navigation/shell_list_refresh_mixin.dart';
 
 /// Calendrier — vue Planning (défaut) ou liste événements.
 class EventsScreen extends StatefulWidget {
@@ -21,7 +21,7 @@ class EventsScreen extends StatefulWidget {
   State<EventsScreen> createState() => _EventsScreenState();
 }
 
-class _EventsScreenState extends State<EventsScreen> {
+class _EventsScreenState extends State<EventsScreen> with ShellListRefreshMixin {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   List<Map<String, dynamic>> _events = [];
   bool _loading = true;
@@ -35,6 +35,11 @@ class _EventsScreenState extends State<EventsScreen> {
   void initState() {
     super.initState();
     _loadPrefs();
+    _load();
+  }
+
+  @override
+  void onShellListVisibleAgain() {
     _load();
   }
 

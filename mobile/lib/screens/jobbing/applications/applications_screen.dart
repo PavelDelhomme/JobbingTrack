@@ -9,6 +9,7 @@ import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
+import 'package:jobbingtrack_mobile/navigation/shell_list_refresh_mixin.dart';
 import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
@@ -45,7 +46,8 @@ class ApplicationsScreen extends StatefulWidget {
   State<ApplicationsScreen> createState() => _ApplicationsScreenState();
 }
 
-class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTickerProviderStateMixin {
+class _ApplicationsScreenState extends State<ApplicationsScreen>
+    with SingleTickerProviderStateMixin, ShellListRefreshMixin {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   late TabController _tabController;
   String? _statusFilter;
@@ -98,6 +100,11 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
     _tabController.removeListener(_onSubTabChanged);
     _tabController.dispose();
     super.dispose();
+  }
+
+  @override
+  void onShellListVisibleAgain() {
+    _loadAll();
   }
 
   Future<void> _loadCalls() async {

@@ -73,7 +73,7 @@ async function main() {
   const env = loadRootEnv(ROOT);
   const port = env.API_GATEWAY_PORT || "5002";
   const apiBase = `http://127.0.0.1:${port}`;
-  const token = await loginAdminToken(ROOT);
+  const { token } = await loginAdminToken(ROOT);
 
   console.log("[1/6] GET /admin/mobile/releases");
   const list = await requestJson(`${apiBase}/api/v1/admin/mobile/releases`, {

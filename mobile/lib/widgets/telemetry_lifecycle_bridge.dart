@@ -5,6 +5,7 @@ import 'package:jobbingtrack_mobile/services/analytics_telemetry_queue.dart';
 import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
+import 'package:jobbingtrack_mobile/services/shell_data_refresh_service.dart';
 
 /// Déclenche le flush télémétrie quand l'app revient au premier plan (fin d'appel, retour réseau).
 class TelemetryLifecycleBridge extends StatefulWidget {
@@ -35,6 +36,7 @@ class _TelemetryLifecycleBridgeState extends State<TelemetryLifecycleBridge>
     CrashReporter.trackAppLifecycle(state.name);
     if (state == AppLifecycleState.resumed) {
       unawaited(_syncPendingTelemetry());
+      unawaited(ShellDataRefreshService.refreshIfStale(force: true));
     }
   }
 

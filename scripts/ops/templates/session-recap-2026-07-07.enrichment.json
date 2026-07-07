@@ -1,0 +1,189 @@
+{
+  "title": "Récap agent — session 06-07 juillet 2026",
+  "documentTitle": "JobbingTrack — Récap détaillé 06-07/07/2026",
+  "eyebrow": "JobbingTrack · Récap agent détaillé v2",
+  "branch": "dev",
+  "branches": [
+    "feat/bl-26-09-12-mobile-toolchain-api-url",
+    "feat/bl-26-02-03-agent-mail-ops",
+    "feat/mobile-smokes-fast-battery",
+    "feat/bl-26-01-playwright-mailhog",
+    "feat/mobile-releases-ota-author"
+  ],
+  "date": "2026-07-07T12:20:00+02:00",
+  "meta": [
+    { "label": "HEAD dev", "value": "8172d9b2", "code": true },
+    { "label": "Build mobile", "value": "1.0.0+12", "code": true },
+    { "label": "Samsung smoke", "value": "R5CT7263YJL", "code": true },
+    { "label": "OTA auteur", "value": "admin@jobbingtrack.com", "code": true }
+  ],
+  "kpis": [
+    { "label": "Commits", "value": "21", "tone": "info" },
+    { "label": "BL-26 clos", "value": "13", "tone": "ok" },
+    { "label": "Smokes fast", "value": "12/16", "tone": "warn" },
+    { "label": "Validations porteur", "value": "2 en attente", "tone": "pending" }
+  ],
+  "summary": "Session BL-26 dense : smokes ADB Samsung stabilisés (impersonation, intérim, FAB), Playwright MailHog 3/3, auteur OTA backoffice corrigé (admin@jobbingtrack.com), IMAP OVH rétabli, récap HTML agent standardisé v2 (problème/solution/commits), toolchain Android documentée (BL-26-09), centralisation API_BASE_URL (BL-26-12). En cours : BL-26-15 refresh listes + reprise validation porteur étape 2 et releases OTA.",
+  "workItems": [
+    {
+      "id": "BL-26-15",
+      "title": "Actualisation listes au retour / reprise réseau",
+      "status": "pending",
+      "problem": "Listes candidatures/relances/etc. parfois stale après retour arrière ou coupure réseau.",
+      "cause": "Providers chargés une seule fois à l'init ; pas de refresh lifecycle ni RouteAware shell.",
+      "solution": "ShellDataRefreshService + ShellListRefreshMixin (ApplicationsScreen, EventsScreen) + flush offline au resume.",
+      "files": [
+        "mobile/lib/services/shell_data_refresh_service.dart",
+        "mobile/lib/navigation/shell_list_refresh_mixin.dart",
+        "mobile/lib/widgets/telemetry_lifecycle_bridge.dart"
+      ],
+      "commits": [],
+      "tests": [{ "command": "flutter analyze (fichiers ciblés)", "result": "OK", "note": "en cours branche feat/bl-26-15-porteur-etape2-prep" }]
+    },
+    {
+      "id": "BL-26-09",
+      "title": "Toolchain Android / Gradle",
+      "status": "ok",
+      "problem": "Dette Gradle/Kotlin et packages Flutter outdated non documentée.",
+      "cause": "Warnings Built-in Kotlin + 33 packages contraints.",
+      "solution": "docs/mobile/ANDROID_TOOLCHAIN.md + audit-android-toolchain.sh — Gradle 8.14 confirmé.",
+      "files": ["docs/mobile/ANDROID_TOOLCHAIN.md", "scripts/mobile/audit-android-toolchain.sh"],
+      "commits": ["8172d9b2"],
+      "tests": [{ "command": "bash scripts/mobile/audit-android-toolchain.sh", "result": "OK" }]
+    },
+    {
+      "id": "BL-26-12",
+      "title": "API_BASE_URL centralisée",
+      "status": "ok",
+      "problem": "Risque d'URLs API hardcodées hors ApiService.",
+      "solution": "ApiService.defaultApiPort ; audit-api-base-url.sh OK ; doc PROCESSUS § URL API.",
+      "files": ["mobile/lib/services/api_service.dart", "scripts/mobile/audit-api-base-url.sh"],
+      "commits": ["8172d9b2"],
+      "tests": [{ "command": "bash scripts/mobile/audit-api-base-url.sh", "result": "OK" }]
+    },
+    {
+      "id": "BL-26-03",
+      "title": "Récap HTML agent v2",
+      "status": "ok",
+      "problem": "Récaps illisibles (pre monospace) et trop succincts.",
+      "solution": "buildAgentRecapHtml workItems/issues/commits ; collect-session-recap-git.cjs ; send-session-recap.cjs.",
+      "files": ["scripts/ops/build-agent-recap-html.cjs", "scripts/ops/send-session-recap.cjs"],
+      "commits": ["8172d9b2", "9911d8c5"],
+      "tests": [{ "command": "npx jest tests/ops/build-agent-recap-html.test.js", "result": "OK", "note": "5/5" }]
+    },
+    {
+      "id": "BL-26-02",
+      "title": "IMAP OVH candidatures@",
+      "status": "ok",
+      "problem": "AUTHENTICATIONFAILED OVH.",
+      "cause": "MDP porteur ; import smoke cassé.",
+      "solution": "MDP corrigé ; fetch-imap-verification.js --check-only ; fix smoke-email-agent-imap-sync.",
+      "commits": ["9911d8c5"],
+      "tests": [{ "command": "node scripts/mobile/fetch-imap-verification.js --check-only --ovh-only", "result": "OK" }]
+    },
+    {
+      "id": "OTA",
+      "title": "Releases OTA — auteur backoffice",
+      "status": "ok",
+      "problem": "Colonne Auteur = user@jobbingtrack.test.",
+      "solution": "authenticateAdmin JWT ; migration ADMIN_EMAIL ; docker-compose api-gateway.",
+      "commits": ["a00e4eb4", "f9d49942"],
+      "tests": [{ "command": "Historique builds 5/6/7 → admin@jobbingtrack.com", "result": "OK" }]
+    },
+    {
+      "id": "Smokes",
+      "title": "Batterie fast ADB Samsung + BL-26-04→08",
+      "status": "ok",
+      "problem": "Impersonation, switch intérim, FAB, entités, profil, notifs, offline KO.",
+      "solution": "restartApp+Connexion USER ; tap switch Material ; Menu ⋮ droite ; a11y Semantics ; SMOKE_DISMISS_INCOMING_CALLS.",
+      "commits": ["9bcfd91f", "31aa1b46", "c5addd14", "f21db182", "ece8f197", "a65bfa0c"],
+      "tests": [
+        { "command": "smoke-run-mobile-fast.js", "result": "OK", "note": "12/16" },
+        { "command": "smoke-mobile-impersonation-adb.js", "result": "OK" },
+        { "command": "smoke-mobile-application-detail-fab-adb.js", "result": "OK" }
+      ]
+    },
+    {
+      "id": "BL-26-01",
+      "title": "Playwright MailHog",
+      "status": "ok",
+      "solution": "run-playwright-mailhog-e2e.sh — bascule temporaire mailhog.",
+      "commits": ["6e63ecf4"],
+      "tests": [{ "command": "run-playwright-mailhog-e2e.sh", "result": "OK", "note": "3/3" }]
+    }
+  ],
+  "issues": [
+    {
+      "problem": "Validation porteur étape 2 — pas OK global",
+      "cause": "Impersonnalisation KO 17/06 ; FAB 6-11 non confirmés porteur",
+      "solution": "Correctifs mergés (BL-26-16/17) — rebuild APK + re-test porteur requis",
+      "status": "open",
+      "relatedCommits": ["798247bf", "e8334251", "31aa1b46"]
+    },
+    {
+      "problem": "Releases OTA backoffice — validation porteur ligne 416",
+      "cause": "Porteur a validé install étape 2 ; reste clic backoffice + drawer + OTA",
+      "solution": "Agent : smoke OTA API OK ; guide TODOS_A_VALIDER § releases",
+      "status": "open",
+      "relatedCommits": ["ef386543", "a463ea9c"]
+    },
+    {
+      "problem": "Sync email-agent 403 job_search_agent_disabled",
+      "cause": "JOB_SEARCH_AGENT_ENABLED absent compte test",
+      "solution": "bootstrap-admin-email-agent.cjs",
+      "status": "open"
+    }
+  ],
+  "sections": [
+    {
+      "status": "ok",
+      "title": "Prêt côté agent",
+      "items": [
+        "Smokes étape 2 points 1-11 (référence agent 02/07)",
+        "Impersonnalisation + double retour (BL-26-16/17 code)",
+        "OTA API + auteur admin@jobbingtrack.com",
+        "Récap HTML v2 standard"
+      ]
+    },
+    {
+      "status": "pending",
+      "title": "Actions porteur (bloquant suite)",
+      "items": [
+        "Étape 2 ligne 320 : OK global ou KO détaillé (checklist TODOS_A_VALIDER)",
+        "Releases OTA : OK Mobile releases OTA backoffice",
+        "Récap HTML : OK récap agent HTML (mail reçu aujourd'hui)",
+        "Mobile logs backoffice : clic détail ligne bug test"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "title": "Checklist validation porteur étape 2",
+      "headers": ["#", "Action", "Statut agent", "Porteur"],
+      "rows": [
+        ["1", "Retour Profil → Paramètres", "OK smoke", "OK 17/06"],
+        ["2", "Retour shell Calendrier ↔ Profil", "OK smoke", "À reconfirmer"],
+        ["3", "Drawer USER sans admin", "OK smoke", "OK 17/06"],
+        ["4", "Hub ADMIN + actions utilisateur", "OK smoke 02/07", "À reconfirmer"],
+        ["5-11", "Relances + FAB relance/appel/entretien/contact", "OK smoke 02/07", "Non confirmé 17/06"],
+        ["—", "Désimpersonnalisation visible", "OK code BL-26-17", "KO 17/06 — re-test"]
+      ]
+    },
+    {
+      "title": "Matrice tests agent",
+      "headers": ["Commande", "Résultat", "Note"],
+      "rows": [
+        ["node scripts/mobile/smoke/api/smoke-mobile-releases-ota-api.js", "—", "à relancer"],
+        ["bash scripts/mobile/audit-api-base-url.sh", "OK", ""],
+        ["node scripts/mobile/fetch-imap-verification.js --check-only --ovh-only", "OK", ""]
+      ]
+    }
+  ],
+  "nextSteps": [
+    "Merger BL-26-15 refresh listes + rebuild APK Samsung",
+    "Porteur : validation étape 2 checklist ligne 320",
+    "Porteur : OK Mobile releases OTA backoffice (ligne 416)",
+    "BL-26-18/19/20 après OK étape 2"
+  ],
+  "footer": "Récap généré via send-session-recap.cjs — pilotage TODOS_A_VERIFIER mis à jour. Réponse porteur étape 2 : « OK Mobile — navigation retour, admin, relances, ajouts candidature » ou KO détaillé."
+}
