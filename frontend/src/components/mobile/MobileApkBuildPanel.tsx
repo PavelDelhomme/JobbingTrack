@@ -6,7 +6,6 @@ import {
   buildApkFromBackoffice,
   fetchApkInfo,
   fetchAdbDevices,
-  fetchBuildHistory,
   fetchBuildSession,
   fetchEmulatorHealth,
   installApkOnDevice,
@@ -22,6 +21,7 @@ import {
   BUILD_LOG_LEVEL_CLASS,
   classifyBuildLogLine,
   splitBuildOutput,
+  summarizeBuildWarnings,
   type BuildLogLevel,
 } from "@/lib/mobile/buildLogUtils";
 
@@ -159,11 +159,30 @@ export function MobileApkBuildPanel({
     [pushLog],
   );
 
+  const applySessionPayload = useCallback(
+    (sessionData: Awaited<ReturnType<typeof fetchBuildSession>>) => {
+      if (sessionData?.session) {
+        setBuildSession(sessionData.session);
+        if (!sessionData.session.success && sessionData.session.stderrTail) {
+          setLastBuildError(sessionData.session.stderrTail);
+        }
+        const warnings = summarizeBuildWarnings(sessionData.session.warnings);
+        if (warnings.length > 0) setLastBuildWarnings(warnings);
+        else if (sessionData.session.success) setLastBuildWarnings([]);
+      }
+      if (Array.isArray(sessionData?.history)) {
+        setBuildHistory(sessionData.history);
+        return sessionData.history;
+      }
+      return null;
+    },
+    [],
+  );
+
   const loadBuildHistory = useCallback(async () => {
-    const history = await fetchBuildHistory();
-    setBuildHistory(history);
-    return history;
-  }, []);
+    const sessionData = await fetchBuildSession();
+    return applySessionPayload(sessionData) ?? [];
+  }, [applySessionPayload]);
 
   const clearLog = useCallback(() => setActivityLog([]), []);
 
@@ -187,28 +206,17 @@ export function MobileApkBuildPanel({
         return adb.devices[0]?.id || "";
       });
       const sessionData = await fetchBuildSession();
-      if (sessionData?.session) {
-        setBuildSession(sessionData.session);
-        if (!sessionData.session.success && sessionData.session.stderrTail) {
-          setLastBuildError(sessionData.session.stderrTail);
-        }
-        if (sessionData.session.warnings?.length) {
-          setLastBuildWarnings(sessionData.session.warnings);
-        }
-      }
+      const history = applySessionPayload(sessionData);
       if (health?.lastBuildSession && typeof health.lastBuildSession === "object") {
-        setBuildSession(health.lastBuildSession as BuildSession);
-      }
-      if (opts?.full) {
-        if (Array.isArray(sessionData?.history)) {
-          setBuildHistory(sessionData.history);
-        } else {
-          await loadBuildHistory();
-        }
+        const last = health.lastBuildSession as BuildSession;
+        setBuildSession(last);
+        const warnings = summarizeBuildWarnings(last.warnings);
+        if (warnings.length > 0) setLastBuildWarnings(warnings);
       }
       setLastRefreshAt(nowLabel());
+      return { history: history ?? sessionData?.history ?? [] };
     },
-    [loadBuildHistory],
+    [applySessionPayload],
   );
 
   const seedJournalFromHistory = useCallback(
@@ -246,11 +254,10 @@ export function MobileApkBuildPanel({
     } else {
       pushLog(result.error || "Préparation incomplète.");
     }
-    await refreshStatus({ full: true });
-    const history = await loadBuildHistory();
-    seedJournalFromHistory(history);
+    const { history } = await refreshStatus({ full: true });
+    seedJournalFromHistory(Array.isArray(history) ? history : []);
     setBootstrapping(false);
-  }, [clearLog, pushLog, refreshStatus, loadBuildHistory, seedJournalFromHistory]);
+  }, [clearLog, pushLog, refreshStatus, seedJournalFromHistory]);
 
   useEffect(() => {
     if (bootstrapOnceRef.current) return;
@@ -315,7 +322,7 @@ export function MobileApkBuildPanel({
       const stdoutFull = data.stdout || "";
       if (stdoutFull) pushOutputLines(stdoutFull);
       if (stderrFull) pushOutputLines(stderrFull);
-      const warnings = data.warnings || [];
+      const warnings = summarizeBuildWarnings(data.warnings || []);
       if (warnings.length > 0) {
         setLastBuildWarnings(warnings);
         pushLog(
@@ -326,7 +333,6 @@ export function MobileApkBuildPanel({
       if (ok) {
         setLastBuildError(null);
         await refreshStatus({ full: true });
-        await loadBuildHistory();
         onBuilt?.({
           version: data.version || apkInfo?.version || "1.0.0",
           buildNumber: String(data.buildNumber || apkInfo?.buildNumber || "1"),

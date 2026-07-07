@@ -143,12 +143,10 @@ export async function fetchBuildSession(): Promise<{
   return proxyGet("/build-session", 8000);
 }
 
+/** Historique via /build-session uniquement (évite 404 si route /build-history absente). */
 export async function fetchBuildHistory(): Promise<BuildHistoryEntry[]> {
-  const data = await proxyGet<{ history?: BuildHistoryEntry[] }>("/build-history", 8000);
-  if (Array.isArray(data?.history)) return data.history;
   const sessionData = await fetchBuildSession();
-  if (Array.isArray(sessionData?.history)) return sessionData.history;
-  return [];
+  return Array.isArray(sessionData?.history) ? sessionData.history : [];
 }
 
 export async function buildApkFromBackoffice(

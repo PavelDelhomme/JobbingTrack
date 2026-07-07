@@ -53,3 +53,26 @@ export const BUILD_LOG_LEVEL_CLASS: Record<BuildLogLevel, string> = {
   warning: "text-amber-900 dark:text-amber-200 font-medium",
   error: "text-red-800 dark:text-red-200 font-medium",
 };
+
+/** Réduit le bruit Kotlin (6 lignes similaires → 2 messages lisibles). */
+export function summarizeBuildWarnings(raw: string[] | undefined | null): string[] {
+  if (!raw?.length) return [];
+  const kotlinRelated = raw.some((w) => /Built-in Kotlin|Kotlin Gradle Plugin|KGP/i.test(w));
+  if (!kotlinRelated) return raw.slice(0, 8);
+
+  const out: string[] = [
+    "Migration Built-in Kotlin Flutter (BL-26-09) — APK produit ; voir docs/mobile/ANDROID_TOOLCHAIN.md avant maj Flutter.",
+  ];
+  const pluginsLine = raw.find((w) => /plugins that apply Kotlin Gradle Plugin/i.test(w));
+  if (pluginsLine) {
+    out.push(pluginsLine.replace(/\s+/g, " ").trim().slice(0, 420));
+  }
+  for (const w of raw) {
+    if (/Built-in Kotlin|Kotlin Gradle Plugin|plugins that apply Kotlin|build\.gradle\.kts/i.test(w)) {
+      continue;
+    }
+    if (out.length >= 4) break;
+    out.push(w.trim().slice(0, 420));
+  }
+  return out;
+}
