@@ -63,6 +63,7 @@ services:
     environment:
       # Ordre alphabétique des noms de variables (convention docs/operations/DOCKER_COMPOSE_ENV_CONVENTION.md)
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS in .env}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}
       - AUTH_SERVICE_URL=http://auth-service:${AUTH_SERVICE_INTERNAL_PORT:?set AUTH_SERVICE_INTERNAL_PORT in .env}
       - DASHBOARD_SERVICE_URL=http://dashboard-service:${DASHBOARD_SERVICE_INTERNAL_PORT:?set DASHBOARD_SERVICE_INTERNAL_PORT in .env}
       - DATABASE_URL=postgresql://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?set POSTGRES_DB}?schema=public
