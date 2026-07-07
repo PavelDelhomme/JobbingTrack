@@ -258,6 +258,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> with SingleTick
     }
     return FloatingActionButton(
       heroTag: 'fab_applications_list',
+      tooltip: 'Nouvelle candidature',
       onPressed: () async {
         final result = await ApplicationFormScreen.showCreateSheet(context);
         if (result == true) _loadAll();

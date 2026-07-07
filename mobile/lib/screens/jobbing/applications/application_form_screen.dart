@@ -304,10 +304,14 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         onPlatformsChanged: _loadPlatforms,
       ),
       const SizedBox(height: 12),
-      TextFormField(
-        controller: _position,
-        decoration: const InputDecoration(labelText: 'Poste *', border: OutlineInputBorder()),
-        validator: (v) => (v == null || v.trim().isEmpty) ? 'Requis' : null,
+      Semantics(
+        label: 'Poste',
+        textField: true,
+        child: TextFormField(
+          controller: _position,
+          decoration: const InputDecoration(labelText: 'Poste *', border: OutlineInputBorder()),
+          validator: (v) => (v == null || v.trim().isEmpty) ? 'Requis' : null,
+        ),
       ),
       const SizedBox(height: 12),
       TextFormField(

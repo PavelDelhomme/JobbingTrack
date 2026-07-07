@@ -8,6 +8,7 @@ require('../../lib/smoke-runtime');
 const {
   ensureUserShell,
   boundsCenter,
+  ensureHomeTab,
   openNotificationSheet,
   isNotificationSheetOpen,
 } = require('../../lib/adb-smoke-helpers');
@@ -18,6 +19,7 @@ loadRootEnv();
 
 async function ensureLoggedIn(phone, email, password) {
   await ensureUserShell(phone, email, password);
+  await ensureHomeTab(phone);
   await phone.assertVisible('Bonjour');
 }
 
@@ -61,8 +63,8 @@ async function tapFirstNotificationTile(phone) {
   console.log(`User: ${email}`);
 
   await ensureLoggedIn(phone, email, password);
-  await adbLib.flows.goToTab(phone, 1, { shell: true });
-  await phone.wait(1500);
+  await ensureHomeTab(phone);
+  await phone.wait(700);
 
   await openNotificationSheet(phone);
   if (!(await isNotificationSheetOpen(phone))) {

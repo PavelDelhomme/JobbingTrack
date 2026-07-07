@@ -7,6 +7,7 @@
  */
 
 const adbLib = require('../../../../tools/adb-lib');
+require('../../lib/smoke-runtime');
 const { ensureUserShell, typeInLabeledField } = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');
@@ -15,6 +16,8 @@ loadRootEnv();
 
 async function ensureLoggedInShell(phone, email, password) {
   await ensureUserShell(phone, email, password);
+  await adbLib.flows.goToTab(phone, 1, { shell: true });
+  await phone.wait(1000);
   await phone.assertVisible('Bonjour');
 }
 
@@ -68,7 +71,7 @@ async function ensureLoggedInShell(phone, email, password) {
   }
   console.log('✅ Dialogue : option boîte d\'intérim visible');
 
-  await typeInLabeledField(phone, 'Nom', companyName, { editIndex: 0 });
+  await typeInLabeledField(phone, 'Nom', companyName, { editIndex: 0, hints: ['Nom *', 'Nom'] });
   await phone.wait(600);
   await phone.tap('Créer');
   await phone.wait(4000);

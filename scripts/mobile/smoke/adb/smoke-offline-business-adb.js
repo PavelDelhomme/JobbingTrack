@@ -10,7 +10,13 @@
  */
 
 const adbLib = require('../../../../tools/adb-lib');
-const { ensureUserShell, typeInLabeledField } = require('../../lib/adb-smoke-helpers');
+require('../../lib/smoke-runtime');
+const {
+  ensureUserShell,
+  typeInLabeledField,
+  closeDrawerIfOpen,
+  boundsCenter,
+} = require('../../lib/adb-smoke-helpers');
 const { execSync } = require('child_process');
 const { resolveWorkingUserCredentials, GATEWAY_URL } = require('../../lib/resolve-user-credentials');
 
@@ -66,24 +72,6 @@ async function isApplicationFormOpen(phone) {
   );
 }
 
-async function tapShellFab(phone) {
-  if (await phone.uiContains('Nouvelle candidature')) {
-    try {
-      await phone.tap('Nouvelle candidature');
-      return;
-    } catch {
-      /* fallback coords */
-    }
-  }
-  const sizeOut = await phone.shellCommand('wm size');
-  const m = String(sizeOut).match(/(\d+)x(\d+)/);
-  const w = m ? parseInt(m[1], 10) : 1080;
-  const h = m ? parseInt(m[2], 10) : 2400;
-  const fabX = Math.floor(w - 44);
-  const fabY = Math.floor(h - 56 - 48 - 44);
-  await phone.tapXY(fabX, fabY);
-}
-
 async function waitApplicationsTabReady(phone, timeoutMs = 20000) {
   const t0 = Date.now();
   while (Date.now() - t0 < timeoutMs) {
@@ -100,26 +88,48 @@ async function waitApplicationsTabReady(phone, timeoutMs = 20000) {
   return 'timeout';
 }
 
-async function openNewApplicationForm(phone) {
-  await adbLib.flows.goToTab(phone, 1, { shell: true });
-  await phone.wait(2000);
-  try {
-    await phone.tap('Nouvelle candidature');
-  } catch {
-    await tapShellFab(phone);
+async function tapApplicationsFab(phone) {
+  const nodes = await phone.uiNodes();
+  const fab = nodes.find(
+    (n) => n.clickable && (n.contentDesc === 'Nouvelle candidature' || n.contentDesc === 'Ajouter'),
+  );
+  if (fab?.bounds) {
+    const c = boundsCenter(fab.bounds);
+    await phone.tapXY(c.cx, c.cy);
+    return true;
   }
-  await phone.wait(2500);
-  if (await isApplicationFormOpen(phone)) return;
+  const sizeOut = await phone.shellCommand('wm size');
+  const m = String(sizeOut).match(/(\d+)x(\d+)/);
+  const w = m ? parseInt(m[1], 10) : 1080;
+  const h = m ? parseInt(m[2], 10) : 2400;
+  await phone.tapXY(Math.floor(w - 44), Math.floor(h - 56 - 48 - 44));
+  return false;
+}
 
-  await adbLib.flows.goToTab(phone, 2, { shell: true });
+async function openNewApplicationForm(phone) {
+  await closeDrawerIfOpen(phone);
+  await adbLib.flows.goToTab(phone, 1, { shell: true });
   await phone.wait(1500);
+  if (await phone.uiContains('Ajouter')) {
+    await tapApplicationsFab(phone);
+    await phone.wait(1000);
+    if (await phone.uiContains('Nouvelle candidature')) {
+      await phone.tap('Nouvelle candidature');
+      await phone.wait(2500);
+      if (await isApplicationFormOpen(phone)) return;
+    }
+  }
+
+  await closeDrawerIfOpen(phone);
+  await adbLib.flows.goToTab(phone, 2, { shell: true });
+  await phone.wait(2000);
   try {
     await phone.tap('Candidatures', 0);
   } catch {
     try {
       await phone.tap('Candidatures');
     } catch {
-      /* déjà sur l’onglet candidatures */
+      /* déjà sur le sous-onglet */
     }
   }
   await waitApplicationsTabReady(phone);
@@ -127,7 +137,7 @@ async function openNewApplicationForm(phone) {
   if (await phone.uiContains('Créer ma première candidature')) {
     await phone.tap('Créer ma première candidature');
   } else {
-    await tapShellFab(phone);
+    await tapApplicationsFab(phone);
   }
   await phone.wait(2500);
   if (!(await isApplicationFormOpen(phone))) {
@@ -138,109 +148,50 @@ async function openNewApplicationForm(phone) {
 async function fillApplicationForm(phone, companyName, position) {
   await phone.wait(800);
   try {
-    await phone.tap('Entreprise');
+    await phone.tap('Choisir ou créer une entreprise');
   } catch {
     try {
-      await phone.tap('Choisir ou créer une entreprise');
-    } catch {}
+      await phone.tap('Entreprise');
+    } catch {
+      /* champ déjà focus */
+    }
   }
   await phone.wait(1200);
   if (!(await phone.uiContains('Choisir une entreprise'))) {
     throw new Error('Sélecteur entreprise non ouvert');
   }
-  try {
-    await typeInLabeledField(phone, 'Entreprise', companyName, {
-      hints: ['Rechercher ou saisir', 'Rechercher une entreprise', 'Entreprise'],
-      editIndex: 0,
-    });
-  } catch {
-    await phone.typeText(companyName);
-  }
-  await phone.wait(1200);
-  const createLabels = [
-    `Créer « ${companyName} »`,
-    `Créer "${companyName}"`,
-    `Créer «${companyName}»`,
-    `Créer ${companyName}`,
-    'Créer une nouvelle entreprise',
-    'Créer une entreprise',
-  ];
+  await typeInLabeledField(phone, 'Rechercher', companyName, {
+    hints: ['Rechercher une entreprise', 'Rechercher'],
+    editIndex: 0,
+  });
+  await phone.wait(1500);
+  const createLabel = `Créer « ${companyName} »`;
   let picked = false;
-  for (const label of createLabels) {
-    if (!(await phone.uiContains(label))) continue;
+  if (await phone.uiContains(createLabel)) {
     try {
-      await phone.tap(label);
+      await phone.tap(createLabel);
       picked = true;
-      break;
     } catch {
-      /* essai suivant */
+      /* fallback coords */
     }
   }
   if (!picked) {
     const nodes = await phone.uiNodes();
-    const createNode = nodes.find(
-      (n) =>
-        n.clickable &&
-        (n.text || n.contentDesc || '').includes('Créer') &&
-        (n.text || n.contentDesc || '').includes(companyName),
-    );
-    if (createNode?.bounds) {
-      const m = createNode.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
-      if (m) {
-        await phone.tapXY(
-          Math.round((+m[1] + +m[3]) / 2),
-          Math.round((+m[2] + +m[4]) / 2),
-        );
-        picked = true;
-      }
-    }
-    if (!picked) {
-      const genericCreate = nodes.find(
-        (n) =>
-          n.clickable &&
-          /^Créer\b/i.test(String(n.text || n.contentDesc || '').trim()) &&
-          !/candidature|contact|compte/i.test(`${n.text || ''}${n.contentDesc || ''}`),
-      );
-      if (genericCreate?.bounds) {
-        const m = genericCreate.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
-        if (m) {
-          await phone.tapXY(
-            Math.round((+m[1] + +m[3]) / 2),
-            Math.round((+m[2] + +m[4]) / 2),
-          );
-          picked = true;
-        }
-      }
+    const createRow = nodes.find((n) => {
+      const t = `${n.text || ''} ${n.contentDesc || ''}`;
+      return (/créer/i.test(t) && t.includes(companyName)) || t.includes('Créer entreprise offline');
+    });
+    if (createRow?.bounds) {
+      const c = boundsCenter(createRow.bounds);
+      await phone.tapXY(c.cx, c.cy);
+      picked = true;
     }
   }
   if (!picked) {
-    try {
-      await phone.tap('Créer', 0);
-      picked = true;
-    } catch {
-      throw new Error(`Option créer entreprise « ${companyName} » introuvable`);
-    }
+    throw new Error(`Option créer entreprise « ${companyName} » introuvable`);
   }
   await phone.wait(1500);
-  for (let i = 0; i < 8; i++) {
-    if (await phone.uiContains('Poste')) {
-      try {
-        await phone.typeInField('Poste', position);
-        break;
-      } catch {
-        /* scroll */
-      }
-    }
-    await phone.scrollDown(700);
-    await phone.wait(500);
-  }
-  if (!(await phone.uiContains(position))) {
-    try {
-      await phone.typeInEditTextByIndex(1, position);
-    } catch {
-      throw new Error('Champ Poste introuvable dans le formulaire candidature');
-    }
-  }
+  await typeInLabeledField(phone, 'Poste', position, { hints: ['Poste *', 'Poste'], editIndex: 0 });
   await phone.closeKeyboard();
   await phone.wait(600);
   for (let i = 0; i < 8; i++) {
@@ -252,7 +203,9 @@ async function fillApplicationForm(phone, companyName, position) {
         try {
           await phone.tap('Créer');
           return;
-        } catch {}
+        } catch {
+          /* scroll */
+        }
       }
     }
     await phone.scrollDown(900);

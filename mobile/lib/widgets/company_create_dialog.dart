@@ -23,10 +23,14 @@ Future<Company?> showCreateCompanyDialog(BuildContext context) async {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(labelText: 'Nom *'),
-                textCapitalization: TextCapitalization.words,
+              Semantics(
+                label: 'Nom',
+                textField: true,
+                child: TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'Nom *'),
+                  textCapitalization: TextCapitalization.words,
+                ),
               ),
               TextField(
                 controller: websiteCtrl,

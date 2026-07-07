@@ -30,16 +30,20 @@ class ShellAppBarMenu extends StatelessWidget {
       itemBuilder: (context) => [
         PopupMenuItem(
           value: 'notifications',
-          child: Material(
-            color: Colors.transparent,
-            child: ListTile(
-              leading: Badge(
-                isLabelVisible: unread > 0,
-                label: Text(unread > 9 ? '9+' : '$unread'),
-                child: const Icon(Icons.notifications_outlined),
+          child: Semantics(
+            label: 'Notifications',
+            button: true,
+            child: Material(
+              color: Colors.transparent,
+              child: ListTile(
+                leading: Badge(
+                  isLabelVisible: unread > 0,
+                  label: Text(unread > 9 ? '9+' : '$unread'),
+                  child: const Icon(Icons.notifications_outlined),
+                ),
+                title: Text(unread > 0 ? 'Notifications ($unread)' : 'Notifications'),
+                contentPadding: EdgeInsets.zero,
               ),
-              title: Text(unread > 0 ? 'Notifications ($unread)' : 'Notifications'),
-              contentPadding: EdgeInsets.zero,
             ),
           ),
         ),

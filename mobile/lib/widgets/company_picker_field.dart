@@ -53,21 +53,29 @@ class CompanyPickerField extends StatelessWidget {
                     children: [
                       Text('Choisir une entreprise', style: Theme.of(ctx).textTheme.titleMedium),
                       const SizedBox(height: 12),
-                      TextField(
-                        controller: search,
-                        decoration: const InputDecoration(
-                          labelText: 'Rechercher',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.search),
+                      Semantics(
+                        label: 'Rechercher',
+                        textField: true,
+                        child: TextField(
+                          controller: search,
+                          decoration: const InputDecoration(
+                            labelText: 'Rechercher',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.search),
+                          ),
+                          onChanged: applyFilter,
                         ),
-                        onChanged: applyFilter,
                       ),
                       const SizedBox(height: 12),
                       if (search.text.trim().isNotEmpty &&
                           !companies.any((c) => c.name.toLowerCase() == search.text.trim().toLowerCase()))
                         ListTile(
                           leading: Icon(Icons.add_business_outlined, color: Colors.green.shade700),
-                          title: Text('Créer « ${search.text.trim()} »'),
+                          title: Semantics(
+                            label: 'Créer entreprise offline',
+                            button: true,
+                            child: Text('Créer « ${search.text.trim()} »'),
+                          ),
                           subtitle: const Text('Nouvelle entreprise à l\'enregistrement'),
                           onTap: () => Navigator.pop(ctx, (companyId: null, name: search.text.trim())),
                         ),

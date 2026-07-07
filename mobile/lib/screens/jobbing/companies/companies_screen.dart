@@ -75,6 +75,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
       floatingActionButton: FloatingActionButton(
         heroTag: 'fab_companies_list',
         onPressed: _createCompany,
+        tooltip: 'Nouvelle entreprise',
         child: const Icon(Icons.add_business_outlined),
       ),
       body: Column(

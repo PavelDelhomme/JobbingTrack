@@ -20,6 +20,23 @@ function boundsCenter(bounds) {
   };
 }
 
+async function closeDrawerIfOpen(phone) {
+  if (
+    (await phone.uiContains('Recherche globale')) &&
+    (await phone.uiContains('Entreprises')) &&
+    !(await phone.uiContains('Bonjour'))
+  ) {
+    await phone.back();
+    await phone.wait(700);
+  }
+}
+
+async function ensureHomeTab(phone) {
+  await closeDrawerIfOpen(phone);
+  await adbLib.flows.goToTab(phone, 1, { shell: true });
+  await phone.wait(800);
+}
+
 async function isNotificationSheetOpen(phone) {
   return (
     (await phone.uiContains('Aucune notification candidature')) ||
@@ -32,6 +49,8 @@ async function isNotificationSheetOpen(phone) {
  * Ouvre la sheet notifications — cloche AppBar (écrans détail) ou Menu ⋮ → Notifications (accueil shell).
  */
 async function openNotificationSheet(phone, { timeoutMs = 10000 } = {}) {
+  await closeDrawerIfOpen(phone);
+
   const waitSheet = () =>
     phone.waitUntil(
       ({ contains }) =>
@@ -55,25 +74,44 @@ async function openNotificationSheet(phone, { timeoutMs = 10000 } = {}) {
   }
 
   if (await phone.uiContains('Menu')) {
-    try {
-      await phone.tap('Menu');
-    } catch {
-      const menuNode = (await phone.uiNodes()).find(
-        (n) => n.clickable && (n.contentDesc === 'Menu' || n.text === 'Menu'),
-      );
-      const c = boundsCenter(menuNode?.bounds);
-      if (c) await phone.tapXY(c.cx, c.cy);
+    const menuCandidates = (await phone.uiNodes())
+      .filter((n) => n.clickable && (n.contentDesc === 'Menu' || n.text === 'Menu'))
+      .map((n) => ({ n, c: boundsCenter(n.bounds) }))
+      .filter((x) => x.c && x.c.cy > 140 && x.c.cy < 400)
+      .sort((a, b) => b.c.cx - a.c.cx);
+    const menuBtn = menuCandidates[0];
+    if (menuBtn?.c) {
+      await phone.tapXY(menuBtn.c.cx, menuBtn.c.cy);
+    } else {
+      try {
+        await phone.tap('Menu');
+      } catch {
+        throw new Error('Bouton menu AppBar introuvable');
+      }
     }
-    await phone.wait(700);
-    const menuNodes = await phone.uiNodes();
-    const notifItem = menuNodes.find(
-      (n) => n.text && /^Notifications(\s*\(|$)/.test(String(n.text).trim()),
-    );
+    await phone.wait(900);
+    const popupNodes = await phone.uiNodes();
+    const notifItem = popupNodes.find((n) => {
+      const label = `${n.text || ''} ${n.contentDesc || ''}`.trim();
+      if (!label) return false;
+      if (/^menu$/i.test(label.trim())) return false;
+      return /notifications/i.test(label);
+    });
     if (notifItem?.bounds) {
       const c = boundsCenter(notifItem.bounds);
       await phone.tapXY(c.cx, c.cy);
     } else {
-      await phone.tapReliable('Notifications');
+      const popupMenuBtn = popupNodes
+        .filter((n) => n.clickable && n.contentDesc === 'Menu')
+        .map((n) => ({ n, c: boundsCenter(n.bounds) }))
+        .filter((x) => x.c)
+        .sort((a, b) => b.c.cx - a.c.cx)[0];
+      const mc = popupMenuBtn?.c;
+      if (mc) {
+        await phone.tapXY(mc.cx, Math.min(mc.cy + 140, 420));
+      } else {
+        throw new Error('Entrée Notifications introuvable dans le menu');
+      }
     }
     await phone.wait(900);
     if (await waitSheet()) return;
@@ -215,6 +253,8 @@ async function openSmokeApplicationDetail(phone, target) {
 module.exports = {
   nodeLabel,
   boundsCenter,
+  closeDrawerIfOpen,
+  ensureHomeTab,
   isNotificationSheetOpen,
   openNotificationSheet,
   ensureUserShell,

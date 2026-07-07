@@ -97,24 +97,28 @@ class _CompanyAutocompleteFieldState extends State<CompanyAutocompleteField> {
         }
       },
       fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-        return TextFormField(
-          controller: controller,
-          focusNode: focusNode,
-          decoration: const InputDecoration(
-            labelText: 'Entreprise *',
-            hintText: 'Rechercher ou saisir un nouveau nom',
-            border: OutlineInputBorder(),
-            suffixIcon: Icon(Icons.business_outlined),
+        return Semantics(
+          label: 'Entreprise',
+          textField: true,
+          child: TextFormField(
+            controller: controller,
+            focusNode: focusNode,
+            decoration: const InputDecoration(
+              labelText: 'Entreprise *',
+              hintText: 'Rechercher ou saisir un nouveau nom',
+              border: OutlineInputBorder(),
+              suffixIcon: Icon(Icons.business_outlined),
+            ),
+            validator: widget.validator,
+            onChanged: (v) {
+              final match = widget.companies.where((c) => c.name.toLowerCase() == v.trim().toLowerCase()).toList();
+              if (match.isNotEmpty) {
+                _emit(match.first.name, id: match.first.id);
+              } else {
+                _emit(v, id: null);
+              }
+            },
           ),
-          validator: widget.validator,
-          onChanged: (v) {
-            final match = widget.companies.where((c) => c.name.toLowerCase() == v.trim().toLowerCase()).toList();
-            if (match.isNotEmpty) {
-              _emit(match.first.name, id: match.first.id);
-            } else {
-              _emit(v, id: null);
-            }
-          },
         );
       },
       optionsViewBuilder: (context, onSelected, options) {
