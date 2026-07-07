@@ -2,8 +2,8 @@
 
 Dernière mise à jour : 2 juillet 2026
 
-**Statut** : **cadrage produit — pas maintenant**  
-Ne bloque **pas** la validation mobile **étape 2** ni le premier déploiement VPS. À exécuter **après** clôture des étapes 1→5 (`GUIDE_VALIDATION_PORTEUR.md`) et **avant** ouverture bêta / Play Store large.
+**Statut** : **EN COURS (07/07 porteur)** — priorité avant bêta / prod complète.  
+Ne bloque **pas** la validation mobile **étape 2** ni le déploiement VPS parallèle. Baseline **JT-1.0.0** validée **avec réserve** (re-vérif avant prod).
 
 Sources : cadrage porteur (Perplexity, juin 2026) + état réel du dépôt JobbingTrack.
 
@@ -80,7 +80,14 @@ Déploiement VPS  → Indépendant ; APK pointé vers API prod (BL-26-12)
 
 ---
 
-## Matrice de validation (à remplir plus tard)
+## Matrice de validation (BL-26-14 — en cours)
+
+Inventaire agent :
+
+```bash
+bash scripts/mobile/audit-android-api-matrix.sh
+bash scripts/mobile/audit-android-api-matrix.sh --smoke   # preflight par appareil
+```
 
 Cocher **porteur** avant bêta publique :
 
@@ -90,7 +97,7 @@ Cocher **porteur** avant bêta publique :
 | 26–28 | Blackview ou AVD | [ ] | [ ] | [ ] | [ ] | |
 | 30–32 | AVD | [ ] | [ ] | [ ] | [ ] | |
 | 34–35 | AVD | [ ] | [ ] | [ ] | [ ] | |
-| 36 | Samsung | [ ] | [ ] | [ ] | [ ] | **Étape 2 en cours** |
+| 36 | Samsung | [x] | [ ] | [ ] | [ ] | **Étape 2 + build +12** ; baseline JT-1.0.0 OK réserve |
 
 Smoke de référence par palier (agent) :
 

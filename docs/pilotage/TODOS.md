@@ -49,7 +49,7 @@ Détail pas à pas porteur : **[`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_
 | C3 | CI images GHCR | `build-push-images.yml`, webhooks documentés | Secrets `DEV_DEPLOY_URL` / `PROD_DEPLOY_URL` | [ ] porteur |
 | C4 | OTA Android in-app | API releases + install au démarrage | Tester Samsung canal **dev** | [ ] porteur |
 | C5 | Backoffice push mobile | `/backoffice/mobile/releases` | Upload dev → **Valider → PRODUCTION** | [ ] porteur |
-| C6 | Builds mobile | `build-apk-release.sh`, `mobile-release-android.yml` | `API_BASE_URL` prod + rebuild APK | [ ] porteur |
+| C6 | Builds mobile | `build-apk-release.sh`, `mobile-release-android.yml` | `API_BASE_URL` prod + rebuild APK | [x] porteur |
 | C7 | SMTP `@jobbingtrack.com` | doc OVH | Action **porteur** OVH (MX Plan) — après étape 2 mobile | [ ] bloqué 320 |
 | C8 | Gate préprod 9 étapes | `A_VALIDER_AVANT_PRODUCTION.md` | Après C1–C6 + clôture mobile B | [ ] |
 
@@ -79,7 +79,8 @@ Backlog détaillé historique : sections **Lot A–H** plus bas dans ce fichier 
 | **BL-26-10** | A mobile **v2** | **Création globale hors candidature** | Depuis n'importe où : champ recherche/autocomplete **candidature** puis créer **relance, appel, entretien, contact** sans ouvrir le détail candidature | `ApplicationPickerField` étendu ; FAB shell ou menu « Ajouter » global | **Après v1** (post étape 2 + gate) |
 | **BL-26-11** | A mobile **v2** | **Intérim = missions (pas candidatures)** | Mode intérim : **2 onglets** — **Boîtes d'intérim** (CRUD, anti-doublon nom) + **Missions** (liste, détail mission : dates, client, taux, statut). Ne plus réutiliser le modèle `Application` / formulaire candidature | `interim_screen.dart` → refonte ; API mission dédiée ou type `INTERIM_MISSION` | **Après v1** |
 | **BL-26-13** | D backoffice | **Recherche & filtres unifiés** | Un seul composant recherche/filtres réutilisable (tableaux, mobile-logs, analytics) ; plage dates + user/type/date ; personnalisation layout (cartes/tableaux/graphes) | `docs/BACKLOG.md` | **P2** |
-| **BL-26-14** | C mobile / QA | **Matrice compat Android multi-API** | Parc 3–5 paliers API (21, 28, 30, 34, 36) : AVD + Samsung + Blackview si API ancienne ; **pas avant** clôture étapes mobile 1→5 ; gate bêta / Play Store | `docs/mobile/STRATEGIE_COMPATIBILITE_ANDROID.md` | **Après étape 5** |
+| **BL-26-14** | C mobile / QA | **Matrice compat Android multi-API** | Parc 3–5 paliers API (21, 28, 30, 34, 36) : AVD + Samsung + Blackview si API ancienne ; script `audit-android-api-matrix.sh` | `docs/mobile/STRATEGIE_COMPATIBILITE_ANDROID.md` | **▶ EN COURS** (07/07 porteur — avant bêta / prod complète) |
+| **BL-26-29** | D backoffice | **Vue d’ensemble `/backoffice` — lenteur rendu** | Retour porteur 07/07 : chargement très long ; **EN PAUSE** — reprendre après matrice Android | `frontend/src/app/(admin)/backoffice/page.tsx` | **Pause** |
 | **BL-26-17** | A mobile | **Impersonnalisation — sortie visible** | Code OK **07/07** — **reste validation porteur** étape 2 | `impersonation_banner.dart`, `app_drawer.dart` | **Étape 2** |
 | **BL-26-18** | A mobile | **Recherche globale — récents + scope utilisateur** | À l’ouverture : recherches récentes ; recherche dans toutes entités user avec filtres par type | `search_screen.dart` + API search | **Après étape 2** |
 | **BL-26-19** | A mobile | **Profil — UX email / téléphone moderne** | Email : nouvelle adresse + confirmation + envoi lien validation ; téléphone : indicatif pays | auth-service + `profile_screen.dart` | **Après étape 2** |
@@ -88,9 +89,9 @@ Backlog détaillé historique : sections **Lot A–H** plus bas dans ce fichier 
 | **BL-26-26** | C mobile / prod | **Biométrie — re-validation release** | OK debug 19/06 ; **obligatoire** re-test APK release sans bypass smokes avant prod | `A_VALIDER_AVANT_PRODUCTION.md` | **Gate prod** |
 | **BL-26-27** | A monitoring / prod | **Services & Logs — pipeline opérationnel** | Retour porteur 07/07 : page sans lignes exploitables — **gate prod** avant MEP | `centralMetricsService.getServiceLogs` | **Gate prod** |
 | **BL-26-28** | C mobile / prod | **OTA promote → GitHub / branche prod** | Promote prod crée aujourd’hui une release OTA (+ tag GitHub **optionnel** `MOBILE_GITHUB_RELEASES_ENABLED`) — **pas** de merge auto vers `main`/`prod`. Décision produit : workflow Git (tag, cherry-pick, PR) documenté + bouton backoffice explicite. | `mobileReleaseStore.promoteRelease` ; `docs/production/DEPLOIEMENT_PRODUCTION.md` | **Phase C** — après OK OTA porteur |
-| **BL-DEP-01→06** | C déploiement | **Compatibilité clients + mises à jour toolchain** | Anciens mobile/API restent OK sans major ; npm/Node/deps via rebuild image + manifeste (pas `npm install` au start prod). Voir [`COMPATIBILITE_ET_MISES_A_JOUR.md`](../deployment/COMPATIBILITE_ET_MISES_A_JOUR.md). | `audit-toolchain.sh` (à créer), `docker-entrypoint.sh` | **Phase C** — après JT-1.0.0 |
+| **BL-DEP-01→06** | C déploiement | **Compatibilité clients + mises à jour toolchain** | BL-DEP-01/02/05/06 ✅ ; C6 validé porteur **avec réserve** (re-vérif avant prod complète). Reste BL-DEP-04 backoffice + stacks VPS. | `audit-toolchain.sh`, `release-info` | **Phase C** — baseline JT-1.0.0 OK réserve |
 
-**Ordre suggéré après étape 2 mobile** : re-test **BL-26-17** → **BL-26-18/19/20** → **BL-26-14** (matrice Android) → **BL-26-10/11** (v2 produit) → **BL-26-13** (recherche unifiée) → **BL-DEP-01→06** + **JT-1.0.0** → **BL-26-28** (workflow Git promote) → **BL-26-27** (gate prod).
+**Ordre actif (07/07 porteur)** : **BL-26-14** (matrice Android multi-API) → reprise **BL-26-29** (perf Vue d’ensemble backoffice) → **BL-26-17/18/19/20** → stacks VPS C0–C5 → **BL-26-28** → gate prod **BL-26-27**.
 
 ## Backlog produit — tutoriels & refonte navigation (29/06 porteur)
 

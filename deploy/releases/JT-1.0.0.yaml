@@ -4,7 +4,7 @@ platformRelease: JT-1.0.0
 releasedAt: "2026-07-07T16:31:16Z"
 gitCommit: "75519fe3"
 environment: baseline
-status: pending_porteur_validation
+status: validated_porteur_with_reserve
 
 toolchain:
   node: "20.18.0"

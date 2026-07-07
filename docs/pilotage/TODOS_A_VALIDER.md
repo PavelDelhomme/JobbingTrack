@@ -723,9 +723,11 @@ bash scripts/run-all-tests-with-reports.sh
 | C3 | NPM HTTPS | `api.<domaine>` → `:3000`, web → `:3001` ; login backoffice OK | [ ] |
 | C4 | Backoffice → **Mobile — releases OTA** | Upload APK **dev** ; test Samsung (canal dev) ; **Valider → PRODUCTION** | [ ] |
 | C5 | (Optionnel) Webhook CI | GitHub `DEV_DEPLOY_URL` ; `IMAGE_PULL_POLICY=always` | [ ] |
-| C6 | Baseline plateforme **JT-1.0.0** | Lire [`deploy/releases/JT-1.0.0.yaml`](../../deploy/releases/JT-1.0.0.yaml) ; `GET /api/v1/public/release-info` cohérent ; répondre **« OK baseline JT-1.0.0 »** | [ ] |
+| C6 | Baseline plateforme **JT-1.0.0** | Lire [`deploy/releases/JT-1.0.0.yaml`](../../deploy/releases/JT-1.0.0.yaml) ; `GET /api/v1/public/release-info` cohérent ; répondre **« OK baseline JT-1.0.0 »** | **[x] OK avec réserve 07/07** |
 
-**Validation agent (déjà OK)** : manifeste JT-1.0.0, scripts deps, endpoint `release-info` — voir `TODOS_A_VERIFIER.md` § Phase C.
+**Décision porteur 07/07/2026** : **OK baseline JT-1.0.0 avec réserve** — re-vérifier avant mise en production complète (stacks VPS C0–C5, promote OTA prod, gate prod). Mobile drawer : `Version 1.0.0` + `Build 12` = versionName legacy ; semver affichée cible **`1.0.12`** après rebuild APK (`pubspec` `1.0.12+12`).
+
+**Reprise chantier (07/07)** : matrice compat Android **BL-26-14** prioritaire ; perf **Vue d’ensemble backoffice** (**BL-26-29**) en pause.
 
 Guides : [`PORTAINER_STACK.md`](../production/PORTAINER_STACK.md) · [`MOBILE_RELEASE_PIPELINE.md`](../production/MOBILE_RELEASE_PIPELINE.md) · [`PREMIER_DEPLOIEMENT.md`](../../deploy/production/PREMIER_DEPLOIEMENT.md)
 

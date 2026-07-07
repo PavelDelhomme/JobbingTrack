@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 7 juillet 2026 (OTA wizard UX + nettoyage backlog BL-26)
+Dernière mise à jour : 7 juillet 2026 (C6 JT-1.0.0 OK réserve ; BL-26-14 matrice Android active)
 
 ## Rôle
 
@@ -572,7 +572,9 @@ Index scripts : `scripts/mobile/README.md`.
 | Phase A | Mobile — BL-26-07 smoke création entreprise | **07/07** smoke **OK** `SmokeCo-*` — build **+11**. | [x] |
 | Phase A | Mobile — BL-26-04 smoke entités | **07/07** smoke **OK** — entreprises/contacts/profil ; drawer hamburger gauche. | [x] |
 | Phase A | Mobile — BL-26-16 double retour Accueil | **07/07** `ShellBackRegistry` délègue BACK shell ; smoke `double-back-adb` **OK**. | [x] |
-| Phase C | Versionnement plateforme + VPS Portainer | **07/07** : manifeste `JT-1.0.0` + `platform-manifest.yaml/json` ; scripts `sync-platform-manifest.sh`, `audit-toolchain.sh`, `bump-component-version.sh` ; `GET /api/v1/public/release-info` ; doc `BREAKING_CHANGE_CHECKLIST.md`. **Reste** : validation porteur baseline JT-1.0.0, stacks VPS, BL-DEP-04 backoffice. | [x] agent BL-DEP-01/02/05/06 |
+| Phase C | Versionnement plateforme + VPS Portainer | **07/07** : C6 porteur **OK avec réserve** (re-vérif avant prod complète). Agent : manifeste, scripts deps, `release-info`. **Reste porteur** : stacks VPS C0–C5, BL-DEP-04 backoffice. | [x] C6 réserve |
+| BL-26-14 | Matrice compat Android multi-API | **07/07** : `audit-android-api-matrix.sh` ; campagne AVD paliers 21/28/30/34/36 + Samsung + Blackview. Cocher `STRATEGIE_COMPATIBILITE_ANDROID.md`. | [ ] **EN COURS** |
+| BL-26-29 | Backoffice Vue d’ensemble — lenteur rendu | **07/07 porteur** : très lent au chargement — **PAUSE** (reprise après BL-26-14). Piste : `backoffice/page.tsx`, fetchs parallèles, `light=1`. | [ ] pause |
 | Phase A | Backoffice — titres onglet fil d'Ariane | **17/06** : `DocumentTitleManager` MutationObserver. **Smoke Playwright** : `backoffice-document-titles-smoke.spec.ts` **5/5 OK** (`PLAYWRIGHT_BASE_URL=http://localhost:5003`). **Reste porteur** : `OK Titres onglet backoffice`. | [ ] |
 | Phase A | Mobile — BL-26-25 AppBar (cloche + actions contextuelles) | **02/07** : notifications déplacées dans menu ⋮ (`ShellAppBarMenu`) ; `ShellAppBarActions` — calendrier titre **Calendrier** + sous-titre Planning/Liste + bouton filtres ; candidatures bouton **Actualiser** ; profil conserve **Modifier** + menu. **Reste porteur** : rebuild APK — cloche absente AppBar shell, notifications via ⋮ ; calendrier bouton tune ouvre drawer. | [ ] |
 | P1C | Titres onglet navigateur backoffice — fil d'Ariane + sous-onglets | **02/07** : `backofficeDocumentTitles.ts` (~80 routes) — ex. `Tableau de bord / Performances / Synthèse \| JobbingTrack` ; retrait `useDocumentTitle` statique (Sécurité, MailHog…) ; dynamiques menace/alerte étendent le fil parent. Jest **7/7** ; `tsc` OK. **Reste porteur** : cliquer sous-onglets Performances / Statistiques / Sécurité — l’onglet navigateur affiche le libellé de l’onglet actif. | [ ] |
