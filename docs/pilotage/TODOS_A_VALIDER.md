@@ -13,7 +13,17 @@ Dernière mise à jour : 17 juin 2026 (retours porteur partiels étape 2 ; corre
 | **Registre à cocher après test** | Ligne **416** (releases OTA) ; étape 2 navigation **OK 17/06** |
 | **Ne pas utiliser pour valider** | [`TODOS.md`](TODOS.md) = backlog **agent** uniquement |
 
-**Réponse attendue après l’étape 2 Maintenance npm — update outillage et dépendances : planifier mise à jour npm/outillage vers dernière version stable et revue des dépendances obsolètes, avec type-check/lint/tests ciblés et scan CVE avant/après. À traiter après le tri P0 CVE pour éviter de brouiller les comparaisons en cours.
+**Réponse attendue après l’étape 2** (OK **global** uniquement si points 1–11 + impersonnalisation + FAB 6–11 confirmés) :
+
+```text
+OK Mobile — navigation retour, admin, relances, ajouts candidature
+```
+
+**Retours porteur 17/06/2026 (partiel — pas d’OK global)** : navigation retour Profil/Accueil et listes candidatures **OK** ; drawer USER sans admin et hub ADMIN **OK** ; édition prénom/nom/email/tél **OK** ; **KO** sortie impersonnalisation (bloquant) ; points FAB 6–11 **non confirmés** ; backlog produit noté (tutoriel, recherche globale, profil email/tél, logs backoffice, actualisation listes au retour, double retour système).
+
+---
+
+## File mobile 1→5 (ordre strict)
 
 | Étape | Statut | Aller à |
 |-------|--------|---------|
