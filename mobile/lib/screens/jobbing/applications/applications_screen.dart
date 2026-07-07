@@ -47,7 +47,7 @@ class ApplicationsScreen extends StatefulWidget {
 }
 
 class _ApplicationsScreenState extends State<ApplicationsScreen>
-    with SingleTickerProviderStateMixin, ShellListRefreshMixin {
+    with SingleTickerProviderStateMixin, RouteAware, ShellListRefreshMixin {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   late TabController _tabController;
   String? _statusFilter;

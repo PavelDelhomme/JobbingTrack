@@ -26,6 +26,15 @@ mixin ShellListRefreshMixin<T extends StatefulWidget> on State<T>, RouteAware {
     onShellListVisibleAgain();
   }
 
+  @override
+  void didPush() {}
+
+  @override
+  void didPop() {}
+
+  @override
+  void didPushNext() {}
+
   /// Surcharger pour recharger la liste locale ; par défaut refresh providers partagés.
   void onShellListVisibleAgain() {
     ShellDataRefreshService.refreshIfStale(context: context, force: true);

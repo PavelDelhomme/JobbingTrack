@@ -656,7 +656,7 @@ const routes = {
         version: pubspec?.version || null,
         buildNumber: pubspec?.buildNumber || null,
         message: ok ? 'Build APK réussi' : (exists ? 'Build terminé avec erreur' : 'Build échoué'),
-        stderrTail: stderrStr.slice(-1500),
+        stderrTail: stderrStr.slice(-8000),
         apkPath: exists ? apkPath : null,
       });
 
@@ -668,8 +668,8 @@ const routes = {
         version: pubspec?.version || null,
         buildNumber: pubspec?.buildNumber || null,
         downloadUrl: exists ? '/download-apk' : null,
-        stdout: stdoutStr.slice(-4000),
-        stderr: stderrStr.slice(-2000),
+        stdout: stdoutStr.slice(-12000),
+        stderr: stderrStr.slice(-12000),
       });
     } catch (e) {
       return send(res, 200, { success: false, error: (e && e.message) || String(e), stderr: '' });

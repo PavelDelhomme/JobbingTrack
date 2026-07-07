@@ -48,6 +48,33 @@ function formatWhen(iso?: string | null): string {
   }
 }
 
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  const value = text.trim();
+  if (!value) return false;
+  try {
+    await navigator.clipboard.writeText(value);
+    return true;
+  } catch {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = value;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}
+
+function formatActivityLog(lines: LogLine[]): string {
+  return lines.map((line) => `[${line.ts}] ${line.msg}`).join("\n");
+}
+
 function StepPill({
   n,
   label,
@@ -91,6 +118,7 @@ export function MobileApkBuildPanel({
   const [installPhase, setInstallPhase] = useState<string | null>(null);
   const [activityLog, setActivityLog] = useState<LogLine[]>([]);
   const [lastBuildError, setLastBuildError] = useState<string | null>(null);
+  const [copyHint, setCopyHint] = useState<string | null>(null);
   const [installDone, setInstallDone] = useState(false);
   const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
   const buildAbortRef = useRef<AbortController | null>(null);
@@ -108,6 +136,12 @@ export function MobileApkBuildPanel({
 
   const clearLog = useCallback(() => setActivityLog([]), []);
 
+  const handleCopy = useCallback(async (text: string, label: string) => {
+    const ok = await copyTextToClipboard(text);
+    setCopyHint(ok ? `${label} copié` : `Copie impossible (${label})`);
+    window.setTimeout(() => setCopyHint(null), 2500);
+  }, []);
+
   const refreshStatus = useCallback(
     async (opts?: { full?: boolean }) => {
       const health = await fetchEmulatorHealth();
@@ -122,7 +156,12 @@ export function MobileApkBuildPanel({
         return adb.devices[0]?.id || "";
       });
       const sessionData = await fetchBuildSession();
-      if (sessionData?.session) setBuildSession(sessionData.session);
+      if (sessionData?.session) {
+        setBuildSession(sessionData.session);
+        if (!sessionData.session.success && sessionData.session.stderrTail) {
+          setLastBuildError(sessionData.session.stderrTail);
+        }
+      }
       if (health?.lastBuildSession && typeof health.lastBuildSession === "object") {
         setBuildSession(health.lastBuildSession as BuildSession);
       }
@@ -210,7 +249,8 @@ export function MobileApkBuildPanel({
     try {
       const { ok, data } = await buildApkFromBackoffice(buildAbortRef.current.signal);
       pushLog(data.message || (ok ? "Build réussi." : data.error || "Build échoué."));
-      if (data.stderr) pushLog(data.stderr.slice(-400));
+      const stderrFull = data.stderr || buildSession?.stderrTail || "";
+      if (stderrFull) pushLog(stderrFull);
       if (ok) {
         setLastBuildError(null);
         await refreshStatus({ full: true });
@@ -219,7 +259,8 @@ export function MobileApkBuildPanel({
           buildNumber: String(data.buildNumber || apkInfo?.buildNumber || "1"),
         });
       } else {
-        setLastBuildError(data.stderr || data.error || data.message || "Build échoué");
+        const errText = [data.stderr, data.stdout, data.error, data.message].filter(Boolean).join("\n\n");
+        setLastBuildError(errText || "Build échoué");
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -314,10 +355,25 @@ export function MobileApkBuildPanel({
         ) : null}
 
         {lastBuildError ? (
-          <div className="mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100">
-            <p className="font-semibold">Dernier build en erreur</p>
-            <pre className="mt-1 max-h-24 overflow-auto whitespace-pre-wrap">{lastBuildError}</pre>
+          <div className="mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-semibold">Dernier build en erreur</p>
+              <button
+                type="button"
+                onClick={() => void handleCopy(lastBuildError, "Log build")}
+                className="rounded-md border border-red-400 bg-white px-2 py-1 text-xs font-medium text-red-800 hover:bg-red-100 dark:border-red-600 dark:bg-red-950 dark:text-red-100"
+              >
+                Copier le log
+              </button>
+            </div>
+            <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed">
+              {lastBuildError}
+            </pre>
           </div>
+        ) : null}
+
+        {copyHint ? (
+          <p className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">{copyHint}</p>
         ) : null}
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -449,18 +505,28 @@ export function MobileApkBuildPanel({
       ) : null}
 
       <div className="rounded-lg border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2 dark:border-gray-700">
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Journal de session</span>
-          <button type="button" onClick={clearLog} className="text-xs text-blue-600 hover:underline">
-            Effacer
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-3 py-2 dark:border-gray-700">
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Journal de session</span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={activityLog.length === 0}
+              onClick={() => void handleCopy(formatActivityLog(activityLog), "Journal")}
+              className="text-xs text-blue-600 hover:underline disabled:opacity-40"
+            >
+              Copier
+            </button>
+            <button type="button" onClick={clearLog} className="text-xs text-blue-600 hover:underline">
+              Effacer
+            </button>
+          </div>
         </div>
         {activityLog.length === 0 ? (
-          <p className="px-3 py-4 text-xs text-gray-400">Les actions en cours s’affichent ici en temps réel.</p>
+          <p className="px-3 py-4 text-sm text-gray-400">Les actions en cours s’affichent ici en temps réel.</p>
         ) : (
-          <ul className="max-h-40 overflow-auto px-3 py-2 font-mono text-xs text-gray-800 dark:text-gray-200">
+          <ul className="max-h-56 overflow-auto px-3 py-2 font-mono text-[13px] leading-relaxed text-gray-800 dark:text-gray-200">
             {activityLog.map((line, i) => (
-              <li key={`${line.ts}-${i}`} className="py-0.5">
+              <li key={`${line.ts}-${i}`} className="break-words py-0.5">
                 <span className="text-gray-400">[{line.ts}]</span> {line.msg}
               </li>
             ))}
