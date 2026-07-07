@@ -25,15 +25,31 @@ import {
   type BuildLogLevel,
 } from "@/lib/mobile/buildLogUtils";
 
+import {
+  installMatchesApk,
+  readWizardActivityLog,
+  readWizardInstall,
+  writeWizardActivityLog,
+  writeWizardInstall,
+  type StoredActivityLine,
+} from "@/lib/mobile/mobileOtaWizardStorage";
+
 type MobileApkBuildPanelProps = {
   onBuilt?: (info: { version: string; buildNumber: string }) => void;
   onPublishRequest?: () => void;
   publishing?: boolean;
+  publishBlocked?: boolean;
+  publishBlockedReason?: string | null;
+  devPublishDone?: boolean;
+  devPublishMessage?: string | null;
+  onPromoteRequest?: () => void;
+  promoting?: boolean;
+  prodPromoted?: boolean;
+  promoteMessage?: string | null;
+  promoteTargetLabel?: string | null;
 };
 
 type LogLine = { ts: string; msg: string; level: BuildLogLevel };
-
-const INSTALL_OK_KEY = "jt-mobile-releases-install-ok";
 
 function nowLabel(): string {
   return new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -112,10 +128,24 @@ function StepPill({
   );
 }
 
+function deviceMatchesApk(d: AdbDevice, info: ApkInfo | null): boolean {
+  if (!info?.version || info.buildNumber == null || !d.appInstalled) return false;
+  return d.appVersionName === info.version && String(d.appVersionCode) === String(info.buildNumber);
+}
+
 export function MobileApkBuildPanel({
   onBuilt,
   onPublishRequest,
   publishing,
+  publishBlocked,
+  publishBlockedReason,
+  devPublishDone,
+  devPublishMessage,
+  onPromoteRequest,
+  promoting,
+  prodPromoted,
+  promoteMessage,
+  promoteTargetLabel,
 }: MobileApkBuildPanelProps) {
   const [bootstrapping, setBootstrapping] = useState(true);
   const [controllerOk, setControllerOk] = useState<boolean | null>(null);
@@ -141,13 +171,18 @@ export function MobileApkBuildPanel({
   const bootstrapOnceRef = useRef(false);
 
   useEffect(() => {
-    try {
-      setInstallDone(sessionStorage.getItem(INSTALL_OK_KEY) === "1");
-    } catch { /* ignore */ }
+    const storedLog = readWizardActivityLog();
+    if (storedLog.length > 0) {
+      setActivityLog(storedLog as LogLine[]);
+    }
   }, []);
 
   const pushLog = useCallback((msg: string, level: BuildLogLevel = "info") => {
-    setActivityLog((prev) => [...prev.slice(-120), { ts: nowLabel(), msg, level }]);
+    setActivityLog((prev) => {
+      const next = [...prev.slice(-120), { ts: nowLabel(), msg, level }];
+      writeWizardActivityLog(next as StoredActivityLine[]);
+      return next;
+    });
   }, []);
 
   const pushOutputLines = useCallback(
@@ -184,7 +219,10 @@ export function MobileApkBuildPanel({
     return applySessionPayload(sessionData) ?? [];
   }, [applySessionPayload]);
 
-  const clearLog = useCallback(() => setActivityLog([]), []);
+  const clearLog = useCallback(() => {
+    setActivityLog([]);
+    writeWizardActivityLog([]);
+  }, []);
 
   const handleCopy = useCallback(async (text: string, label: string) => {
     const ok = await copyTextToClipboard(text);
@@ -196,7 +234,8 @@ export function MobileApkBuildPanel({
     async (opts?: { full?: boolean }) => {
       const health = await fetchEmulatorHealth();
       setControllerOk(!!health?.ok);
-      setApkInfo(await fetchApkInfo());
+      const info = await fetchApkInfo();
+      setApkInfo(info);
       const adb = await fetchAdbDevices({ light: !opts?.full });
       setDevices(adb.devices);
       setPendingDevices(adb.pendingDevices);
@@ -205,6 +244,9 @@ export function MobileApkBuildPanel({
         if (prev && adb.devices.some((d) => d.id === prev)) return prev;
         return adb.devices[0]?.id || "";
       });
+      if (info && adb.devices.some((d) => deviceMatchesApk(d, info))) {
+        setInstallDone(true);
+      }
       const sessionData = await fetchBuildSession();
       const history = applySessionPayload(sessionData);
       if (health?.lastBuildSession && typeof health.lastBuildSession === "object") {
@@ -213,11 +255,31 @@ export function MobileApkBuildPanel({
         const warnings = summarizeBuildWarnings(last.warnings);
         if (warnings.length > 0) setLastBuildWarnings(warnings);
       }
+      if (sessionData?.session?.inProgress) {
+        setBuilding(true);
+        if (sessionData.session.startedAt) {
+          const started = new Date(sessionData.session.startedAt).getTime();
+          if (Number.isFinite(started)) {
+            setBuildSeconds(Math.max(0, Math.floor((Date.now() - started) / 1000)));
+          }
+        }
+      } else if (!sessionData?.session?.inProgress && !buildAbortRef.current) {
+        setBuilding(false);
+      }
       setLastRefreshAt(nowLabel());
       return { history: history ?? sessionData?.history ?? [] };
     },
     [applySessionPayload],
   );
+
+  useEffect(() => {
+    if (!apkInfo?.version || apkInfo.buildNumber == null) return;
+    const stored = readWizardInstall();
+    if (installMatchesApk(stored, apkInfo.version, apkInfo.buildNumber)) {
+      setInstallDone(true);
+      if (stored?.deviceId) setSelectedDevice(stored.deviceId);
+    }
+  }, [apkInfo?.version, apkInfo?.buildNumber]);
 
   const seedJournalFromHistory = useCallback(
     (history: BuildHistoryEntry[]) => {
@@ -239,8 +301,12 @@ export function MobileApkBuildPanel({
 
   const runBootstrap = useCallback(async () => {
     setBootstrapping(true);
-    clearLog();
-    pushLog("Préparation contrôleur + ADB (une fois)…");
+    const existingLog = readWizardActivityLog();
+    if (existingLog.length === 0) {
+      pushLog("Préparation contrôleur + ADB (une fois)…");
+    } else {
+      pushLog("Reprise de session — actualisation du contrôleur…");
+    }
     const result = await bootstrapEmulatorDev();
     if (result.steps?.length) {
       for (const step of result.steps) pushLog(step);
@@ -255,9 +321,11 @@ export function MobileApkBuildPanel({
       pushLog(result.error || "Préparation incomplète.");
     }
     const { history } = await refreshStatus({ full: true });
-    seedJournalFromHistory(Array.isArray(history) ? history : []);
+    if (!existingLog.some((l) => l.msg.includes("Dernier build enregistré"))) {
+      seedJournalFromHistory(Array.isArray(history) ? history : []);
+    }
     setBootstrapping(false);
-  }, [clearLog, pushLog, refreshStatus, seedJournalFromHistory]);
+  }, [pushLog, refreshStatus, seedJournalFromHistory]);
 
   useEffect(() => {
     if (bootstrapOnceRef.current) return;
@@ -284,6 +352,11 @@ export function MobileApkBuildPanel({
   }, [building, refreshStatus]);
 
   const apkReady = !!apkInfo?.exists;
+  const deviceHasMatchingApp = Boolean(
+    apkInfo && devices.some((d) => deviceMatchesApk(d, apkInfo)),
+  );
+  const installSatisfied = installDone || deviceHasMatchingApp || !!devPublishDone;
+
   const step1State = building
     ? "active"
     : buildSession?.success
@@ -298,13 +371,30 @@ export function MobileApkBuildPanel({
     ? "locked"
     : installing
       ? "active"
-      : installDone
+      : installSatisfied
         ? "done"
         : devices.length > 0
           ? "ready"
           : "ready";
 
-  const step3State = !apkReady || !installDone ? "locked" : publishing ? "active" : "ready";
+  const step3State = !apkReady || !installSatisfied
+    ? "locked"
+    : publishing
+      ? "active"
+      : devPublishDone
+        ? "done"
+        : publishBlocked
+          ? "error"
+          : "ready";
+
+  const step4State = !devPublishDone ? "locked" : "ready";
+  const step5State = !devPublishDone
+    ? "locked"
+    : promoting
+      ? "active"
+      : prodPromoted
+        ? "done"
+        : "ready";
 
   const runBuild = async () => {
     if (!controllerOk) await runBootstrap();
@@ -358,7 +448,6 @@ export function MobileApkBuildPanel({
       return;
     }
     if (!selectedDevice) return;
-    clearLog();
     setInstalling(true);
     setInstallPhase("Préparation…");
     pushLog(`Étape 2 — installation sur ${selectedDevice}…`);
@@ -373,10 +462,15 @@ export function MobileApkBuildPanel({
       pushLog(result.message || result.error || "Terminé.");
       if (result.success) {
         setInstallDone(true);
-        try {
-          sessionStorage.setItem(INSTALL_OK_KEY, "1");
-        } catch { /* ignore */ }
+        writeWizardInstall({
+          version: apkInfo?.version || "1.0.0",
+          buildNumber: String(apkInfo?.buildNumber ?? "1"),
+          deviceId: selectedDevice,
+        });
+        pushLog("Installation réussie — passez à l’étape 3 (publish dev).", "success");
         await refreshStatus({ full: true });
+      } else {
+        pushLog(result.error || "Installation échouée.", "error");
       }
     } finally {
       setInstalling(false);
@@ -387,33 +481,32 @@ export function MobileApkBuildPanel({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-indigo-200 bg-indigo-50/80 px-4 py-3 text-sm text-indigo-950 dark:border-indigo-900 dark:bg-indigo-950/30 dark:text-indigo-100">
-        <p className="font-semibold">Porteur — où en suis-je ?</p>
+      <details className="rounded-lg border border-indigo-200 bg-indigo-50/80 px-4 py-3 text-sm text-indigo-950 dark:border-indigo-900 dark:bg-indigo-950/30 dark:text-indigo-100">
+        <summary className="cursor-pointer font-semibold">Aide porteur (étape 2 mobile + OTA)</summary>
         <ul className="mt-2 list-inside list-disc space-y-1 text-xs leading-relaxed">
           <li>
-            <strong>Étape 2 mobile</strong> (navigation + FAB points 1–11) : checklist{" "}
-            <code className="text-[11px]">GUIDE_VALIDATION_PORTEUR.md</code> — pas d&apos;OK global tant que points 6–11 + impersonnalisation non revalidés.
+            <strong>Étape 2 mobile</strong> : checklist{" "}
+            <code className="text-[11px]">GUIDE_VALIDATION_PORTEUR.md</code>
           </li>
           <li>
-            <strong>OTA backoffice</strong> (cette page) : 1 Build → 2 Install Samsung → 3 Publish dev → 4 MAJ OTA → 5 Promote prod.
+            <strong>OTA</strong> : Build → Install → Publish dev → MAJ sur Samsung → Promote prod
           </li>
           <li>
-            Warning <strong>Kotlin / Built-in Kotlin</strong> après build réussi = normal — dette{" "}
-            <strong>BL-26-09</strong>, pas bloquant pour continuer l&apos;OTA.
+            Warning Kotlin après build OK = dette <strong>BL-26-09</strong>, pas bloquant OTA.
           </li>
         </ul>
-      </div>
+      </details>
 
       <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
         <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
-          Parcours (dans l’ordre) — actualisé {lastRefreshAt ?? "…"}
+          Parcours — actualisé {lastRefreshAt ?? "…"}
         </p>
-        <div className="flex flex-wrap gap-2">
-          <StepPill n={1} label="Build APK" state={step1State as "done"} />
-          <span className="self-center text-gray-300">→</span>
-          <StepPill n={2} label="Install appareil" state={step2State as "done"} />
-          <span className="self-center text-gray-300">→</span>
-          <StepPill n={3} label="Publish dev" state={step3State as "done"} />
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <StepPill n={1} label="Build APK" state={step1State} />
+          <StepPill n={2} label="Install" state={step2State} />
+          <StepPill n={3} label="Publish dev" state={step3State} />
+          <StepPill n={4} label="OTA Samsung" state={step4State} />
+          <StepPill n={5} label="Promote prod" state={step5State} />
         </div>
       </div>
 
@@ -602,8 +695,12 @@ export function MobileApkBuildPanel({
                 >
                   {installing ? installPhase || "Installation…" : "Installer sur l’appareil"}
                 </button>
-                {installDone ? (
-                  <p className="text-xs text-emerald-700 dark:text-emerald-300">Installation réussie — passez à l’étape 3.</p>
+                {installSatisfied ? (
+                  <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                    {deviceHasMatchingApp && !installDone
+                      ? "Version déjà installée sur l’appareil — passez à l’étape 3."
+                      : "Installation réussie — passez à l’étape 3."}
+                  </p>
                 ) : null}
               </div>
             )}
@@ -611,22 +708,78 @@ export function MobileApkBuildPanel({
         )}
       </section>
 
-      {apkReady && installDone && onPublishRequest ? (
+      {apkReady && (installSatisfied || devPublishDone) ? (
         <section className="rounded-lg border border-blue-200 bg-blue-50/50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950/20">
-          <p className="text-sm text-gray-800 dark:text-gray-200">
-            <strong>Étape 3</strong> — Publier sur le canal <strong>dev</strong> (copie serveur, pas d’upload 171 Mo).
-          </p>
-          <button
-            type="button"
-            disabled={publishing}
-            onClick={onPublishRequest}
-            className="mt-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {publishing ? "Publication…" : "Publier sur canal dev"}
-          </button>
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Étape 3 — Publish canal dev</p>
+          {devPublishDone ? (
+            <div className="mt-2 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100">
+              <p className="font-medium">Publication dev OK</p>
+              <p className="mt-1 text-xs">{devPublishMessage || "Release active sur le canal dev."}</p>
+            </div>
+          ) : publishBlocked ? (
+            <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
+              {publishBlockedReason || "Ce build est déjà publié sur dev — incrémentez pubspec puis recompilez."}
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+              Copie l&apos;APK buildé vers le serveur OTA (sans upload 171 Mo).
+            </p>
+          )}
+          {onPublishRequest && !devPublishDone ? (
+            <button
+              type="button"
+              disabled={publishing || publishBlocked}
+              onClick={onPublishRequest}
+              className="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {publishing ? "Publication…" : "Publier sur canal dev"}
+            </button>
+          ) : null}
         </section>
-      ) : apkReady && !installDone ? (
+      ) : apkReady && !installSatisfied && !devPublishDone ? (
         <p className="text-xs text-gray-500">Étape 3 débloquée après installation réussie (étape 2).</p>
+      ) : null}
+
+      {devPublishDone ? (
+        <section className="rounded-lg border border-violet-200 bg-violet-50/40 px-4 py-3 dark:border-violet-900 dark:bg-violet-950/20">
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Étape 4 — OTA sur Samsung</p>
+          <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+            Ouvrez l&apos;app JobbingTrack sur le téléphone (canal dev). Elle doit proposer la MAJ vers la version
+            publiée. Si rien n&apos;apparaît : force-stop + relance, ou vérifiez le réseau / adb reverse.
+          </p>
+        </section>
+      ) : null}
+
+      {devPublishDone && onPromoteRequest ? (
+        <section className="rounded-lg border border-indigo-200 bg-indigo-50/40 px-4 py-3 dark:border-indigo-900 dark:bg-indigo-950/20">
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Étape 5 — Promote production</p>
+          {prodPromoted ? (
+            <div className="mt-2 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100">
+              <p className="font-medium">Production mise à jour</p>
+              <p className="mt-1 text-xs">{promoteMessage || "Canal production aligné sur la release dev validée."}</p>
+            </div>
+          ) : (
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+              {promoteTargetLabel
+                ? `Promouvoir ${promoteTargetLabel} (dev actif) vers le canal production.`
+                : "Après validation OTA dev, promouvez la release active dev en production."}
+            </p>
+          )}
+          {!prodPromoted ? (
+            <button
+              type="button"
+              disabled={promoting}
+              onClick={onPromoteRequest}
+              className="mt-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {promoting ? "Promotion…" : "Promouvoir dev → production"}
+            </button>
+          ) : null}
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            GitHub Release (tag <code>mobile-v*</code>) si{" "}
+            <code>MOBILE_GITHUB_RELEASES_ENABLED=true</code> — ne merge pas automatiquement <code>main</code>.
+          </p>
+        </section>
       ) : null}
 
       <div className="rounded-lg border border-gray-200 dark:border-gray-700">

@@ -1,115 +1,103 @@
 # Versionnement mobile JobbingTrack
 
-## Deux nombres, deux rôles
+## Règle produit (depuis 07/07/2026)
 
-Chaque build Flutter est identifié par **`MAJEUR.MINEUR.PATCH+BUILD`** dans `mobile/pubspec.yaml` :
+Chaque APK est identifié par **`MAJOR.MINOR.BUILD+BUILD`** dans `mobile/pubspec.yaml` :
 
 ```yaml
-version: 1.0.0+5
-#        │      └─ numéro de build (entier, toujours croissant)
-#        └─ version semver (lisible utilisateur / store)
+version: 1.0.12+12
+#        │       └─ numéro de build Android (versionCode, toujours croissant)
+#        └─ version affichée (3e segment = build en ligne 1.0.x)
 ```
 
 | Partie | Exemple | Rôle |
 |--------|---------|------|
-| **Version** (`1.0.0`) | Semver | Ce que l’utilisateur et le Play Store affichent : évolution produit |
-| **Build** (`+5`) | Entier strictement croissant | Identifiant technique de chaque APK ; requis par Android et par l’OTA |
+| **MAJOR** | `1` | Version majeure (rupture / refonte) — bump **manuel** |
+| **MINOR** | `0` | Fonctionnalités regroupées — bump **manuel** quand vous « déployez une mineure » |
+| **BUILD** (3e segment) | `12` | **Évolue à chaque APK** — visible dans l’app, le backoffice, l’OTA |
+| **+BUILD** | `+12` | Identifiant technique Android (identique au 3e segment en dev) |
 
-**Ce n’est pas la même chose que `1.0.5`.**  
-`1.0.5` = cinquième **correctif** semver (`1.0.0` → `1.0.1` → … → `1.0.5`).  
-`1.0.0+5` = version produit **1.0.0**, cinquième **compilation** (build n°5).
-
----
-
-## Quand incrémenter quoi ?
-
-### Numéro de build (`+N`) — **à chaque APK**
-
-- Chaque `flutter build apk`, chaque publication OTA dev, chaque install test.
-- **Toujours** augmenter, même si la version semver ne change pas.
-- L’OTA compare d’abord la semver, puis le build si la semver est identique.
-
-Exemples en phase dev intensive :
-
-| pubspec | Signification |
-|---------|----------------|
-| `1.0.0+1` | Premier APK 1.0.0 |
-| `1.0.0+2` | Rebuild / correctif interne, même version affichée |
-| `1.0.0+5` | Cinquième build, toujours affiché « 1.0.0 » côté store |
-
-### Version semver (`MAJEUR.MINEUR.PATCH`) — **quand le produit évolue**
-
-| Type | Exemple | Quand |
-|------|---------|--------|
-| **PATCH** | `1.0.0` → `1.0.1` | Correctifs, stabilité, petits ajustements sans nouvelle fonctionnalité |
-| **MINEUR** | `1.0.1` → `1.1.0` | Nouvelles fonctionnalités compatibles (ex. nouvel écran, OTA, cloche) |
-| **MAJEUR** | `1.1.0` → `2.0.0` | Changement majeur, rupture, refonte |
-
-**Bonne pratique** : quand tu changes la semver, incrémente aussi le build.
-
-```yaml
-# Correctif publié en store
-version: 1.0.1+6
-
-# Nouvelle fonctionnalité
-version: 1.1.0+7
-
-# Refonte majeure
-version: 2.0.0+8
-```
+**Exemple visuel** : vous voyez **Version 1.0.12** dans le drawer (plus « 1.0.0 build 12 »).
 
 ---
 
-## Affichage dans l’app
+## Incrément automatique
 
-| Contexte | Format | Exemple |
-|----------|--------|---------|
-| Drawer (utilisateur) | `1.0.0` + ligne « Build 5 » | Lisible |
-| OTA / technique | `1.0.0+5` | Comparaison serveur |
-| Backoffice releases | `v1.0.0 (build 5)` | Publication |
-| Tag GitHub (optionnel) | `mobile-v1.0.0+5` | Trace release |
+À chaque **Build APK** (backoffice ou `build-apk-debug.sh`) :
 
----
+1. Le script `bump-pubspec-version.js` incrémente le build (`12` → `13`).
+2. Il met à jour la version affichée (`1.0.12` → `1.0.13`).
+3. Écrit `mobile/pubspec.yaml` : `1.0.13+13`.
 
-## Workflow équipe
+Désactiver : `SKIP_VERSION_BUMP=1` avant le build.
 
-1. **Modifier** `mobile/pubspec.yaml` (semver et/ou build).
-2. **Build** APK (backoffice étape 1 ou `scripts/mobile/setup/build-apk-debug.sh`).
-3. **Publier** canal `dev` (bouton « Publier sur canal dev » — lit le pubspec).
-4. **Tester** OTA sur Samsung (canal dev en debug).
-5. **Promouvoir** en `production` uniquement avec un **vrai APK** (jamais un fichier smoke de test).
-
-Le backoffice affiche `pubspec` actuel, build suggéré et alerte `needsPubspecBump` si le pubspec n’a pas dépassé la release dev active.
+Aligner un ancien `1.0.0+12` sans incrémenter :  
+`node scripts/mobile/setup/bump-pubspec-version.js --align-only`
 
 ---
 
-## OTA — règle de comparaison
+## Comparaison avec le standard Flutter / semver « pur »
 
-Le serveur expose `version` + `buildNumber`. L’app compare :
+| | Standard Flutter | JobbingTrack |
+|---|------------------|--------------|
+| pubspec | `1.0.0+12` | `1.0.12+12` |
+| Affichage store | `1.0.0` (semver seul) | `1.0.12` |
+| 3e chiffre | patch semver (correctifs) | **numéro de build visible** |
+| +12 | build Android | build Android (identique) |
 
-1. Semver (`1.0.0` vs `1.0.1`) — majeur, mineur, patch dans l’ordre.
-2. Si semver égale → compare les **builds** (`+4` &lt; `+5` → mise à jour proposée).
-
-Une release avec semver plus récente mais build plus petit reste **plus récente** (ex. `1.0.1+1` &gt; `1.0.0+99`).
+Pourquoi le standard sépare ? Voir **[VERSIONNEMENT_EXPLICATION_PORTEUR.md](./VERSIONNEMENT_EXPLICATION_PORTEUR.md)**.
 
 ---
 
-## FAQ
+## Quand incrémenter MAJOR / MINOR manuellement
 
-**Pourquoi je vois `1.0.0+5` et pas `1.0.5` ?**  
-Parce que le `+5` n’est pas un chiffre de patch : c’est le numéro de build Android. Les correctifs s’écrivent `1.0.1`, `1.0.2`, etc.
+| Action | Exemple | Quand |
+|--------|---------|--------|
+| Build dev quotidien | `1.0.12+12` → `1.0.13+13` | **Automatique** |
+| Correctif nommé | `1.0.20+20` → `1.0.21+21` | Idem auto ; le « 21 » reste le build |
+| Nouvelle fonctionnalité (mineure) | `1.0.25+25` → `1.1.25+25` ou `1.1.26+26` | Éditer pubspec : monter **MINOR**, puis builds suivants sur `1.1.x` |
+| Refonte | `1.1.30+30` → `2.0.31+31` | Éditer pubspec : monter **MAJOR** |
 
-**Je peux sauter des builds ?**  
-Non recommandé : Android exige `versionCode` strictement croissant. Garde une suite `+1`, `+2`, `+3`…
+---
 
-**Debug vs release ?**  
-Même règle. En debug on utilise souvent la même semver longtemps et on fait monter le build (`1.0.0+4`, `+5`…) — normal avant la première mise en store.
+## OTA — comparaison
+
+1. Compare semver (`1.0.12` vs `1.0.13`) — majeur, mineur, patch.
+2. Si semver égale → compare les **builds** (`+12` &lt; `+13`).
+
+Les anciennes releases stockées en `1.0.0` + build `12` sont **normalisées à l’affichage** en `1.0.12` (API + backoffice).
+
+---
+
+## Affichage
+
+| Contexte | Format |
+|----------|--------|
+| Drawer mobile | `Version 1.0.12` |
+| OTA / technique | `1.0.12+12` |
+| Backoffice | `v1.0.12 (build 12)` |
+| Tag GitHub | `mobile-v1.0.12+12` |
 
 ---
 
 ## Fichiers concernés
 
 - `mobile/pubspec.yaml` — source de vérité
-- `mobile/lib/services/app_version_info.dart` — lecture `package_info_plus`
-- `backend/api-gateway/.../mobileReleaseStore.js` — suggestions OTA, garde-fous APK
-- `frontend/.../MobileReleaseManagementPanel.tsx` — backoffice releases
+- `scripts/mobile/lib/mobile-version-policy.cjs` — règles + bump
+- `scripts/mobile/setup/bump-pubspec-version.js` — CLI bump
+- `backend/api-gateway/src/lib/mobileVersionPolicy.js` — OTA / suggestions
+- `mobile/lib/services/app_version_info.dart` — affichage app
+- `frontend/.../MobileReleaseManagementPanel.tsx` — backoffice
+
+---
+
+## FAQ
+
+**Pourquoi pas `1.0.5` pour le 5e build ?**  
+En semver strict, `1.0.5` = 5e **correctif produit**, pas le 5e compile. JobbingTrack affiche le build dans le 3e chiffre : `1.0.5+5`.
+
+**Build déjà publié sur dev ?**  
+Relancer **Build APK** (auto +1) ou bump manuel — republication du même build est refusée.
+
+**Promote prod change `main` ?**  
+Non — OTA seulement ; tag GitHub optionnel. Voir BL-26-28 dans `TODOS.md`.

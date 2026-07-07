@@ -32,7 +32,9 @@ make diagnostic-metrics
 
 ## Notes de maintenance
 
-Cette page ne doit plus lister des fichiers un par un pour éviter la dérive documentaire. Lorsqu'un script est ajouté, déplacé ou supprimé, mettre à jour :
+Cette page ne doit plus lister des fichiers un par un pour éviter la dérive documentaire. Audits ponctuels : [`AUDIT_CLEANUP_2026-06-26.md`](AUDIT_CLEANUP_2026-06-26.md), [`NON_REFERENCED_SCRIPTS_AUDIT.md`](NON_REFERENCED_SCRIPTS_AUDIT.md), inventaire [`SCRIPTS_INVENTORY.md`](SCRIPTS_INVENTORY.md) — **07/07** : pas de nouvelle dette ; source opérationnelle = `scripts/README.md`.
+
+Lorsqu'un script est ajouté, déplacé ou supprimé, mettre à jour :
 
 - `scripts/README.md` pour l'inventaire opérationnel ;
 - le Makefile qui expose la commande ;

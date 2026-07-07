@@ -76,8 +76,9 @@ describe('mobileReleaseStore', () => {
 
     const state = listAdminState();
     expect(state.deployHints.publicApiUrl).toBe('https://api.example.com');
-    expect(state.deployHints.suggestedVersion).toBe('1.0.0');
-    expect(state.deployHints.suggestedBuild).toBeGreaterThanOrEqual(8);
+    expect(state.deployHints.suggestedVersion).toBe('1.0.8');
+    expect(state.deployHints.suggestedBuild).toBe(8);
+    expect(state.releases[0].displayVersion).toBe('1.0.7');
     expect(state.releases[0].githubTag).toBe('mobile-v1.0.0+7');
   });
 
@@ -99,7 +100,7 @@ describe('mobileReleaseStore', () => {
 
     const { publishBuiltApk } = require('../src/services/mobileReleaseStore');
     const release = publishBuiltApk({ channel: 'dev', releaseNotes: 'from pubspec' });
-    expect(release.version).toBe('2.1.0');
+    expect(release.version).toBe('2.1.15');
     expect(release.buildNumber).toBe(15);
     expect(release.releaseNotes).toBe('from pubspec');
 

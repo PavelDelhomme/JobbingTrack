@@ -267,15 +267,17 @@ class _AppDrawerState extends State<AppDrawer> {
                       color: Colors.grey[700],
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _appVersion!.displayBuildLine,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[500],
+                  if (_appVersion!.displayBuildLine != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      _appVersion!.displayBuildLine!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[500],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

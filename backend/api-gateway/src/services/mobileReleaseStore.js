@@ -2,6 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { parsePubspecVersion, githubTagForRelease } = require('../lib/mobilePubspec');
+const {
+  normalizeLegacyVersion,
+  normalizeVersionWithBuild,
+  computeSuggestedVersion: computeSuggestedFromPolicy,
+} = require('../lib/mobileVersionPolicy');
 
 const DEFAULT_CHANNELS = ['dev', 'production'];
 const DEFAULT_PLATFORMS = ['android', 'ios'];
@@ -185,10 +190,11 @@ function buildDownloadUrlForFilename(filename) {
 
 function releaseToPublicInfo(release, channelState) {
   if (!release) return null;
+  const displayVersion = normalizeLegacyVersion(release.version, release.buildNumber);
   const base = {
     platform: release.platform,
     channel: release.channel,
-    version: release.version,
+    version: displayVersion,
     buildNumber: release.buildNumber,
     minVersion: channelState?.minVersion || '0.0.0',
     minBuild: channelState?.minBuild ?? 0,
@@ -233,9 +239,11 @@ function formatFileSize(bytes) {
 
 function enrichReleaseForAdmin(release) {
   if (!release) return null;
+  const displayVersion = normalizeLegacyVersion(release.version, release.buildNumber);
   const enriched = {
     ...release,
-    githubTag: release.githubTag || githubTagForRelease(release.version, release.buildNumber),
+    displayVersion,
+    githubTag: release.githubTag || githubTagForRelease(displayVersion, release.buildNumber),
   };
 
   if (release.filename) {
@@ -257,28 +265,7 @@ function enrichReleaseForAdmin(release) {
 }
 
 function computeSuggestedVersion(androidReleases, activeDev, pubspec) {
-  const latestBuild = androidReleases.reduce(
-    (max, r) => Math.max(max, r.buildNumber || 0),
-    0,
-  );
-  const activeDevBuild = activeDev?.buildNumber || 0;
-
-  let suggestedVersion = pubspec?.version || activeDev?.version || '1.0.0';
-  let suggestedBuild = Math.max(latestBuild + 1, activeDevBuild + 1, pubspec?.buildNumber || 1, 1);
-
-  if (pubspec) {
-    suggestedVersion = pubspec.version;
-    const alreadyPublished = androidReleases.some(
-      (r) => r.version === pubspec.version && r.buildNumber === pubspec.buildNumber,
-    );
-    if (alreadyPublished) {
-      suggestedBuild = Math.max(suggestedBuild, pubspec.buildNumber + 1);
-    } else if (pubspec.buildNumber >= suggestedBuild) {
-      suggestedBuild = pubspec.buildNumber;
-    }
-  }
-
-  return { suggestedVersion, suggestedBuild, latestBuild };
+  return computeSuggestedFromPolicy(androidReleases, activeDev, pubspec);
 }
 
 function getDeployHints(store) {
@@ -296,9 +283,13 @@ function getDeployHints(store) {
   const needsPubspecBump = Boolean(
     pubspec
     && activeDev
-    && pubspec.buildNumber <= activeDev.buildNumber
-    && pubspec.version === activeDev.version,
+    && pubspec.buildNumber <= activeDev.buildNumber,
   );
+
+  const canPublishCurrentBuild = !needsPubspecBump;
+  const publishBlockedReason = needsPubspecBump
+    ? `Le build ${normalizeVersionWithBuild(pubspec.version, pubspec.buildNumber)} (n°${pubspec.buildNumber}) est déjà actif sur dev. Lancez « Build APK » (incrément auto vers ${computeSuggestedFromPolicy(androidReleases, activeDev, pubspec).suggestedVersion}) ou bump manuel dans pubspec.`
+    : null;
 
   return {
     publicApiUrl:
@@ -312,6 +303,8 @@ function getDeployHints(store) {
     pubspecBuild: pubspec?.buildNumber || null,
     pubspecPath: pubspec?.pubspecPath || null,
     needsPubspecBump,
+    canPublishCurrentBuild,
+    publishBlockedReason,
     activeDevRelease: enrichReleaseForAdmin(activeDev),
     activeProdRelease: enrichReleaseForAdmin(activeProd),
     latestAndroidRelease: enrichReleaseForAdmin(latest),
@@ -357,6 +350,8 @@ function createRelease({
   storeUrl,
 }) {
   const store = readStore();
+  const resolvedBuild = parseInt(String(buildNumber), 10) || 1;
+  const resolvedVersion = normalizeVersionWithBuild(String(version), resolvedBuild);
   if (platform === 'android' && filename) {
     assertValidApkOnDisk(path.join(releasesDir(), filename));
   }
@@ -364,8 +359,8 @@ function createRelease({
     id: newReleaseId(),
     channel,
     platform,
-    version: String(version),
-    buildNumber: parseInt(String(buildNumber), 10) || 1,
+    version: resolvedVersion,
+    buildNumber: resolvedBuild,
     releaseNotes: releaseNotes || '',
     filename: filename || null,
     storeUrl: storeUrl || null,
@@ -373,7 +368,7 @@ function createRelease({
     createdAt: new Date().toISOString(),
     createdBy: resolveReleaseAuthor(createdBy || null),
     status: 'active',
-    githubTag: githubTagForRelease(String(version), parseInt(String(buildNumber), 10) || 1),
+    githubTag: githubTagForRelease(resolvedVersion, resolvedBuild),
     githubReleaseUrl: null,
   };
 
@@ -521,11 +516,15 @@ function resolvePublishVersionInputs(version, buildNumber) {
 
   if (!resolvedVersion || !resolvedBuild) {
     throw new Error(
-      'version et buildNumber requis — incrémentez mobile/pubspec.yaml (ex. 1.0.0+2) puis rebuild.',
+      'version et buildNumber requis — lancez « Build APK » (incrément auto pubspec) ou éditez mobile/pubspec.yaml.',
     );
   }
 
-  return { version: resolvedVersion, buildNumber: resolvedBuild, pubspec };
+  return {
+    version: normalizeVersionWithBuild(resolvedVersion, resolvedBuild),
+    buildNumber: resolvedBuild,
+    pubspec,
+  };
 }
 
 function attachGithubReleaseMetadata(releaseId, { githubReleaseUrl, githubTag }) {
@@ -553,6 +552,20 @@ function publishBuiltApk({
   }
 
   const resolved = resolvePublishVersionInputs(version, buildNumber);
+
+  const storeBefore = readStore();
+  const activeOnChannel = getActiveRelease(storeBefore, channel, 'android');
+  if (
+    activeOnChannel
+    && activeOnChannel.buildNumber === resolved.buildNumber
+    && normalizeLegacyVersion(activeOnChannel.version, activeOnChannel.buildNumber)
+      === normalizeVersionWithBuild(resolved.version, resolved.buildNumber)
+  ) {
+    throw new Error(
+      `Build ${resolved.version} (n°${resolved.buildNumber}) déjà actif sur le canal ${channel}. `
+      + 'Lancez « Build APK » pour incrémenter automatiquement le pubspec.',
+    );
+  }
 
   const { safeApkFilename } = require('../middleware/mobileApkUpload');
   const destFilename = safeApkFilename(

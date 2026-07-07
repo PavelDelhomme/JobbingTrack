@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { parsePubspecLine } = require('./mobileVersionPolicy');
 
 function resolvePubspecPath() {
   const candidates = [
@@ -21,11 +22,14 @@ function parsePubspecVersion() {
 
   try {
     const yaml = fs.readFileSync(file, 'utf8');
-    const match = yaml.match(/^version:\s*([0-9.]+)\+(\d+)/m);
-    if (!match) return null;
+    const parsed = parsePubspecLine(yaml);
+    if (!parsed) return null;
     return {
-      version: match[1],
-      buildNumber: parseInt(match[2], 10) || 1,
+      version: parsed.version,
+      buildNumber: parsed.buildNumber,
+      major: parsed.major,
+      minor: parsed.minor,
+      patch: parsed.patch,
       pubspecPath: file,
     };
   } catch {

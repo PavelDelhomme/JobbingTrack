@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 7 juillet 2026 (BL-26-27 Services & Logs gate prod documenté)
+Dernière mise à jour : 7 juillet 2026 (OTA wizard UX + nettoyage backlog BL-26)
 
 ## Rôle
 
@@ -49,11 +49,11 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | Mobile | Releases OTA — auteur historique | **07/07** : routes admin utilisent `authenticateAdmin` (JWT email réel) ; migration `user@jobbingtrack.test` → `ADMIN_EMAIL` dans `mobileReleaseStore` au chargement. Redémarrer api-gateway puis Actualiser l’historique. | [x] |
 | BL-26-02 | IMAP OVH candidatures | ✅ **07/07** : `node scripts/mobile/fetch-imap-verification.js --check-only --ovh-only` **OK** (`imap.mail.ovh.net:993`, AUTH PLAIN) ; import corrigé `smoke-email-agent-imap-sync.cjs` ; fallback `EMAIL_TRIAGE_READ_*` dans `mail-connection-policy.js`. Sync API smoke : **403** `job_search_agent_disabled` (hors auth IMAP — activer agent sur compte test). | [x] |
 | BL-26-03 | Récap agent HTML | ✅ **07/07** : `buildAgentRecapHtml()` + `scripts/ops/templates/agent-recap-email.html` ; `send-agent-recap-email.cjs --recap-json` ; Jest **3/3** ; envoi test `pauldelhomme.pro@gmail.com` **HTTP 202** | [x] |
-| BL-26-04 | smoke `entities-adb` | a11y **Prénom** / **Rechercher** introuvables (dialogue contact) | [ ] après étape 2 |
-| BL-26-05 | smoke `profile-save-adb` | Écran **Modifier** profil non détecté | [ ] après étape 2 |
-| BL-26-06 | smoke `notification-nav-adb` | Tap cloche fallback coords — centre notif non ouvert | [ ] après étape 2 |
-| BL-26-07 | smoke `company-create-adb` | Champ **Nom** introuvable (dialogue entreprise) | [ ] après étape 2 |
-| BL-26-08 | smoke `offline-business-adb` | Option **créer entreprise offline** introuvable | [ ] après étape 2 |
+| BL-26-04 | smoke `entities-adb` | ✅ **07/07** build +12 | [x] |
+| BL-26-05 | smoke `profile-save-adb` | ✅ **07/07** Samsung | [x] |
+| BL-26-06 | smoke `notification-nav-adb` | ✅ **07/07** menu ⋮ droite | [x] |
+| BL-26-07 | smoke `company-create-adb` | ✅ **07/07** Semantics Nom | [x] |
+| BL-26-08 | smoke `offline-business-adb` | ✅ **07/07** build +11 | [x] |
 | BL-26-09 | Toolchain Android | ✅ **07/07** : `ANDROID_TOOLCHAIN.md` + `audit-android-toolchain.sh` — Gradle 8.14, dette pub outdated documentée | [x] |
 | BL-26-12 | API_BASE_URL centralisée | ✅ **07/07** : `audit-api-base-url.sh` OK ; `defaultApiPort` ; doc PROCESSUS § URL API | [x] |
 | BL-26-15 | Refresh listes au retour | ✅ **07/07** : ShellDataRefreshService + RouteAware mixin Applications/Events | [x] |
@@ -572,7 +572,7 @@ Index scripts : `scripts/mobile/README.md`.
 | Phase A | Mobile — BL-26-07 smoke création entreprise | **07/07** smoke **OK** `SmokeCo-*` — build **+11**. | [x] |
 | Phase A | Mobile — BL-26-04 smoke entités | **07/07** smoke **OK** — entreprises/contacts/profil ; drawer hamburger gauche. | [x] |
 | Phase A | Mobile — BL-26-16 double retour Accueil | **07/07** `ShellBackRegistry` délègue BACK shell ; smoke `double-back-adb` **OK**. | [x] |
-| Phase A | Backoffice — Mobile releases OTA + historique builds | **07/07** : historique builds + journal coloré + warnings Kotlin (BL-26-09). **Fix historique** : le navigateur n’appelle plus `/build-history` (source unique `GET /build-session` + champ `history`) — plus de 404 console ; historique appliqué à chaque refresh ; warnings Kotlin **résumés** (2 lignes au lieu de 6). Preuve : `curl -sk …/api/emulator-proxy/build-session` → `history` non vide après build v1.0.0+12. **Reste porteur** : publish dev + OTA Samsung → `OK Mobile releases OTA backoffice`. | [ ] |
+| Phase A | Backoffice — Mobile releases OTA + historique builds | **07/07** : parcours 5 étapes + persistance F5. **Politique version JobbingTrack** : affichage `1.0.N` (3e segment = build), incrément auto `bump-pubspec-version.js` à chaque build ; doc [`VERSIONNEMENT_EXPLICATION_PORTEUR.md`](../mobile/VERSIONNEMENT_EXPLICATION_PORTEUR.md). **Reste porteur** : OTA Samsung + promote prod. | [ ] |
 | Phase A | Backoffice — titres onglet fil d'Ariane | **17/06** : `DocumentTitleManager` MutationObserver. **Smoke Playwright** : `backoffice-document-titles-smoke.spec.ts` **5/5 OK** (`PLAYWRIGHT_BASE_URL=http://localhost:5003`). **Reste porteur** : `OK Titres onglet backoffice`. | [ ] |
 | Phase A | Mobile — BL-26-25 AppBar (cloche + actions contextuelles) | **02/07** : notifications déplacées dans menu ⋮ (`ShellAppBarMenu`) ; `ShellAppBarActions` — calendrier titre **Calendrier** + sous-titre Planning/Liste + bouton filtres ; candidatures bouton **Actualiser** ; profil conserve **Modifier** + menu. **Reste porteur** : rebuild APK — cloche absente AppBar shell, notifications via ⋮ ; calendrier bouton tune ouvre drawer. | [ ] |
 | P1C | Titres onglet navigateur backoffice — fil d'Ariane + sous-onglets | **02/07** : `backofficeDocumentTitles.ts` (~80 routes) — ex. `Tableau de bord / Performances / Synthèse \| JobbingTrack` ; retrait `useDocumentTitle` statique (Sécurité, MailHog…) ; dynamiques menace/alerte étendent le fil parent. Jest **7/7** ; `tsc` OK. **Reste porteur** : cliquer sous-onglets Performances / Statistiques / Sécurité — l’onglet navigateur affiche le libellé de l’onglet actif. | [ ] |

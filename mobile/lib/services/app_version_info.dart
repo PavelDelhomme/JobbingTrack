@@ -1,42 +1,51 @@
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:jobbingtrack_mobile/utils/app_version_policy.dart';
 
 /// Version lue depuis [PackageInfo] (alignée sur `mobile/pubspec.yaml`).
 ///
-/// Format technique Flutter : `semver+build` (ex. `1.0.0+5`).
-/// Politique semver vs build : `docs/mobile/VERSIONNEMENT.md`.
+/// Politique JobbingTrack : semver affichée `MAJOR.MINOR.BUILD` (ex. `1.0.12`) + build Android (+12).
+/// Voir `docs/mobile/VERSIONNEMENT.md`.
 class AppVersionDetails {
   const AppVersionDetails({
     required this.semver,
     required this.buildNumber,
   });
 
-  /// Version semver affichée store / utilisateur (ex. `1.0.0`, `1.1.0`, `2.0.0`).
+  /// Version semver affichée (ex. `1.0.12`, `1.1.20`).
   final String semver;
 
-  /// Numéro de build Android monotone (ex. `5`).
+  /// Numéro de build Android monotone (ex. `12`) — identique au 3e segment en dev 1.0.x.
   final String buildNumber;
 
-  /// Format technique OTA : `1.0.0+5`.
+  /// Format technique OTA : `1.0.12+12`.
   String get technical => '$semver+$buildNumber';
 
-  /// Une ligne lisible : `1.0.0 (build 5)`.
-  String get displayLabel => '$semver (build $buildNumber)';
+  /// Une ligne lisible : `1.0.12` (build technique en secondaire si besoin).
+  String get displayLabel {
+    if (AppVersionPolicy.patchMatchesBuild(semver, buildNumber)) {
+      return semver;
+    }
+    return '$semver (build $buildNumber)';
+  }
 
-  /// Ligne courte drawer : version seule.
+  /// Ligne drawer : version produit.
   String get displayVersionLine => 'Version $semver';
 
-  /// Ligne courte drawer : build seul.
-  String get displayBuildLine => 'Build $buildNumber';
+  /// Ligne drawer : build (masquée si déjà dans semver).
+  String? get displayBuildLine =>
+      AppVersionPolicy.patchMatchesBuild(semver, buildNumber) ? null : 'Build $buildNumber';
 
   factory AppVersionDetails.fromPackageInfo(PackageInfo info) {
+    final build = info.buildNumber;
+    final semver = AppVersionPolicy.normalizeLegacy(info.version, int.tryParse(build) ?? 0);
     return AppVersionDetails(
-      semver: info.version,
-      buildNumber: info.buildNumber,
+      semver: semver,
+      buildNumber: build,
     );
   }
 
   factory AppVersionDetails.fallback() {
-    return const AppVersionDetails(semver: '1.0.0', buildNumber: '1');
+    return const AppVersionDetails(semver: '1.0.1', buildNumber: '1');
   }
 }
 

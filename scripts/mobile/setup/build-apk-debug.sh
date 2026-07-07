@@ -14,6 +14,9 @@ if [[ -n "${MOBILE_DEV_LAN_HOST:-}" ]]; then
 fi
 cd "$ROOT"
 node "$ROOT/scripts/mobile/setup/generate-debug-test-accounts.js"
+if [[ "${SKIP_VERSION_BUMP:-}" != "1" ]]; then
+  node "$ROOT/scripts/mobile/setup/bump-pubspec-version.js"
+fi
 cd "$MOBILE_DIR"
 bash "$ROOT/scripts/mobile/setup/patch-android-plugin-gradle-kts.sh"
 bash "$ROOT/scripts/mobile/setup/ensure-flutter-gradle-cache.sh"

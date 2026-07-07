@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/app_version_info.dart';
+import 'package:jobbingtrack_mobile/utils/app_version_policy.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -32,7 +33,8 @@ class MobileReleaseInfo {
   final String? downloadUrl;
   final String? storeUrl;
 
-  String get displayVersion => '$version+$buildNumber';
+  String get displayVersion =>
+      AppVersionPolicy.normalizeLegacy(version, buildNumber);
 
   factory MobileReleaseInfo.fromJson(Map<String, dynamic> json) {
     final release = json['release'] is Map<String, dynamic>

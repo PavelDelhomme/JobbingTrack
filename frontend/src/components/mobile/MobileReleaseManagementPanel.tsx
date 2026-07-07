@@ -5,7 +5,7 @@ import axios from "axios";
 import { useAuth } from "@/lib/hooks/auth";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { MobileApkBuildPanel } from "@/components/mobile/MobileApkBuildPanel";
-import { formatApkDownloadFilename } from "@/lib/mobile/emulatorControllerClient";
+import { readWizardPublish, writeWizardPublish } from "@/lib/mobile/mobileOtaWizardStorage";
 
 type MobileRelease = {
   id: string;
@@ -35,6 +35,8 @@ type DeployHints = {
   pubspecBuild?: number | null;
   pubspecPath?: string | null;
   needsPubspecBump?: boolean;
+  canPublishCurrentBuild?: boolean;
+  publishBlockedReason?: string | null;
   githubReleasesEnabled?: boolean;
   githubRepository?: string | null;
   latestAndroidRelease: MobileRelease | null;
@@ -73,63 +75,12 @@ function statusBadge(status?: string, channel?: string) {
     </span>
   );
 }
-const APK_OUTPUT =
-  "mobile/build/app/outputs/flutter-apk/app-debug.apk";
 
 function resolveDownloadHref(release: Pick<MobileRelease, "filename" | "downloadUrl">): string | null {
   if (release.filename) {
     return `/api/v1/mobile/releases/download/${encodeURIComponent(release.filename)}`;
   }
   return release.downloadUrl ?? null;
-}
-
-const DEPLOY_STEPS = [
-  {
-    title: "1 — Build APK (backoffice étape 1)",
-    body: "Incrémentez mobile/pubspec.yaml, démarrez le contrôleur, cliquez « Lancer le build APK ».",
-    code: "bash scripts/mobile/setup/restart-emulator-controller.sh",
-  },
-  {
-    title: "2 — Tester sur appareil ADB (backoffice étape 2)",
-    body: "Sélectionnez l’appareil détecté automatiquement. Vérifiez la version installée, puis « Installer / mettre à jour ».",
-    code: "adb devices",
-  },
-  {
-    title: "3 — Publier sur le canal DEV (formulaire ci-dessous)",
-    body: "Upload ou bouton « Publier sur canal dev ». Version/build = pubspec.yaml.",
-    code: APK_OUTPUT,
-  },
-  {
-    title: "4 — Bêta-testeurs reçoivent la mise à jour OTA",
-    body: "APK debug → canal dev au démarrage. Partagez le lien OTA ou laissez l’app proposer la MAJ.",
-  },
-  {
-    title: "5 — Promouvoir en PRODUCTION",
-    body: "Après validation porteur : « Promouvoir dev → production » sur la carte Production.",
-  },
-] as const;
-
-function CopyBlock({ text, label }: { text: string; label?: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="mt-2 flex flex-wrap items-start gap-2">
-      <pre className="max-w-full flex-1 overflow-x-auto rounded-md bg-gray-900 px-3 py-2 text-xs text-gray-100">
-        {text}
-      </pre>
-      <button
-        type="button"
-        onClick={() => {
-          void navigator.clipboard.writeText(text.split("\n")[0] ?? text).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          });
-        }}
-        className="shrink-0 rounded-md border border-gray-300 px-2 py-1 text-xs font-medium hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
-      >
-        {copied ? "Copié" : label ?? "Copier"}
-      </button>
-    </div>
-  );
 }
 
 function formatDate(value?: string) {
@@ -273,6 +224,9 @@ export function MobileReleaseManagementPanel() {
 
   const publishBuiltApk = async () => {
     if (!token) return;
+    const deployHints = state?.deployHints;
+    const pubV = deployHints?.pubspecVersion?.trim() || version.trim();
+    const pubB = deployHints?.pubspecBuild != null ? String(deployHints.pubspecBuild) : buildNumber.trim();
     setUploading(true);
     setMessage(null);
     setError(null);
@@ -280,15 +234,22 @@ export function MobileReleaseManagementPanel() {
       await axios.post(
         adminApi("/mobile/releases/publish-built"),
         {
-          version: version.trim(),
-          buildNumber: buildNumber.trim(),
-          channel,
+          version: pubV,
+          buildNumber: pubB,
+          channel: "dev",
           releaseNotes: releaseNotes.trim(),
           platform: "android",
         },
         { headers: authHeaders },
       );
-      setMessage(`APK ${version} (build ${buildNumber}) publié sur le canal ${channel} (copie serveur).`);
+      const msg = `APK ${pubV} (build ${pubB}) publié sur le canal dev (copie serveur).`;
+      setMessage(msg);
+      writeWizardPublish({
+        version: pubV,
+        buildNumber: pubB,
+        channel: "dev",
+        message: msg,
+      });
       setReleaseNotes("");
       await load();
     } catch (e) {
@@ -309,22 +270,26 @@ export function MobileReleaseManagementPanel() {
 
   const promoteDevToProd = async () => {
     if (!token) return;
+    const src = state?.deployHints?.activeDevRelease;
+    const label = src ? `v${src.version}+${src.buildNumber}` : "la release dev active";
     if (
       !confirm(
-        "Promouvoir la release Android active du canal DEV vers PRODUCTION ? Les testeurs production recevront l’OTA.",
+        `Promouvoir ${label} vers PRODUCTION ? Les appareils production recevront l’OTA.`,
       )
     ) {
       return;
     }
     setActionId("promote");
     setMessage(null);
+    setError(null);
     try {
       await axios.post(
         adminApi("/mobile/releases/promote"),
         { platform: "android", fromChannel: "dev", toChannel: "production" },
         { headers: authHeaders },
       );
-      setMessage("Release dev promue en production.");
+      const msg = `Release ${label} promue en production.`;
+      setMessage(msg);
       await load();
     } catch (e) {
       setError(
@@ -361,7 +326,28 @@ export function MobileReleaseManagementPanel() {
 
   const devAndroid = state?.channels?.dev?.android;
   const prodAndroid = state?.channels?.production?.android;
-  const publicApiUrl = state?.deployHints?.publicApiUrl;
+  const hints = state?.deployHints;
+  const activeDev = hints?.activeDevRelease;
+  const activeProd = hints?.activeProdRelease;
+  const storedPublish = typeof window !== "undefined" ? readWizardPublish() : null;
+  const devPublishDone = Boolean(
+    activeDev
+    && hints?.pubspecBuild != null
+    && activeDev.buildNumber === hints.pubspecBuild,
+  );
+  const prodPromoted = Boolean(
+    activeProd
+    && activeDev
+    && activeProd.version === activeDev.version
+    && activeProd.buildNumber === activeDev.buildNumber,
+  );
+  const devPublishMessage =
+    storedPublish?.message
+    || (activeDev
+      ? `Canal dev actif : v${activeDev.version}+${activeDev.buildNumber} (${formatDate(activeDev.createdAt)})`
+      : null);
+  const promoteTargetLabel = activeDev ? `v${activeDev.version}+${activeDev.buildNumber}` : null;
+  const publicApiUrl = hints?.publicApiUrl;
   const mobileDownloadBase = state?.deployHints?.mobileDownloadBaseUrl;
   const otaBaseUrl = mobileDownloadBase || publicApiUrl || (typeof window !== "undefined" ? window.location.origin : null);
 
@@ -374,102 +360,70 @@ export function MobileReleaseManagementPanel() {
         }}
         onPublishRequest={() => void publishBuiltApk()}
         publishing={uploading}
+        publishBlocked={hints?.canPublishCurrentBuild === false}
+        publishBlockedReason={hints?.publishBlockedReason ?? null}
+        devPublishDone={devPublishDone}
+        devPublishMessage={devPublishMessage}
+        onPromoteRequest={() => void promoteDevToProd()}
+        promoting={actionId === "promote"}
+        prodPromoted={prodPromoted}
+        promoteMessage={
+          prodPromoted && activeProd
+            ? `Production active : v${activeProd.version}+${activeProd.buildNumber}`
+            : null
+        }
+        promoteTargetLabel={promoteTargetLabel}
       />
 
+      {message ? (
+        <div className="rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900 dark:border-green-800 dark:bg-green-950/30 dark:text-green-100">
+          {message}
+        </div>
+      ) : null}
+      {error ? (
+        <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950/30 dark:text-red-100">
+          {error}
+        </div>
+      ) : null}
+
       {state ? (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-200">
-          <p className="font-semibold">État serveur OTA</p>
+        <details className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-200">
+          <summary className="cursor-pointer font-semibold">État serveur OTA (détails)</summary>
           <ul className="mt-2 list-inside list-disc space-y-1 text-xs">
             <li>
-              Stockage APK : <code>{state.releasesDir}</code>
+              Stockage : <code>{state.releasesDir}</code>
             </li>
             <li>
-              URL publique API (liens OTA mobile) :{" "}
-              {publicApiUrl ? (
-                <code>{publicApiUrl}</code>
-              ) : (
-                <span className="text-amber-700 dark:text-amber-300">
-                  non configurée — définir <code>PUBLIC_API_URL</code> dans <code>.env</code>
-                </span>
-              )}
+              API OTA : {publicApiUrl ? <code>{publicApiUrl}</code> : "PUBLIC_API_URL non définie"}
             </li>
-            {mobileDownloadBase && mobileDownloadBase !== publicApiUrl ? (
-              <li>
-                URL téléchargement APK (téléphone) : <code>{mobileDownloadBase}</code>
-                <span className="text-gray-600 dark:text-gray-400">
-                  {" "}
-                  — dérivée de <code>MOBILE_DEV_LAN_HOST</code> (évite *.localhost sur Samsung)
-                </span>
-              </li>
-            ) : null}
-            {publicApiUrl?.includes(".localhost") && !mobileDownloadBase ? (
-              <li className="text-amber-800 dark:text-amber-200">
-                Sur appareil physique, définir <code>MOBILE_DEV_LAN_HOST=&lt;IP LAN&gt;</code> dans{" "}
-                <code>.env</code> puis redémarrer <code>api-gateway</code>. L’app réécrit aussi
-                l’URL vers son API configurée (adb reverse / LAN).
-              </li>
-            ) : null}
             <li>
-              <code>mobile/pubspec.yaml</code> actuel :{" "}
+              <code>pubspec.yaml</code> :{" "}
               <strong>
-                {state.deployHints?.pubspecVersion ?? "—"}+{state.deployHints?.pubspecBuild ?? "—"}
+                {hints?.pubspecVersion ?? "—"}
               </strong>
+              {" · "}
+              build <strong>{hints?.pubspecBuild ?? "—"}</strong>
+              {" · "}
+              format JobbingTrack : le 3e chiffre = build (ex. 1.0.12+12). Incrément auto à chaque « Build APK ».
             </li>
             <li>
-              Prochaine publication suggérée :{" "}
-              <strong>
-                {state.deployHints?.suggestedVersion ?? version}+
-                {state.deployHints?.suggestedBuild ?? buildNumber}
-              </strong>{" "}
-              (dernière release dev :{" "}
-              {state.deployHints?.activeDevRelease
-                ? `v${state.deployHints.activeDevRelease.version}+${state.deployHints.activeDevRelease.buildNumber}`
-                : "aucune"}
-              )
+              Dev actif :{" "}
+              {activeDev ? `v${activeDev.version}+${activeDev.buildNumber}` : "aucun"}
+              {" · "}
+              Prod actif :{" "}
+              {activeProd ? `v${activeProd.version}+${activeProd.buildNumber}` : "aucun"}
             </li>
-            {state.deployHints?.githubRepository ? (
-              <li>
-                GitHub : tag <code>mobile-v{version}+{buildNumber}</code>
-                {state.deployHints.githubReleasesEnabled
-                  ? " — création auto si token configuré"
-                  : " — activer MOBILE_GITHUB_RELEASES_ENABLED=true + GITHUB_TOKEN"}
+            {hints?.needsPubspecBump ? (
+              <li className="text-amber-800 dark:text-amber-200">
+                Prochain build suggéré :{" "}
+                <code>
+                  {hints.suggestedVersion}+{hints.suggestedBuild}
+                </code>{" "}
+                (incrément automatique au clic « Build APK », ou édition manuelle pubspec).
               </li>
             ) : null}
           </ul>
-          <details className="mt-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-800 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200">
-            <summary className="cursor-pointer font-medium">
-              Versionnement : pourquoi <code>1.0.0+5</code> et pas <code>1.0.5</code> ?
-            </summary>
-            <ul className="mt-2 list-disc space-y-1 pl-4">
-              <li>
-                <strong>1.0.0</strong> = version semver (correctif → <code>1.0.1</code>, fonctionnalité →{" "}
-                <code>1.1.0</code>, refonte → <code>2.0.0</code>).
-              </li>
-              <li>
-                <strong>+5</strong> = numéro de <em>build</em> (chaque APK compilé ; toujours croissant).
-                Ce n’est pas le cinquième chiffre après la version.
-              </li>
-              <li>
-                En dev intensif : même semver <code>1.0.0</code> avec builds <code>+1</code>, <code>+2</code>…
-                est normal. Avant une release store, monter le patch ou le mineur.
-              </li>
-              <li>
-                Doc dépôt : <code>docs/mobile/VERSIONNEMENT.md</code>
-              </li>
-            </ul>
-          </details>
-          {state.deployHints?.needsPubspecBump ? (
-            <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
-              Le build <strong>{state.deployHints.pubspecVersion}+{state.deployHints.pubspecBuild}</strong>{" "}
-              est déjà publié sur le canal dev. Incrémentez{" "}
-              <code>mobile/pubspec.yaml</code> (ex.{" "}
-              <code>
-                {state.deployHints.pubspecVersion}+{Number(state.deployHints.pubspecBuild) + 1}
-              </code>
-              ) avant de recompiler.
-            </p>
-          ) : null}
-        </div>
+        </details>
       ) : null}
       {apiDiag ? (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
@@ -485,62 +439,6 @@ export function MobileReleaseManagementPanel() {
         </div>
       ) : null}
 
-      <section className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-800 dark:bg-indigo-950/20">
-        <h2 className="text-base font-semibold text-indigo-950 dark:text-indigo-100">
-          Parcours développeur local (5 étapes)
-        </h2>
-        <ol className="mt-2 list-inside list-decimal space-y-1 text-sm text-indigo-900 dark:text-indigo-200">
-          <li>Build APK (panneau vert ci-dessus)</li>
-          <li>Test ADB + version installée (panneau bleu)</li>
-          <li>Publication canal dev (formulaire « Étape 3 »)</li>
-          <li>OTA bêta-testeurs (canal dev)</li>
-          <li>Promotion production</li>
-        </ol>
-        <p className="mt-2 text-xs text-indigo-800/80 dark:text-indigo-300/80">
-          API / backoffice / frontend : stack Docker habituelle. Le conteneur{" "}
-          <code>deployment-service</code> sert au déploiement orchestré (Portainer) — pas requis pour
-          un push APK local.
-        </p>
-      </section>
-
-      <section className="rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm dark:border-indigo-800 dark:from-indigo-950/40 dark:to-gray-900">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Comment déployer une release Android
-        </h2>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Suivez ces étapes dans l’ordre. Le backoffice héberge l’APK ; l’app mobile vérifie les mises à jour
-          via <code className="text-xs">/api/v1/mobile/releases/latest</code> (canal{" "}
-          <strong>dev</strong> en debug, <strong>production</strong> en release).
-        </p>
-        <div className="mt-4 space-y-3">
-          {DEPLOY_STEPS.map((step) => (
-            <div
-              key={step.title}
-              className="rounded-lg border border-indigo-100 bg-white/80 p-4 dark:border-indigo-900/50 dark:bg-gray-900/60"
-            >
-              <p className="font-semibold text-indigo-900 dark:text-indigo-200">{step.title}</p>
-              <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{step.body}</p>
-              {"code" in step && step.code ? <CopyBlock text={step.code} /> : null}
-            </div>
-          ))}
-        </div>
-        <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-          Config serveur : <code>MOBILE_RELEASES_DIR</code>, <code>PUBLIC_API_URL</code> ({" "}
-          <code>.env.example</code>). Stockage actuel : <code>{state?.releasesDir ?? "—"}</code>
-        </p>
-      </section>
-
-      {message ? (
-        <div className="rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900 dark:border-green-800 dark:bg-green-950/30 dark:text-green-100">
-          {message}
-        </div>
-      ) : null}
-      {error ? (
-        <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950/30 dark:text-red-100">
-          {error}
-        </div>
-      ) : null}
-
       <div className="grid gap-4 md:grid-cols-2">
         <ChannelCard
           title="Canal DEV (bêta-testeurs)"
@@ -551,28 +449,20 @@ export function MobileReleaseManagementPanel() {
         />
         <ChannelCard
           title="Canal PRODUCTION"
-          subtitle="OTA pour utilisateurs finaux (promotion depuis dev)"
+          subtitle="OTA utilisateurs finaux"
           channelState={prodAndroid}
           loading={loading}
-          onPromote={promoteDevToProd}
-          promoteLoading={actionId === "promote"}
           otaBaseUrl={otaBaseUrl}
         />
       </div>
 
-      <section className="rounded-xl border border-blue-200 bg-white p-5 shadow-sm dark:border-blue-800 dark:bg-gray-900">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Étape 3 — Publier un APK sur le canal DEV
-        </h2>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Sélectionnez le fichier <code>{APK_OUTPUT}</code>. La <strong>version</strong> et le{" "}
-          <strong>build</strong> doivent correspondre à{" "}
-          <code>mobile/pubspec.yaml</code> (suggestion serveur :{" "}
-          <code>
-            {state?.deployHints?.suggestedVersion ?? version}+
-            {state?.deployHints?.suggestedBuild ?? buildNumber}
-          </code>
-          ).
+      <details className="rounded-xl border border-blue-200 bg-white p-5 shadow-sm dark:border-blue-800 dark:bg-gray-900">
+        <summary className="cursor-pointer text-lg font-semibold text-gray-900 dark:text-gray-100">
+          Upload manuel APK (optionnel)
+        </summary>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          Préférez le bouton « Publier sur canal dev » du panneau vert (copie serveur). L’upload navigateur
+          sert de secours si l’APK n’est pas sur le serveur de build.
         </p>
         <form onSubmit={handleUpload} className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="block text-sm">
@@ -646,14 +536,14 @@ export function MobileReleaseManagementPanel() {
           <div className="md:col-span-2">
             <button
               type="submit"
-              disabled={uploading || !apkFile}
+              disabled={uploading || !apkFile || hints?.canPublishCurrentBuild === false}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {uploading ? "Envoi…" : "Publier sur le canal (étape 3)"}
+              {uploading ? "Envoi…" : "Upload APK (secours)"}
             </button>
           </div>
         </form>
-      </section>
+      </details>
 
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
         <div className="flex items-center justify-between gap-2">
