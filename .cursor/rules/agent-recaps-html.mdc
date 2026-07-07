@@ -1,11 +1,48 @@
-# Récapitulatifs agent — format HTML
+# Récapitulatifs agent — format HTML standard (v2 détaillé)
 
 Lors d'un récap de session pour le porteur (fin de lot, bilan technique) :
 
-- **Format** : HTML lisible, pas Markdown brut dans le corps du mail ou message principal.
-- **Structure** : en-tête (date, branche), tableaux ou cartes colorées pour OK / KO / en cours.
-- **Contenu** : ce qui fonctionne, ce qui ne fonctionne pas, ce qui reste à valider — sections distinctes.
-- **Signature** : ne pas ajouter « Agent Cursor — JobbingTrack — généré automatiquement » ni équivalent.
-- **Pilotage** : mettre à jour `docs/pilotage/TODOS_A_VERIFIER.md` ; ajouter une ligne `docs/pilotage/TODOS_A_VALIDER.md` si validation porteur requise.
+## Format obligatoire
 
-Référence modèle : sections avec fond léger (`#f0fdf4` OK, `#fef2f2` KO, `#fffbeb` en attente), titres `<h2>` courts, listes `<ul>` sans mur de tirets Markdown.
+- **HTML lisible** via `buildAgentRecapHtml()` — jamais Markdown brut dans le corps principal.
+- **Entrée** : JSON structuré (`--recap-json`) ou stdin JSON commençant par `{`.
+- **Référence schéma** : `scripts/ops/templates/agent-recap.example.json`.
+
+## Workflow agent (fin de session)
+
+1. Collecter les commits :  
+   `node scripts/ops/collect-session-recap-git.cjs --since YYYY-MM-DD --branch dev --session-branch feat/... --out /tmp/recap.json`
+2. **Compléter obligatoirement** dans le JSON :
+   - `workItems[]` : pour chaque lot/TODO — **problème**, **cause**, **solution**, **fichiers**, **commits**, **tests**
+   - `issues[]` : incidents rencontrés avec statut `resolved` / `open`
+   - `commits[]` : hash, message, date, branche, fichiers, Δ lignes
+   - `tables[]` : matrice tests (commande → OK/KO → note)
+   - `nextSteps[]` : backlog suivant
+3. Générer HTML : `node scripts/ops/build-agent-recap-html.cjs recap.json > out.html`
+4. Envoyer : `node scripts/ops/send-agent-recap-email.cjs --recap-json recap.json --subject "..."`
+
+## Sections HTML rendues (ordre)
+
+1. En-tête (date, branche, branches mergées, meta)
+2. KPIs
+3. Synthèse exécutive
+4. **Travaux réalisés (détail)** — workItems avec problème → solution
+5. **Incidents & résolutions**
+6. **Commits de la session**
+7. Sections OK / KO / en attente (résumé)
+8. Tableaux (matrice tests)
+9. Prochaines étapes
+10. Footer pilotage
+
+## Règles contenu
+
+- Chaque livrable significatif = un `workItem` avec **problème rencontré** et **solution apportée** (pas de récap vague).
+- Lister les **commits réels** (hash court) et **commandes de validation** exécutées.
+- Distinguer OK agent vs validation porteur en attente.
+- **Pas de signature** « Agent Cursor — généré automatiquement ».
+- Mettre à jour `docs/pilotage/TODOS_A_VERIFIER.md` ; ligne `TODOS_A_VALIDER.md` si validation rendu requise.
+
+## Style visuel
+
+Sections colorées : `#f0fdf4` OK, `#fef2f2` KO, `#fffbeb` en attente, `#eff6ff` info.  
+Modèle visuel legacy : `scripts/legacy/ops/reports/recap-mobile-18-19-juin-2026.html`.

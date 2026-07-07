@@ -294,7 +294,7 @@ class _LoginScreenState extends State<LoginScreen> {
               if (host.isNotEmpty) {
                 final next = host.contains(':')
                     ? (host.startsWith('http') ? host : 'http://$host')
-                    : 'http://$host:5002';
+                    : 'http://$host:${ApiService.defaultApiPort}';
                 ApiService.baseUrl = next;
                 Navigator.of(ctx).pop();
                 setState(() {});

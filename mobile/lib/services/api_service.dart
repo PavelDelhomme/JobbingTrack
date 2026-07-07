@@ -16,6 +16,7 @@ import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/models/call.dart';
 
 class ApiService {
+  static const int defaultApiPort = _apiPort;
   static const int _apiPort = 5002;
   static const Duration _timeout = Duration(seconds: 10);
 

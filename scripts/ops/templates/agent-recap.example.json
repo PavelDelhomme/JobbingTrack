@@ -1,0 +1,212 @@
+{
+  "title": "Récap agent — session 06-07/07/2026",
+  "documentTitle": "JobbingTrack — Récap détaillé 06-07 juillet 2026",
+  "eyebrow": "JobbingTrack · Récap agent détaillé",
+  "branch": "dev",
+  "branches": [
+    "feat/bl-26-02-03-agent-mail-ops",
+    "feat/mobile-smokes-fast-battery",
+    "feat/bl-26-01-playwright-mailhog",
+    "feat/mobile-releases-ota-author"
+  ],
+  "date": "2026-07-07T12:15:00+02:00",
+  "meta": [
+    { "label": "Build mobile installé", "value": "1.0.0+12", "code": true },
+    { "label": "Appareil smoke", "value": "Samsung R5CT7263YJL (adb reverse :5002)", "code": false },
+    { "label": "OTA auteur historique", "value": "admin@jobbingtrack.com", "code": true }
+  ],
+  "kpis": [
+    { "label": "Commits session", "value": "20", "tone": "info" },
+    { "label": "Smokes fast OK", "value": "12/16", "tone": "warn" },
+    { "label": "BL-26 clos", "value": "11", "tone": "ok" },
+    { "label": "IMAP OVH", "value": "OK", "tone": "ok" }
+  ],
+  "summary": "Session dense sur le lot BL-26 : stabilisation smokes ADB Samsung (impersonation, settings intérim, FAB détail), Playwright MailHog 3/3, auteur releases OTA backoffice (admin@jobbingtrack.com), IMAP OVH candidatures rétabli, et standard récap HTML agent enrichi (problème → solution → commits → tests). Tout mergé sur dev.",
+  "workItems": [
+    {
+      "id": "BL-26-02",
+      "title": "IMAP OVH candidatures@delhomme.ovh",
+      "status": "ok",
+      "problem": "Connexion IMAP OVH en AUTHENTICATIONFAILED malgré changement MDP porteur — agent email et smokes bloqués.",
+      "cause": "Mot de passe OVH incorrect/confondu dans .env ; import cassé dans smoke-email-agent-imap-sync.cjs ; CLI fetch-imap-verification.js documenté mais absent à la racine scripts/mobile/.",
+      "solution": "MDP OVH corrigé côté porteur. Ajout CLI scripts/mobile/fetch-imap-verification.js --check-only. Correction require ../mobile/lib/resolve-email-triage-env. Fallback EMAIL_TRIAGE_READ_* dans mail-connection-policy.js.",
+      "files": [
+        "scripts/mobile/fetch-imap-verification.js",
+        "scripts/ops/smoke-email-agent-imap-sync.cjs",
+        "tests/email-triage/lib/mail-connection-policy.js"
+      ],
+      "commits": ["9911d8c5"],
+      "tests": [
+        { "command": "node scripts/mobile/fetch-imap-verification.js --check-only --ovh-only", "result": "OK" },
+        { "command": "node scripts/ops/smoke-email-agent-imap-sync.cjs --ovh-only", "result": "OK", "note": "IMAP OK ; sync API 403 job_search_agent_disabled (agent non activé sur compte test)" }
+      ]
+    },
+    {
+      "id": "BL-26-03",
+      "title": "Récap agent HTML lisible et standardisé",
+      "status": "ok",
+      "problem": "Récaps agent en markdown échappé dans <pre> — illisibles en messagerie, trop succincts (pas de problème/solution/commits).",
+      "cause": "send-agent-recap-email.cjs utilisait textToHtml() monospace uniquement ; pas de schéma JSON ni collecte git.",
+      "solution": "buildAgentRecapHtml() avec sections workItems, issues, commits, nextSteps. Template scripts/ops/templates/agent-recap-email.html. collect-session-recap-git.cjs pour squelette auto. --recap-json dans send-agent-recap-email.cjs.",
+      "files": [
+        "scripts/ops/build-agent-recap-html.cjs",
+        "scripts/ops/collect-session-recap-git.cjs",
+        "scripts/ops/templates/agent-recap-email.html",
+        "scripts/ops/templates/agent-recap.example.json",
+        "scripts/ops/send-agent-recap-email.cjs",
+        "tests/ops/build-agent-recap-html.test.js"
+      ],
+      "commits": ["9911d8c5"],
+      "tests": [
+        { "command": "npx jest tests/ops/build-agent-recap-html.test.js", "result": "OK", "note": "6/6" },
+        { "command": "send-agent-recap-email.cjs --recap-json", "result": "OK", "note": "HTTP 202 pauldelhomme.pro@gmail.com" }
+      ]
+    },
+    {
+      "id": "BL-26-01",
+      "title": "Playwright MailHog E2E admin emails",
+      "status": "ok",
+      "problem": "Tests Playwright admin emails nécessitaient SMTP OVH ; flaky en dev local.",
+      "solution": "Script run-playwright-mailhog-e2e.sh : bascule temporaire auth-service → mailhog:1025, charge .env, restore SMTP après tests.",
+      "files": ["scripts/testing/run-playwright-mailhog-e2e.sh", "tests/e2e/specs/admin-emails-mailhog.spec.ts"],
+      "commits": ["6e63ecf4"],
+      "tests": [{ "command": "bash scripts/testing/run-playwright-mailhog-e2e.sh", "result": "OK", "note": "3/3 passed" }]
+    },
+    {
+      "id": "OTA",
+      "title": "Auteur historique releases OTA backoffice",
+      "status": "ok",
+      "problem": "Colonne Auteur affichait user@jobbingtrack.test pour toutes les releases.",
+      "cause": "Stub authenticate dans admin.routes.js forçait email test ; migration historique sans ADMIN_EMAIL dans conteneur api-gateway.",
+      "solution": "authenticateAdmin (JWT réel). Migration mobileReleaseStore → admin@jobbingtrack.com. docker-compose ADMIN_EMAIL exposé à api-gateway.",
+      "files": [
+        "backend/api-gateway/src/routes/admin.routes.js",
+        "backend/api-gateway/src/services/mobileReleaseStore.js",
+        "docker-compose.yml"
+      ],
+      "commits": ["a00e4eb4", "f9d49942"],
+      "tests": [{ "command": "Recreate api-gateway + historique builds 5/6/7", "result": "OK", "note": "admin@jobbingtrack.com confirmé porteur" }]
+    },
+    {
+      "id": "Smokes",
+      "title": "Batterie smokes fast ADB Samsung",
+      "status": "ok",
+      "problem": "Smokes impersonation, settings intérim et FAB détail candidature instables (logout+boucle login, switch Material, liste vide).",
+      "solution": "Impersonation : restartApp + Connexion USER. Settings intérim : tap switch + sync pref. FAB : login shell robuste + retry liste smoke-application-target.js. SMOKE_DISMISS_INCOMING_CALLS=1 auto.",
+      "files": [
+        "scripts/mobile/smoke/adb/smoke-mobile-impersonation-adb.js",
+        "scripts/mobile/smoke/adb/smoke-mobile-settings-interim-adb.js",
+        "scripts/mobile/smoke/adb/smoke-mobile-application-detail-fab-adb.js",
+        "scripts/mobile/lib/smoke-application-target.js"
+      ],
+      "commits": ["9bcfd91f", "f085e6d7"],
+      "tests": [
+        { "command": "smoke-mobile-impersonation-adb.js", "result": "OK" },
+        { "command": "smoke-mobile-settings-interim-adb.js", "result": "OK" },
+        { "command": "smoke-mobile-application-detail-fab-adb.js", "result": "OK" },
+        { "command": "smoke-run-mobile-fast.js batterie complète", "result": "OK", "note": "12/16 (~27 min)" }
+      ]
+    },
+    {
+      "id": "BL-26-04→08",
+      "title": "Smokes entités, profil, notifs, entreprise, offline",
+      "status": "ok",
+      "problem": "Multiples smokes KO : drawer gauche vs notifications, a11y champs, offline picker.",
+      "solution": "Corrections a11y Semantics, Menu ⋮ droite, ShellBackRegistry double retour, picker offline « Créer ».",
+      "commits": ["31aa1b46", "c5addd14", "f21db182", "ece8f197", "a65bfa0c"],
+      "tests": [
+        { "command": "smoke-mobile-entities-adb.js", "result": "OK" },
+        { "command": "smoke-mobile-profile-save-adb.js", "result": "OK" },
+        { "command": "smoke-mobile-notification-nav-adb.js", "result": "OK" },
+        { "command": "smoke-mobile-company-create-adb.js", "result": "OK" },
+        { "command": "smoke-offline-business-adb.js", "result": "OK" }
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "problem": "IMAP OVH AUTHENTICATIONFAILED",
+      "cause": "MDP OVH erroné / confusion TEST_REAL_EMAIL_PASSWORD",
+      "solution": "MDP porteur corrigé + CLI diagnostic + alignement variables",
+      "status": "resolved",
+      "relatedCommits": ["9911d8c5"]
+    },
+    {
+      "problem": "smoke-email-agent-imap-sync MODULE_NOT_FOUND",
+      "cause": "Chemin require ../mobile/resolve-email-triage-env invalide",
+      "solution": "Corrigé en ../mobile/lib/resolve-email-triage-env",
+      "status": "resolved",
+      "relatedCommits": ["9911d8c5"]
+    },
+    {
+      "problem": "Sync API email-agent 403 job_search_agent_disabled",
+      "cause": "JOB_SEARCH_AGENT_ENABLED absent sur compte TEST_USER",
+      "solution": "Lancer bootstrap-admin-email-agent.cjs — hors scope IMAP",
+      "status": "open",
+      "relatedCommits": []
+    },
+    {
+      "problem": "send-agent-recap EAGAIN sur --recap-json",
+      "cause": "Lecture stdin même quand --recap-json fourni",
+      "solution": "Ne lire stdin que si aucune source explicite",
+      "status": "resolved",
+      "relatedCommits": ["9911d8c5"]
+    },
+    {
+      "problem": "Impersonation smoke boucle login",
+      "cause": "logout()+BACK laissait état auth incohérent",
+      "solution": "restartApp + bouton Connexion USER explicite",
+      "status": "resolved",
+      "relatedCommits": ["9bcfd91f", "798247bf"]
+    }
+  ],
+  "commits": [
+    { "hash": "9911d8c5", "subject": "fix(ops): IMAP OVH diagnostic + récap agent HTML structuré", "date": "2026-07-07", "branch": "feat/bl-26-02-03-agent-mail-ops", "filesChanged": 11, "insertions": 491, "deletions": 26, "topFiles": ["scripts/ops/build-agent-recap-html.cjs", "scripts/mobile/fetch-imap-verification.js"] },
+    { "hash": "f9d49942", "subject": "fix(docker): exposer ADMIN_EMAIL à api-gateway pour auteur releases OTA", "date": "2026-07-07", "branch": "dev", "filesChanged": 1, "insertions": 1, "deletions": 0, "topFiles": ["docker-compose.yml"] },
+    { "hash": "a00e4eb4", "subject": "fix(api-gateway): auteur releases OTA = email admin JWT réel", "date": "2026-07-07", "branch": "feat/mobile-releases-ota-author", "filesChanged": 4, "insertions": 85, "deletions": 12, "topFiles": ["backend/api-gateway/src/routes/admin.routes.js"] },
+    { "hash": "6e63ecf4", "subject": "test(e2e): script Playwright MailHog 3/3 (BL-26-01)", "date": "2026-07-07", "branch": "feat/bl-26-01-playwright-mailhog", "filesChanged": 3, "insertions": 120, "deletions": 0, "topFiles": ["scripts/testing/run-playwright-mailhog-e2e.sh"] },
+    { "hash": "9bcfd91f", "subject": "fix(mobile-smoke): stabiliser smokes fast battery ADB Samsung", "date": "2026-07-07", "branch": "feat/mobile-smokes-fast-battery", "filesChanged": 5, "insertions": 95, "deletions": 40, "topFiles": ["scripts/mobile/smoke/adb/smoke-mobile-impersonation-adb.js"] }
+  ],
+  "sections": [
+    {
+      "status": "ok",
+      "title": "Validations agent OK",
+      "items": [
+        "IMAP OVH + Gmail pro live",
+        "Playwright MailHog 3/3",
+        "Smokes impersonation / intérim / FAB détail",
+        "OTA auteur admin@jobbingtrack.com",
+        "Récap HTML standard v2 (workItems + commits + issues)"
+      ]
+    },
+    {
+      "status": "pending",
+      "title": "En attente porteur",
+      "items": [
+        "Validation rendu récap HTML (mail test)",
+        "Releases OTA backoffice — ligne 416 TODOS_A_VALIDER",
+        "Étape 2 mobile — OK global navigation + FAB 6-11 + impersonnalisation"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "title": "Matrice tests session",
+      "headers": ["Commande / smoke", "Résultat", "Note"],
+      "rows": [
+        ["node scripts/mobile/fetch-imap-verification.js --check-only --ovh-only", "OK", "AUTH PLAIN"],
+        ["bash scripts/testing/run-playwright-mailhog-e2e.sh", "OK", "3/3"],
+        ["smoke-run-mobile-fast.js (ADB_FAST=1)", "OK", "12/16"],
+        ["npx jest tests/ops/build-agent-recap-html.test.js", "OK", "6/6"],
+        ["node scripts/ops/smoke-email-agent-imap-sync.cjs --ovh-only", "OK", "IMAP seul ; sync 403"]
+      ]
+    }
+  ],
+  "nextSteps": [
+    "BL-26-09 : dette toolchain Android (Gradle 8.14 OK, Built-in Kotlin, flutter pub outdated)",
+    "BL-26-12 : audit centralisation API_BASE_URL + doc build prod",
+    "Activer JOB_SEARCH_AGENT_ENABLED via bootstrap-admin-email-agent.cjs si sync smoke requis",
+    "Validation porteur étape 2 mobile + releases OTA"
+  ],
+  "footer": "Pilotage mis à jour : TODOS.md BL-26-01→03 ✅. Prochaine branche : feat/bl-26-09-12-mobile-toolchain-api-url."
+}

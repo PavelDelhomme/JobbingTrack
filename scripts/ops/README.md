@@ -12,7 +12,8 @@ Outils opérationnels permanents et smokes admin. Les campagnes de validation po
 | `list-email-logs.cjs` | Liste EmailLog récents |
 | `load-root-env.cjs` | Charge `.env` sans sourcer |
 | `send-agent-recap-email.cjs` | Envoi récap agent (`--recap-json`, `--html-file`) |
-| `build-agent-recap-html.cjs` | Gabarit HTML récap (`buildAgentRecapHtml`) |
+| `build-agent-recap-html.cjs` | Gabarit HTML récap détaillé (`buildAgentRecapHtml`) |
+| `collect-session-recap-git.cjs` | Squelette JSON récap depuis git log (`--since`, `--branch`) |
 | `send-test-agent-digest.cjs` | Test digest (manuel) |
 | `schedule-agent-recap-email.sh` | Cron récap |
 | `dev-https-certs.sh` | CA HTTPS dev |

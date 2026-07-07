@@ -12,6 +12,30 @@
 - **API** : API Gateway (port 5002), microservices (auth, company, application, contact, interview, call, followup, event, notification, etc.).
 - **Utilisateur cible** : candidat qui gère ses candidatures, entreprises, contacts, entretiens, relances et appels.
 
+### URL API — centralisation (BL-26-12)
+
+| Mécanisme | Rôle |
+|-----------|------|
+| `ApiService.baseUrl` | **Source unique** pour tous les appels métier (`mobile/lib/services/api_service.dart`) |
+| `--dart-define=API_BASE_URL=…` | Build prod / release OTA (`build-apk-release.sh` injecte l'URL prod) |
+| `ApiConfigStore` | Persistance locale de l'URL choisie sur l'appareil (debug, long-press login) |
+| `ApiService.autoDetectApi()` | Ordre : dart-define → URL sauvegardée → `127.0.0.1` → `MOBILE_DEV_LAN_HOST` → `10.0.2.2` → localhost |
+| `ApiService.defaultApiPort` | Port par défaut (**5002**) — utilisé par l'écran login debug |
+
+**Audit** (CI / agent) :
+
+```bash
+bash scripts/mobile/audit-api-base-url.sh
+```
+
+**Build prod** :
+
+```bash
+API_BASE_URL=https://api.jobbingtrack.delhomme.ovh bash scripts/mobile/setup/build-apk-release.sh
+```
+
+Voir aussi [`ANDROID_TOOLCHAIN.md`](ANDROID_TOOLCHAIN.md) et [`mobile/README.md`](../../mobile/README.md).
+
 ---
 
 ## 1. Entrée dans l’application
@@ -19,7 +43,7 @@
 ### 1.1 Splash puis Connexion
 
 1. Au lancement, l’app affiche un **écran de chargement** (Splash).
-2. **Détection de l’API** : `ApiService.autoDetectApi()` teste `127.0.0.1:5002`, `10.0.2.2:5002`, `localhost:5002` (ordre typique appareil physique / émulateur).
+2. **Détection de l’API** : `ApiService.autoDetectApi()` — voir § « URL API — centralisation » (`127.0.0.1`, `10.0.2.2`, dart-define prod).
 3. Redirection vers **`/login`** (écran de connexion).
 4. **Écran Connexion** :
    - Champs : **Email**, **Mot de passe**.
