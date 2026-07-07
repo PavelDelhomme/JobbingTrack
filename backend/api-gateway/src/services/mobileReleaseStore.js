@@ -6,6 +6,31 @@ const { parsePubspecVersion, githubTagForRelease } = require('../lib/mobilePubsp
 const DEFAULT_CHANNELS = ['dev', 'production'];
 const DEFAULT_PLATFORMS = ['android', 'ios'];
 
+/** Ancien stub admin.routes.js — remplacé par email JWT réel. */
+const LEGACY_STUB_AUTHORS = new Set(['user@jobbingtrack.test', 'admin@jobbingtrack.test']);
+
+function resolveReleaseAuthor(createdBy) {
+  if (!createdBy || !LEGACY_STUB_AUTHORS.has(createdBy)) return createdBy;
+  return (
+    process.env.MOBILE_RELEASE_DEFAULT_AUTHOR?.trim()
+    || process.env.ADMIN_EMAIL?.trim()
+    || createdBy
+  );
+}
+
+function migrateLegacyReleaseAuthors(store) {
+  let changed = false;
+  for (const release of store.releases) {
+    const resolved = resolveReleaseAuthor(release.createdBy);
+    if (resolved !== release.createdBy) {
+      release.createdBy = resolved;
+      changed = true;
+    }
+  }
+  if (changed) writeStore(store);
+  return store;
+}
+
 function releasesDir() {
   return process.env.MOBILE_RELEASES_DIR?.trim() || path.join(process.cwd(), 'mobile-releases');
 }
@@ -47,10 +72,10 @@ function readStore() {
   }
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
-    return {
+    return migrateLegacyReleaseAuthors({
       channels: parsed.channels || emptyStore().channels,
       releases: Array.isArray(parsed.releases) ? parsed.releases : [],
-    };
+    });
   } catch {
     return emptyStore();
   }
@@ -346,7 +371,7 @@ function createRelease({
     storeUrl: storeUrl || null,
     downloadUrl: platform === 'android' && filename ? buildDownloadUrlForFilename(filename) : null,
     createdAt: new Date().toISOString(),
-    createdBy: createdBy || null,
+    createdBy: resolveReleaseAuthor(createdBy || null),
     status: 'active',
     githubTag: githubTagForRelease(String(version), parseInt(String(buildNumber), 10) || 1),
     githubReleaseUrl: null,
@@ -422,7 +447,7 @@ function promoteRelease({ platform, fromChannel = 'dev', toChannel = 'production
         ? buildDownloadUrlForFilename(source.filename)
         : effectiveAndroidDownloadUrl(source),
     createdAt: new Date().toISOString(),
-    createdBy: promotedBy || `promote:${fromChannel}->${toChannel}`,
+    createdBy: resolveReleaseAuthor(promotedBy || `promote:${fromChannel}->${toChannel}`),
     status: 'active',
     githubTag: source.githubTag || githubTagForRelease(source.version, source.buildNumber),
     githubReleaseUrl: source.githubReleaseUrl || null,

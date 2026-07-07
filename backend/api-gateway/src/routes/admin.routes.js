@@ -8,90 +8,60 @@ const dataManagementController = require('../controllers/data-management.control
 const testdataController = require('../controllers/testdata.controller');
 const logsController = require('../controllers/logs.controller');
 const mobileReleasesController = require('../controllers/mobile-releases.controller');
-
-// Middleware d'authentification basique pour le développement
-const authenticate = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  // En mode développement, accepter tous les tokens qui contiennent 'mock-'
-  if (authHeader?.includes('mock-')) {
-    req.user = {
-      role: 'SUPER_ADMIN',
-      email: 'admin@jobbingtrack.test',
-      id: 'mock-admin-123'
-    };
-    return next();
-  }
-
-  // Si pas de token ou token invalide, retourner une erreur
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({
-      success: false,
-      error: 'Token d\'authentification requis'
-    });
-  }
-
-  // En mode développement, accepter aussi les tokens Bearer normaux
-  req.user = {
-    role: 'ADMIN',
-    email: 'user@jobbingtrack.test',
-    id: 'user-123'
-  };
-  next();
-};
+const { authenticateAdmin } = require('../middleware/adminAuth');
 
 // Routes de base qui fonctionnent
-router.get('/monitoring/performance', authenticate, advancedController.getPerformanceMetrics);
-router.get('/monitoring/system', authenticate, advancedController.getSystemMetrics);
-router.get('/monitoring/system/detailed', authenticate, advancedController.getDetailedSystemMetrics);
-router.get('/monitoring/users', authenticate, advancedController.getUserMetrics);
-router.get('/monitoring/security', authenticate, advancedController.getSecurityMetrics);
-router.get('/monitoring/devops', authenticate, advancedController.getDevOpsMetrics);
-router.get('/monitoring/recommendations', authenticate, advancedController.getRecommendations);
-router.get('/monitoring/alerts', authenticate, advancedController.getPerformanceAlerts);
+router.get('/monitoring/performance', authenticateAdmin, advancedController.getPerformanceMetrics);
+router.get('/monitoring/system', authenticateAdmin, advancedController.getSystemMetrics);
+router.get('/monitoring/system/detailed', authenticateAdmin, advancedController.getDetailedSystemMetrics);
+router.get('/monitoring/users', authenticateAdmin, advancedController.getUserMetrics);
+router.get('/monitoring/security', authenticateAdmin, advancedController.getSecurityMetrics);
+router.get('/monitoring/devops', authenticateAdmin, advancedController.getDevOpsMetrics);
+router.get('/monitoring/recommendations', authenticateAdmin, advancedController.getRecommendations);
+router.get('/monitoring/alerts', authenticateAdmin, advancedController.getPerformanceAlerts);
 
 // Routes Playwright
-router.post('/playwright/run', authenticate, advancedController.runPlaywrightTests);
-router.get('/playwright/result/:executionId', authenticate, advancedController.getTestResults);
-router.get('/playwright/events/:executionId', authenticate, advancedController.getTestEvents);
-router.get('/playwright/report/:executionId', authenticate, advancedController.getTestReport);
+router.post('/playwright/run', authenticateAdmin, advancedController.runPlaywrightTests);
+router.get('/playwright/result/:executionId', authenticateAdmin, advancedController.getTestResults);
+router.get('/playwright/events/:executionId', authenticateAdmin, advancedController.getTestEvents);
+router.get('/playwright/report/:executionId', authenticateAdmin, advancedController.getTestReport);
 
 // ✅ Logs Docker (tous services) — chemins statiques avant /services/:id
-router.get('/logs/all', authenticate, logsController.getAllLogs);
-router.get('/logs/services', authenticate, logsController.getAvailableServices);
-router.get('/logs/:serviceName/stream', authenticate, logsController.streamServiceLogs);
-router.get('/logs/:serviceName', authenticate, logsController.getServiceLogs);
+router.get('/logs/all', authenticateAdmin, logsController.getAllLogs);
+router.get('/logs/services', authenticateAdmin, logsController.getAvailableServices);
+router.get('/logs/:serviceName/stream', authenticateAdmin, logsController.streamServiceLogs);
+router.get('/logs/:serviceName', authenticateAdmin, logsController.getServiceLogs);
 
 // ✅ Routes de gestion des services (restart, start, stop)
-router.post('/services/restart', authenticate, adminController.restartService);
-router.post('/services/start', authenticate, adminController.startService);
-router.post('/services/stop', authenticate, adminController.stopService);
+router.post('/services/restart', authenticateAdmin, adminController.restartService);
+router.post('/services/start', authenticateAdmin, adminController.startService);
+router.post('/services/stop', authenticateAdmin, adminController.stopService);
 
 // ✅ Route pour récupérer la liste des services avec leur statut
-router.get('/services', authenticate, adminController.getServicesList);
+router.get('/services', authenticateAdmin, adminController.getServicesList);
 
 // ✅ Routes Archive
-router.get('/archive', authenticate, archiveController.getAllArchivedItems);
-router.post('/archive/:type/:id', authenticate, archiveController.archiveItem);
-router.post('/archive/:type/:id/unarchive', authenticate, archiveController.unarchiveItem);
+router.get('/archive', authenticateAdmin, archiveController.getAllArchivedItems);
+router.post('/archive/:type/:id', authenticateAdmin, archiveController.archiveItem);
+router.post('/archive/:type/:id/unarchive', authenticateAdmin, archiveController.unarchiveItem);
 
 // ✅ Routes Corbeille (Trash)
-router.get('/trash', authenticate, trashController.getAllDeletedItems);
-router.post('/trash/:type/:id/restore', authenticate, trashController.restoreItem);
-router.delete('/trash/:type/:id/permanent', authenticate, trashController.permanentDelete);
-router.post('/trash/empty', authenticate, trashController.emptyTrash);
+router.get('/trash', authenticateAdmin, trashController.getAllDeletedItems);
+router.post('/trash/:type/:id/restore', authenticateAdmin, trashController.restoreItem);
+router.delete('/trash/:type/:id/permanent', authenticateAdmin, trashController.permanentDelete);
+router.post('/trash/empty', authenticateAdmin, trashController.emptyTrash);
 
 // ✅ Génération / nettoyage données de test
-router.post('/generate-test-data', authenticate, testdataController.generateTestData);
-router.post('/test-data/clear', authenticate, testdataController.clearTestData);
-router.post('/clear-test-data', authenticate, testdataController.clearTestData); // Alias pour backoffice Actions « Revenir à la base propre »
-router.get('/test-data/status', authenticate, testdataController.getTestDataStatus);
-router.get('/test-data/summary', authenticate, testdataController.getTestDataSummary);
-router.post('/test-data/tag-likely', authenticate, testdataController.tagLikelyTestData);
+router.post('/generate-test-data', authenticateAdmin, testdataController.generateTestData);
+router.post('/test-data/clear', authenticateAdmin, testdataController.clearTestData);
+router.post('/clear-test-data', authenticateAdmin, testdataController.clearTestData); // Alias pour backoffice Actions « Revenir à la base propre »
+router.get('/test-data/status', authenticateAdmin, testdataController.getTestDataStatus);
+router.get('/test-data/summary', authenticateAdmin, testdataController.getTestDataSummary);
+router.post('/test-data/tag-likely', authenticateAdmin, testdataController.tagLikelyTestData);
 
 // ✅ Export / Import / Cleanup (gestion des données)
 // Type frontend : applications, companies, contacts, all -> tableName backend (Application, Company, Contact)
-router.get('/export/:type', authenticate, (req, res, next) => {
+router.get('/export/:type', authenticateAdmin, (req, res, next) => {
   const typeMap = { applications: 'Application', companies: 'Company', contacts: 'Contact' };
   const type = req.params.type;
   if (type === 'all') {
@@ -104,27 +74,27 @@ router.get('/export/:type', authenticate, (req, res, next) => {
   req.params.tableName = tableName;
   return dataManagementController.exportTable(req, res).catch(next);
 });
-router.post('/import', authenticate, (req, res) => {
+router.post('/import', authenticateAdmin, (req, res) => {
   res.status(501).json({ success: false, error: 'Import non implémenté côté gateway. À brancher sur les services métier.' });
 });
-router.post('/cleanup', authenticate, (req, res) => {
+router.post('/cleanup', authenticateAdmin, (req, res) => {
   res.status(501).json({ success: false, error: 'Nettoyage (cleanup) non implémenté. À définir (quel service, quelles tables, rétention).' });
 });
 
 // Tables (data-management) : liste et export par tableName
-router.get('/tables', authenticate, dataManagementController.listTables);
-router.get('/tables/:tableName/data', authenticate, dataManagementController.getTableData);
-router.get('/tables/:tableName/export', authenticate, dataManagementController.exportTable);
+router.get('/tables', authenticateAdmin, dataManagementController.listTables);
+router.get('/tables/:tableName/data', authenticateAdmin, dataManagementController.getTableData);
+router.get('/tables/:tableName/export', authenticateAdmin, dataManagementController.exportTable);
 
 // Debug: ajouter une route de test
-router.get('/test', authenticate, (req, res) => {
+router.get('/test', authenticateAdmin, (req, res) => {
   res.json({ success: true, message: 'Route admin test fonctionne!' });
 });
 
 // Mobile releases (OTA) — pilotage dev / production depuis backoffice
-router.get('/mobile/releases', authenticate, mobileReleasesController.listReleases);
-router.post('/mobile/releases/publish-built', authenticate, mobileReleasesController.publishBuiltRelease);
-router.post('/mobile/releases/upload', authenticate, (req, res, next) => {
+router.get('/mobile/releases', authenticateAdmin, mobileReleasesController.listReleases);
+router.post('/mobile/releases/publish-built', authenticateAdmin, mobileReleasesController.publishBuiltRelease);
+router.post('/mobile/releases/upload', authenticateAdmin, (req, res, next) => {
   let mobileApkUpload;
   try {
     ({ mobileApkUpload } = require('../middleware/mobileApkUpload'));
@@ -142,16 +112,16 @@ router.post('/mobile/releases/upload', authenticate, (req, res, next) => {
     return mobileReleasesController.uploadRelease(req, res);
   });
 });
-router.post('/mobile/releases/promote', authenticate, mobileReleasesController.promoteToProduction);
-router.post('/mobile/releases/ios', authenticate, mobileReleasesController.registerIosRelease);
+router.post('/mobile/releases/promote', authenticateAdmin, mobileReleasesController.promoteToProduction);
+router.post('/mobile/releases/ios', authenticateAdmin, mobileReleasesController.registerIosRelease);
 router.patch(
   '/mobile/releases/channels/:channel/:platform',
-  authenticate,
+  authenticateAdmin,
   mobileReleasesController.patchChannelPolicy,
 );
 router.post(
   '/mobile/releases/:id/activate',
-  authenticate,
+  authenticateAdmin,
   mobileReleasesController.activateExistingRelease,
 );
 

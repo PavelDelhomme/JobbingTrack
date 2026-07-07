@@ -141,4 +141,41 @@ describe('mobileReleaseStore', () => {
 
     delete process.env.MOBILE_ANDROID_DOWNLOAD_BASE_URL;
   });
+
+  it('migre les auteurs stub user@jobbingtrack.test vers ADMIN_EMAIL', () => {
+    process.env.ADMIN_EMAIL = 'admin@jobbingtrack.com';
+    const storePath = path.join(tempDir, 'mobile-releases.json');
+    const empty = {
+      channels: {
+        dev: {
+          android: { activeReleaseId: null, minVersion: '0.0.0', minBuild: 0, forceUpdate: false },
+          ios: { activeReleaseId: null, minVersion: '0.0.0', minBuild: 0, forceUpdate: false },
+        },
+        production: {
+          android: { activeReleaseId: null, minVersion: '0.0.0', minBuild: 0, forceUpdate: false },
+          ios: { activeReleaseId: null, minVersion: '0.0.0', minBuild: 0, forceUpdate: false },
+        },
+      },
+      releases: [
+        {
+          id: 'rel-legacy',
+          channel: 'dev',
+          platform: 'android',
+          version: '1.0.0',
+          buildNumber: 1,
+          createdBy: 'user@jobbingtrack.test',
+          createdAt: '2026-07-06T10:00:00.000Z',
+          status: 'superseded',
+        },
+      ],
+    };
+    fs.writeFileSync(storePath, JSON.stringify(empty), 'utf8');
+
+    const state = listAdminState();
+    expect(state.releases[0].createdBy).toBe('admin@jobbingtrack.com');
+
+    const persisted = JSON.parse(fs.readFileSync(storePath, 'utf8'));
+    expect(persisted.releases[0].createdBy).toBe('admin@jobbingtrack.com');
+    delete process.env.ADMIN_EMAIL;
+  });
 });

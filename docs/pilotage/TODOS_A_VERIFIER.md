@@ -46,6 +46,7 @@ Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + mer
 | ID | Sujet | Symptôme / action future | Statut |
 |----|-------|--------------------------|--------|
 | BL-26-01 | Playwright MailHog | ✅ **07/07** : `run-playwright-mailhog-e2e.sh` — **3/3 passed** (auth-service → mailhog:1025 temporaire + TEST_ADMIN depuis `.env`) | [x] |
+| Mobile | Releases OTA — auteur historique | **07/07** : routes admin utilisent `authenticateAdmin` (JWT email réel) ; migration `user@jobbingtrack.test` → `ADMIN_EMAIL` dans `mobileReleaseStore` au chargement. Redémarrer api-gateway puis Actualiser l’historique. | [x] |
 | BL-26-02 | IMAP OVH candidatures | **AUTHENTICATIONFAILED** malgré changement MDP — `fetch-imap-verification.js --check-only` | [ ] après étape 2 |
 | BL-26-03 | Récap agent HTML | Markdown dans `<pre>` illisible — template HTML coloré normalisé | [ ] après étape 2 |
 | BL-26-04 | smoke `entities-adb` | a11y **Prénom** / **Rechercher** introuvables (dialogue contact) | [ ] après étape 2 |
