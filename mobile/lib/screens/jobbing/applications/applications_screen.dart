@@ -132,6 +132,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
 
   Future<void> _loadAll() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    await auth.refreshSessionIfOnline();
     final token = auth.token;
     final appProvider = Provider.of<ApplicationProvider>(context, listen: false);
     final companyProvider = Provider.of<CompanyProvider>(context, listen: false);
@@ -142,7 +143,13 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     setState(() => _callsLoading = true);
 
     await Future.wait([
-      appProvider.loadApplications(token: token),
+      appProvider.loadApplications(
+        token: token,
+        renewToken: () async {
+          final ok = await auth.trySilentTokenRefresh();
+          return ok ? auth.token : null;
+        },
+      ),
       companyProvider.loadCompanies(token: token).catchError((_) {}),
       contactProvider.loadContacts(token: token).catchError((_) {}),
       interviewProvider.loadInterviews(token: token).catchError((_) {}),
@@ -170,9 +177,16 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
 
   Future<void> _loadApplications() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    await auth.refreshSessionIfOnline();
     final appProvider = Provider.of<ApplicationProvider>(context, listen: false);
     final companyProvider = Provider.of<CompanyProvider>(context, listen: false);
-    await appProvider.loadApplications(token: auth.token);
+    await appProvider.loadApplications(
+      token: auth.token,
+      renewToken: () async {
+        final ok = await auth.trySilentTokenRefresh();
+        return ok ? auth.token : null;
+      },
+    );
     appProvider.enrichCompanies({for (final c in companyProvider.companies) c.id: c.name});
     if (!mounted) return;
     final err = appProvider.lastError;

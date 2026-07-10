@@ -25,7 +25,10 @@ class ApplicationProvider with ChangeNotifier {
     });
   }
 
-  Future<void> loadApplications({String? token}) async {
+  Future<void> loadApplications({
+    String? token,
+    Future<String?> Function()? renewToken,
+  }) async {
     _isLoading = true;
     _lastError = null;
     _notifySafely();
@@ -33,9 +36,29 @@ class ApplicationProvider with ChangeNotifier {
     try {
       _applications = await ApiService.getApplications(token: token);
       _isLoading = false;
+      _lastError = null;
       _notifySafely();
     } catch (e) {
-      _lastError = e.toString().replaceAll('Exception: ', '');
+      final msg = e.toString().replaceAll('Exception: ', '');
+      final isAuth = msg.contains('Session expirée') || msg.contains('401') || msg.contains('403');
+      if (isAuth && renewToken != null) {
+        final fresh = await renewToken();
+        if (fresh != null && fresh.isNotEmpty) {
+          try {
+            _applications = await ApiService.getApplications(token: fresh);
+            _isLoading = false;
+            _lastError = null;
+            _notifySafely();
+            return;
+          } catch (retryErr) {
+            _lastError = retryErr.toString().replaceAll('Exception: ', '');
+            _isLoading = false;
+            _notifySafely();
+            return;
+          }
+        }
+      }
+      _lastError = msg;
       _isLoading = false;
       _notifySafely();
     }

@@ -86,6 +86,16 @@ function initialInstallSteps(): Record<InstallStepId, InstallStepStatus> {
   return { reverse: "pending", install: "pending", launch: "pending" };
 }
 
+/** Empêche les re-renders si la liste ADB n'a pas changé (évite sauts de layout). */
+function adbDevicesFingerprint(list: AdbDevice[]): string {
+  return list
+    .map(
+      (d) =>
+        `${d.id}|${d.status}|${d.model ?? ""}|${d.appInstalled}|${d.appVersionName ?? ""}|${d.appVersionCode ?? ""}`,
+    )
+    .join(";");
+}
+
 function nowLabel(): string {
   return new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
@@ -255,6 +265,8 @@ export function MobileApkBuildPanel({
   const installAbortRef = useRef<AbortController | null>(null);
   const installInFlightRef = useRef(false);
   const bootstrapOnceRef = useRef(false);
+  const devicesFpRef = useRef("");
+  const pendingDevicesFpRef = useRef("");
 
   useEffect(() => {
     const storedLog = readWizardActivityLog();
@@ -325,17 +337,40 @@ export function MobileApkBuildPanel({
   }, []);
 
   const refreshStatus = useCallback(
-    async (opts?: { full?: boolean }) => {
-      setRefreshing(true);
+    async (opts?: { full?: boolean; silent?: boolean }) => {
+      const silent = opts?.silent === true;
+      if (!silent) setRefreshing(true);
       try {
       const health = await fetchEmulatorHealth();
-      setControllerOk(!!health?.ok);
+      setControllerOk((prev) => (prev === !!health?.ok ? prev : !!health?.ok));
       const info = await fetchApkInfo();
-      setApkInfo(info);
+      setApkInfo((prev) => {
+        if (
+          prev?.exists === info?.exists
+          && prev?.version === info?.version
+          && prev?.buildNumber === info?.buildNumber
+          && prev?.sizeBytes === info?.sizeBytes
+        ) {
+          return prev;
+        }
+        return info;
+      });
       const adb = await fetchAdbDevices({ light: !opts?.full });
-      setDevices(adb.devices);
-      setPendingDevices(adb.pendingDevices);
-      setDiagnostics(adb.diagnostics);
+      const devFp = adbDevicesFingerprint(adb.devices);
+      const pendFp = adbDevicesFingerprint(adb.pendingDevices);
+      if (devFp !== devicesFpRef.current) {
+        devicesFpRef.current = devFp;
+        setDevices(adb.devices);
+      }
+      if (pendFp !== pendingDevicesFpRef.current) {
+        pendingDevicesFpRef.current = pendFp;
+        setPendingDevices(adb.pendingDevices);
+      }
+      setDiagnostics((prev) => {
+        const next = adb.diagnostics;
+        if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
+        return next;
+      });
       setSelectedDevice((prev) => {
         if (prev && adb.devices.some((d) => d.id === prev)) return prev;
         return adb.devices[0]?.id || "";
@@ -367,7 +402,7 @@ export function MobileApkBuildPanel({
       setLastRefreshAt(nowLabel());
       return { history: history ?? sessionData?.history ?? [] };
       } finally {
-        setRefreshing(false);
+        if (!silent) setRefreshing(false);
       }
     },
     [applySessionPayload],
@@ -443,15 +478,15 @@ export function MobileApkBuildPanel({
   useEffect(() => {
     if (bootstrapping || building || installing) return;
     const hasPending = pendingDevices.length > 0;
-    const intervalMs = hasPending ? 5000 : devices.length === 0 ? 5000 : 10000;
-    const poll = window.setInterval(() => void refreshStatus({ full: false }), intervalMs);
+    const intervalMs = hasPending ? 8000 : devices.length === 0 ? 12000 : 20000;
+    const poll = window.setInterval(() => void refreshStatus({ full: false, silent: true }), intervalMs);
     return () => window.clearInterval(poll);
   }, [bootstrapping, building, installing, refreshStatus, devices.length, pendingDevices.length]);
 
   useEffect(() => {
     if (!building) return;
     const tick = window.setInterval(() => setBuildSeconds((s) => s + 1), 1000);
-    const poll = window.setInterval(() => void refreshStatus({ full: false }), 4000);
+    const poll = window.setInterval(() => void refreshStatus({ full: false, silent: true }), 5000);
     return () => {
       window.clearInterval(tick);
       window.clearInterval(poll);
@@ -537,9 +572,7 @@ export function MobileApkBuildPanel({
           ? "Étape 5 — promotion production"
           : bootstrapping
             ? "Préparation contrôleur émulateur"
-            : refreshing
-              ? "Actualisation statut appareil / APK"
-              : null;
+            : null;
 
   const step1State = building
     ? "active"

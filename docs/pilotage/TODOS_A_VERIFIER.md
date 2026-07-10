@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 10 juillet 2026 (retours porteur étape 2 — navigation + followup-service)
+Dernière mise à jour : 10 juillet 2026 (OTA polling silencieux + session impersonnalisation)
 
 ## Rôle
 
@@ -15,7 +15,9 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | A1 | Smokes rapides — gate par défaut | `node scripts/mobile/smoke-run-mobile-fast.js` OK Samsung ; pré-vol `smoke-preflight.js` (verrou ADB, `SMOKE_SHARED_SHELL=1`) ; pas de scripts parallèles sur le même appareil | [x] **02/07** : batterie **12/16 OK** (~27 min) — étape 2 OK : navigation, shell, FAB candidature/relance/appel-entretien, profile-save ; fixes `smoke-preflight` path adb-lib + gateway host `127.0.0.1:5002` |
 | A2 | Navigation retour shell — Calendrier↔Profil, Candidatures↔Entreprises | **10/07 soir porteur** : KO **2** et **2b** ; correctif double PopScope ; APK **1.0.26+26**. OK : 2c, liste candidatures→Accueil, drawer Calendrier. | [ ] re-test |
 | A2a | Attente email smokes — bonne boîte + diagnostic | Helper IMAP poll ; doc [`BOITE_MAIL_INSCRIPTION_TESTS.md`](../../mobile/BOITE_MAIL_INSCRIPTION_TESTS.md) + `diagnose-registration-email.js`. | [x] doc + diagnostic |
-| A2b | followup-service — relances mobile | **10/07** : `mapFollowup` corrigé ; service **up** ; gateway health **200**. Purge porteur FK corrigée — seed **7 candidatures + relances** OK `paul.delhomme@proton.me`. | [x] |
+| A2b | followup-service — relances mobile | **10/07** : `mapFollowup` corrigé ; purge porteur FK ; seed **7 candidatures** OK `paul.delhomme@proton.me`. | [x] |
+| A2c | Backoffice OTA — polling ADB sans saut layout | **10/07** : poll silencieux (20 s), pas de bandeau « Actualisation » ; fingerprint devices. | [x] |
+| A2d | Mobile — session impersonnalisation expirée | **10/07** : renouvellement JWT impersonnalisation via token admin ; refresh avant candidatures. APK **1.0.27+27**. | [x] agent |
 | A3 | Bypass biométrie smokes (pas produit) | Pref `test_automation_skip_biometric` (debug APK) ; smokes sans prompt Samsung ; **restauration auto** fin batterie + `clear-smoke-device-adb.js` ; biométrie porteur inchangée hors pref | [x] |
 | A4 | Hub admin ADB multi-comptes | `smoke-mobile-admin-hub-adb.js` OK : admin visible → hub → retour TEST_USER sans blocage login | [x] **02/07** : `SMOKE_SHARED_SHELL=1 ADB_FAST=1 smoke-mobile-admin-hub-adb.js` **OK** (~4 min) — drawer logout + `Connexion ADMIN` / `Connexion USER` ; hub + Statistiques + restore porteur ; fix `logoutViaDrawer` dans `tools/adb-lib/flows.js` |
 | A4b | Admin mobile — actions détail utilisateur | **10/07 soir** : fix Overlay v2 — `ImpersonationBanner` en `Stack` + `rootScaffoldMessengerKey` (plus `Column`/`ScaffoldMessenger.of` dans builder MaterialApp). Session impersonnalisation **persiste** après `adb install -r` (données app conservées — attendu). **Reste porteur** : re-test bannière + désimpersonnalisation sur APK **1.0.25+25**. | [ ] |

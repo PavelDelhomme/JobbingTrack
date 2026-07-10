@@ -81,9 +81,17 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Rafraîchit silencieusement le JWT (refresh token chiffré ou reconnexion biométrique).
+  /// Rafraîchit silencieusement le JWT (refresh token, impersonnalisation ou biométrie).
   Future<bool> trySilentTokenRefresh() async {
     if (_user == null) return false;
+
+    if (isImpersonating) {
+      final renewed = await _tryRenewImpersonationSession();
+      if (renewed) return true;
+      _tokenStale = true;
+      notifyListeners();
+      return false;
+    }
 
     final storedRefresh = _refreshToken ?? await ApiConfigStore.loadRefreshToken();
     if (storedRefresh != null && storedRefresh.isNotEmpty) {
@@ -119,6 +127,46 @@ class AuthProvider with ChangeNotifier {
         }
       } catch (e) {
         debugPrint('[AUTH] trySilentTokenRefresh login: $e');
+      }
+    }
+    return false;
+  }
+
+  /// Token impersonnalisation (2 h, sans refresh) — renouvelé via session admin stockée.
+  Future<bool> _tryRenewImpersonationSession() async {
+    if (!isImpersonating || _user == null) return false;
+    final targetUserId = _user!.id;
+    var adminToken = _impersonatorToken;
+    if (adminToken == null || adminToken.isEmpty) return false;
+
+    Future<bool> issueImpersonation(String token) async {
+      try {
+        final result = await AdminApiService.impersonateUser(targetUserId, token: token);
+        _token = result.token;
+        _user = User.fromJson(result.user);
+        _tokenStale = false;
+        CrashReporter.setToken(_token);
+        await _persistSession();
+        MobileAnalyticsService.instance.updateAuthToken(_token);
+        notifyListeners();
+        debugPrint('[AUTH] JWT impersonnalisation renouvelé');
+        return true;
+      } catch (e) {
+        debugPrint('[AUTH] renew impersonation: $e');
+        return false;
+      }
+    }
+
+    if (await issueImpersonation(adminToken)) return true;
+
+    final adminRefresh = _impersonatorRefreshToken ?? await ApiConfigStore.loadRefreshToken();
+    if (adminRefresh != null && adminRefresh.isNotEmpty) {
+      final refreshed = await ApiService.refreshAccessToken(adminRefresh);
+      if (refreshed != null) {
+        _impersonatorToken = refreshed.token;
+        _impersonatorRefreshToken = refreshed.refreshToken ?? adminRefresh;
+        adminToken = _impersonatorToken;
+        if (adminToken != null && await issueImpersonation(adminToken)) return true;
       }
     }
     return false;
