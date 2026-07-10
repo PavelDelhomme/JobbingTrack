@@ -33,7 +33,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
   late int _applicationsTabIndex;
   String? _applicationStatusFilter;
   int? _pendingReturnTab;
-  int? _returnTabOnBottomNavSwitch;
+  final List<int> _bottomNavBackStack = [];
   int _applicationsResetEpoch = 0;
   DateTime? _lastBackToBackgroundPrompt;
   bool _handlingSystemBack = false;
@@ -68,6 +68,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
         _applicationsResetEpoch++;
       }
       _pendingReturnTab = args.returnTabOnBack;
+      if (args.returnTabOnBack != null) {
+        _bottomNavBackStack.clear();
+      }
       _syncShellRegistry();
     });
   }
@@ -79,7 +82,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     );
   }
 
-  void _selectTab(int index, {int? previousIndex}) {
+  void _selectTab(int index) {
     if (index == _selectedIndex) return;
     ShellDrawerRegistry.closeAllDrawers();
     setState(() {
@@ -112,7 +115,17 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   /// Hiérarchie retour shell — voir docs/mobile/NAVIGATION_RETOUR_MOBILE.md
   void _handleSystemBackImpl() {
-    // 1. Sous-onglet Candidatures > 0 → liste principale (priorité sur returnTabOnBack drawer)
+    // 1. Retour drawer cross-tab (ex. Accueil → Entreprises drawer → retour Accueil)
+    if (_pendingReturnTab != null && _pendingReturnTab != _selectedIndex) {
+      setState(() {
+        _selectedIndex = _pendingReturnTab!.clamp(0, 3);
+        _pendingReturnTab = null;
+        _bottomNavBackStack.clear();
+        _syncShellRegistry();
+      });
+      return;
+    }
+    // 2. Sous-onglet Candidatures > 0 → liste principale
     if (_selectedIndex == 1 && ApplicationsSubTabRegistry.currentIndex > 0) {
       ApplicationsSubTabRegistry.goToFirstSubTab();
       setState(() {
@@ -121,24 +134,16 @@ class _MainShellScreenState extends State<MainShellScreen> {
       });
       return;
     }
-    // 2. Retour drawer cross-tab (ex. Profil → Entreprises drawer → retour Profil)
-    if (_pendingReturnTab != null && _pendingReturnTab != _selectedIndex) {
-      setState(() {
-        _selectedIndex = _pendingReturnTab!.clamp(0, 3);
-        _pendingReturnTab = null;
-        _syncShellRegistry();
-      });
-      return;
-    }
     // 3. Retour barre basse (ex. Calendrier → Profil → retour Calendrier)
-    if (_returnTabOnBottomNavSwitch != null &&
-        _returnTabOnBottomNavSwitch != _selectedIndex) {
-      setState(() {
-        _selectedIndex = _returnTabOnBottomNavSwitch!.clamp(0, 3);
-        _returnTabOnBottomNavSwitch = null;
-        _syncShellRegistry();
-      });
-      return;
+    if (_bottomNavBackStack.isNotEmpty) {
+      final previous = _bottomNavBackStack.removeLast();
+      if (previous != _selectedIndex) {
+        setState(() {
+          _selectedIndex = previous.clamp(0, 3);
+          _syncShellRegistry();
+        });
+        return;
+      }
     }
     if (_selectedIndex != 0) {
       setState(() {
@@ -188,7 +193,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
       return;
     }
     if (index != _selectedIndex) {
-      _returnTabOnBottomNavSwitch = _selectedIndex;
+      _bottomNavBackStack.add(_selectedIndex);
+      _pendingReturnTab = null;
     }
     _selectTab(index);
   }

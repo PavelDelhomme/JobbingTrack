@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 
-/// Drawer dédié à l'onglet Calendrier (filtres + mode d'affichage).
+/// Drawer dédié à l'onglet Calendrier — mode d'affichage uniquement (Planning / Liste).
 class CalendarDrawer extends StatefulWidget {
   final CalendarViewMode viewMode;
   final CalendarFilters filters;
@@ -52,32 +52,22 @@ class CalendarFilters {
 
 class _CalendarDrawerState extends State<CalendarDrawer> {
   late CalendarViewMode _viewMode;
-  late CalendarFilters _filters;
 
   @override
   void initState() {
     super.initState();
     _viewMode = widget.viewMode;
-    _filters = widget.filters;
   }
 
   @override
   void didUpdateWidget(CalendarDrawer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.viewMode != widget.viewMode) _viewMode = widget.viewMode;
-    if (oldWidget.filters != widget.filters) _filters = widget.filters;
   }
 
   Future<void> _persist() async {
     await ApiConfigStore.saveCalendarViewMode(_viewMode.name);
-    await ApiConfigStore.saveCalendarFilters(
-      showInterviews: _filters.showInterviews,
-      showFollowups: _filters.showFollowups,
-      showEvents: _filters.showEvents,
-      showInterim: _filters.showInterim,
-    );
     widget.onViewModeChanged(_viewMode);
-    widget.onFiltersChanged(_filters);
   }
 
   @override
@@ -131,47 +121,6 @@ class _CalendarDrawerState extends State<CalendarDrawer> {
               setState(() => _viewMode = v);
               await _persist();
               if (context.mounted) Navigator.pop(context);
-            },
-          ),
-          const Divider(),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text(
-              'TYPES À AFFICHER',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5),
-            ),
-          ),
-          SwitchListTile(
-            title: const Text('Entretiens'),
-            value: _filters.showInterviews,
-            onChanged: (v) async {
-              setState(() => _filters = _filters.copyWith(showInterviews: v));
-              await _persist();
-            },
-          ),
-          SwitchListTile(
-            title: const Text('Relances'),
-            value: _filters.showFollowups,
-            onChanged: (v) async {
-              setState(() => _filters = _filters.copyWith(showFollowups: v));
-              await _persist();
-            },
-          ),
-          SwitchListTile(
-            title: const Text('Événements'),
-            value: _filters.showEvents,
-            onChanged: (v) async {
-              setState(() => _filters = _filters.copyWith(showEvents: v));
-              await _persist();
-            },
-          ),
-          SwitchListTile(
-            title: const Text('Intérim'),
-            subtitle: const Text('Couleur ambre'),
-            value: _filters.showInterim,
-            onChanged: (v) async {
-              setState(() => _filters = _filters.copyWith(showInterim: v));
-              await _persist();
             },
           ),
         ],

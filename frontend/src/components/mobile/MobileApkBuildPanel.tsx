@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   adbReverseDevice,
   bootstrapEmulatorDev,
@@ -28,20 +28,27 @@ import {
   type BuildLogLevel,
 } from "@/lib/mobile/buildLogUtils";
 import {
-  actionToneClass,
   deviceMatchesBuiltApk,
   resolveDeviceApkAction,
   resolveBuildApkAction,
   resolveWizardBanner,
 } from "@/lib/mobile/deviceApkAction";
+import { StatusAlert, mapDeviceToneToSemantic } from "@/lib/ui/feedback";
 
 import {
+  buildMatchesApk,
   installMatchesApk,
   readWizardActivityLog,
+  readWizardBuild,
   readWizardInstall,
+  readWizardPublish,
   writeWizardActivityLog,
+  writeWizardBuild,
   writeWizardInstall,
   type StoredActivityLine,
+  type WizardBuildState,
+  type WizardInstallState,
+  type WizardPublishState,
 } from "@/lib/mobile/mobileOtaWizardStorage";
 
 type ActiveDevRelease = {
@@ -145,23 +152,59 @@ function StepPill({
   n,
   label,
   state,
+  hint,
 }: {
   n: number;
   label: string;
   state: "done" | "active" | "locked" | "error" | "ready";
+  hint?: string | null;
 }) {
   const styles = {
-    done: "border-emerald-500 bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100",
-    active: "border-blue-500 bg-blue-100 text-blue-900 ring-2 ring-blue-300 dark:bg-blue-900/40 dark:text-blue-100",
-    ready: "border-gray-300 bg-white text-gray-800 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100",
+    done: "border-emerald-500 bg-emerald-100 text-emerald-900 dark:border-emerald-500 dark:bg-emerald-900/50 dark:text-emerald-50",
+    active: "border-blue-500 bg-blue-100 text-blue-900 ring-2 ring-blue-300 dark:border-blue-500 dark:bg-blue-900/50 dark:text-blue-50 dark:ring-blue-700",
+    ready: "border-gray-300 bg-white text-gray-800 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100",
     locked: "border-gray-200 bg-gray-50 text-gray-400 dark:border-gray-700 dark:bg-gray-900/50 dark:text-gray-500",
-    error: "border-red-500 bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-100",
+    error: "border-red-500 bg-red-100 text-red-900 dark:border-red-500 dark:bg-red-900/50 dark:text-red-50",
   };
+  const statusLabel = {
+    done: "Terminé",
+    active: "En cours",
+    ready: "À faire",
+    locked: "Verrouillé",
+    error: "Erreur",
+  }[state];
   return (
     <div className={`flex flex-1 min-w-[120px] flex-col items-center rounded-lg border px-2 py-2 text-center text-xs ${styles[state]}`}>
-      <span className="font-bold">{n}</span>
-      <span className="mt-0.5 leading-tight">{label}</span>
+      <span className="flex items-center gap-1 font-bold">
+        {state === "done" ? <span aria-hidden>✓</span> : null}
+        {n}
+      </span>
+      <span className="mt-0.5 leading-tight font-medium">{label}</span>
+      <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide opacity-90">{statusLabel}</span>
+      {hint ? <span className="mt-1 text-[10px] leading-tight opacity-90">{hint}</span> : null}
     </div>
+  );
+}
+
+function OtaWizardAlert({
+  tone,
+  title,
+  detail,
+  footer,
+}: {
+  tone: ReturnType<typeof resolveWizardBanner>["tone"];
+  title: string;
+  detail: string;
+  footer?: ReactNode;
+}) {
+  return (
+    <StatusAlert
+      tone={mapDeviceToneToSemantic(tone)}
+      title={title}
+      footer={footer}
+    >
+      {detail}
+    </StatusAlert>
   );
 }
 
@@ -205,6 +248,9 @@ export function MobileApkBuildPanel({
   const [refreshing, setRefreshing] = useState(false);
   const [historyRefreshing, setHistoryRefreshing] = useState(false);
   const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
+  const [sessionBuild, setSessionBuild] = useState<WizardBuildState | null>(null);
+  const [sessionInstall, setSessionInstall] = useState<WizardInstallState | null>(null);
+  const [sessionPublish, setSessionPublish] = useState<WizardPublishState | null>(null);
   const buildAbortRef = useRef<AbortController | null>(null);
   const installAbortRef = useRef<AbortController | null>(null);
   const installInFlightRef = useRef(false);
@@ -215,6 +261,9 @@ export function MobileApkBuildPanel({
     if (storedLog.length > 0) {
       setActivityLog(storedLog as LogLine[]);
     }
+    setSessionBuild(readWizardBuild());
+    setSessionInstall(readWizardInstall());
+    setSessionPublish(readWizardPublish());
   }, []);
 
   const pushLog = useCallback((msg: string, level: BuildLogLevel = "info") => {
@@ -293,7 +342,7 @@ export function MobileApkBuildPanel({
       });
       if (info && adb.devices.some((d) => deviceMatchesApk(d, info))) {
         setInstallDone(true);
-      } else {
+      } else if (!installMatchesApk(readWizardInstall(), info?.version, info?.buildNumber)) {
         setInstallDone(false);
       }
       const sessionData = await fetchBuildSession();
@@ -329,8 +378,14 @@ export function MobileApkBuildPanel({
     const stored = readWizardInstall();
     if (installMatchesApk(stored, apkInfo.version, apkInfo.buildNumber)) {
       setInstallDone(true);
+      setSessionInstall(stored);
       if (stored?.deviceId) setSelectedDevice(stored.deviceId);
     }
+    const storedBuild = readWizardBuild();
+    if (buildMatchesApk(storedBuild, apkInfo.version, apkInfo.buildNumber)) {
+      setSessionBuild(storedBuild);
+    }
+    setSessionPublish(readWizardPublish());
   }, [apkInfo?.version, apkInfo?.buildNumber]);
 
   const seedJournalFromHistory = useCallback(
@@ -525,6 +580,36 @@ export function MobileApkBuildPanel({
         ? "done"
         : "ready";
 
+  const step1Hint = builtLabel
+    ? sessionBuild && buildMatchesApk(sessionBuild, apkInfo?.version, apkInfo?.buildNumber)
+      ? `${builtLabel} · ${formatWhen(sessionBuild.at)}`
+      : buildSession?.finishedAt
+        ? `${builtLabel} · ${formatWhen(buildSession.finishedAt)}`
+        : builtLabel
+    : null;
+
+  const step2Hint = installSatisfied
+    ? sessionInstall && installMatchesApk(sessionInstall, apkInfo?.version, apkInfo?.buildNumber)
+      ? `${builtLabel ?? "APK"} · ${formatWhen(sessionInstall.at)}`
+      : deviceHasMatchingApp
+        ? "Téléphone aligné"
+        : "Install OK"
+    : sessionInstall
+      ? `Dernière · v${sessionInstall.version}+${sessionInstall.buildNumber}`
+      : null;
+
+  const step3Hint = devPublishDone
+    ? (activeDevLabel ?? "Canal dev actif")
+    : sessionPublish
+      ? `Session · ${formatWhen(sessionPublish.at)}`
+      : null;
+
+  useEffect(() => {
+    if (devPublishDone) {
+      setSessionPublish(readWizardPublish());
+    }
+  }, [devPublishDone]);
+
   const runBuild = async () => {
     if (!controllerOk) await runBootstrap();
     clearLog();
@@ -551,11 +636,12 @@ export function MobileApkBuildPanel({
       }
       if (ok) {
         setLastBuildError(null);
+        const version = data.version || apkInfo?.version || "1.0.0";
+        const buildNumber = String(data.buildNumber || apkInfo?.buildNumber || "1");
+        writeWizardBuild({ version, buildNumber });
+        setSessionBuild({ version, buildNumber, at: new Date().toISOString() });
         await refreshStatus({ full: true });
-        onBuilt?.({
-          version: data.version || apkInfo?.version || "1.0.0",
-          buildNumber: String(data.buildNumber || apkInfo?.buildNumber || "1"),
-        });
+        onBuilt?.({ version, buildNumber });
       } else {
         const errText = [data.stderr, data.stdout, data.error, data.message].filter(Boolean).join("\n\n");
         setLastBuildError(errText || "Build échoué");
@@ -642,11 +728,13 @@ export function MobileApkBuildPanel({
 
       pushLog("Installation terminée — vérifiez la version sur l’écran Connexion.", "success");
       setInstallDone(true);
-      writeWizardInstall({
+      const installRecord = {
         version: apkInfo?.version || "1.0.0",
         buildNumber: String(apkInfo?.buildNumber ?? "1"),
         deviceId: selectedDevice,
-      });
+      };
+      writeWizardInstall(installRecord);
+      setSessionInstall({ ...installRecord, at: new Date().toISOString() });
       await refreshStatus({ full: true });
     } catch (e) {
       const aborted = e instanceof DOMException && e.name === "AbortError";
@@ -757,37 +845,84 @@ export function MobileApkBuildPanel({
         </div>
       ) : null}
 
-      <div className={`rounded-lg border px-4 py-3 text-sm ${actionToneClass(wizardBanner.tone)}`}>
-        <p className="font-semibold">{wizardBanner.title}</p>
-        <p className="mt-1 text-xs leading-relaxed">{wizardBanner.detail}</p>
-        {!apkReady ? (
-          <p className="mt-2 text-xs font-medium">Prochaine action : étape 1 — {buildAction.buttonLabel}</p>
-        ) : deviceAction.kind === "up_to_date" ? (
-          <p className="mt-2 text-xs font-medium">
-            Prochaine action pour re-tester : étape 1 — <strong>{buildAction.buttonLabel}</strong>, puis étape 2 — Réinstaller
-          </p>
-        ) : deviceAction.kind === "install" || deviceAction.kind === "reinstall" ? (
-          <p className="mt-2 text-xs font-medium">
-            Prochaine action : étape 2 —{" "}
-            {deviceAction.kind === "install" ? "Installer sur l’appareil" : "Réinstaller l’APK"}
-            {buildAction.kind === "rebuild_recommended" ? (
-              <> (ou étape 1 — {buildAction.buttonLabel} si code modifié)</>
-            ) : null}
-          </p>
-        ) : null}
-      </div>
+      <OtaWizardAlert
+        tone={wizardBanner.tone}
+        title={wizardBanner.title}
+        detail={wizardBanner.detail}
+        footer={
+          !apkReady ? (
+            <>Prochaine action : étape 1 — {buildAction.buttonLabel}</>
+          ) : deviceAction.kind === "up_to_date" ? (
+            <>
+              Prochaine action pour re-tester : étape 1 — <strong>{buildAction.buttonLabel}</strong>, puis étape 2 — Réinstaller
+            </>
+          ) : deviceAction.kind === "install" || deviceAction.kind === "reinstall" ? (
+            <>
+              Prochaine action : étape 2 —{" "}
+              {deviceAction.kind === "install" ? "Installer sur l’appareil" : "Réinstaller l’APK"}
+              {buildAction.kind === "rebuild_recommended" ? (
+                <> (ou étape 1 — {buildAction.buttonLabel} si code modifié)</>
+              ) : null}
+            </>
+          ) : undefined
+        }
+      />
 
       <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
         <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
           Parcours — actualisé {lastRefreshAt ?? "…"}
         </p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-          <StepPill n={1} label="Build APK" state={step1State} />
-          <StepPill n={2} label="Install" state={step2State} />
-          <StepPill n={3} label="Publish dev" state={step3State} />
+          <StepPill n={1} label="Build APK" state={step1State} hint={step1Hint} />
+          <StepPill n={2} label="Install" state={step2State} hint={step2Hint} />
+          <StepPill n={3} label="Publish dev" state={step3State} hint={step3Hint} />
           <StepPill n={4} label="OTA Samsung" state={step4State} />
           <StepPill n={5} label="Promote prod" state={step5State} />
         </div>
+        {(sessionBuild || sessionInstall || sessionPublish || devPublishDone) ? (
+          <ul className="mt-3 space-y-1 border-t border-gray-200 pt-2 text-xs text-gray-700 dark:border-gray-700 dark:text-gray-300">
+            {sessionBuild ? (
+              <li>
+                <span className="font-medium text-emerald-700 dark:text-emerald-300">✓ Build session</span>
+                {" — "}
+                v{sessionBuild.version}+{sessionBuild.buildNumber}
+                {buildMatchesApk(sessionBuild, apkInfo?.version, apkInfo?.buildNumber) ? "" : " (≠ APK disque actuel)"}
+                {" · "}
+                {formatWhen(sessionBuild.at)}
+              </li>
+            ) : null}
+            {sessionInstall ? (
+              <li>
+                <span className="font-medium text-emerald-700 dark:text-emerald-300">✓ Install session</span>
+                {" — "}
+                v{sessionInstall.version}+{sessionInstall.buildNumber}
+                {installMatchesApk(sessionInstall, apkInfo?.version, apkInfo?.buildNumber) ? "" : " (≠ APK disque actuel)"}
+                {" · "}
+                {formatWhen(sessionInstall.at)}
+              </li>
+            ) : null}
+            {sessionPublish ? (
+              <li>
+                <span className="font-medium text-blue-700 dark:text-blue-300">✓ Publish session</span>
+                {" — "}
+                v{sessionPublish.version}+{sessionPublish.buildNumber} ({sessionPublish.channel})
+                {" · "}
+                {formatWhen(sessionPublish.at)}
+              </li>
+            ) : null}
+            {devPublishDone && activeDevLabel ? (
+              <li>
+                <span className="font-medium text-emerald-700 dark:text-emerald-300">✓ Canal dev actif</span>
+                {" — "}
+                {activeDevLabel}
+              </li>
+            ) : null}
+          </ul>
+        ) : (
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Aucune étape enregistrée dans cette session navigateur — les actions réussies apparaîtront ici (7 j max).
+          </p>
+        )}
       </div>
 
       {bootstrapping ? (
@@ -806,15 +941,16 @@ export function MobileApkBuildPanel({
               : "APK déjà sur le serveur. Rebuild si le code mobile a changé depuis la dernière compilation."}
         </p>
 
-        <div
-          className={`mt-3 rounded-md border px-3 py-2 text-xs leading-relaxed ${actionToneClass(buildAction.tone)}`}
+        <StatusAlert
+          tone={mapDeviceToneToSemantic(buildAction.tone)}
+          title={buildAction.title}
+          className="mt-3"
         >
-          <p className="font-semibold">{buildAction.title}</p>
-          <p className="mt-1 opacity-90">{buildAction.detail}</p>
-        </div>
+          {buildAction.detail}
+        </StatusAlert>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${controllerOk ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-900"}`}>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${controllerOk ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-100" : "bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100"}`}>
             Contrôleur : {bootstrapping ? "…" : controllerOk ? "connecté" : "attente"}
           </span>
           {apkReady && buildAction.kind === "rebuild_optional" ? (

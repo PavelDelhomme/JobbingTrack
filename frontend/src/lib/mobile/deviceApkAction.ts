@@ -205,16 +205,48 @@ export function resolveWizardBanner(
 export function actionToneClass(tone: DeviceApkAction["tone"]): string {
   switch (tone) {
     case "warning":
-      return "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100";
+      return "border-amber-500 bg-amber-100 text-amber-950 dark:border-amber-500 dark:bg-amber-900/70 dark:text-amber-50";
     case "amber":
-      return "border-orange-300 bg-orange-50 text-orange-950 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-100";
+      return "border-amber-500 bg-amber-100 text-amber-950 dark:border-amber-500 dark:bg-amber-900/70 dark:text-amber-50";
     case "ok":
-      return "border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100";
+      return "border-emerald-500 bg-emerald-100 text-emerald-950 dark:border-emerald-500 dark:bg-emerald-900/70 dark:text-emerald-50";
     case "info":
-      return "border-sky-300 bg-sky-50 text-sky-950 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-100";
+      return "border-sky-500 bg-sky-100 text-sky-950 dark:border-sky-500 dark:bg-sky-900/70 dark:text-sky-50";
     case "critical":
-      return "border-red-400 bg-red-50 text-red-950 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100";
+      return "border-red-500 bg-red-100 text-red-950 dark:border-red-500 dark:bg-red-900/70 dark:text-red-50";
     default:
-      return "border-slate-300 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-100";
+      return "border-slate-400 bg-slate-100 text-slate-950 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-50";
+  }
+}
+
+/** Classes titre + corps pour bannières OTA (contraste garanti clair/sombre). */
+export function actionToneTextClass(tone: DeviceApkAction["tone"]): { title: string; body: string } {
+  switch (tone) {
+    case "warning":
+    case "amber":
+      return {
+        title: "text-amber-950 dark:text-amber-50",
+        body: "text-amber-900 dark:text-amber-100",
+      };
+    case "ok":
+      return {
+        title: "text-emerald-950 dark:text-emerald-50",
+        body: "text-emerald-900 dark:text-emerald-100",
+      };
+    case "info":
+      return {
+        title: "text-sky-950 dark:text-sky-50",
+        body: "text-sky-900 dark:text-sky-100",
+      };
+    case "critical":
+      return {
+        title: "text-red-950 dark:text-red-50",
+        body: "text-red-900 dark:text-red-100",
+      };
+    default:
+      return {
+        title: "text-slate-950 dark:text-slate-50",
+        body: "text-slate-800 dark:text-slate-200",
+      };
   }
 }

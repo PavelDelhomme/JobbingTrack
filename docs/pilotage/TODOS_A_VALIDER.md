@@ -1,6 +1,6 @@
 # TODOs à valider par le porteur
 
-Dernière mise à jour : 17 juin 2026 (retours porteur partiels étape 2 ; correctifs impersonnalisation + double retour)
+Dernière mise à jour : 10 juillet 2026 (OK design system OTA + releases wizard porteur ; fix Overlay impersonnalisation)
 
 ---
 
@@ -9,8 +9,8 @@ Dernière mise à jour : 17 juin 2026 (retours porteur partiels étape 2 ; corre
 | | |
 |---|---|
 | **Guide pas à pas (mobile, étape par étape)** | **[`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md)** ← **commencer ici** |
-| **Vous êtes ici** | **Releases OTA backoffice** + titres onglet → [Mobile releases OTA](#mobile--erreurs--retours-backoffice-prérequis-étape-2) |
-| **Registre à cocher après test** | Ligne **416** (releases OTA) ; étape 2 navigation **OK 17/06** |
+| **Vous êtes ici** | **Étape 2 mobile** — checklist FAB 6–11 + re-test navigation → [§ étape 2](#étape-2--ligne-320--navigation-retour-admin-relances-ajouts-candidature) |
+| **Registre à cocher après test** | Ligne **320** (étape 2) ; releases OTA **OK 10/07** (ligne 416) |
 | **Ne pas utiliser pour valider** | [`TODOS.md`](TODOS.md) = backlog **agent** uniquement |
 
 **Réponse attendue après l’étape 2** (OK **global** uniquement si points 1–11 + impersonnalisation + FAB 6–11 confirmés) :
@@ -413,7 +413,8 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 | Lot | Sujet | Environnement | Action porteur | Statut |
 |-----|-------|---------------|----------------|--------|
 | Mobile | Administration → **Mobile — erreurs & retours** | local + Samsung | (1) **Paramètres → Aide & retours → Signaler un bug** — message test → **Envoyer**. (2) Backoffice : menu **Mobile → Mobile — erreurs & retours** (`/backoffice/mobile/logs`) — ligne « message de test » (~20 s). (3) Clic ligne : diagnostic + capture. (4) « Erreurs auto » si télémétrie ON. | **[ ]** | **Preuve agent 29/06 17:18** : porteur mobile OK — `verify-porteur-mobile-feedback.js` → `[bug] message de test`, diagnostic + capture, écran `help_feedback/bug`, Samsung. **Reste porteur** : clic détail backoffice → `OK Mobile logs backoffice`. |
-| Mobile | **Mobile — releases OTA** | local | (1) **`docker compose up -d emulator-controller`**. (2) **`https://jobbingtrack.localhost:5443/backoffice/mobile/releases`**. (3) Build + install + publish dev. (4) Samsung : MAJ OTA (étape 4). (5) **Promote prod** (étape 5) si OK. | **[ ] EN COURS** | **Porteur 10/07 18h** : wizard USB **OK** — « Déjà à jour », alignement APK/téléphone, rebuild **v1.0.21+21** + install Samsung OK (après correctif agent `ERR_NETWORK_CHANGED`). **Reste** : publish dev **v1.0.21+21**, OTA Samsung étape 4, promote prod → `OK Mobile releases OTA backoffice`. |
+| Mobile | **Mobile — releases OTA** | local | (1) **`docker compose up -d emulator-controller`**. (2) **`https://jobbingtrack.localhost:5443/backoffice/mobile/releases`**. (3) Build + install + publish dev + promote prod. (4) Samsung OTA si canal dev actif. | **[x]** | **Porteur 10/07 soir** : design system **OK** ; rebuild **v1.0.25+25** + réinstall ADB → « appareil déjà synchronisé » ; publish dev **OK** ; promote production **OK**. → `OK Mobile releases OTA backoffice` (wizard USB + publish + prod). |
+| Design | **Design system — feedback clair/sombre (BL-26-33)** | backoffice | Menu utilisateur → clair / sombre / système sur **Mobile — releases OTA**. | **[x]** | **Porteur 10/07 soir** : `OK Design system feedback OTA` — cartes ambre lisibles, toggle thème OK. |
 
 | Ops | **Récap agent — rendu HTML** | Gmail | Ouvrir le mail test **`[JobbingTrack] Test récap HTML BL-26-03`** (ou prochain récap agent) : sections colorées OK/KO, tableaux lisibles, pas de bloc `<pre>` monospace. | **[ ]** | **Preuve agent 07/07** : 2 emails envoyés (`Récap validation 07/07` + `5/5 smokes OK + APK 1.0.12`) → `pauldelhomme.pro@gmail.com` **HTTP 202** ; Jest **3/3**. **Reste porteur** : `OK Récap agent HTML`. |
 

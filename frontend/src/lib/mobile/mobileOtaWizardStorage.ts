@@ -1,4 +1,5 @@
 const INSTALL_KEY = "jt-mobile-ota-install";
+const BUILD_KEY = "jt-mobile-ota-build";
 const PUBLISH_KEY = "jt-mobile-ota-publish";
 const LOG_KEY = "jt-mobile-ota-activity-log";
 const LOG_MAX = 80;
@@ -8,6 +9,12 @@ export type WizardInstallState = {
   version: string;
   buildNumber: string;
   deviceId: string;
+  at: string;
+};
+
+export type WizardBuildState = {
+  version: string;
+  buildNumber: string;
   at: string;
 };
 
@@ -65,6 +72,18 @@ export function clearWizardInstall() {
   if (typeof window !== "undefined") sessionStorage.removeItem(INSTALL_KEY);
 }
 
+export function readWizardBuild(): WizardBuildState | null {
+  return readJson<WizardBuildState>(BUILD_KEY);
+}
+
+export function writeWizardBuild(state: Omit<WizardBuildState, "at">) {
+  writeJson(BUILD_KEY, { ...state, at: new Date().toISOString() });
+}
+
+export function clearWizardBuild() {
+  if (typeof window !== "undefined") sessionStorage.removeItem(BUILD_KEY);
+}
+
 export function readWizardPublish(): WizardPublishState | null {
   return readJson<WizardPublishState>(PUBLISH_KEY);
 }
@@ -96,4 +115,13 @@ export function installMatchesApk(
 ): boolean {
   if (!install || !version || buildNumber == null) return false;
   return install.version === version && String(install.buildNumber) === String(buildNumber);
+}
+
+export function buildMatchesApk(
+  build: WizardBuildState | null,
+  version?: string | null,
+  buildNumber?: string | number | null,
+): boolean {
+  if (!build || !version || buildNumber == null) return false;
+  return build.version === version && String(build.buildNumber) === String(buildNumber);
 }

@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 8 juillet 2026 (BL-26-14 matrice Android active ; BL-26-30/31 console backoffice documentés)
+Dernière mise à jour : 10 juillet 2026 (OK porteur design system + releases OTA ; fix Overlay impersonnalisation v2)
 
 ## Rôle
 
@@ -16,7 +16,9 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | A2 | Attente email smokes — bonne boîte + diagnostic | Helper IMAP poll avec timeout ; ordre EmailLog → MailHog → Gmail → OVH ; logs indiquent boîte et tentative ; échec = message actionnable (mauvaise boîte, token absent, délai). **25/06** : doc [`BOITE_MAIL_INSCRIPTION_TESTS.md`](../../mobile/BOITE_MAIL_INSCRIPTION_TESTS.md) + `diagnose-registration-email.js` — `candidatures@…` ≠ inbox vérif inscription ; lire **`test@delhomme.ovh`** pour alias `test+…`. EmailLog **SENT** vers `test+mob…@delhomme.ovh` confirmé. | [x] doc + diagnostic |
 | A3 | Bypass biométrie smokes (pas produit) | Pref `test_automation_skip_biometric` (debug APK) ; smokes sans prompt Samsung ; **restauration auto** fin batterie + `clear-smoke-device-adb.js` ; biométrie porteur inchangée hors pref | [x] |
 | A4 | Hub admin ADB multi-comptes | `smoke-mobile-admin-hub-adb.js` OK : admin visible → hub → retour TEST_USER sans blocage login | [x] **02/07** : `SMOKE_SHARED_SHELL=1 ADB_FAST=1 smoke-mobile-admin-hub-adb.js` **OK** (~4 min) — drawer logout + `Connexion ADMIN` / `Connexion USER` ; hub + Statistiques + restore porteur ; fix `logoutViaDrawer` dans `tools/adb-lib/flows.js` |
-| A4b | Admin mobile — actions détail utilisateur | **08/07** : impersonnalisation OK porteur ; sortie → shell + hub admin ; listes poste/entreprise + contacts entreprise + picker intérim — **APK 1.0.13+13** `make reinstall-app` Samsung **OK** (~3 min) | [ ] re-test sortie désimpersonnalisation porteur |
+| A4b | Admin mobile — actions détail utilisateur | **10/07 soir** : fix Overlay v2 — `ImpersonationBanner` en `Stack` + `rootScaffoldMessengerKey` (plus `Column`/`ScaffoldMessenger.of` dans builder MaterialApp). Session impersonnalisation **persiste** après `adb install -r` (données app conservées — attendu). **Reste porteur** : re-test bannière + désimpersonnalisation sur APK **1.0.25+25**. | [ ] |
+| Phase A | Design system — StatusAlert + thème sombre | **10/07** : livré + **OK porteur** (`OK Design system feedback OTA`). | [x] |
+| Phase A | Backoffice OTA — wizard complet | **10/07 soir porteur** : rebuild **v1.0.25+25**, install, publish dev, promote prod OK. | [x] |
 | A5 | Consentements agent `/agent` — sync mobile→web | Consentements sauvés mobile visibles sur `/agent` (même compte) ; UI switches statut OK/KO + `grantedAt` ; `hasRequiredConsents` cohérent | [ ] UI switches OK ; **porteur 17/06** : à revoir plus tard. **Reste** : preuve sync même compte si besoin |
 | A6 | Comptes test prêts | `ensure-test-accounts-ready.js` : `TEST_USER` + `TEST_ADMIN` login API + `emailVerified=true` | [x] |
 | A6b | Login mobile — comptes test réels (debug) | **26/06** : `generate-debug-test-accounts.js` + boutons **Connexion USER/ADMIN** ; smoke `smoke-login-debug-test-accounts-adb.js` Samsung **OK** (USER + ADMIN, emails/mots de passe visibles). APK réinstallé via `build-apk-debug.sh`. | [x] |
@@ -28,14 +30,14 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | Étape | Ligne | Statut agent | Statut porteur | Action porteur |
 |-------|-------|--------------|----------------|----------------|
 | 1 | 319 Inscription + vérif email | `smoke-etape1-inscription-adb.js` **OK** + porteur mail/vérif OK | **[x] OK** | Archivé `TODOS_DONE.md` 25/06 |
-| 2 | 320 Navigation + FAB | smokes ADB OK ; correctif impersonnalisation 17/06 | **[ ] EN COURS** | Retours porteur partiels 17/06 — **pas OK global** ; re-test impersonnalisation + FAB 6–11 après rebuild APK |
+| 2 | 320 Navigation + FAB | smokes ADB OK ; **10/07** : pile retour barre basse (`_bottomNavBackStack`), `returnTabOnBack` prioritaire, dates relatives globales, drawer Calendrier affichage-only, fix Overlay impersonnalisation — **APK 1.0.22+22** à réinstaller | **[ ] EN COURS** | Re-test points A2, 2b, 2c, B impersonnalisation, FAB 6–11 |
 | 3 | 321 OVH SMTP `@jobbingtrack.com` | doc + diagnostic OK | bloquée par 320 | MX Plan OVH — § étape 3 |
 | 4 | 322 Agent admin `/agent` | UI + API OK | bloquée par 321 | § étape 4 |
 | 5 | 323 Consentements RGPD sync | UI switches OK | bloquée par 322 | § étape 5 |
 
 Après OK étapes 1–5 : lignes Lot D 324+ (dont **332** picker/planning) + merge `feat/lot-d-mobile-validation` → `dev`.
 | A7 | FAB détail candidature — picker contact unifié | **17/06** : `contact_picker_sheet.dart` — sections liés candidature / entreprise / autres, recherche, scroll, « Créer nouveau contact », import téléphone ; `showMultiContactPickerSheet` entretien ; relance/appel via `_loadContactPickerData` ; `capitalizePersonName` à la création ; messages validation FR. `flutter analyze` ciblé **0 erreur** ; `flutter test test/contact_name_utils_test.dart` **4/4 OK**. | [x] |
-| A8 | Calendrier — Planning par défaut + drawer dédié | **17/06** : `events_screen.dart` vue **Planning** (bandeau semaine + créneaux jour) ; `calendar_drawer.dart` filtres + bascule liste ; prefs `ApiConfigStore` ; drawer principal sans **Profil** ni **Événements**. `flutter analyze` ciblé **0 erreur**. **Reste porteur** : validation visuelle Planning + filtres drawer. | [ ] |
+| A8 | Calendrier — Planning par défaut + drawer dédié | **17/06** : `events_screen.dart` vue **Planning** ; **10/07** : `calendar_drawer.dart` réduit à **Affichage** (Planning/Liste) seulement — switches types retirés du drawer. `flutter test test/datetime_display_test.dart` **8/8 OK**. **Reste porteur** : re-test navigation A2 + drawer Calendrier. | [ ] |
 | A9 | Isolation données utilisateur (API) | **17/06** : `node scripts/mobile/smoke/api/smoke-user-data-isolation-api.js` **OK** — contact + candidature USER invisibles / GET **404** pour TEST_ADMIN. | [x] |
 | A10 | Notif changement statut — in-app (pas mail instantané) | **17/06** : `_notifyStatusIfChanged` recharge `NotificationProvider` + snackbar action « Notifications » ; pas d’email par changement (digest 18h section statuts 24 h OK). Push barre système = FCM prod (`dev-push-*` en dev). **Reste porteur** : créer relance/entretien et vérifier cloche. | [ ] |
 
@@ -587,7 +589,8 @@ Index scripts : `scripts/mobile/README.md`.
 | BL-26-29 | Backoffice Vue d’ensemble — lenteur rendu | **07/07 porteur** : très lent + `ERR_NETWORK_CHANGED` console — **PAUSE** ; retry transitoire ajouté. Reprise après BL-26-14. | [ ] pause |
 | BL-26-30 | Console backoffice — warnings preload Next.js | **06/07 porteur** : nombreux « preloaded but not used » en dev — source `AdminLayout.tsx` (prefetch hover). Non bloquant ; backlog **BL-26-30** `TODOS.md`. | [x] documenté |
 | BL-26-31 | Console backoffice — 403 firewall/waf/threats | **06/07 porteur** : `GET …/security/firewall/blocked-ips`, `…/threats`, `…/waf/config` → **403** toutes ~15 s depuis `/backoffice` (`fetchSecurityAnalysisSummary` + poll). Cause : `requireAdminAccess` sans guard frontend. Backlog **BL-26-31** — ne pas traiter avant BL-26-29. | [x] documenté |
-| Phase A | Backoffice — titres onglet fil d'Ariane | **17/06** : `DocumentTitleManager` MutationObserver. **Smoke Playwright** : `backoffice-document-titles-smoke.spec.ts` **5/5 OK** (`PLAYWRIGHT_BASE_URL=http://localhost:5003`). **Reste porteur** : `OK Titres onglet backoffice`. | [ ] |
+| Phase A | Design system — StatusAlert + thème sombre | **10/07** : livré ; **OK porteur** `OK Design system feedback OTA`. Jest **10/10** ; `type-check` OK. **Reste** : migration autres pages ; tokens Flutter. | [x] |
+| Phase A | Backoffice OTA — wizard + publish + prod | **10/07 soir porteur** : v1.0.25+25 rebuild/install/sync ; publish dev + promote prod OK. | [x] |
 | Phase A | Mobile — BL-26-25 AppBar (cloche + actions contextuelles) | **02/07** : notifications déplacées dans menu ⋮ (`ShellAppBarMenu`) ; `ShellAppBarActions` — calendrier titre **Calendrier** + sous-titre Planning/Liste + bouton filtres ; candidatures bouton **Actualiser** ; profil conserve **Modifier** + menu. **Reste porteur** : rebuild APK — cloche absente AppBar shell, notifications via ⋮ ; calendrier bouton tune ouvre drawer. | [ ] |
 | P1C | Titres onglet navigateur backoffice — fil d'Ariane + sous-onglets | **02/07** : `backofficeDocumentTitles.ts` (~80 routes) — ex. `Tableau de bord / Performances / Synthèse \| JobbingTrack` ; retrait `useDocumentTitle` statique (Sécurité, MailHog…) ; dynamiques menace/alerte étendent le fil parent. Jest **7/7** ; `tsc` OK. **Reste porteur** : cliquer sous-onglets Performances / Statistiques / Sécurité — l’onglet navigateur affiche le libellé de l’onglet actif. | [ ] |
 

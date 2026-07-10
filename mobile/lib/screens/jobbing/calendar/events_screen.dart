@@ -163,7 +163,7 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
           ShellAppBarActions(
             leadingActions: [
               IconButton(
-                tooltip: 'Affichage et filtres',
+                tooltip: 'Affichage',
                 icon: const Icon(Icons.tune),
                 onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               ),

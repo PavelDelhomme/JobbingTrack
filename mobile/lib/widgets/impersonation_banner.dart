@@ -17,11 +17,9 @@ class ImpersonationBanner extends StatelessWidget {
     if (nav == null) return;
     nav.pushNamedAndRemoveUntil('/home', (route) => false);
     nav.pushNamed('/admin');
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Session administrateur restaurée — hub admin')),
-      );
-    }
+    rootScaffoldMessengerKey.currentState?.showSnackBar(
+      const SnackBar(content: Text('Session administrateur restaurée — hub admin')),
+    );
   }
 
   @override
@@ -34,47 +32,61 @@ class ImpersonationBanner extends StatelessWidget {
     }
 
     final targetEmail = auth.user?.email ?? '';
+    final bannerTopInset = MediaQuery.paddingOf(context).top + 36;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    // Stack (pas Column+Expanded) : le builder MaterialApp n'a pas encore d'Overlay —
+    // évite « No Overlay widget found » sur IconButton / SnackBar.
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
-        Material(
-          elevation: 2,
-          color: Colors.orange.shade100,
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              child: Row(
-                children: [
-                  Icon(Icons.switch_account, size: 18, color: Colors.orange.shade900),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      targetEmail,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.orange.shade900,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
+        Padding(
+          padding: EdgeInsets.only(top: bannerTopInset),
+          child: content,
+        ),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: Material(
+            elevation: 2,
+            color: Colors.orange.shade100,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                child: Row(
+                  children: [
+                    Icon(Icons.switch_account, size: 18, color: Colors.orange.shade900),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        targetEmail,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.orange.shade900,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    tooltip: 'Désimpersonnaliser',
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    onPressed: () => exitAndRestoreAdminSession(context),
-                    icon: Icon(Icons.switch_account, color: Colors.orange.shade900, size: 22),
-                  ),
-                ],
+                    Semantics(
+                      label: 'Désimpersonnaliser',
+                      button: true,
+                      child: IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        onPressed: () => exitAndRestoreAdminSession(context),
+                        icon: Icon(Icons.switch_account, color: Colors.orange.shade900, size: 22),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
-        Expanded(child: content),
       ],
     );
   }

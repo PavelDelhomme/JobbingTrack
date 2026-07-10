@@ -15,32 +15,58 @@ String formatUserLocalDateTime(
   }
 }
 
-/// Date de postulation lisible sur les cartes candidatures.
-/// — Aujourd'hui / hier : avec l'heure
-/// — Cette semaine : « mar. 17 »
-/// — Même année : « 17 juin » (sans année)
-/// — Autre année : « 17 juin 2024 »
+String _formatHourMinute(DateTime dt) {
+  final h = dt.hour.toString().padLeft(2, '0');
+  final m = dt.minute.toString().padLeft(2, '0');
+  return '${h}h$m';
+}
+
+String _weekdayShort(DateTime dt) {
+  final raw = DateFormat('EEE', 'fr_FR').format(dt).toLowerCase();
+  final trimmed = raw.replaceAll('.', '').trim();
+  return '$trimmed.';
+}
+
+String _monthName(DateTime dt) {
+  final raw = DateFormat('MMMM', 'fr_FR').format(dt);
+  if (raw.isEmpty) return raw;
+  return '${raw[0].toUpperCase()}${raw.substring(1)}';
+}
+
+/// Date/heure relative lisible (candidatures, relances, entretiens, appels, événements).
+///
+/// Règles (référence = maintenant, fuseau local) :
+/// - **< 24 h** : `22h53`
+/// - **≥ 24 h, même mois** : `mer. 8, 19h02`
+/// - **≥ 24 h, autre mois mais < 30 j** : `lun. 22 Juin, 14h48`
+/// - **≥ 30 j, même année** : `9 Juin, 17h33`
+/// - **autre année** : `01/12/2025`
 String formatSmartPostulationDate(DateTime dateTime, {DateTime? reference}) {
   final dt = dateTime.toLocal();
   final now = (reference ?? DateTime.now()).toLocal();
-  final today = DateTime(now.year, now.month, now.day);
-  final target = DateTime(dt.year, dt.month, dt.day);
-  final dayDiff = target.difference(today).inDays;
 
-  if (dayDiff == 0) {
-    return "Aujourd'hui, ${DateFormat('HH:mm', 'fr_FR').format(dt)}";
+  final elapsed = now.difference(dt);
+  final until = dt.difference(now);
+  final within24h = elapsed.inHours >= 0 && elapsed.inHours < 24 ||
+      (dt.isAfter(now) && until.inHours < 24);
+  if (within24h) {
+    return _formatHourMinute(dt);
   }
-  if (dayDiff == -1) {
-    return "Hier, ${DateFormat('HH:mm', 'fr_FR').format(dt)}";
+
+  if (dt.year != now.year) {
+    return DateFormat('dd/MM/yyyy', 'fr_FR').format(dt);
   }
-  if (dayDiff > -7 && dayDiff < 0) {
-    final raw = DateFormat('EEE d', 'fr_FR').format(dt);
-    return raw.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+  final daysAgo = elapsed.inDays;
+  if (daysAgo >= 30) {
+    return '${dt.day} ${_monthName(dt)}, ${_formatHourMinute(dt)}';
   }
-  if (dt.year == now.year) {
-    return DateFormat('d MMM', 'fr_FR').format(dt);
+
+  if (dt.month != now.month) {
+    return '${_weekdayShort(dt)} ${dt.day} ${_monthName(dt)}, ${_formatHourMinute(dt)}';
   }
-  return DateFormat('d MMM y', 'fr_FR').format(dt);
+
+  return '${_weekdayShort(dt)} ${dt.day}, ${_formatHourMinute(dt)}';
 }
 
 String formatSmartEventDate(DateTime dateTime, {DateTime? reference}) {

@@ -138,8 +138,8 @@ Numéros = colonnes du tableau dans `TODOS_A_VALIDER.md` § étape 2.
 | # | Où | Action | OK si… | Re-test 10/07 |
 |---|-----|--------|--------|---------------|
 | **1** | **Profil** → **Paramètres** | Retour (←) | Retour **Profil** | ✅ déjà OK |
-| **2** | **Calendrier** (barre basse) → **Profil** (barre basse) | Retour système | Retour **Calendrier** (pas Accueil) | ⚠️ **re-test** — le drawer Calendrier est **filtres only** (Planning/Liste), pas de lien Profil |
-| **2c** | **Accueil** ou **Candidatures** → drawer **Entreprises** | Retour | Retour onglet d’origine (ex. Accueil) **après** passage par liste Candidatures si vous étiez dans Entreprises | ⚠️ re-test |
+| **2** | **Calendrier** (barre basse) → **Profil** (barre basse) | Retour système | Retour **Calendrier** (pas Accueil) | ⚠️ **re-test** — drawer Calendrier = **Affichage** (Planning/Liste) seulement |
+| **2c** | **Accueil** → drawer **Entreprises** | Retour | Retour **Accueil** direct (pas liste Candidatures intermédiaire) | ⚠️ re-test |
 | **2b** | **Candidatures** → sous-onglet **Entreprises** | Retour système | Liste **Candidatures** (sous-onglet 0) — **pas Accueil** | ⚠️ **re-test** (correctif 10/07) |
 | **2b2** | Liste **Candidatures** | Retour | **Accueil** | ✅ déjà OK |
 | **2d** | Drawer **Entreprises** depuis **Calendrier** | — | **N/A** — le Calendrier n’a pas le drawer global (filtres uniquement) | — |

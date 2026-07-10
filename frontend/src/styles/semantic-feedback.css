@@ -1,0 +1,120 @@
+/**
+ * Feedback sémantique JobbingTrack — contraste clair/sombre centralisé.
+ * Utiliser `StatusAlert` + data-jt-tone (pas bg-amber-100 / dark:text-* seuls dans .backoffice-content).
+ */
+
+.jt-status-alert {
+  --jt-alert-bg: rgb(248 250 252);
+  --jt-alert-fg: rgb(15 23 42);
+  --jt-alert-fg-muted: rgb(51 65 85);
+  --jt-alert-border: rgb(148 163 184);
+
+  border: 1px solid var(--jt-alert-border);
+  border-radius: 0.5rem;
+  background-color: var(--jt-alert-bg);
+  color: var(--jt-alert-fg);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.jt-status-alert__title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--jt-alert-fg);
+}
+
+.jt-status-alert__body {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--jt-alert-fg-muted);
+}
+
+.jt-status-alert__footer {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--jt-alert-fg-muted);
+}
+
+.jt-status-alert__body :where(p, li, span, strong) {
+  color: inherit;
+}
+
+/* ——— Tons clair ——— */
+.jt-status-alert[data-jt-tone="info"] {
+  --jt-alert-bg: rgb(224 242 254);
+  --jt-alert-fg: rgb(12 74 110);
+  --jt-alert-fg-muted: rgb(21 94 117);
+  --jt-alert-border: rgb(56 189 248);
+}
+
+.jt-status-alert[data-jt-tone="success"] {
+  --jt-alert-bg: rgb(209 250 229);
+  --jt-alert-fg: rgb(6 78 59);
+  --jt-alert-fg-muted: rgb(4 120 87);
+  --jt-alert-border: rgb(52 211 153);
+}
+
+.jt-status-alert[data-jt-tone="warning"] {
+  --jt-alert-bg: rgb(254 243 199);
+  --jt-alert-fg: rgb(120 53 15);
+  --jt-alert-fg-muted: rgb(146 64 14);
+  --jt-alert-border: rgb(245 158 11);
+}
+
+.jt-status-alert[data-jt-tone="critical"] {
+  --jt-alert-bg: rgb(254 226 226);
+  --jt-alert-fg: rgb(127 29 29);
+  --jt-alert-fg-muted: rgb(153 27 27);
+  --jt-alert-border: rgb(248 113 113);
+}
+
+/* ——— Mode sombre (html.dark — aligné ThemeProvider) ——— */
+html.dark .jt-status-alert[data-jt-tone="neutral"] {
+  --jt-alert-bg: rgb(30 41 59);
+  --jt-alert-fg: rgb(248 250 252);
+  --jt-alert-fg-muted: rgb(203 213 225);
+  --jt-alert-border: rgb(100 116 139);
+}
+
+html.dark .jt-status-alert[data-jt-tone="info"] {
+  --jt-alert-bg: rgb(12 74 110 / 0.55);
+  --jt-alert-fg: rgb(224 242 254);
+  --jt-alert-fg-muted: rgb(186 230 253);
+  --jt-alert-border: rgb(56 189 248);
+}
+
+html.dark .jt-status-alert[data-jt-tone="success"] {
+  --jt-alert-bg: rgb(6 78 59 / 0.55);
+  --jt-alert-fg: rgb(209 250 229);
+  --jt-alert-fg-muted: rgb(167 243 208);
+  --jt-alert-border: rgb(52 211 153);
+}
+
+html.dark .jt-status-alert[data-jt-tone="warning"] {
+  --jt-alert-bg: rgb(69 26 3 / 0.92);
+  --jt-alert-fg: rgb(254 243 199);
+  --jt-alert-fg-muted: rgb(253 230 138);
+  --jt-alert-border: rgb(217 119 6);
+}
+
+html.dark .jt-status-alert[data-jt-tone="critical"] {
+  --jt-alert-bg: rgb(69 10 10 / 0.85);
+  --jt-alert-fg: rgb(254 226 226);
+  --jt-alert-fg-muted: rgb(252 165 165);
+  --jt-alert-border: rgb(248 113 113);
+}
+
+/* Haut contraste */
+html.high-contrast .jt-status-alert {
+  border-width: 2px;
+}
+
+html.dark.high-contrast .jt-status-alert[data-jt-tone="warning"] {
+  --jt-alert-bg: rgb(0 0 0);
+  --jt-alert-fg: rgb(255 255 255);
+  --jt-alert-fg-muted: rgb(255 237 213);
+  --jt-alert-border: rgb(251 191 36);
+}

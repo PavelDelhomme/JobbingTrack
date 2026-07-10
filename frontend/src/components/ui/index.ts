@@ -1,4 +1,5 @@
 export { Alert, AlertDescription } from "./alert";
+export { StatusAlert, mapDeviceToneToSemantic, type SemanticTone } from "@/lib/ui/feedback";
 export { Badge, DataSourceBadge } from "./badge";
 export { Button } from "./button";
 export {
