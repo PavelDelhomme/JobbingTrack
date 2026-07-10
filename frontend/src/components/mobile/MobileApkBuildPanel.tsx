@@ -34,14 +34,19 @@ import {
   type StoredActivityLine,
 } from "@/lib/mobile/mobileOtaWizardStorage";
 
+type ActiveDevRelease = {
+  version: string;
+  buildNumber: number;
+  createdAt?: string;
+};
+
 type MobileApkBuildPanelProps = {
   onBuilt?: (info: { version: string; buildNumber: string }) => void;
-  onPublishRequest?: () => void;
+  onPublishRequest?: () => void | Promise<void>;
   publishing?: boolean;
   publishBlocked?: boolean;
   publishBlockedReason?: string | null;
-  devPublishDone?: boolean;
-  devPublishMessage?: string | null;
+  activeDevRelease?: ActiveDevRelease | null;
   onPromoteRequest?: () => void;
   promoting?: boolean;
   prodPromoted?: boolean;
@@ -139,8 +144,7 @@ export function MobileApkBuildPanel({
   publishing,
   publishBlocked,
   publishBlockedReason,
-  devPublishDone,
-  devPublishMessage,
+  activeDevRelease,
   onPromoteRequest,
   promoting,
   prodPromoted,
@@ -352,10 +356,26 @@ export function MobileApkBuildPanel({
   }, [building, refreshStatus]);
 
   const apkReady = !!apkInfo?.exists;
+  const builtLabel = apkInfo?.version && apkInfo.buildNumber != null
+    ? `v${apkInfo.version}+${apkInfo.buildNumber}`
+    : null;
+  const activeDevLabel = activeDevRelease
+    ? `v${activeDevRelease.version}+${activeDevRelease.buildNumber}`
+    : null;
+  const devPublishDone = Boolean(
+    apkReady
+    && activeDevRelease
+    && apkInfo?.version === activeDevRelease.version
+    && String(apkInfo?.buildNumber) === String(activeDevRelease.buildNumber),
+  );
   const deviceHasMatchingApp = Boolean(
     apkInfo && devices.some((d) => deviceMatchesApk(d, apkInfo)),
   );
-  const installSatisfied = installDone || deviceHasMatchingApp || !!devPublishDone;
+  const installSatisfied = installDone || deviceHasMatchingApp;
+  const selectedDeviceInfo = devices.find((d) => d.id === selectedDevice) ?? devices[0] ?? null;
+  const deviceLabelVersion = selectedDeviceInfo?.appInstalled && selectedDeviceInfo.appVersionName
+    ? `v${selectedDeviceInfo.appVersionName} (${selectedDeviceInfo.appVersionCode ?? "?"})`
+    : null;
 
   const step1State = building
     ? "active"
@@ -496,6 +516,33 @@ export function MobileApkBuildPanel({
           </li>
         </ul>
       </details>
+
+      {apkReady && (builtLabel || activeDevLabel || deviceLabelVersion) ? (
+        <div className="rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-100">
+          <p className="font-semibold">Alignement des versions</p>
+          <ul className="mt-2 space-y-1 text-xs leading-relaxed">
+            <li>
+              <strong>APK buildé (étape 1)</strong> : {builtLabel ?? "—"}
+            </li>
+            <li>
+              <strong>Téléphone (étape 2)</strong> : {deviceLabelVersion ?? "non détecté / app absente"}
+              {builtLabel && deviceLabelVersion && !deviceHasMatchingApp ? (
+                <span className="ml-1 text-amber-800 dark:text-amber-200">
+                  — différent de l&apos;APK : réinstallez (USB) ou attendez l&apos;OTA (étape 4).
+                </span>
+              ) : null}
+            </li>
+            <li>
+              <strong>Canal dev OTA (étape 3)</strong> : {activeDevLabel ?? "aucune release active"}
+              {builtLabel && activeDevLabel && !devPublishDone ? (
+                <span className="ml-1 font-medium text-blue-800 dark:text-blue-200">
+                  — publiez {builtLabel} pour activer l&apos;OTA.
+                </span>
+              ) : null}
+            </li>
+          </ul>
+        </div>
+      ) : null}
 
       <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
         <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -708,13 +755,16 @@ export function MobileApkBuildPanel({
         )}
       </section>
 
-      {apkReady && (installSatisfied || devPublishDone) ? (
+      {apkReady && installSatisfied ? (
         <section className="rounded-lg border border-blue-200 bg-blue-50/50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950/20">
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Étape 3 — Publish canal dev</p>
           {devPublishDone ? (
             <div className="mt-2 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100">
-              <p className="font-medium">Publication dev OK</p>
-              <p className="mt-1 text-xs">{devPublishMessage || "Release active sur le canal dev."}</p>
+              <p className="font-medium">Publication dev OK — {builtLabel}</p>
+              <p className="mt-1 text-xs">
+                Canal dev actif : {activeDevLabel}
+                {activeDevRelease?.createdAt ? ` (${formatWhen(activeDevRelease.createdAt)})` : ""}
+              </p>
             </div>
           ) : publishBlocked ? (
             <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">
@@ -722,7 +772,12 @@ export function MobileApkBuildPanel({
             </p>
           ) : (
             <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
-              Copie l&apos;APK buildé vers le serveur OTA (sans upload 171 Mo).
+              Copie {builtLabel ?? "l’APK buildé"} vers le serveur OTA (sans upload 171 Mo).
+              {activeDevLabel && builtLabel ? (
+                <span className="mt-1 block text-xs text-blue-800 dark:text-blue-200">
+                  Canal dev actuellement {activeDevLabel} — après publication, l&apos;étape 4 proposera la MAJ OTA.
+                </span>
+              ) : null}
             </p>
           )}
           {onPublishRequest && !devPublishDone ? (
@@ -736,7 +791,7 @@ export function MobileApkBuildPanel({
             </button>
           ) : null}
         </section>
-      ) : apkReady && !installSatisfied && !devPublishDone ? (
+      ) : apkReady && !installSatisfied ? (
         <p className="text-xs text-gray-500">Étape 3 débloquée après installation réussie (étape 2).</p>
       ) : null}
 
@@ -744,8 +799,12 @@ export function MobileApkBuildPanel({
         <section className="rounded-lg border border-violet-200 bg-violet-50/40 px-4 py-3 dark:border-violet-900 dark:bg-violet-950/20">
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Étape 4 — OTA sur Samsung</p>
           <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
-            Ouvrez l&apos;app JobbingTrack sur le téléphone (canal dev). Elle doit proposer la MAJ vers la version
-            publiée. Si rien n&apos;apparaît : force-stop + relance, ou vérifiez le réseau / adb reverse.
+            Ouvrez l&apos;app JobbingTrack sur le téléphone (canal dev). Elle doit proposer la MAJ vers{" "}
+            <strong>{activeDevLabel ?? "la version publiée"}</strong>
+            {deviceLabelVersion && activeDevLabel && !deviceHasMatchingApp && devPublishDone ? (
+              <> (installé : {deviceLabelVersion} — MAJ OTA attendue)</>
+            ) : null}
+            . Si rien n&apos;apparaît : force-stop + relance, ou vérifiez le réseau / adb reverse.
           </p>
         </section>
       ) : null}

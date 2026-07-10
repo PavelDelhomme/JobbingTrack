@@ -7,7 +7,7 @@
 
 const adbLib = require('../../../../tools/adb-lib');
 require('../../lib/smoke-runtime');
-const { openAppDrawer, ensureUserShell, ensureHomeTab } = require('../../lib/adb-smoke-helpers');
+const { openAppDrawer, ensureUserShell, ensureHomeTab, waitForAdminShell, waitForUserShell } = require('../../lib/adb-smoke-helpers');
 const {
   resolveWorkingAdminCredentials,
   loadRootEnv,
@@ -19,17 +19,32 @@ loadRootEnv();
 
 async function loginAdmin(phone, admin) {
   await adbLib.flows.dismissBiometricUnlock(phone, { password: admin.password });
-  if (await phone.uiContains('Bonjour')) {
-    await adbLib.flows.goToTab(phone, 1, { shell: true });
-    await openAppDrawer(phone);
-    const isAdmin = (await phone.uiContains('Hub administration')) || (await phone.uiContains('Administration'));
-    await phone.back();
-    await phone.wait(400);
-    if (isAdmin) return;
+  if (await adbLib.flows.isShellVisible(phone)) {
+    try {
+      await adbLib.flows.goToTab(phone, 1, { shell: true });
+      await openAppDrawer(phone);
+      const isAdmin =
+        (await phone.uiContains('Hub administration')) ||
+        (await phone.uiContains('ADMINISTRATION'));
+      await phone.back();
+      await phone.wait(400);
+      if (isAdmin) {
+        await waitForAdminShell(phone, admin.password);
+        return;
+      }
+    } catch {
+      /* pas encore sur shell admin */
+    }
+    try {
+      await adbLib.flows.logout(phone);
+    } catch {
+      /* ignore */
+    }
+    await phone.wait(800);
   }
   if (await phone.uiContains('Connexion ADMIN')) {
     await phone.tap('Connexion ADMIN');
-    await phone.wait(3500);
+    await phone.wait(4500);
   } else {
     for (let i = 0; i < 8; i++) {
       if (await phone.uiContains('Connexion ADMIN')) break;
@@ -44,8 +59,7 @@ async function loginAdmin(phone, admin) {
       await adbLib.flows.loginFresh(phone, admin.email, admin.password);
     }
   }
-  await adbLib.flows.dismissBiometricUnlock(phone, { password: admin.password });
-  await phone.assertVisible('Bonjour');
+  await waitForAdminShell(phone, admin.password);
 }
 
 async function openUsersList(phone) {
@@ -80,6 +94,9 @@ async function openUsersList(phone) {
   if (!shared) {
     await adbLib.flows.clearAppDataForSmoke(phone);
     await adbLib.flows.prepareSmokeSession(phone, { restart: false });
+  } else {
+    await adbLib.flows.restartApp(phone);
+    await phone.wait(3500);
   }
   await loginAdmin(phone, admin);
   await openUsersList(phone);
@@ -143,36 +160,30 @@ async function openUsersList(phone) {
   await openAppDrawer(phone);
   await phone.wait(1000);
   if (!(await phone.uiContains('Désimpersonnaliser'))) {
-    throw new Error('Entrée drawer Désimpersonnaliser absente après impersonate');
+    throw new Error('Entrée Désimpersonnaliser absente après impersonate (drawer ou bannière)');
   }
-  console.log('✅ Drawer Désimpersonnaliser visible (sans bannière persistante)');
+  console.log('✅ Bannière / drawer Désimpersonnaliser visible');
   await phone.tapReliable('Désimpersonnaliser');
   await phone.wait(3500);
 
   const onAdmin =
+    (await phone.uiContains('Hub administration')) ||
+    (await phone.uiContains('Outils d\'administration')) ||
     (await phone.uiContains('Utilisateurs')) ||
     (await phone.uiContains('Administration')) ||
-    (await phone.uiContains('Hub'));
+    (await phone.uiContains('Bonjour'));
   if (!onAdmin) {
-    throw new Error('Liste utilisateurs / hub admin non restauré après désimpersonnalisation');
+    throw new Error('Hub admin non restauré après désimpersonnalisation');
   }
   if (await phone.uiContains('Impersonnalisation —')) {
     throw new Error('Bannière impersonnalisation persistante encore visible après sortie');
   }
-  console.log('✅ Désimpersonnalisation drawer → liste utilisateurs OK');
+  console.log('✅ Désimpersonnalisation → hub admin OK');
 
   // Restaurer session USER pour les smokes suivants
   await adbLib.flows.restartApp(phone);
   await phone.wait(3500);
-  await adbLib.flows.dismissBiometricUnlock(phone, { password: user.password });
-  if (await phone.uiContains('Connexion USER')) {
-    await phone.tap('Connexion USER');
-    await phone.wait(4000);
-  }
-  await ensureHomeTab(phone);
-  if (!(await phone.uiContains('Bonjour'))) {
-    throw new Error('Session USER non restaurée après impersonation');
-  }
+  await waitForUserShell(phone, user.password);
   console.log('✅ Session USER restaurée');
 
   console.log('\nSmoke impersonnalisation mobile OK');

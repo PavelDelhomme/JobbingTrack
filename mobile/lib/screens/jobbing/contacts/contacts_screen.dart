@@ -117,6 +117,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                                 itemBuilder: (_, i) {
                                   final c = contacts[i];
                                   final email = c['email']?.toString() ?? '';
+                                  final company = contactPrimaryCompanyName(c);
                                   return ListTile(
                                     leading: CircleAvatar(
                                       child: Text(
@@ -126,7 +127,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
                                       ),
                                     ),
                                     title: Text(contactDisplayName(c)),
-                                    subtitle: email.isNotEmpty ? Text(email) : null,
+                                    subtitle: company.isNotEmpty
+                                        ? Text(company)
+                                        : (email.isNotEmpty ? Text(email) : null),
                                     trailing: const Icon(Icons.chevron_right),
                                     onTap: () => Navigator.of(context).push(
                                       MaterialPageRoute(

@@ -276,7 +276,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(app.company.name.isNotEmpty ? app.company.name : app.position),
+        title: Text(applicationListTitle(app)),
         actions: [
           IconButton(
             tooltip: 'Modifier',

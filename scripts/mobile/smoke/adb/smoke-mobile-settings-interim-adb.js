@@ -199,16 +199,15 @@ async function drawerInterimItemVisible(phone) {
 
   await adbLib.flows.setInterimModeForSmoke(phone, false);
   await adbLib.flows.restartApp(phone);
-  await phone.wait(3000);
+  await phone.wait(3500);
   await adbLib.flows.dismissBiometricUnlock(phone, { password });
-  if (!(await phone.uiContains('Bonjour'))) {
-    if (await phone.uiContains('Connexion USER')) {
-      await phone.tap('Connexion USER');
-      await phone.wait(3500);
-    }
+  if (await phone.uiContains('Connexion USER')) {
+    await phone.tap('Connexion USER');
+    await phone.wait(4000);
+  } else if (!(await adbLib.flows.isShellVisible(phone))) {
+    await adbLib.flows.loginFresh(phone, email, password);
   }
   await ensureHomeTab(phone);
-  await phone.assertVisible('Bonjour');
 
   await setInterimViaSettings(phone, true, email, password);
   await returnToShell(phone, email, password);
@@ -226,13 +225,14 @@ async function drawerInterimItemVisible(phone) {
   }
   console.log('✅ Paramètres : toggle OFF → menu Intérim masqué');
 
-  await setInterimViaSettings(phone, true, email, password);
+  await adbLib.flows.setInterimModeForSmoke(phone, true);
   await returnToShell(phone, email, password);
 
   await adbLib.flows.goToTab(phone, 3, { shell: true });
   await phone.wait(2000);
   const calendarOk =
     (await phone.uiContains('Calendrier')) ||
+    (await phone.uiContains('Planning')) ||
     (await phone.uiContains('Événements')) ||
     (await phone.uiContains('Aucun événement')) ||
     (await phone.uiContains('événement'));

@@ -415,7 +415,7 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 | Mobile | Administration → **Mobile — erreurs & retours** | local + Samsung | (1) **Paramètres → Aide & retours → Signaler un bug** — message test → **Envoyer**. (2) Backoffice : menu **Mobile → Mobile — erreurs & retours** (`/backoffice/mobile/logs`) — ligne « message de test » (~20 s). (3) Clic ligne : diagnostic + capture. (4) « Erreurs auto » si télémétrie ON. | **[ ]** | **Preuve agent 29/06 17:18** : porteur mobile OK — `verify-porteur-mobile-feedback.js` → `[bug] message de test`, diagnostic + capture, écran `help_feedback/bug`, Samsung. **Reste porteur** : clic détail backoffice → `OK Mobile logs backoffice`. |
 | Mobile | **Mobile — releases OTA** | local | (1) **`docker compose up -d emulator-controller`**. (2) **`https://jobbingtrack.localhost:5443/backoffice/mobile/releases`**. (3) Build + install + publish dev. (4) Samsung : MAJ OTA (étape 4). (5) **Promote prod** (étape 5) si OK. | **[ ] EN COURS** | **Porteur 07/07 ~14:33** : build **+12** OK, install Samsung OK, publish dev **+12** OK (canal dev actif). **Agent 07/07** : UX parcours 5 étapes + persistance F5 + bloc republication ; promote prod visible étape 5 (GitHub tag optionnel — **pas** merge `main`, voir BL-26-28). **Reste porteur** : OTA Samsung étape 4 + promote prod → `OK Mobile releases OTA backoffice`. |
 
-| Ops | **Récap agent — rendu HTML** | Gmail | Ouvrir le mail test **`[JobbingTrack] Test récap HTML BL-26-03`** (ou prochain récap agent) : sections colorées OK/KO, tableaux lisibles, pas de bloc `<pre>` monospace. | **[ ]** | **Preuve agent 07/07** : `buildAgentRecapHtml()` + envoi test `pauldelhomme.pro@gmail.com` **HTTP 202** ; Jest **3/3**. |
+| Ops | **Récap agent — rendu HTML** | Gmail | Ouvrir le mail test **`[JobbingTrack] Test récap HTML BL-26-03`** (ou prochain récap agent) : sections colorées OK/KO, tableaux lisibles, pas de bloc `<pre>` monospace. | **[ ]** | **Preuve agent 07/07** : 2 emails envoyés (`Récap validation 07/07` + `5/5 smokes OK + APK 1.0.12`) → `pauldelhomme.pro@gmail.com` **HTTP 202** ; Jest **3/3**. **Reste porteur** : `OK Récap agent HTML`. |
 
 **Décision récap HTML** : `OK récap agent HTML` **ou** `KO …` + capture messagerie.
 
@@ -476,7 +476,7 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 | Drawer USER sans Administration | **OK** | — |
 | Hub ADMIN + navigation | **OK** | — |
 | Édition prénom/nom/email/tél | **OK** (refonte UX email/tél — **BL-26-20**) | backlog |
-| Impersonnalisation sans **Désimpersonnaliser** | **KO bloquant** | **Correctif 17/06** : bannière globale + drawer + retour hub `/admin` — **rebuild APK + re-test porteur** |
+| Impersonnalisation sans **Désimpersonnaliser** | **OK porteur 08/07** | Session ADMIN requise ; bannière + drawer OK ; **correctif 08/07 soir** : sortie → hub admin + shell (drawer/barre basse) — re-test après rebuild |
 | Double/triple retour système (arrière-plan) | à spécifier / valider | **Correctif 17/06 (v2)** : `DrawerBackScope` délègue au shell ; snackbar globale flottante ; `canPop: false` — **rebuild APK + re-test Accueil** |
 | FAB relances / appels / entretiens / contacts (6–11) | **non confirmés** | re-test porteur après APK |
 | Tutoriel première connexion (skip + reprise) | backlog | **BL-TUT-01** |

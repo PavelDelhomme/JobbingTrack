@@ -8,7 +8,7 @@
 
 const adbLib = require('../../../../tools/adb-lib');
 require('../../lib/smoke-runtime');
-const { openNotificationSheet } = require('../../lib/adb-smoke-helpers');
+const { openNotificationSheet, tapHomeFabQuickCreate } = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');
 
@@ -206,17 +206,7 @@ async function drawerHasInterimFromProfile(phone) {
 
   await adbLib.flows.goToTab(phone, 1, { shell: true });
   await phone.wait(1500);
-  try {
-    await phone.tap('Nouvelle candidature');
-  } catch {
-    const fab = await phone.findElement('Nouvelle candidature');
-    if (!fab) throw new Error('FAB nouvelle candidature introuvable');
-    const m = fab.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
-    const cx = Math.floor((+m[1] + +m[3]) / 2);
-    const cy = Math.floor((+m[2] + +m[4]) / 2);
-    await phone.tapXY(cx, cy);
-  }
-  await phone.wait(2500);
+  await tapHomeFabQuickCreate(phone, 'Nouvelle candidature');
   const interimField =
     (await phone.uiContains("Boîte d'intérim")) ||
     (await phone.uiContains('intérim'));

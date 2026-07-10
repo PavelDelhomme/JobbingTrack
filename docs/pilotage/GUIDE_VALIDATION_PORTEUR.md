@@ -1,11 +1,26 @@
 # Guide validation porteur — JobbingTrack
 
-Dernière mise à jour : 17 juin 2026
+Dernière mise à jour : 10 juillet 2026
 
 ## En une phrase
 
 **Vous validez le produit** (mobile, mails, déploiement) → ce guide + **`TODOS_A_VALIDER.md`**.  
 **L’agent code et teste** → `TODOS.md` (backlog technique) — **ne pas suivre ce fichier pour valider**.
+
+---
+
+## Où regarder pour la suite (étape 2 mobile)
+
+| Fichier | Rôle | Vous devez… |
+|---------|------|-------------|
+| **[`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md)** § **Étape 2 / 5** | **Checklist à exécuter sur Samsung** | **Commencer ici** — parcours points 1–11 + impersonnalisation |
+| **[`TODOS_A_VALIDER.md`](TODOS_A_VALIDER.md)** § **Étape 2 — Ligne 320** | Registre officiel : cocher OK / KO | Répondre `OK Mobile — navigation…` quand tout est bon |
+| [`TODOS_A_VERIFIER.md`](TODOS_A_VERIFIER.md) | Preuves **agent** (smokes, CI) | Lecture seule — pas votre checklist |
+| [`TODOS.md`](TODOS.md) | Backlog **technique agent** | **Ne pas suivre** pour valider le produit |
+
+**APK actuel porteur** : **1.0.15+15** installé — reprendre la checklist étape 2 (FAB 6–11, sortie impersonnalisation).
+
+**OTA / publish dev** : uniquement si vous modifiez le **code mobile** et voulez tester la MAJ OTA — voir [`OTA_RELEASES_BACKOFFICE.md`](../mobile/OTA_RELEASES_BACKOFFICE.md) § règle développement.
 
 ---
 
@@ -18,7 +33,7 @@ Dernière mise à jour : 17 juin 2026
 | **Comprendre l’ordre global des phases** | [`PILOTAGE.md`](PILOTAGE.md) | Feuille de route A→E |
 | **Déployer le VPS (en parallèle)** | [`../production/PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md) | Portainer, NPM, APK |
 | **Données mobile propres (7 candidatures)** | [`../mobile/RESET_DONNEES_PORTEUR_VALIDATION.md`](../mobile/RESET_DONNEES_PORTEUR_VALIDATION.md) | Reset compte admin |
-| **Compat Android multi-API (plus tard)** | [`../mobile/STRATEGIE_COMPATIBILITE_ANDROID.md`](../mobile/STRATEGIE_COMPATIBILITE_ANDROID.md) | Après étapes 1→5 — pas maintenant |
+| **Releases OTA (build → publish → Samsung)** | [`../mobile/OTA_RELEASES_BACKOFFICE.md`](../mobile/OTA_RELEASES_BACKOFFICE.md) | Backoffice `/backoffice/mobile/releases` + CLI |
 | **Connexion admin mobile (APK debug)** | [`../mobile/RESET_DONNEES_PORTEUR_VALIDATION.md`](../mobile/RESET_DONNEES_PORTEUR_VALIDATION.md) § connexion | Sync + Connexion ADMIN |
 | **Ce que l’agent a déjà testé** | [`TODOS_A_VERIFIER.md`](TODOS_A_VERIFIER.md) | Preuves techniques (lecture seule) |
 | **Backlog dev / lots A–H détaillés** | [`TODOS.md`](TODOS.md) | **Agent uniquement** — pas votre checklist |
@@ -30,7 +45,7 @@ Dernière mise à jour : 17 juin 2026
 ```
 Étape 1  Inscription + email          ✅ OK (25/06)
 Étape 2  Navigation + FAB mobile      ▶ EN COURS — retours partiels (pas OK global)
-         └─ Parcours OTA (backoffice) ▶ EN COURS — build OK, reste publish dev + test Samsung
+         └─ Parcours OTA (backoffice) ▶ EN COURS — **1.0.15+15** publié dev **10/07** ; reste install USB + MAJ OTA Samsung (étapes 2–4)
 Étape 3  SMTP @jobbingtrack.com       ⏸ bloquée par étape 2
 Étape 4  Agent email backoffice       ⏸ bloquée par étape 3
 Étape 5  Consentements RGPD /agent    ⏸ bloquée par étape 4
@@ -40,8 +55,8 @@ Dernière mise à jour : 17 juin 2026
 
 | File | Où | Statut typique | Pour clôturer |
 |------|-----|----------------|---------------|
-| **A — Mobile Samsung** | App Flutter | Navigation OK 17/06 ; FAB 6–11 + impersonnalisation à revalider | Rebuild APK **1.0.0+12** → checklist points 1–11 → `OK Mobile — navigation…` ligne 320 |
-| **B — Releases OTA** | `/backoffice/mobile/releases` | Build + install OK 06–07/07 ; publish dev + OTA Samsung reste | Étapes 1–2 build/install → **3 Publish dev** → **4 MAJ OTA Samsung** → `OK Mobile releases OTA backoffice` ligne 416 |
+| **A — Mobile Samsung** | App Flutter | **1.0.15+15** installé **10/07** ; FAB 6–11 + sortie impersonnalisation à revalider | [`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md) § étape 2 → `OK Mobile — navigation…` ligne 320 |
+| **B — Releases OTA** | `/backoffice/mobile/releases` | Build **1.0.15+15** OK ; canal dev **1.0.15+15** **10/07** ; téléphone encore **1.0.13** → réinstaller ou OTA étape 4 | Guide [`OTA_RELEASES_BACKOFFICE.md`](../mobile/OTA_RELEASES_BACKOFFICE.md) → **4 MAJ OTA Samsung** → `OK Mobile releases OTA backoffice` ligne 416 |
 
 **Warning Kotlin au build** : APK produit quand même — dette **BL-26-09** (`docs/mobile/ANDROID_TOOLCHAIN.md`), **pas bloquant** pour étape 2 ni OTA.
 

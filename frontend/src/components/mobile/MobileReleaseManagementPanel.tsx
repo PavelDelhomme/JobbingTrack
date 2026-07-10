@@ -5,7 +5,7 @@ import axios from "axios";
 import { useAuth } from "@/lib/hooks/auth";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { MobileApkBuildPanel } from "@/components/mobile/MobileApkBuildPanel";
-import { readWizardPublish, writeWizardPublish } from "@/lib/mobile/mobileOtaWizardStorage";
+import { writeWizardPublish } from "@/lib/mobile/mobileOtaWizardStorage";
 
 type MobileRelease = {
   id: string;
@@ -252,6 +252,7 @@ export function MobileReleaseManagementPanel() {
       });
       setReleaseNotes("");
       await load();
+      return true;
     } catch (e) {
       if (axios.isAxiosError(e) && e.response?.status === 413) {
         setError(
@@ -266,6 +267,7 @@ export function MobileReleaseManagementPanel() {
     } finally {
       setUploading(false);
     }
+    return false;
   };
 
   const promoteDevToProd = async () => {
@@ -329,23 +331,12 @@ export function MobileReleaseManagementPanel() {
   const hints = state?.deployHints;
   const activeDev = hints?.activeDevRelease;
   const activeProd = hints?.activeProdRelease;
-  const storedPublish = typeof window !== "undefined" ? readWizardPublish() : null;
-  const devPublishDone = Boolean(
-    activeDev
-    && hints?.pubspecBuild != null
-    && activeDev.buildNumber === hints.pubspecBuild,
-  );
   const prodPromoted = Boolean(
     activeProd
     && activeDev
     && activeProd.version === activeDev.version
     && activeProd.buildNumber === activeDev.buildNumber,
   );
-  const devPublishMessage =
-    storedPublish?.message
-    || (activeDev
-      ? `Canal dev actif : v${activeDev.version}+${activeDev.buildNumber} (${formatDate(activeDev.createdAt)})`
-      : null);
   const promoteTargetLabel = activeDev ? `v${activeDev.version}+${activeDev.buildNumber}` : null;
   const publicApiUrl = hints?.publicApiUrl;
   const mobileDownloadBase = state?.deployHints?.mobileDownloadBaseUrl;
@@ -357,13 +348,15 @@ export function MobileReleaseManagementPanel() {
         onBuilt={({ version: v, buildNumber: b }) => {
           setVersion(v);
           setBuildNumber(b);
+          void load();
         }}
-        onPublishRequest={() => void publishBuiltApk()}
+        onPublishRequest={async () => {
+          await publishBuiltApk();
+        }}
         publishing={uploading}
         publishBlocked={hints?.canPublishCurrentBuild === false}
         publishBlockedReason={hints?.publishBlockedReason ?? null}
-        devPublishDone={devPublishDone}
-        devPublishMessage={devPublishMessage}
+        activeDevRelease={activeDev ?? null}
         onPromoteRequest={() => void promoteDevToProd()}
         promoting={actionId === "promote"}
         prodPromoted={prodPromoted}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_hub_leading.dart';
 
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key});
@@ -10,6 +11,7 @@ class AdminScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Administration'),
         centerTitle: true,
+        leading: const AdminHubLeading(),
         actions: [MobileNotificationCenter()],
       ),
       body: SafeArea(

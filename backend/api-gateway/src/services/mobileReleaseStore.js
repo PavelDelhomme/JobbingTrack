@@ -547,7 +547,10 @@ function publishBuiltApk({
   const srcPath = resolveBuiltApkPath();
   if (!srcPath) {
     throw new Error(
-      'APK debug introuvable sur le serveur. Lancez « Build APK » (étape 1) puis réessayez.',
+      'APK debug introuvable sur le serveur. Lancez « Build APK » (étape 1) ou make reinstall-app, '
+      + 'puis si besoin : docker compose up -d api-gateway --force-recreate '
+      + '(montage mobile/build → /app/mobile-apk-build parfois vide jusqu’au recreate). '
+      + 'Alternative : bash scripts/mobile/publish-built-dev.sh',
     );
   }
 

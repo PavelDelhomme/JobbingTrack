@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jobbingtrack_mobile/models/application.dart';
 
 /// Statuts modifiables manuellement par l'utilisateur (pas les statuts calculés par relances/délais).
 const kManualApplicationStatusCodes = [
@@ -162,4 +163,42 @@ String contactDisplayName(Map<String, dynamic> contact) {
   final email = contact['email']?.toString();
   if (email != null && email.isNotEmpty) return email;
   return 'Contact';
+}
+
+/// Libellé entreprise principal d'un contact (liste / carte).
+String contactPrimaryCompanyName(Map<String, dynamic> contact) {
+  final companies = contact['companies'];
+  if (companies is List && companies.isNotEmpty) {
+    for (final entry in companies) {
+      if (entry is Map) {
+        final nested = entry['company'];
+        if (nested is Map) {
+          final name = nested['name']?.toString().trim() ?? '';
+          if (name.isNotEmpty) return name;
+        }
+        final name = entry['name']?.toString().trim() ?? '';
+        if (name.isNotEmpty) return name;
+      }
+    }
+  }
+  final direct = contact['company'];
+  if (direct is Map) {
+    final name = direct['name']?.toString().trim() ?? '';
+    if (name.isNotEmpty) return name;
+  }
+  return contact['companyName']?.toString().trim() ?? '';
+}
+
+String applicationListTitle(Application app) {
+  final position = app.position.trim();
+  if (position.isNotEmpty) return position;
+  if (app.company.name.trim().isNotEmpty) return app.company.name.trim();
+  return 'Candidature';
+}
+
+String? applicationListSubtitle(Application app) {
+  final position = app.position.trim();
+  final company = app.company.name.trim();
+  if (position.isNotEmpty && company.isNotEmpty) return company;
+  return null;
 }

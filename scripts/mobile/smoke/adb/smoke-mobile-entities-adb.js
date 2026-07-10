@@ -9,11 +9,11 @@
 const adbLib = require('../../../../tools/adb-lib');
 require('../../lib/smoke-runtime');
 const {
-  ensureUserShell,
   typeInLabeledField,
   openProfileEdit,
   openAppDrawer,
   closeDrawerIfOpen,
+  waitForCompaniesListReady,
 } = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
 const { loadRootEnv } = require('../../lib/resolve-admin-credentials');
@@ -28,7 +28,25 @@ const {
 loadRootEnv();
 
 async function ensureLoggedIn(phone, email, password) {
-  return ensureUserShell(phone, email, password);
+  await adbLib.flows.prepareSmokeSession(phone, { restart: false });
+  if (await adbLib.flows.isShellVisible(phone)) {
+    await adbLib.flows.goToTab(phone, 1, { shell: true });
+    await phone.wait(800);
+    await phone.assertVisible('Bonjour');
+    return;
+  }
+  await adbLib.flows.restartApp(phone);
+  await phone.wait(3500);
+  await adbLib.flows.dismissBiometricUnlock(phone, { password });
+  if (await phone.uiContains('Connexion USER')) {
+    await phone.tap('Connexion USER');
+    await phone.wait(4000);
+  } else if (!(await adbLib.flows.isShellVisible(phone))) {
+    await adbLib.flows.loginFresh(phone, email, password);
+  }
+  await adbLib.flows.dismissBiometricUnlock(phone, { password });
+  await adbLib.flows.goToTab(phone, 1, { shell: true });
+  await phone.assertVisible('Bonjour');
 }
 
 async function openDrawerItemWithScroll(phone, label) {
@@ -135,19 +153,43 @@ async function tapFirstContact(phone, preferName) {
   console.log('User:', email);
   console.log('Candidature cible:', target.position, '→', target.companyName);
 
+  if (process.env.SMOKE_SHARED_SHELL !== '1') {
+    await adbLib.flows.clearAppDataForSmoke(phone);
+    await adbLib.flows.prepareSmokeSession(phone, { restart: false });
+  }
   await ensureLoggedIn(phone, email, password);
 
-  // ── Entreprises : sous-onglet shell ou écran dédié
-  await openDrawerItemWithScroll(phone, 'Entreprises');
-  await phone.wait(3000);
-  let companiesOk = false;
-  for (let i = 0; i < 12; i++) {
-    companiesOk =
-      (await phone.uiContains('Aucune entreprise')) ||
-      (await phone.uiContains('Rechercher')) ||
-      (await phone.uiContains(target.companyName));
-    if (companiesOk) break;
-    await phone.wait(1000);
+  // ── Entreprises : sous-onglet shell (fiable) puis drawer /companies en secours
+  await adbLib.flows.goToTab(phone, 2, { shell: true });
+  await phone.wait(1500);
+  let entreprisesTab = false;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    if (await phone.uiContains('Entreprises')) {
+      try {
+        await phone.tapReliable('Entreprises');
+        entreprisesTab = true;
+        break;
+      } catch {
+        try {
+          await phone.tap('Entreprises');
+          entreprisesTab = true;
+          break;
+        } catch {
+          /* retry */
+        }
+      }
+    }
+    await phone.wait(600);
+  }
+  if (!entreprisesTab) {
+    await phone.tapXY(662, 378);
+  }
+  await phone.wait(2000);
+  let companiesOk = await waitForCompaniesListReady(phone, target.companyName, 45000);
+  if (!companiesOk) {
+    await openDrawerItemWithScroll(phone, 'Entreprises');
+    await phone.wait(2000);
+    companiesOk = await waitForCompaniesListReady(phone, target.companyName, 30000);
   }
   if (!companiesOk) {
     throw new Error('Liste entreprises : état vide/chargé introuvable');

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_hub_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 class TestDataScreen extends StatefulWidget {
@@ -192,6 +193,7 @@ class _TestDataScreenState extends State<TestDataScreen> {
       appBar: AppBar(
         title: const Text('Données de test'),
         centerTitle: true,
+        leading: const AdminHubLeading(),
         actions: const [MobileNotificationCenter()],
       ),
       body: AdminSafeBody(

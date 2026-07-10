@@ -4,6 +4,7 @@ import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
 import 'package:jobbingtrack_mobile/utils/admin_time_range.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_kpi_tile.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_hub_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_time_range_bar.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/simple_pie_chart.dart';
@@ -82,6 +83,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       appBar: AppBar(
         title: const Text('Statistiques plateforme'),
         centerTitle: true,
+        leading: const AdminHubLeading(),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
           const MobileNotificationCenter(),

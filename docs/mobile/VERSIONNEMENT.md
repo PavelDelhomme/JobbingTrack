@@ -93,6 +93,9 @@ Les anciennes releases stockées en `1.0.0` + build `12` sont **normalisées à 
 
 ## FAQ
 
+**Parcours OTA complet (backoffice) ?**  
+Voir **[OTA_RELEASES_BACKOFFICE.md](./OTA_RELEASES_BACKOFFICE.md)** — build, install USB, publish dev, OTA Samsung, promote prod.
+
 **Pourquoi pas `1.0.5` pour le 5e build ?**  
 En semver strict, `1.0.5` = 5e **correctif produit**, pas le 5e compile. JobbingTrack affiche le build dans le 3e chiffre : `1.0.5+5`.
 

@@ -265,6 +265,112 @@ async function openSmokeApplicationDetail(phone, target) {
   return smokeApp.openSmokeApplicationDetail(phone, target);
 }
 
+/** FAB Accueil (tooltip Ajouter) → sheet → action (ex. Nouvelle candidature). */
+async function tapHomeFabQuickCreate(phone, sheetItemLabel = 'Nouvelle candidature') {
+  await ensureHomeTab(phone);
+  await phone.wait(800);
+  let opened = false;
+  for (const label of ['Ajouter', 'Add']) {
+    if (await phone.uiContains(label)) {
+      try {
+        await phone.tap(label);
+        opened = true;
+        break;
+      } catch {
+        /* essai FAB coordonnées */
+      }
+    }
+  }
+  if (!opened) {
+    const sizeOut = await phone.shellCommand('wm size');
+    const wm = String(sizeOut).match(/(\d+)x(\d+)/);
+    const w = wm ? parseInt(wm[1], 10) : 1080;
+    const h = wm ? parseInt(wm[2], 10) : 2340;
+    await phone.tapXY(w - 90, h - 180);
+    opened = true;
+  }
+  await phone.wait(2000);
+  if (!(await phone.uiContains(sheetItemLabel))) {
+    throw new Error(`Sheet quick-create : « ${sheetItemLabel} » introuvable après FAB Ajouter`);
+  }
+  await phone.tapReliable(sheetItemLabel);
+  await phone.wait(2500);
+}
+
+async function waitForAdminShell(phone, adminPassword, maxAttempts = 10) {
+  for (let i = 0; i < maxAttempts; i++) {
+    await adbLib.flows.dismissBiometricUnlock(phone, { password: adminPassword });
+    if (await phone.uiContains('Bonjour')) return;
+    if (await phone.uiContains('Connexion ADMIN')) {
+      await phone.tap('Connexion ADMIN');
+      await phone.wait(4500);
+      continue;
+    }
+    await phone.wait(1500);
+  }
+  await phone.assertVisible('Bonjour');
+}
+
+async function waitForUserShell(phone, userPassword, maxAttempts = 12) {
+  for (let i = 0; i < maxAttempts; i++) {
+    await adbLib.flows.dismissBiometricUnlock(phone, { password: userPassword });
+    if (await adbLib.flows.isShellVisible(phone)) {
+      if (await phone.uiContains('Bonjour')) return;
+    }
+    if (await phone.uiContains('Connexion USER')) {
+      await phone.tap('Connexion USER');
+      await phone.wait(4500);
+      continue;
+    }
+    if (await phone.uiContains('Bonjour')) return;
+    await phone.wait(1500);
+  }
+  if (await phone.uiContains('Bonjour')) return;
+  throw new Error('Shell USER introuvable après restauration session');
+}
+
+/** Attente liste entreprises (drawer /companies ou sous-onglet shell Candidatures). */
+async function waitForCompaniesListReady(phone, companyNameHint = '', timeoutMs = 45000) {
+  const prefix = String(companyNameHint || '').slice(0, 14);
+  const markers = [
+    'Aucune entreprise',
+    'Rechercher une entreprise',
+    'Rechercher',
+    'Nouvelle entreprise',
+    'Réessayer',
+    prefix,
+    'SmokeCo',
+  ].filter(Boolean);
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeoutMs) {
+    for (const m of markers) {
+      if (await phone.uiContains(m)) return true;
+    }
+    const nodes = await phone.uiNodes();
+    const tile = nodes.find((n) => {
+      if (!n.clickable) return false;
+      const label = nodeLabel(n);
+      if (label.includes('Tab ') || label.includes('Notifications') || label === 'Menu') {
+        return false;
+      }
+      if (prefix && label.includes(prefix)) return true;
+      if (label.includes('SmokeCo')) return true;
+      return (
+        label.length > 4 &&
+        !label.includes('Entreprises') &&
+        !label.includes('Candidatures') &&
+        (label.includes('.com') || label.includes('http') || /^[A-Z]/.test(label.split('\n')[0]))
+      );
+    });
+    if (tile) return true;
+    if (await phone.uiContains('Entreprises')) {
+      await phone.scrollDown(500);
+    }
+    await phone.wait(900);
+  }
+  return false;
+}
+
 module.exports = {
   nodeLabel,
   boundsCenter,
@@ -279,5 +385,9 @@ module.exports = {
   ensureApplicationsListTab,
   waitApplicationsTabReady,
   openSmokeApplicationDetail,
+  tapHomeFabQuickCreate,
+  waitForAdminShell,
+  waitForUserShell,
+  waitForCompaniesListReady,
   ...smokeApp,
 };

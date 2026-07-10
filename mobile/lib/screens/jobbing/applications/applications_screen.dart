@@ -462,12 +462,15 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
             : Map<String, dynamic>.from(raw as Map);
         final name = contactDisplayName(map);
         final email = map['email']?.toString() ?? '';
+        final company = contactPrimaryCompanyName(map);
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
             leading: const Icon(Icons.person, color: Colors.green),
             title: Text(name),
-            subtitle: email.isNotEmpty ? Text(email) : null,
+            subtitle: company.isNotEmpty
+                ? Text(company)
+                : (email.isNotEmpty ? Text(email) : null),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => ContactDetailScreen(contact: map)),

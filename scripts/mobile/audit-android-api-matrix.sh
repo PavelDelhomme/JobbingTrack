@@ -17,6 +17,13 @@ fi
 _pick_sdk() {
   for candidate in "${ANDROID_SDK_ROOT:-}" "${ANDROID_HOME:-}" "$ROOT/.android-sdk" "$HOME/Android/Sdk"; do
     [[ -n "$candidate" ]] || continue
+    if [[ -d "$candidate" && -x "$candidate/cmdline-tools/latest/bin/avdmanager" ]]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  for candidate in "${ANDROID_SDK_ROOT:-}" "${ANDROID_HOME:-}" "$ROOT/.android-sdk" "$HOME/Android/Sdk"; do
+    [[ -n "$candidate" ]] || continue
     if [[ -d "$candidate" ]]; then
       echo "$candidate"
       return 0
@@ -64,8 +71,11 @@ fi
 echo
 
 echo "[AVD installés (avdmanager)]"
-if command -v avdmanager >/dev/null 2>&1; then
-  avdmanager list avd 2>/dev/null | sed 's/^/  /' || echo "  (avdmanager erreur)"
+AVDMGR="$ANDROID_SDK/cmdline-tools/latest/bin/avdmanager"
+if [[ -x "$AVDMGR" ]]; then
+  "$AVDMGR" list avd 2>/dev/null | sed 's/^/  /' || echo "  (avdmanager erreur)"
+elif command -v avdmanager >/dev/null 2>&1; then
+  avdmanager list avd 2>/dev/null | sed 's/^/  /' || echo "  (avdmanager erreur — préférer $ANDROID_SDK/cmdline-tools/latest/bin/avdmanager)"
 else
   echo "  avdmanager indisponible — ANDROID_SDK=$ANDROID_SDK"
 fi
@@ -73,29 +83,48 @@ echo
 
 echo "[Écarts vs paliers cibles: ${TARGET_APIS[*]}]"
 declare -A COVERED=()
+declare -A AVD_READY=()
+
+_mark_tier() {
+  local api="$1"
+  local label="$2"
+  for t in "${TARGET_APIS[@]}"; do
+    if [[ "$api" -eq "$t" ]]; then
+      COVERED[$t]="$label"
+    elif [[ "$t" -eq 36 && "$api" -ge 36 ]]; then
+      COVERED[$t]="$label"
+    elif [[ "$t" -eq 34 && "$api" -ge 34 && "$api" -lt 36 ]]; then
+      COVERED[$t]="$label"
+    elif [[ "$t" -eq 30 && "$api" -ge 30 && "$api" -lt 34 ]]; then
+      COVERED[$t]="$label"
+    elif [[ "$t" -eq 28 && "$api" -ge 26 && "$api" -lt 30 ]]; then
+      COVERED[$t]="$label"
+    elif [[ "$t" -eq 21 && "$api" -le 23 ]]; then
+      COVERED[$t]="$label"
+    fi
+  done
+}
+
+if [[ -x "$AVDMGR" ]]; then
+  while IFS= read -r avd_path; do
+    [[ -f "$avd_path/config.ini" ]] || continue
+    api=$(grep -oE 'android-[0-9]+' "$avd_path/config.ini" 2>/dev/null | head -1 | tr -cd '0-9' || true)
+    name=$(basename "$avd_path" .avd)
+    [[ -n "$api" ]] || continue
+    AVD_READY[$api]="$name"
+    _mark_tier "$api" "AVD installé ($name — démarrer pour campagne)"
+  done < <("$AVDMGR" list avd 2>/dev/null | awk '/Path:/ {print $2}' || true)
+fi
+
 for dev in "${DEVICES[@]}"; do
   api=$(adb -s "$dev" shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r' || echo "")
   [[ -n "$api" ]] || continue
-  for t in "${TARGET_APIS[@]}"; do
-    if [[ "$api" -eq "$t" ]]; then
-      COVERED[$t]=1
-    elif [[ "$t" -eq 36 && "$api" -ge 36 ]]; then
-      COVERED[$t]=1
-    elif [[ "$t" -eq 34 && "$api" -ge 34 && "$api" -lt 36 ]]; then
-      COVERED[$t]=1
-    elif [[ "$t" -eq 30 && "$api" -ge 30 && "$api" -lt 34 ]]; then
-      COVERED[$t]=1
-    elif [[ "$t" -eq 28 && "$api" -ge 26 && "$api" -lt 30 ]]; then
-      COVERED[$t]=1
-    elif [[ "$t" -eq 21 && "$api" -le 23 ]]; then
-      COVERED[$t]=1
-    fi
-  done
+  _mark_tier "$api" "couvert (appareil connecté)"
 done
 
 for t in "${TARGET_APIS[@]}"; do
   if [[ -n "${COVERED[$t]:-}" ]]; then
-    echo "  API ~$t : couvert (appareil connecté)"
+    echo "  API ~$t : ${COVERED[$t]}"
   else
     echo "  API ~$t : MANQUANT — créer AVD :"
     echo "    ANDROID_API_LEVEL=$t JOBBINGTRACK_AVD_NAME=JobbingTrack_API${t} bash scripts/mobile/setup/setup-android-emulator.sh install"

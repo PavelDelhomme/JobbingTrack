@@ -19,4 +19,6 @@ Application mobile cross-platform avec Flutter, synchronisation temps réel et m
 ---
 
 **Version**: 4.1 - Guide mobile
-**Dernière mise à jour**: 19 juin 2026
+**Dernière mise à jour**: 10 juillet 2026
+
+**Releases OTA (build, publish, Samsung)** : **[OTA_RELEASES_BACKOFFICE.md](./OTA_RELEASES_BACKOFFICE.md)** ← backoffice `/backoffice/mobile/releases` + équivalents CLI.

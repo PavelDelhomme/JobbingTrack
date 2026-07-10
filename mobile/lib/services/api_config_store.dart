@@ -30,15 +30,32 @@ class ApiConfigStore {
     required String token,
     required String userJson,
     String? refreshToken,
+    String? impersonatorToken,
+    String? impersonatorUserJson,
+    String? impersonatorRefreshToken,
+    String? impersonationReturnRoute,
   }) async {
     await SecureAuthSessionStore.saveSession(
       token: token,
       userJson: userJson,
       refreshToken: refreshToken,
+      impersonatorToken: impersonatorToken,
+      impersonatorUserJson: impersonatorUserJson,
+      impersonatorRefreshToken: impersonatorRefreshToken,
+      impersonationReturnRoute: impersonationReturnRoute,
     );
   }
 
-  static Future<({String token, String userJson, String? refreshToken})?> loadAuthSession() async {
+  static Future<
+      ({
+        String token,
+        String userJson,
+        String? refreshToken,
+        String? impersonatorToken,
+        String? impersonatorUserJson,
+        String? impersonatorRefreshToken,
+        String? impersonationReturnRoute,
+      })?> loadAuthSession() async {
     return SecureAuthSessionStore.loadSession();
   }
 

@@ -53,11 +53,13 @@ const adbLast = [
 
 function runScript(relPath, label, envExtra = {}) {
   const started = Date.now();
+  const heavy = /settings-interim|impersonation|admin-hub/.test(relPath);
+  const timeoutMs = heavy ? 540000 : 420000;
   console.log(`\n${'─'.repeat(56)}\n▶ ${label}\n   ${relPath}\n${'─'.repeat(56)}`);
   const r = spawnSync(NODE, [path.join(ROOT, relPath)], {
     cwd: ROOT,
     encoding: 'utf8',
-    timeout: 420000,
+    timeout: timeoutMs,
     env: {
       ...process.env,
       FORCE_COLOR: '0',

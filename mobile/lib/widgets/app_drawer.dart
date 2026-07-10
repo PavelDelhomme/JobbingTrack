@@ -64,7 +64,7 @@ class _AppDrawerState extends State<AppDrawer> {
                   ),
                 ),
                 subtitle: Text(
-                  'Impersonnalisation — ${user?.email ?? ''}\nRetour à la liste des utilisateurs',
+                  'Impersonnalisation — ${user?.email ?? ''}\nRetour au hub administrateur',
                   style: TextStyle(
                     color: Colors.orange.shade900.withValues(alpha: 0.85),
                     fontSize: 12,

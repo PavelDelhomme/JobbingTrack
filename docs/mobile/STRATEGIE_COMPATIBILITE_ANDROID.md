@@ -96,8 +96,8 @@ Cocher **porteur** avant bêta publique :
 | 21–23 | AVD | [ ] | [ ] | [ ] | [ ] | |
 | 26–28 | Blackview ou AVD | [ ] | [ ] | [ ] | [ ] | |
 | 30–32 | AVD | [ ] | [ ] | [ ] | [ ] | |
-| 34–35 | AVD | [ ] | [ ] | [ ] | [ ] | |
-| 36 | Samsung | [x] | [ ] | [ ] | [ ] | **Étape 2 + build +12** ; baseline JT-1.0.0 OK réserve |
+| 34–35 | AVD `JobbingTrack_S21_FE` (Android 14) | [ ] | [ ] | [ ] | [ ] | Installé — **démarrer AVD** pour campagne |
+| 36 | Samsung SM-G990B2 | [x] | [ ] | [ ] | [ ] | **Étape 2 + build +12** ; baseline JT-1.0.0 OK réserve ; preflight agent **08/07** |
 
 Smoke de référence par palier (agent) :
 

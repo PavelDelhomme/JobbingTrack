@@ -7,6 +7,7 @@ import 'package:jobbingtrack_mobile/utils/admin_time_range.dart';
 import 'package:jobbingtrack_mobile/utils/mobile_perf_aggregator.dart';
 import 'package:jobbingtrack_mobile/utils/user_friendly_error.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_kpi_tile.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_hub_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_record_detail_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_time_range_bar.dart';
@@ -122,6 +123,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> with SingleTicker
       appBar: AppBar(
         title: const Text('Performances'),
         centerTitle: true,
+        leading: const AdminHubLeading(),
         bottom: TabBar(
           controller: _tabs,
           tabs: const [

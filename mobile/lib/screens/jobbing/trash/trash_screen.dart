@@ -4,6 +4,7 @@ import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_hub_leading.dart';
 
 class TrashScreen extends StatefulWidget {
   const TrashScreen({super.key});
@@ -45,6 +46,7 @@ class _TrashScreenState extends State<TrashScreen> {
       appBar: AppBar(
         title: const Text('Corbeille'),
         centerTitle: true,
+        leading: const AdminHubLeading(),
         actions: const [MobileNotificationCenter()],
       ),
       body: _loading

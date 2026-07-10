@@ -4,6 +4,7 @@ import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
 import 'package:jobbingtrack_mobile/utils/admin_time_range.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_kpi_tile.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_hub_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_record_detail_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_time_range_bar.dart';
@@ -77,6 +78,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
       appBar: AppBar(
         title: const Text('Analytics mobile'),
         centerTitle: true,
+        leading: const AdminHubLeading(),
         bottom: TabBar(
           controller: _tabs,
           isScrollable: true,

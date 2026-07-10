@@ -5,6 +5,7 @@ import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
 import 'package:jobbingtrack_mobile/utils/admin_sensitive_action_guard.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_hub_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
 class UserDetailScreen extends StatefulWidget {
@@ -260,15 +261,40 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   Future<void> _impersonate() async {
     final u = _user;
     if (u == null || !u.isActive) return;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (!auth.isAdmin) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Connectez-vous d\'abord avec un compte administrateur '
+              '(Connexion ADMIN sur l\'écran de connexion).',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+    if (auth.isImpersonating) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Quittez l\'impersonnalisation en cours avant d\'en ouvrir une autre.'),
+          ),
+        );
+      }
+      return;
+    }
     if (!await _confirm(
       'Impersonation',
-      'Ouvrir l\'application en tant que ${u.email} ?',
+      'Ouvrir l\'application en tant que ${u.email} ?\n\n'
+          'Vous devez être connecté en administrateur. '
+          'La bannière orange permettra de revenir à votre session admin.',
     )) {
       return;
     }
     try {
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      await auth.impersonateUser(u.id, returnRoute: '/users');
+      await auth.impersonateUser(u.id, returnRoute: '/admin');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Session ouverte en tant que ${u.email}')),
@@ -285,9 +311,11 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final u = _user;
+    final isAdmin = context.watch<AuthProvider>().isAdmin;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Détail utilisateur'),
+        leading: const AdminHubLeading(),
         actions: [
           if (u != null)
             IconButton(
@@ -340,7 +368,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                           const Text('Actions', style: TextStyle(fontWeight: FontWeight.w600)),
                           const SizedBox(height: 8),
                           _action(Icons.edit_outlined, 'Modifier prénom, nom, email, téléphone', _editProfile),
-                          if (u.isActive)
+                          if (u.isActive && isAdmin)
                             _action(
                               Icons.switch_account,
                               'Ouvrir l\'app en tant que cet utilisateur',

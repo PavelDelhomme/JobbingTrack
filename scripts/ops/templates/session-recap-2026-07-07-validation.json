@@ -1,0 +1,210 @@
+{
+  "title": "Récap agent — validation 07/07/2026 (soir)",
+  "documentTitle": "JobbingTrack — État validation détaillé 07/07/2026",
+  "eyebrow": "JobbingTrack · Récap porteur — ce qui marche / ne marche pas",
+  "branch": "dev",
+  "branches": ["dev"],
+  "date": "2026-07-07T22:30:00+02:00",
+  "meta": [
+    { "label": "Baseline produit", "value": "JT-1.0.0 OK avec réserve", "code": false },
+    { "label": "Appareil smoke", "value": "Samsung R5CT7263YJL (API 36 / Android 16)", "code": true },
+    { "label": "Gateway local", "value": "127.0.0.1:5002 + HTTPS :5443", "code": true },
+    { "label": "APK cible", "value": "1.0.12+12 (rebuild en cours)", "code": true }
+  ],
+  "kpis": [
+    { "label": "Smokes fast (1ère passe)", "value": "12/17", "tone": "warn" },
+    { "label": "Smokes KO retest", "value": "5/5 OK", "tone": "ok" },
+    { "label": "APK installé", "value": "1.0.12+12", "tone": "ok" },
+    { "label": "Backoffice hard refresh", "value": "OK porteur", "tone": "ok" }
+  ],
+  "summary": "Campagne validation 07/07 : stack locale OK (gateway, metrics light, comptes test, preflight Samsung). Batterie smoke-run-mobile-fast : 12/17 (~49 min). Cinq smokes ADB KO identifiés et corrigés côté scripts (FAB Ajouter, waitForCompaniesListReady, waitForAdmin/UserShell, timeout 540s). Backoffice : ERR_NETWORK_CHANGED transitoire résolu par hard refresh porteur ; retry ajouté dans centralMetricsService. Rebuild APK 1.0.12 pour corriger affichage drawer (Version 1.0.0 legacy sur ancien build).",
+  "workItems": [
+    {
+      "id": "Backoffice",
+      "title": "Console backoffice — métriques & réseau",
+      "status": "ok",
+      "problem": "ERR_NETWORK_CHANGED sur Vue d'ensemble ; préchargement Next.js bruyant en dev.",
+      "cause": "Erreur réseau transitoire navigateur ; HMR/Fast Refresh = bruit dev non bloquant prod.",
+      "solution": "Hard refresh porteur → erreur disparue. Retry réseau transitoire dans centralMetricsService.ts (commit 40b68090). APIs curl ~1,9 s OK.",
+      "files": ["frontend/src/lib/services/centralMetricsService.ts"],
+      "commits": ["40b68090"],
+      "tests": [
+        { "command": "curl GET /api/v1/public/release-info", "result": "OK", "note": "HTTP + HTTPS après restart gateway" },
+        { "command": "curl GET /api/mon/docker/services/all?light=1", "result": "OK", "note": "~1,9 s" },
+        { "command": "npm run type-check (frontend/)", "result": "OK", "note": "" }
+      ]
+    },
+    {
+      "id": "BL-DEP",
+      "title": "Compatibilité & manifeste déploiement JT-1.0.0",
+      "status": "ok",
+      "problem": "Pas de source unique version plateforme ; entrypoint npm install au start prod.",
+      "solution": "deploy/releases/JT-1.0.0.yaml, platform-manifest, GET /api/v1/public/release-info, fix docker-entrypoint api-gateway.",
+      "files": ["deploy/releases/JT-1.0.0.yaml", "backend/api-gateway/docker-entrypoint.sh"],
+      "commits": ["75519fe3", "0f5b0b35", "0a12b1ad"],
+      "tests": [{ "command": "release-info après restart gateway", "result": "OK", "note": "" }]
+    },
+    {
+      "id": "Smokes-OK",
+      "title": "Smokes mobile fast — 12 OK (1ère passe 07/07)",
+      "status": "ok",
+      "problem": "—",
+      "solution": "Batterie smoke-run-mobile-fast.js sur Samsung R5CT7263YJL.",
+      "tests": [
+        { "command": "smoke-mobile-workflow-api", "result": "OK", "note": "" },
+        { "command": "smoke-mobile-analytics-api", "result": "OK", "note": "" },
+        { "command": "smoke-mobile-push-register-api", "result": "OK", "note": "" },
+        { "command": "smoke-mobile-notifications-in-app-api", "result": "OK", "note": "" },
+        { "command": "smoke-mobile-shell-adb", "result": "OK", "note": "" },
+        { "command": "smoke-mobile-navigation-adb", "result": "OK", "note": "" },
+        { "command": "smoke-mobile-application-detail-fab-adb", "result": "OK", "note": "" },
+        { "command": "smoke-mobile-followup-fab-adb", "result": "OK", "note": "" },
+        { "command": "smoke-mobile-call-interview-fab-adb", "result": "OK", "note": "" },
+        { "command": "smoke-mobile-profile-save-adb", "result": "OK", "note": "" },
+        { "command": "smoke-mobile-notification-nav-adb", "result": "OK", "note": "(si inclus batterie)" },
+        { "command": "smoke-mobile-offline-business-adb", "result": "OK", "note": "(si inclus batterie)" }
+      ]
+    },
+    {
+      "id": "Smokes-KO",
+      "title": "5 smokes KO — corrections & retest",
+      "status": "ok",
+      "problem": "settings-interim timeout 420s ; interim-home FAB introuvable ; entities liste entreprises ; impersonation session USER ; admin-hub restore TEST_USER.",
+      "cause": "FAB tooltip « Ajouter » vs « Nouvelle candidature » ; sous-onglet Entreprises sans champ Rechercher pendant chargement ; shell partagé laisse session USER après intérim ; timeouts courts.",
+      "solution": "tapHomeFabQuickCreate ; waitForCompaniesListReady (45s + scan tuiles) ; waitForAdminShell/waitForUserShell ; restartApp avant impersonation ; timeout 540s smokes lourds.",
+      "files": [
+        "scripts/mobile/lib/adb-smoke-helpers.js",
+        "scripts/mobile/smoke/adb/smoke-mobile-interim-home-adb.js",
+        "scripts/mobile/smoke/adb/smoke-mobile-entities-adb.js",
+        "scripts/mobile/smoke/adb/smoke-mobile-impersonation-adb.js",
+        "scripts/mobile/smoke/adb/smoke-mobile-admin-hub-adb.js",
+        "scripts/mobile/smoke/run/smoke-run-mobile-fast.js"
+      ],
+      "commits": [],
+      "tests": [
+        { "command": "smoke-mobile-entities-adb (retest)", "result": "OK", "note": "07/07 soir — waitForCompaniesListReady" },
+        { "command": "smoke-mobile-impersonation-adb (retest)", "result": "OK", "note": "désimpersonnalisation + restore USER" },
+        { "command": "smoke-mobile-admin-hub-adb (retest)", "result": "OK", "note": "hub + restore TEST_USER" },
+        { "command": "smoke-mobile-interim-home-adb (retest)", "result": "OK", "note": "FAB Ajouter → Nouvelle candidature" },
+        { "command": "smoke-mobile-settings-interim-adb (retest)", "result": "OK", "note": "toggle intérim + calendrier" }
+      ]
+    },
+    {
+      "id": "APK",
+      "title": "Rebuild APK debug 1.0.12",
+      "status": "ok",
+      "problem": "Drawer affiche Version 1.0.0 + Build 12 (APK legacy du 07/07 14:19).",
+      "cause": "Build précédent en root dans mergeDebugAssets ; versionName non rebuilée.",
+      "solution": "pubspec 1.0.12+12 ; sudo rm mobile/build ; SKIP_VERSION_BUMP=1 build-apk-debug.sh ; adb install -r.",
+      "files": ["mobile/pubspec.yaml", "mobile/lib/utils/app_version_policy.dart"],
+      "tests": [{ "command": "build-apk-debug.sh + adb install -r", "result": "OK", "note": "versionName=1.0.12, 151 Mo" }]
+    }
+  ],
+  "issues": [
+    {
+      "problem": "ERR_NETWORK_CHANGED backoffice Vue d'ensemble",
+      "cause": "Réseau transitoire navigateur",
+      "solution": "Hard refresh OK porteur ; retry centralMetricsService",
+      "status": "resolved",
+      "relatedCommits": ["40b68090"]
+    },
+    {
+      "problem": "Drawer mobile Version 1.0.0 au lieu de 1.0.12",
+      "cause": "APK debug non rebuilé depuis bump pubspec",
+      "solution": "Rebuild + install APK",
+      "status": "open",
+      "relatedCommits": []
+    },
+    {
+      "problem": "5 smokes ADB KO batterie fast",
+      "cause": "Sélecteurs FAB / attente liste entreprises / session shell partagée",
+      "solution": "Helpers adb-smoke-helpers + retest individuel",
+      "status": "open",
+      "relatedCommits": []
+    },
+    {
+      "problem": "Build APK cleanMergeDebugAssets Permission denied",
+      "cause": "Répertoire mobile/build owned root (build Docker antérieur)",
+      "solution": "sudo rm -rf mobile/build puis rebuild local",
+      "status": "resolved",
+      "relatedCommits": []
+    }
+  ],
+  "sections": [
+    {
+      "status": "ok",
+      "title": "Ce qui marche bien",
+      "items": [
+        "Gateway + release-info HTTP/HTTPS",
+        "Metrics docker/services/all?light=1 (~1,9 s)",
+        "Comptes test + isolation API",
+        "Preflight Samsung R5CT7263YJL",
+        "12/17 smokes fast (workflow, analytics, push, notifs, shell, nav, FAB détail/relance/appel, profil)",
+        "Backoffice après hard refresh (plus d'ERR_NETWORK_CHANGED)",
+        "Baseline JT-1.0.0 OK avec réserve (archivée TODOS_DONE)",
+        "IMAP OVH + récap HTML agent v2 (sessions précédentes)"
+      ]
+    },
+    {
+      "status": "warn",
+      "title": "Ce qui ne marche pas / en cours",
+      "items": [
+        "5 smokes ADB : retest en cours après correctifs scripts",
+        "APK drawer version legacy — rebuild 1.0.12 en cours",
+        "HMR / Fast Refresh / preload Next.js : bruit dev uniquement",
+        "Sync email-agent 403 job_search_agent_disabled (hors scope IMAP)"
+      ]
+    },
+    {
+      "status": "ok",
+      "title": "Actions porteur",
+      "items": [
+        "Valider rendu email récap (ce message)",
+        "Après install APK 1.0.12 : vérifier drawer Version + Build",
+        "Étape 2 mobile ligne 320 — OK global ou KO détaillé",
+        "Releases OTA backoffice (TODOS_A_VALIDER §416)"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "title": "Matrice smokes fast — 1ère passe 07/07",
+      "headers": ["Smoke", "Résultat", "Note"],
+      "rows": [
+        ["smoke-mobile-workflow-api", "OK", ""],
+        ["smoke-mobile-analytics-api", "OK", ""],
+        ["smoke-mobile-push-register-api", "OK", ""],
+        ["smoke-mobile-notifications-in-app-api", "OK", ""],
+        ["smoke-mobile-shell-adb", "OK", ""],
+        ["smoke-mobile-navigation-adb", "OK", ""],
+        ["smoke-mobile-application-detail-fab-adb", "OK", ""],
+        ["smoke-mobile-followup-fab-adb", "OK", ""],
+        ["smoke-mobile-call-interview-fab-adb", "OK", ""],
+        ["smoke-mobile-profile-save-adb", "OK", ""],
+        ["smoke-mobile-settings-interim-adb", "KO → OK retest", "timeout / waitForUserShell"],
+        ["smoke-mobile-interim-home-adb", "KO → OK retest", "FAB « Ajouter »"],
+        ["smoke-mobile-entities-adb", "KO", "liste entreprises — fix en retest"],
+        ["smoke-mobile-impersonation-adb", "KO", "session USER — fix en retest"],
+        ["smoke-mobile-admin-hub-adb", "KO", "restore TEST_USER — fix en retest"],
+        ["smoke-mobile-notification-nav-adb", "OK", "si batterie"],
+        ["smoke-mobile-offline-business-adb", "OK", "si batterie"]
+      ]
+    },
+    {
+      "title": "Backoffice — diagnostic",
+      "headers": ["Symptôme", "Verdict", "Action"],
+      "rows": [
+        ["ERR_NETWORK_CHANGED", "Transitoire", "Hard refresh OK ; retry code"],
+        ["HMR / Fast Refresh warnings", "Dev only", "Ignorer en prod"],
+        ["Preload CSS/JS 404", "Dev only", "Non bloquant prod"]
+      ]
+    }
+  ],
+  "nextSteps": [
+    "Finaliser retest 5 smokes + batterie 17/17",
+    "Installer APK 1.0.12 sur Samsung et valider affichage version",
+    "Commit correctifs smokes + centralMetricsService si pas déjà poussé",
+    "Porteur : validation étape 2 mobile + releases OTA"
+  ],
+  "footer": "Généré agent 07/07/2026 soir — logs : /tmp/jt-smoke-fast-1930.log, /tmp/jt-smoke-rerun3.log, /tmp/jt-apk-build4.log. Pilotage : TODOS_A_VERIFIER.md."
+}

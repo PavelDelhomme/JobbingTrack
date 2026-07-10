@@ -76,24 +76,24 @@ class ApplicationCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            application.company.name.isNotEmpty
-                                ? application.company.name
-                                : 'Entreprise non renseignée',
+                            applicationListTitle(application),
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
                               color: Colors.grey.shade900,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            application.position,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.purple.shade800,
+                          if (applicationListSubtitle(application) != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              applicationListSubtitle(application)!,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.purple.shade800,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),

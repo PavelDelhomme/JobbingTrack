@@ -54,6 +54,7 @@ class AuthProvider with ChangeNotifier {
       _refreshToken = stored.refreshToken;
       _user = User.fromJson(userMap);
       _tokenStale = false;
+      _restoreImpersonationFromStored(stored);
       CrashReporter.setToken(_token);
       await ApiConfigStore.ensureAnalyticsConsentEnabled();
       MobileAnalyticsService.instance.updateAuthToken(_token);
@@ -163,7 +164,55 @@ class AuthProvider with ChangeNotifier {
       token: _token!,
       userJson: jsonEncode(_user!.toJson()),
       refreshToken: _refreshToken,
+      impersonatorToken: _impersonatorToken,
+      impersonatorUserJson:
+          _impersonatorUser != null ? jsonEncode(_impersonatorUser!.toJson()) : null,
+      impersonatorRefreshToken: _impersonatorRefreshToken,
+      impersonationReturnRoute: _impersonationReturnRoute,
     );
+  }
+
+  void _clearImpersonationState() {
+    _impersonatorToken = null;
+    _impersonatorUser = null;
+    _impersonatorRefreshToken = null;
+    _impersonationReturnRoute = null;
+  }
+
+  void _restoreImpersonationFromStored(
+    ({
+      String token,
+      String userJson,
+      String? refreshToken,
+      String? impersonatorToken,
+      String? impersonatorUserJson,
+      String? impersonatorRefreshToken,
+      String? impersonationReturnRoute,
+    }) stored,
+  ) {
+    _clearImpersonationState();
+    final impToken = stored.impersonatorToken;
+    final impUserJson = stored.impersonatorUserJson;
+    if (impToken == null ||
+        impToken.isEmpty ||
+        impUserJson == null ||
+        impUserJson.isEmpty) {
+      return;
+    }
+    try {
+      final adminUser = User.fromJson(jsonDecode(impUserJson) as Map<String, dynamic>);
+      if (!AdminAccess.canAccessAdmin(adminUser)) {
+        debugPrint('[AUTH] Session impersonation ignorée — admin stocké invalide');
+        return;
+      }
+      _impersonatorToken = impToken;
+      _impersonatorUser = adminUser;
+      _impersonatorRefreshToken = stored.impersonatorRefreshToken;
+      _impersonationReturnRoute = stored.impersonationReturnRoute;
+    } catch (e) {
+      debugPrint('[AUTH] restore impersonation: $e');
+      _clearImpersonationState();
+    }
   }
 
   Future<void> login(
@@ -182,6 +231,7 @@ class AuthProvider with ChangeNotifier {
       final response = await ApiService.login(email, password);
 
       if (response['success'] == true) {
+        _clearImpersonationState();
         _token = response['token'];
         _refreshToken = response['refreshToken'] as String?;
         _user = User.fromJson(response['user']);
@@ -354,10 +404,7 @@ class AuthProvider with ChangeNotifier {
     _user = null;
     _token = null;
     _refreshToken = null;
-    _impersonatorToken = null;
-    _impersonatorUser = null;
-    _impersonatorRefreshToken = null;
-    _impersonationReturnRoute = null;
+    _clearImpersonationState();
     _tokenStale = false;
     _sessionRestored = false;
     CrashReporter.setToken(null);
@@ -483,15 +530,28 @@ class AuthProvider with ChangeNotifier {
 
   bool get isImpersonating => _impersonatorToken != null;
 
-  /// Route admin à rouvrir après désimpersonnalisation (défaut : liste utilisateurs).
-  String get impersonationReturnRoute => _impersonationReturnRoute ?? '/users';
+  String? get impersonatorEmail => _impersonatorUser?.email;
 
-  /// Ouvre la session de l'utilisateur cible (admin requis).
+  /// Route admin à rouvrir après désimpersonnalisation (défaut : hub admin).
+  String get impersonationReturnRoute => _impersonationReturnRoute ?? '/admin';
+
+  /// Ouvre la session de l'utilisateur cible (session administrateur requise).
   Future<void> impersonateUser(
     String targetUserId, {
-    String returnRoute = '/users',
+    String returnRoute = '/admin',
   }) async {
-    if (_token == null) throw Exception('Non connecté');
+    if (_token == null || _user == null) {
+      throw Exception('Non connecté');
+    }
+    if (isImpersonating) {
+      throw Exception('Quittez l\'impersonnalisation en cours avant d\'en ouvrir une autre');
+    }
+    if (!AdminAccess.canAccessAdmin(_user)) {
+      throw Exception(
+        'Connectez-vous d\'abord avec un compte administrateur '
+        '(bouton Connexion ADMIN sur l\'écran de connexion).',
+      );
+    }
     final result = await AdminApiService.impersonateUser(targetUserId, token: _token);
     _impersonatorToken = _token;
     _impersonatorUser = _user;
@@ -503,6 +563,7 @@ class AuthProvider with ChangeNotifier {
     _tokenStale = false;
     CrashReporter.setToken(_token);
     await MobileAnalyticsService.instance.updateAuthToken(_token);
+    await _persistSession();
     notifyListeners();
   }
 
@@ -512,10 +573,7 @@ class AuthProvider with ChangeNotifier {
     _token = _impersonatorToken;
     _user = _impersonatorUser;
     _refreshToken = _impersonatorRefreshToken;
-    _impersonatorToken = null;
-    _impersonatorUser = null;
-    _impersonatorRefreshToken = null;
-    _impersonationReturnRoute = null;
+    _clearImpersonationState();
     _tokenStale = false;
     CrashReporter.setToken(_token);
     await MobileAnalyticsService.instance.updateAuthToken(_token);

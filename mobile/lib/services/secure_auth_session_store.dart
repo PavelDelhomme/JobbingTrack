@@ -14,6 +14,10 @@ class SecureAuthSessionStore {
   static const _keyToken = 'jt_auth_access_token';
   static const _keyUserJson = 'jt_auth_user_json';
   static const _keyRefreshToken = 'jt_auth_refresh_token';
+  static const _keyImpersonatorToken = 'jt_auth_impersonator_token';
+  static const _keyImpersonatorUserJson = 'jt_auth_impersonator_user_json';
+  static const _keyImpersonatorRefreshToken = 'jt_auth_impersonator_refresh_token';
+  static const _keyImpersonationReturnRoute = 'jt_auth_impersonation_return_route';
 
   static const _legacyToken = 'auth_token';
   static const _legacyUserJson = 'auth_user_json';
@@ -22,15 +26,49 @@ class SecureAuthSessionStore {
     required String token,
     required String userJson,
     String? refreshToken,
+    String? impersonatorToken,
+    String? impersonatorUserJson,
+    String? impersonatorRefreshToken,
+    String? impersonationReturnRoute,
   }) async {
     await _storage.write(key: _keyToken, value: token);
     await _storage.write(key: _keyUserJson, value: userJson);
     if (refreshToken != null && refreshToken.isNotEmpty) {
       await _storage.write(key: _keyRefreshToken, value: refreshToken);
+    } else {
+      await _storage.delete(key: _keyRefreshToken);
+    }
+    if (impersonatorToken != null &&
+        impersonatorToken.isNotEmpty &&
+        impersonatorUserJson != null &&
+        impersonatorUserJson.isNotEmpty) {
+      await _storage.write(key: _keyImpersonatorToken, value: impersonatorToken);
+      await _storage.write(key: _keyImpersonatorUserJson, value: impersonatorUserJson);
+      if (impersonatorRefreshToken != null && impersonatorRefreshToken.isNotEmpty) {
+        await _storage.write(key: _keyImpersonatorRefreshToken, value: impersonatorRefreshToken);
+      } else {
+        await _storage.delete(key: _keyImpersonatorRefreshToken);
+      }
+      if (impersonationReturnRoute != null && impersonationReturnRoute.isNotEmpty) {
+        await _storage.write(key: _keyImpersonationReturnRoute, value: impersonationReturnRoute);
+      } else {
+        await _storage.delete(key: _keyImpersonationReturnRoute);
+      }
+    } else {
+      await _clearImpersonationKeys();
     }
   }
 
-  static Future<({String token, String userJson, String? refreshToken})?> loadSession() async {
+  static Future<
+      ({
+        String token,
+        String userJson,
+        String? refreshToken,
+        String? impersonatorToken,
+        String? impersonatorUserJson,
+        String? impersonatorRefreshToken,
+        String? impersonationReturnRoute,
+      })?> loadSession() async {
     await _migrateLegacyIfNeeded();
     final token = await _storage.read(key: _keyToken);
     final userJson = await _storage.read(key: _keyUserJson);
@@ -41,7 +79,19 @@ class SecureAuthSessionStore {
       return null;
     }
     final refreshToken = await _storage.read(key: _keyRefreshToken);
-    return (token: token, userJson: userJson, refreshToken: refreshToken);
+    final impersonatorToken = await _storage.read(key: _keyImpersonatorToken);
+    final impersonatorUserJson = await _storage.read(key: _keyImpersonatorUserJson);
+    final impersonatorRefreshToken = await _storage.read(key: _keyImpersonatorRefreshToken);
+    final impersonationReturnRoute = await _storage.read(key: _keyImpersonationReturnRoute);
+    return (
+      token: token,
+      userJson: userJson,
+      refreshToken: refreshToken,
+      impersonatorToken: impersonatorToken,
+      impersonatorUserJson: impersonatorUserJson,
+      impersonatorRefreshToken: impersonatorRefreshToken,
+      impersonationReturnRoute: impersonationReturnRoute,
+    );
   }
 
   static Future<String?> loadRefreshToken() async {
@@ -57,9 +107,17 @@ class SecureAuthSessionStore {
     await _storage.delete(key: _keyToken);
     await _storage.delete(key: _keyUserJson);
     await _storage.delete(key: _keyRefreshToken);
+    await _clearImpersonationKeys();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_legacyToken);
     await prefs.remove(_legacyUserJson);
+  }
+
+  static Future<void> _clearImpersonationKeys() async {
+    await _storage.delete(key: _keyImpersonatorToken);
+    await _storage.delete(key: _keyImpersonatorUserJson);
+    await _storage.delete(key: _keyImpersonatorRefreshToken);
+    await _storage.delete(key: _keyImpersonationReturnRoute);
   }
 
   static Future<void> _migrateLegacyIfNeeded() async {

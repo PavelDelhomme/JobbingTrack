@@ -12,6 +12,7 @@ import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/widgets/company_picker_field.dart';
+import 'package:jobbingtrack_mobile/widgets/agency_picker_field.dart';
 import 'package:jobbingtrack_mobile/widgets/platform_picker_field.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
@@ -318,20 +319,11 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
 
     final optionalFields = <Widget>[
       if (_interimMode) ...[
-        DropdownButtonFormField<String?>(
-          value: _agencyId != null && _agencies.any((a) => a.id == _agencyId)
-              ? _agencyId
-              : null,
-          decoration: const InputDecoration(
-            labelText: 'Boîte d\'intérim (optionnel)',
-            border: OutlineInputBorder(),
-            helperText: 'Agence à l\'origine de la proposition',
-          ),
-          items: [
-            const DropdownMenuItem<String?>(value: null, child: Text('— Aucune / classique')),
-            ..._agencies.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name))),
-          ],
-          onChanged: (v) => setState(() => _agencyId = v),
+        AgencyPickerField(
+          agencies: _agencies,
+          selectedAgencyId: _agencyId,
+          onChanged: (id) => setState(() => _agencyId = id),
+          onAgencyCreated: _loadAgencies,
         ),
         const SizedBox(height: 12),
       ],

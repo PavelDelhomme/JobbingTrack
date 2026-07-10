@@ -84,7 +84,13 @@ const getContacts = async (req, res, next) => {
           where,
           orderBy: { createdAt: 'desc' },
           skip: parseInt(offset),
-          take: parseInt(limit)
+          take: parseInt(limit),
+          include: {
+            companies: {
+              include: { company: true },
+              take: 1,
+            },
+          },
         }),
         prisma.contact.count({ where })
       ]);

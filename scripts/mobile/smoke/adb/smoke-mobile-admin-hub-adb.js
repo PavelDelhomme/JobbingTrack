@@ -7,6 +7,8 @@
  */
 
 const adbLib = require('../../../../tools/adb-lib');
+require('../../lib/smoke-runtime');
+const { waitForAdminShell, waitForUserShell } = require('../../lib/adb-smoke-helpers');
 const {
   resolveWorkingAdminCredentials,
   GATEWAY_URL,
@@ -87,7 +89,7 @@ async function restorePorteurSession(phone, email, password) {
   } else {
     await adbLib.flows.login(phone, email, password);
   }
-  await phone.assertVisible('Bonjour');
+  await waitForUserShell(phone, password);
 }
 
 async function switchToAccount(phone, email, password, { force = false } = {}) {
@@ -113,9 +115,11 @@ async function switchToAccount(phone, email, password, { force = false } = {}) {
     }
     if (await phone.uiContains('Connexion ADMIN')) {
       await phone.tap('Connexion ADMIN');
-      await phone.wait(3000);
+      await phone.wait(4500);
+      await waitForAdminShell(phone, password);
     } else {
       await adbLib.flows.login(phone, email, password);
+      await waitForAdminShell(phone, password);
     }
   } else {
     await adbLib.flows.fastSwitchAccountViaDebug(phone, email, password);
@@ -163,7 +167,7 @@ async function switchToAccount(phone, email, password, { force = false } = {}) {
       `Compte admin « ${admin.email} » : email non vérifié côté API — relancer ensure-test-accounts-ready.js`,
     );
   }
-  await phone.assertVisible('Bonjour');
+  await waitForAdminShell(phone, admin.password);
 
   await openAdminHubFromDrawer(phone, admin.email);
 

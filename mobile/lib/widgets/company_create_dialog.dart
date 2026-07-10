@@ -6,19 +6,24 @@ import 'package:jobbingtrack_mobile/providers/company_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 
 /// Dialogue partagé « Nouvelle entreprise » (liste dédiée + onglet Candidatures).
-Future<Company?> showCreateCompanyDialog(BuildContext context) async {
+Future<Company?> showCreateCompanyDialog(
+  BuildContext context, {
+  String defaultCompanyType = 'EMPLOYER',
+  String dialogTitle = 'Nouvelle entreprise',
+  bool forceInterimType = false,
+}) async {
   final nameCtrl = TextEditingController();
   final websiteCtrl = TextEditingController();
   final industryCtrl = TextEditingController();
   final locationCtrl = TextEditingController();
-  final interimMode = await ApiConfigStore.loadInterimModeEnabled();
-  var companyType = 'EMPLOYER';
+  final interimMode = forceInterimType || await ApiConfigStore.loadInterimModeEnabled();
+  var companyType = forceInterimType ? 'TEMP_AGENCY' : defaultCompanyType;
 
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setDialogState) => AlertDialog(
-        title: const Text('Nouvelle entreprise'),
+        title: Text(dialogTitle),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -45,7 +50,7 @@ Future<Company?> showCreateCompanyDialog(BuildContext context) async {
                 controller: locationCtrl,
                 decoration: const InputDecoration(labelText: 'Localisation'),
               ),
-              if (interimMode) ...[
+              if (interimMode && !forceInterimType) ...[
                 const SizedBox(height: 8),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,

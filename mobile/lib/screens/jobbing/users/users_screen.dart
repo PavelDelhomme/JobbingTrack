@@ -5,6 +5,7 @@ import 'package:jobbingtrack_mobile/services/admin_api_service.dart';
 import 'package:jobbingtrack_mobile/models/user.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_scroll.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
+import 'package:jobbingtrack_mobile/widgets/admin/admin_hub_leading.dart';
 
 enum _UserListFilter { all, active, inactive, admins }
 
@@ -129,6 +130,7 @@ class _UsersScreenState extends State<UsersScreen> {
       appBar: AppBar(
         title: const Text('Utilisateurs'),
         centerTitle: true,
+        leading: const AdminHubLeading(),
         actions: [
           IconButton(
             icon: const Icon(Icons.cleaning_services_outlined),
