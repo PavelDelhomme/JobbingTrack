@@ -110,6 +110,42 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     if (changed == true) _load();
   }
 
+  Future<void> _moveToTrash() async {
+    final call = _call ?? widget.call;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Mettre à la corbeille ?'),
+        content: Text(
+          '« ${call.subject.trim().isNotEmpty ? call.subject : 'Appel téléphonique'} » sera déplacé vers la corbeille.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Corbeille'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      await ApiService.deleteCall(call.id, token: token);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Appel mis à la corbeille'), duration: Duration(seconds: 3)),
+        );
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final call = _call ?? widget.call;
@@ -125,6 +161,14 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Modifier',
             onPressed: _openEdit,
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'trash') _moveToTrash();
+            },
+            itemBuilder: (ctx) => const [
+              PopupMenuItem(value: 'trash', child: Text('Mettre à la corbeille')),
+            ],
           ),
         ],
       ),
@@ -178,7 +222,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                   EntityDetailField(label: 'Notes', value: call.notes ?? '', multiline: true),
                   EntityDetailField(label: 'Créé le', value: formatUserLocalDateTime(call.createdAt.toIso8601String())),
                   const SizedBox(height: 8),
-                  const EntityLinkSectionHeader('Liens'),
+                  const EntityLinkSectionHeader('Contact lié'),
                   if (isMeaningfulContactMap(_contact))
                     EntityLinkTile(
                       icon: Icons.person_outline,
@@ -207,7 +251,10 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                           }
                         }
                       },
-                    ),
+                    )
+                  else
+                    const EntityLinksEmptyHint('Aucun contact'),
+                  const EntityLinkSectionHeader('Candidature liée'),
                   if (_application != null)
                     EntityLinkTile(
                       icon: Icons.assignment_outlined,
@@ -236,7 +283,10 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                           }
                         }
                       },
-                    ),
+                    )
+                  else
+                    const EntityLinksEmptyHint('Aucune candidature'),
+                  const EntityLinkSectionHeader('Entreprise liée'),
                   if (_company != null)
                     EntityLinkTile(
                       icon: Icons.business_outlined,
@@ -265,24 +315,21 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                           }
                         }
                       },
-                    ),
+                    )
+                  else
+                    const EntityLinksEmptyHint('Aucune entreprise'),
+                  const EntityLinkSectionHeader('Relance liée'),
                   if (_followUp != null)
                     EntityLinkTile(
                       icon: Icons.forward_to_inbox_outlined,
-                      title: 'Relance liée',
-                      subtitle: '${formatSmartEventDate(_followUp!.scheduledDate)} · ${followUpStatusLabel(_followUp!.status)}',
+                      title: followUpListTitle(_followUp!),
+                      subtitle: followUpStatusLabel(_followUp!.status),
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: _followUp!)),
                       ),
-                    ),
-                  if (_contact == null &&
-                      call.contactId == null &&
-                      _application == null &&
-                      call.applicationId.isEmpty &&
-                      _company == null &&
-                      (call.companyId == null || call.companyId!.isEmpty) &&
-                      _followUp == null)
-                    const EntityLinksEmptyHint('Aucun lien enregistré pour cet appel'),
+                    )
+                  else
+                    const EntityLinksEmptyHint('Aucune relance liée'),
                 ],
               ),
             ),

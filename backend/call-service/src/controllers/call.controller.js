@@ -209,6 +209,9 @@ const createCall = async (req, res, next) => {
     }
 
     const dateValue = callDate || scheduledDate || new Date().toISOString();
+    const callDateObj = new Date(dateValue);
+    const inferredStatus = callDateObj.getTime() <= Date.now() + 5 * 60 * 1000 ? 'COMPLETED' : 'SCHEDULED';
+    const callStatus = status ? sanitizeStatus(status) : inferredStatus;
 
     const call = await prisma.call.create({
       data: {
@@ -218,9 +221,9 @@ const createCall = async (req, res, next) => {
         contactId: contactId || null,
         subject: subject || 'Appel de suivi',
         notes: notes || null,
-        callDate: new Date(dateValue),
+        callDate: callDateObj,
         duration: duration ? parseInt(duration, 10) : null,
-        status: sanitizeStatus(status)
+        status: callStatus
       },
       include: {
         application: {
@@ -235,7 +238,6 @@ const createCall = async (req, res, next) => {
 
     logger.info(`Appel ${call.id} créé pour l'utilisateur ${userId}`);
 
-    const callDateObj = new Date(dateValue);
     const contactName = call.contact ? `${call.contact.firstName || ''} ${call.contact.lastName || ''}`.trim() : '';
     const companyName = call.application?.company?.name || call.company?.name || '';
     const eventTitle = contactName ? `Appel – ${contactName}` : `Appel – ${companyName || 'Contact'}`;

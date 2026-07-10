@@ -136,10 +136,20 @@ class _MainShellScreenState extends State<MainShellScreen> {
       return;
     }
     // 2. Sous-onglet Candidatures > 0 → liste principale
-    if (_selectedIndex == 1 && ApplicationsSubTabRegistry.currentIndex > 0) {
-      ApplicationsSubTabRegistry.goToFirstSubTab();
+    if (_selectedIndex == 1 && _applicationsTabIndex > 0) {
       setState(() {
         _applicationsTabIndex = 0;
+        _applicationsResetEpoch++;
+        _syncShellRegistry();
+      });
+      return;
+    }
+    // 2b. Liste candidatures (sous-onglet 0) → Accueil
+    if (_selectedIndex == 1 && _applicationsTabIndex == 0) {
+      setState(() {
+        _selectedIndex = 0;
+        _bottomNavBackStack.clear();
+        _pendingReturnTab = null;
         _syncShellRegistry();
       });
       return;
@@ -230,6 +240,14 @@ class _MainShellScreenState extends State<MainShellScreen> {
               initialTabIndex: _applicationsTabIndex,
               statusFilter: _applicationStatusFilter,
               isShellVisible: _selectedIndex == 1,
+              onSubTabIndexChanged: (index) {
+                if (_applicationsTabIndex != index) {
+                  setState(() {
+                    _applicationsTabIndex = index;
+                    _syncShellRegistry();
+                  });
+                }
+              },
             ),
             EventsScreen(isShellVisible: _selectedIndex == 2),
             ProfileScreen(isShellVisible: _selectedIndex == 3),

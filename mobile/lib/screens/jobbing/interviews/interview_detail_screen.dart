@@ -153,6 +153,38 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
     }
   }
 
+  Future<void> _moveToTrash() async {
+    final i = _interview ?? widget.interview;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Mettre à la corbeille ?'),
+        content: Text('L\'entretien du ${formatSmartEventDate(i.interviewDate)} sera déplacé vers la corbeille.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Corbeille'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      await ApiService.deleteInterview(i.id, token: token);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Entretien mis à la corbeille'), duration: Duration(seconds: 3)),
+        );
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final i = _interview ?? widget.interview;
@@ -161,6 +193,14 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
         title: const Text('Entretien'),
         actions: [
           IconButton(tooltip: 'Modifier', icon: const Icon(Icons.edit_outlined), onPressed: _showEditDialog),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'trash') _moveToTrash();
+            },
+            itemBuilder: (ctx) => const [
+              PopupMenuItem(value: 'trash', child: Text('Mettre à la corbeille')),
+            ],
+          ),
         ],
       ),
       body: _loading

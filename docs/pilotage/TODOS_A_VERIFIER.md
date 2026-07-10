@@ -13,7 +13,7 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | Priorité | Vérification agent | Preuve attendue | Statut |
 |----------|--------------------|-----------------|--------|
 | A1 | Smokes rapides — gate par défaut | `node scripts/mobile/smoke-run-mobile-fast.js` OK Samsung ; pré-vol `smoke-preflight.js` (verrou ADB, `SMOKE_SHARED_SHELL=1`) ; pas de scripts parallèles sur le même appareil | [x] **02/07** : batterie **12/16 OK** (~27 min) — étape 2 OK : navigation, shell, FAB candidature/relance/appel-entretien, profile-save ; fixes `smoke-preflight` path adb-lib + gateway host `127.0.0.1:5002` |
-| A2 | Navigation retour shell — Calendrier↔Profil, Candidatures↔Entreprises | **10/07 soir porteur** : KO **2** et **2b** ; correctif double PopScope ; APK **1.0.26+26**. OK : 2c, liste candidatures→Accueil, drawer Calendrier. | [ ] re-test |
+| A2 | Navigation retour shell — Calendrier↔Profil, Candidatures↔Entreprises | **11/07** : 2 OK ; **2b KO** (retour bloqué sur Entreprises) — fix sync `_applicationsTabIndex` + reset epoch. Swipe listes livré. | [ ] re-test 2b + swipe |
 | A2a | Attente email smokes — bonne boîte + diagnostic | Helper IMAP poll ; doc [`BOITE_MAIL_INSCRIPTION_TESTS.md`](../../mobile/BOITE_MAIL_INSCRIPTION_TESTS.md) + `diagnose-registration-email.js`. | [x] doc + diagnostic |
 | A2b | followup-service — relances mobile | **10/07** : `mapFollowup` corrigé ; purge porteur FK ; seed **7 candidatures** OK `paul.delhomme@proton.me`. | [x] |
 | A2c | Backoffice OTA — polling ADB sans saut layout | **10/07** : poll silencieux (20 s), pas de bandeau « Actualisation » ; fingerprint devices. | [x] |
@@ -34,7 +34,7 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | Étape | Ligne | Statut agent | Statut porteur | Action porteur |
 |-------|-------|--------------|----------------|----------------|
 | 1 | 319 Inscription + vérif email | `smoke-etape1-inscription-adb.js` **OK** + porteur mail/vérif OK | **[x] OK** | Archivé `TODOS_DONE.md` 25/06 |
-| 2 | 320 Navigation + FAB | **10/07 soir** : correctif retour shell (un PopScope) + followup-service ; APK **1.0.26+26** | **[ ] EN COURS** | Re-test A2, 2b ; seed relances ; FAB 6–11 |
+| 2 | 320 Navigation + FAB | **11/07** : 2 OK ; 2b corrigé ; FAB 6–11 retours partiels porteur ; corbeille détail relance/appel ; snackbar 3s ; statut appel auto ; seed reset | **[ ] EN COURS** | Re-test 2b ; FAB 6–8 ; notes entretien (backlog) |
 | 3 | 321 OVH SMTP `@jobbingtrack.com` | doc + diagnostic OK | bloquée par 320 | MX Plan OVH — § étape 3 |
 | 4 | 322 Agent admin `/agent` | UI + API OK | bloquée par 321 | § étape 4 |
 | 5 | 323 Consentements RGPD sync | UI switches OK | bloquée par 322 | § étape 5 |

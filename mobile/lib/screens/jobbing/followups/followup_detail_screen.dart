@@ -146,6 +146,38 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
     }
   }
 
+  Future<void> _moveToTrash() async {
+    final f = _followUp ?? widget.followUp;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Mettre à la corbeille ?'),
+        content: Text('La relance du ${formatSmartEventDate(f.scheduledDate)} sera déplacée vers la corbeille.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Corbeille'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      await ApiService.deleteFollowUp(f.id, token: token);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Relance mise à la corbeille'), duration: Duration(seconds: 3)),
+        );
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final f = _followUp ?? widget.followUp;
@@ -154,6 +186,14 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
         title: const Text('Relance'),
         actions: [
           IconButton(tooltip: 'Modifier', icon: const Icon(Icons.edit_outlined), onPressed: _showEditDialog),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'trash') _moveToTrash();
+            },
+            itemBuilder: (ctx) => const [
+              PopupMenuItem(value: 'trash', child: Text('Mettre à la corbeille')),
+            ],
+          ),
         ],
       ),
       body: _loading

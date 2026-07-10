@@ -21,7 +21,10 @@ resolve_flutter_bin() {
 
 if ! resolve_flutter_bin; then
   echo "[resolve-flutter] ERREUR: Flutter introuvable ou snapshot Dart cassé (Arch)." >&2
-  echo "  Installez ~/flutter-sdk (stable) ou export FLUTTER_BIN=/chemin/flutter" >&2
+  echo "  Solutions :" >&2
+  echo "    1. Installer le SDK officiel : git clone https://github.com/flutter/flutter.git ~/flutter-sdk -b stable" >&2
+  echo "    2. Puis : export FLUTTER_BIN=~/flutter-sdk/bin/flutter" >&2
+  echo "    3. Ou publier l'APK via le backoffice OTA (releases mobile) si l'appareil est déjà synchronisé." >&2
   exit 1
 fi
 

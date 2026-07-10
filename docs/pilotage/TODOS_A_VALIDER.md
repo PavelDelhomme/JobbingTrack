@@ -468,12 +468,23 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 
 **Smokes agent (référence)** : `smoke-mobile-navigation-adb.js`, `smoke-mobile-application-detail-fab-adb.js`, `smoke-mobile-admin-hub-adb.js`, `smoke-mobile-impersonation-adb.js`. **Preuve agent 07/07** : batterie rapide **12/16 OK** ; impersonnalisation + FAB + admin hub OK ; **BL-26-15** refresh listes au retour (code mergé). **Action porteur** : rebuild APK **1.0.0+12** sur Samsung puis checklist points 1–11 + désimpersonnalisation.
 
+**Retours porteur 10/07/2026 (soir — partiel)** :
+
+| Point | Statut | Détail |
+|-------|--------|--------|
+| **2** Calendrier → Profil → retour | **OK** | Retour Calendrier |
+| **2b** Candidatures → Entreprises → retour ×2 | **KO partiel** | 1er retour OK ; 2e → Calendrier au lieu Accueil — **correctif 11/07** |
+| **6** FAB Relance | **Partiel** | Création OK ; snackbar trop longue ; pas de corbeille — **corbeille détail 11/07** ; snackbar 3s |
+| **7** FAB Appel | **Partiel** | Création OK ; libellés « Liens » — **sections liées 11/07** ; statut appel planifié à tort — **inférence COMPLETED 11/07** |
+| **8** FAB Entretien | **Partiel** | Création OK ; notes pré/pendant/post manquantes — **backlog BL-26-36** |
+| **9–11** | **OK** | Contact, re-tap Candidatures, FAB contact onglet |
+
 **Retours porteur 17/06/2026** :
 
 | Sujet | Statut porteur | Suite agent |
 |-------|----------------|-------------|
 | Retour Calendrier → Profil → retour | **KO 10/07** — allait à Accueil | **Correctif 10/07 soir** : un seul PopScope shell — **re-test APK 1.0.26+26** |
-| Retour Candidatures → Entreprises → retour ×2 | **KO 10/07** | **Correctif 10/07 soir** : idem — 1er retour sous-onglet 0, 2e Accueil |
+| Retour Candidatures → Entreprises → retour ×2 | **KO partiel 10/07** — 2e → Calendrier | **Correctif 11/07** : sous-onglet 0 → Accueil direct |
 | Retour Accueil → drawer Entreprises | **OK 10/07** | — |
 | Liste candidatures → retour Accueil | **OK** | — |
 | Drawer Calendrier Planning/Liste | **OK 10/07** | — |

@@ -182,7 +182,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        duration: const Duration(seconds: 5),
+        duration: const Duration(seconds: 3),
         action: onOpen != null ? SnackBarAction(label: 'Voir', onPressed: onOpen) : null,
       ),
     );
@@ -1146,6 +1146,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         subject: subjectController.text.trim(),
         notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
         contactId: withoutContact ? null : selectedContact?['id']?.toString(),
+        status: inferCallStatusForDate(date),
         token: auth.token,
       );
       if (mounted) {

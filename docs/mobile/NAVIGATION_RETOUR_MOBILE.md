@@ -48,7 +48,7 @@ Implémentation : `MainShellScreen`, `DrawerBackScope`, `ApplicationsScreen`.
 |-----------|----------------|
 | Drawer cross-tab avec `returnTabOnBack` (ex. Accueil → drawer Entreprises) | Retour direct vers **onglet d’origine** (ex. Accueil) |
 | Sous-onglet Candidatures **> 0** (navigation interne, sans `returnTabOnBack`) | Liste **Candidatures** (sous-onglet 0) |
-| Sous-onglet **0** + barre basse Candidatures | **Accueil** (ou onglet précédent barre basse via pile) |
+| Sous-onglet **0** + barre basse Candidatures | **Accueil** (checklist A2b — pas l’onglet mémorisé dans la pile) |
 | Barre basse **Calendrier** ↔ **Profil** (sans pile) | Retour vers **onglet barre basse précédent** (pile `_bottomNavBackStack`) |
 | Barre basse **Calendrier** ou **Profil** seul (sans switch récent) | **Accueil** |
 | **Accueil** (drawer fermé, pile vide) | 1er retour : snackbar « Appuyez à nouveau… » ; 2e retour (< 2 s) : **arrière-plan** |

@@ -29,17 +29,21 @@ import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/widgets/application_card.dart';
 import 'package:jobbingtrack_mobile/widgets/company_create_dialog.dart';
 import 'package:jobbingtrack_mobile/widgets/contact_create_sheet.dart';
+import 'package:jobbingtrack_mobile/widgets/list_item_swipe_actions.dart';
+import 'package:jobbingtrack_mobile/utils/entity_swipe_confirm.dart';
 
 class ApplicationsScreen extends StatefulWidget {
   final int initialTabIndex;
   final String? statusFilter;
   final bool isShellVisible;
+  final ValueChanged<int>? onSubTabIndexChanged;
 
   const ApplicationsScreen({
     super.key,
     this.initialTabIndex = 0,
     this.statusFilter,
     this.isShellVisible = true,
+    this.onSubTabIndexChanged,
   });
 
   @override
@@ -81,8 +85,10 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
 
   void _onSubTabChanged() {
     if (!mounted) return;
-    ApplicationsSubTabRegistry.setCurrentIndex(_tabController.index);
-    ShellTabRegistry.setCurrentTab(1, applicationsSubTab: _tabController.index);
+    final index = _tabController.index;
+    ApplicationsSubTabRegistry.setCurrentIndex(index);
+    ShellTabRegistry.setCurrentTab(1, applicationsSubTab: index);
+    widget.onSubTabIndexChanged?.call(index);
     if (!_tabController.indexIsChanging) {
       setState(() {});
     }
@@ -351,11 +357,102 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
                         return ApplicationCard(
                           application: application,
                           onTap: () => _openApplicationDetail(application),
-                          onDismiss: (direction) => _confirmDismiss(application, direction),
+                          onEdit: () => _openApplicationDetail(application),
+                          onArchive: () => _archiveApplication(application),
+                          onTrash: () => _trashApplication(application),
                         );
                       },
                     ),
                   ),
+      ),
+    );
+  }
+
+  Future<void> _archiveApplication(Application application) async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final provider = Provider.of<ApplicationProvider>(context, listen: false);
+    try {
+      await provider.archiveApplication(application.id, token: auth.token);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Candidature archivée')),
+        );
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
+  }
+
+  Future<void> _trashApplication(Application application) async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final provider = Provider.of<ApplicationProvider>(context, listen: false);
+    try {
+      await provider.deleteApplication(application.id, token: auth.token);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Candidature déplacée vers la corbeille')),
+        );
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
+  }
+
+  Widget _swipeListTile({
+    required String id,
+    required Widget listTile,
+    required String label,
+    required VoidCallback onOpen,
+    VoidCallback? onEdit,
+    required Future<void> Function() onArchive,
+    required Future<void> Function() onTrash,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: ListItemSwipeActions(
+        itemKey: ValueKey(id),
+        startActions: [
+          SwipeListAction(
+            icon: Icons.archive_outlined,
+            label: 'Archiver',
+            color: Colors.amber.shade700,
+            onPressed: () async {
+              if (!await confirmArchiveEntity(
+                context,
+                title: 'Archiver ?',
+                message: '« $label » sera retiré de la liste active.',
+              )) {
+                return;
+              }
+              await onArchive();
+            },
+          ),
+        ],
+        endActions: [
+          if (onEdit != null)
+            SwipeListAction(
+              icon: Icons.edit_outlined,
+              label: 'Modifier',
+              color: Colors.blue.shade600,
+              onPressed: onEdit,
+            ),
+          SwipeListAction(
+            icon: Icons.delete_outline,
+            label: 'Corbeille',
+            color: Colors.red.shade600,
+            onPressed: () async {
+              if (!await confirmTrashEntity(
+                context,
+                title: 'Mettre à la corbeille ?',
+                message: '« $label » sera déplacé vers la corbeille.',
+              )) {
+                return;
+              }
+              await onTrash();
+            },
+          ),
+        ],
+        child: listTile,
       ),
     );
   }
@@ -365,52 +462,6 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
       MaterialPageRoute(builder: (_) => ApplicationDetailScreen(application: application)),
     );
     if (result == true) _loadApplications();
-  }
-
-  Future<bool> _confirmDismiss(Application application, DismissDirection direction) async {
-    final isArchive = direction == DismissDirection.startToEnd;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(isArchive ? 'Archiver la candidature ?' : 'Supprimer la candidature ?'),
-        content: Text(
-          isArchive
-              ? '« ${application.position} » sera retirée de la liste active.'
-              : '« ${application.position} » sera déplacée vers la corbeille.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isArchive ? Colors.amber.shade800 : Colors.red.shade700,
-            ),
-            child: Text(isArchive ? 'Archiver' : 'Corbeille'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return false;
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final provider = Provider.of<ApplicationProvider>(context, listen: false);
-    try {
-      if (isArchive) {
-        await provider.archiveApplication(application.id, token: auth.token);
-      } else {
-        await provider.deleteApplication(application.id, token: auth.token);
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(isArchive ? 'Candidature archivée' : 'Candidature déplacée vers la corbeille')),
-        );
-      }
-      return true;
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
-      }
-      return false;
-    }
   }
 
   Widget _buildEntreprisesTab() {
@@ -436,9 +487,32 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
       itemCount: companies.length,
       itemBuilder: (context, index) {
         final c = companies[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
+        return _swipeListTile(
+          id: 'company-${c.id}',
+          label: c.name,
+          onOpen: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => CompanyDetailScreen(company: c)),
+          ),
+          onEdit: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => CompanyDetailScreen(company: c)),
+          ),
+          onArchive: () async {
+            final auth = Provider.of<AuthProvider>(context, listen: false);
+            await ApiService.archiveCompany(c.id, token: auth.token);
+            await Provider.of<CompanyProvider>(context, listen: false).loadCompanies(token: auth.token);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Entreprise archivée')));
+            }
+          },
+          onTrash: () async {
+            final auth = Provider.of<AuthProvider>(context, listen: false);
+            await ApiService.deleteCompany(c.id, token: auth.token);
+            await Provider.of<CompanyProvider>(context, listen: false).loadCompanies(token: auth.token);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Entreprise mise à la corbeille')));
+            }
+          },
+          listTile: ListTile(
             leading: const Icon(Icons.business, color: Colors.purple),
             title: Text(c.name),
             subtitle: c.website.isNotEmpty ? Text(c.website) : null,
@@ -490,9 +564,33 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
         final name = contactDisplayName(map);
         final email = map['email']?.toString() ?? '';
         final company = contactPrimaryCompanyName(map);
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
+        final id = map['id']?.toString() ?? 'contact-$index';
+        return _swipeListTile(
+          id: 'contact-$id',
+          label: name,
+          onOpen: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => ContactDetailScreen(contact: map)),
+          ),
+          onEdit: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => ContactDetailScreen(contact: map)),
+          ),
+          onArchive: () async {
+            final auth = Provider.of<AuthProvider>(context, listen: false);
+            await ApiService.archiveContact(id, token: auth.token);
+            await _loadAll();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contact archivé')));
+            }
+          },
+          onTrash: () async {
+            final auth = Provider.of<AuthProvider>(context, listen: false);
+            await ApiService.deleteContact(id, token: auth.token);
+            await _loadAll();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contact mis à la corbeille')));
+            }
+          },
+          listTile: ListTile(
             leading: const Icon(Icons.person, color: Colors.green),
             title: Text(name),
             subtitle: company.isNotEmpty
@@ -531,11 +629,35 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
       itemCount: interviews.length,
       itemBuilder: (context, index) {
         final i = interviews[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
+        final label = formatSmartEventDate(i.interviewDate);
+        return _swipeListTile(
+          id: 'interview-${i.id}',
+          label: label,
+          onOpen: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => InterviewDetailScreen(interview: i)),
+          ),
+          onEdit: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => InterviewDetailScreen(interview: i)),
+          ),
+          onArchive: () async {
+            final auth = Provider.of<AuthProvider>(context, listen: false);
+            await ApiService.archiveInterview(i.id, token: auth.token);
+            await Provider.of<InterviewProvider>(context, listen: false).loadInterviews(token: auth.token);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Entretien archivé')));
+            }
+          },
+          onTrash: () async {
+            final auth = Provider.of<AuthProvider>(context, listen: false);
+            await ApiService.deleteInterview(i.id, token: auth.token);
+            await Provider.of<InterviewProvider>(context, listen: false).loadInterviews(token: auth.token);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Entretien mis à la corbeille')));
+            }
+          },
+          listTile: ListTile(
             leading: const Icon(Icons.calendar_today, color: Colors.orange),
-            title: Text(formatSmartEventDate(i.interviewDate)),
+            title: Text(label),
             subtitle: Text(i.location ?? i.notes ?? 'Entretien'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
@@ -592,9 +714,31 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     final title = followUpListTitle(f);
     final contactLabel = f.contactDisplayName;
     final notesBody = followUpNotesWithoutChannel(f.notes);
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
+    return _swipeListTile(
+      id: 'followup-${f.id}',
+      label: title,
+      onOpen: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),
+      ),
+      onEdit: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),
+      ),
+      onArchive: () async {
+        final auth = Provider.of<AuthProvider>(context, listen: false);
+        await ApiService.archiveFollowUp(f.id, token: auth.token);
+        await Provider.of<FollowUpProvider>(context, listen: false).loadFollowUps(token: auth.token);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Relance archivée')));
+        }
+      },
+      onTrash: () async {
+        final auth = Provider.of<AuthProvider>(context, listen: false);
+        await Provider.of<FollowUpProvider>(context, listen: false).deleteFollowUp(f.id, token: auth.token);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Relance mise à la corbeille')));
+        }
+      },
+      listTile: ListTile(
         leading: const Icon(Icons.schedule_send, color: Colors.teal),
         title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(
@@ -636,11 +780,35 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
         itemCount: _calls.length,
         itemBuilder: (context, index) {
           final c = _calls[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
+          final label = c.subject.trim().isNotEmpty ? c.subject : 'Appel téléphonique';
+          return _swipeListTile(
+            id: 'call-${c.id}',
+            label: label,
+            onOpen: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => CallDetailScreen(call: c)),
+            ),
+            onEdit: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => CallDetailScreen(call: c)),
+            ),
+            onArchive: () async {
+              final auth = Provider.of<AuthProvider>(context, listen: false);
+              await ApiService.archiveCall(c.id, token: auth.token);
+              await _loadCalls();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appel archivé')));
+              }
+            },
+            onTrash: () async {
+              final auth = Provider.of<AuthProvider>(context, listen: false);
+              await ApiService.deleteCall(c.id, token: auth.token);
+              await _loadCalls();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appel mis à la corbeille')));
+              }
+            },
+            listTile: ListTile(
               leading: const Icon(Icons.phone, color: Colors.green),
-              title: Text(c.subject.trim().isNotEmpty ? c.subject : 'Appel téléphonique'),
+              title: Text(label),
               subtitle: Text(formatSmartEventDate(c.callDate)),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(

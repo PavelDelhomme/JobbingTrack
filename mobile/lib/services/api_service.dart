@@ -937,7 +937,6 @@ class ApiService {
     );
   }
 
-  /// Notifications in-app utilisateur.
   static Future<Company> updateCompany(
     String id, {
     String? name,
@@ -967,6 +966,30 @@ class ApiService {
         return Company.fromJson(Map<String, dynamic>.from(data['company']));
       },
       onHttpError: (response) => _httpError(response),
+    );
+  }
+
+  static Future<void> archiveCompany(String id, {String? token}) async {
+    final path = '/api/v1/companies/$id/archive';
+    await OfflineMutationHelper.executeVoid(
+      method: 'POST',
+      path: path,
+      entityType: 'company',
+      token: token,
+      successStatus: 200,
+      send: () => _post(path, headers: _jsonHeaders(token)),
+    );
+  }
+
+  static Future<void> deleteCompany(String id, {String? token}) async {
+    final path = '/api/v1/companies/$id';
+    await OfflineMutationHelper.executeVoid(
+      method: 'DELETE',
+      path: path,
+      entityType: 'company',
+      token: token,
+      successStatus: 200,
+      send: () => _delete(path, headers: _jsonHeaders(token)),
     );
   }
 
@@ -1444,6 +1467,18 @@ class ApiService {
     );
   }
 
+  static Future<void> archiveFollowUp(String id, {String? token}) async {
+    final path = '/api/v1/followups/$id/archive';
+    await OfflineMutationHelper.executeVoid(
+      method: 'POST',
+      path: path,
+      entityType: 'followup',
+      token: token,
+      successStatus: 200,
+      send: () => _post(path, headers: _jsonHeaders(token)),
+    );
+  }
+
   /// Entretiens : liste et création
   static Future<List<Interview>> getInterviews({String? applicationId, String? token}) async {
     try {
@@ -1591,6 +1626,7 @@ class ApiService {
     required String subject,
     String? notes,
     String? contactId,
+    String? status,
     String? token,
   }) async {
     const path = '/api/v1/calls';
@@ -1600,6 +1636,7 @@ class ApiService {
       'subject': subject,
       if (notes != null && notes.isNotEmpty) 'notes': notes,
       if (contactId != null && contactId.isNotEmpty) 'contactId': contactId,
+      if (status != null && status.isNotEmpty) 'status': status,
     };
     return OfflineMutationHelper.execute(
       method: 'POST',
@@ -1649,6 +1686,54 @@ class ApiService {
         return Call.fromJson(Map<String, dynamic>.from(data['call']));
       },
       onHttpError: (response) => _httpError(response),
+    );
+  }
+
+  static Future<void> deleteCall(String id, {String? token}) async {
+    final path = '/api/v1/calls/$id';
+    await OfflineMutationHelper.executeVoid(
+      method: 'DELETE',
+      path: path,
+      entityType: 'call',
+      token: token,
+      successStatus: 200,
+      send: () => _delete(path, headers: _jsonHeaders(token)),
+    );
+  }
+
+  static Future<void> deleteInterview(String id, {String? token}) async {
+    final path = '/api/v1/interviews/$id';
+    await OfflineMutationHelper.executeVoid(
+      method: 'DELETE',
+      path: path,
+      entityType: 'interview',
+      token: token,
+      successStatus: 200,
+      send: () => _delete(path, headers: _jsonHeaders(token)),
+    );
+  }
+
+  static Future<void> archiveInterview(String id, {String? token}) async {
+    final path = '/api/v1/interviews/$id/archive';
+    await OfflineMutationHelper.executeVoid(
+      method: 'POST',
+      path: path,
+      entityType: 'interview',
+      token: token,
+      successStatus: 200,
+      send: () => _post(path, headers: _jsonHeaders(token)),
+    );
+  }
+
+  static Future<void> archiveCall(String id, {String? token}) async {
+    final path = '/api/v1/calls/$id/archive';
+    await OfflineMutationHelper.executeVoid(
+      method: 'POST',
+      path: path,
+      entityType: 'call',
+      token: token,
+      successStatus: 200,
+      send: () => _post(path, headers: _jsonHeaders(token)),
     );
   }
 

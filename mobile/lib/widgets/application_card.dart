@@ -2,18 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
+import 'package:jobbingtrack_mobile/utils/entity_swipe_confirm.dart';
+import 'package:jobbingtrack_mobile/widgets/list_item_swipe_actions.dart';
 
-/// Carte candidature : tap → détail, swipe droite → archiver, swipe gauche → corbeille.
+/// Carte candidature : tap → détail ; swipe droite → archiver ; swipe gauche → modifier + corbeille.
 class ApplicationCard extends StatelessWidget {
   final Application application;
   final VoidCallback onTap;
-  final Future<bool> Function(DismissDirection direction) onDismiss;
+  final VoidCallback onEdit;
+  final Future<void> Function() onArchive;
+  final Future<void> Function() onTrash;
 
   const ApplicationCard({
     super.key,
     required this.application,
     required this.onTap,
-    required this.onDismiss,
+    required this.onEdit,
+    required this.onArchive,
+    required this.onTrash,
   });
 
   @override
@@ -21,32 +27,55 @@ class ApplicationCard extends StatelessWidget {
     final statusColor = applicationStatusColor(application.status);
     final statusText = applicationStatusLabel(application.status);
     final dateLabel = formatSmartPostulationDate(application.appliedDate);
+    final title = applicationListTitle(application);
 
-    return Dismissible(
-      key: ValueKey(application.id),
-      direction: DismissDirection.horizontal,
-      confirmDismiss: onDismiss,
-      background: _swipeBackground(
-        alignment: Alignment.centerLeft,
-        color: Colors.amber.shade700,
-        icon: Icons.archive_outlined,
-        label: 'Archiver',
-      ),
-      secondaryBackground: _swipeBackground(
-        alignment: Alignment.centerRight,
-        color: Colors.red.shade600,
-        icon: Icons.delete_outline,
-        label: 'Corbeille',
-      ),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        elevation: 0,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: ListItemSwipeActions(
+        itemKey: ValueKey(application.id),
+        startActions: [
+          SwipeListAction(
+            icon: Icons.archive_outlined,
+            label: 'Archiver',
+            color: Colors.amber.shade700,
+            onPressed: () async {
+              if (!await confirmArchiveEntity(
+                context,
+                title: 'Archiver la candidature ?',
+                message: '« $title » sera retirée de la liste active.',
+              )) {
+                return;
+              }
+              await onArchive();
+            },
+          ),
+        ],
+        endActions: [
+          SwipeListAction(
+            icon: Icons.edit_outlined,
+            label: 'Modifier',
+            color: Colors.blue.shade600,
+            onPressed: onEdit,
+          ),
+          SwipeListAction(
+            icon: Icons.delete_outline,
+            label: 'Corbeille',
+            color: Colors.red.shade600,
+            onPressed: () async {
+              if (!await confirmTrashEntity(
+                context,
+                title: 'Supprimer la candidature ?',
+                message: '« $title » sera déplacée vers la corbeille.',
+              )) {
+                return;
+              }
+              await onTrash();
+            },
+          ),
+        ],
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
           child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.grey.shade200),
@@ -76,7 +105,7 @@ class ApplicationCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            applicationListTitle(application),
+                            title,
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
@@ -145,37 +174,6 @@ class ApplicationCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _swipeBackground({
-    required Alignment alignment,
-    required Color color,
-    required IconData icon,
-    required String label,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      alignment: alignment,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (alignment == Alignment.centerLeft) ...[
-            Icon(icon, color: Colors.white),
-            const SizedBox(width: 8),
-            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-          ] else ...[
-            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-            const SizedBox(width: 8),
-            Icon(icon, color: Colors.white),
-          ],
-        ],
       ),
     );
   }

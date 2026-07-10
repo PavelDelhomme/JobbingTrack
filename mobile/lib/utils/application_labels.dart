@@ -145,6 +145,7 @@ Future<String?> showApplicationStatusPicker(BuildContext context, {String? curre
 String followUpStatusLabel(String status) {
   switch (status) {
     case 'PENDING':
+    case 'SCHEDULED':
       return 'À faire';
     case 'COMPLETED':
       return 'Terminée';
@@ -153,6 +154,12 @@ String followUpStatusLabel(String status) {
     default:
       return status;
   }
+}
+
+/// Statut appel créé depuis le FAB : passé ou imminent → terminé, sinon planifié.
+String inferCallStatusForDate(DateTime callDate) {
+  final threshold = DateTime.now().add(const Duration(minutes: 5));
+  return callDate.isBefore(threshold) ? 'COMPLETED' : 'SCHEDULED';
 }
 
 /// Canal extrait des notes `[Canal: Email]` (formulaire relance).
