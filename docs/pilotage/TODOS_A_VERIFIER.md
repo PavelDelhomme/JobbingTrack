@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 10 juillet 2026 (OTA polling silencieux + session impersonnalisation)
+Dernière mise à jour : 11 juillet 2026 (APK 1.0.28+28 OTA dev ; stack arrêtée fin session)
 
 ## Rôle
 
@@ -13,11 +13,12 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | Priorité | Vérification agent | Preuve attendue | Statut |
 |----------|--------------------|-----------------|--------|
 | A1 | Smokes rapides — gate par défaut | `node scripts/mobile/smoke-run-mobile-fast.js` OK Samsung ; pré-vol `smoke-preflight.js` (verrou ADB, `SMOKE_SHARED_SHELL=1`) ; pas de scripts parallèles sur le même appareil | [x] **02/07** : batterie **12/16 OK** (~27 min) — étape 2 OK : navigation, shell, FAB candidature/relance/appel-entretien, profile-save ; fixes `smoke-preflight` path adb-lib + gateway host `127.0.0.1:5002` |
-| A2 | Navigation retour shell — Calendrier↔Profil, Candidatures↔Entreprises | **11/07** : 2 OK ; **2b KO** (retour bloqué sur Entreprises) — fix sync `_applicationsTabIndex` + reset epoch. Swipe listes livré. | [ ] re-test 2b + swipe |
+| A2 | Navigation retour shell — Calendrier↔Profil, Candidatures↔Entreprises | **11/07** : fix sync sous-onglet + epoch ; APK **1.0.28+28** build host + OTA dev publié + install Samsung ; smoke navigation **OK** (1er run) ; swipe listes livré. | [ ] re-test porteur 2b + swipe |
 | A2a | Attente email smokes — bonne boîte + diagnostic | Helper IMAP poll ; doc [`BOITE_MAIL_INSCRIPTION_TESTS.md`](../../mobile/BOITE_MAIL_INSCRIPTION_TESTS.md) + `diagnose-registration-email.js`. | [x] doc + diagnostic |
 | A2b | followup-service — relances mobile | **10/07** : `mapFollowup` corrigé ; purge porteur FK ; seed **7 candidatures** OK `paul.delhomme@proton.me`. | [x] |
 | A2c | Backoffice OTA — polling ADB sans saut layout | **10/07** : poll silencieux (20 s), pas de bandeau « Actualisation » ; fingerprint devices. | [x] |
 | A2d | Mobile — session impersonnalisation expirée | **10/07** : renouvellement JWT impersonnalisation via token admin ; refresh avant candidatures. APK **1.0.27+27**. | [x] agent |
+| A2e | Fin session 11/07 — build APK + OTA dev + mail récap + arrêt stack | **11/07 fin soir** : APK **1.0.28+28** build host (`~/flutter-sdk`) + install Samsung + `publish-built-dev.sh` OK ; seed porteur reset OK ; smoke navigation OK (1er run) ; mail `[JobbingTrack] Recap agent mobile etape 2 — 11/07/2026` **6/6 HTTP 202** ; stack arrêtée (`docker compose down` + `docker stop` résiduels — **0** conteneur running). Reprise : `docker compose up -d` puis OTA Samsung. | [x] |
 | A3 | Bypass biométrie smokes (pas produit) | Pref `test_automation_skip_biometric` (debug APK) ; smokes sans prompt Samsung ; **restauration auto** fin batterie + `clear-smoke-device-adb.js` ; biométrie porteur inchangée hors pref | [x] |
 | A4 | Hub admin ADB multi-comptes | `smoke-mobile-admin-hub-adb.js` OK : admin visible → hub → retour TEST_USER sans blocage login | [x] **02/07** : `SMOKE_SHARED_SHELL=1 ADB_FAST=1 smoke-mobile-admin-hub-adb.js` **OK** (~4 min) — drawer logout + `Connexion ADMIN` / `Connexion USER` ; hub + Statistiques + restore porteur ; fix `logoutViaDrawer` dans `tools/adb-lib/flows.js` |
 | A4b | Admin mobile — actions détail utilisateur | **10/07 soir** : fix Overlay v2 — `ImpersonationBanner` en `Stack` + `rootScaffoldMessengerKey` (plus `Column`/`ScaffoldMessenger.of` dans builder MaterialApp). Session impersonnalisation **persiste** après `adb install -r` (données app conservées — attendu). **Reste porteur** : re-test bannière + désimpersonnalisation sur APK **1.0.25+25**. | [ ] |

@@ -12,6 +12,12 @@ resolve_flutter_bin() {
       return 0
     fi
   fi
+  if [[ -x "/home/pactivisme/flutter-sdk/bin/flutter" ]]; then
+    if "/home/pactivisme/flutter-sdk/bin/flutter" --version >/dev/null 2>&1; then
+      FLUTTER_BIN="/home/pactivisme/flutter-sdk/bin/flutter"
+      return 0
+    fi
+  fi
   if command -v flutter >/dev/null 2>&1 && flutter --version >/dev/null 2>&1; then
     FLUTTER_BIN="$(command -v flutter)"
     return 0

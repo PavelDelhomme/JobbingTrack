@@ -1,6 +1,6 @@
 # Guide validation porteur — JobbingTrack
 
-Dernière mise à jour : 10 juillet 2026 (UX backoffice OTA + version login APK)
+Dernière mise à jour : 11 juillet 2026 (APK 1.0.28+28 OTA dev publié ; swipe listes + retour 2b)
 
 ## En une phrase
 
@@ -18,13 +18,13 @@ Dernière mise à jour : 10 juillet 2026 (UX backoffice OTA + version login APK)
 | [`TODOS_A_VERIFIER.md`](TODOS_A_VERIFIER.md) | Preuves **agent** (smokes, CI) | Lecture seule — pas votre checklist |
 | [`TODOS.md`](TODOS.md) | Backlog **technique agent** | **Ne pas suivre** pour valider le produit |
 
-**Versions typiques (10/07)** :
+**Versions typiques (11/07)** :
 
 | Source | Exemple | Signification |
 |--------|---------|---------------|
-| **pubspec.yaml** (code) | `1.0.18+18` | Prochaine version après un « Build APK » |
-| **APK sur disque** (build USB) | peut = pubspec | Fichier compilé prêt à installer |
-| **Canal dev OTA** | `1.0.15+15` | MAJ OTA proposée aux testeurs — **≠ pubspec** tant que vous n’avez pas « Publier sur canal dev » |
+| **pubspec.yaml** (code) | `1.0.28+28` | Version courante après correctifs retour 2b + swipe |
+| **Canal dev OTA** | `1.0.28+28` | Publié agent 11/07 — MAJ OTA Samsung possible |
+| **APK sur disque** (build USB) | `1.0.28+28` | Installé Samsung agent 11/07 |
 | **Canal prod OTA** | aucune | **Normal en local** — promote seulement avant prod réelle |
 | **Téléphone installé** | variable | Install USB ou MAJ OTA — voir version en bas de l’écran **Connexion** |
 

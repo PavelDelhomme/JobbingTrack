@@ -1,6 +1,6 @@
 # TODOs à valider par le porteur
 
-Dernière mise à jour : 10 juillet 2026 (OK design system OTA + releases wizard porteur ; fix Overlay impersonnalisation)
+Dernière mise à jour : 11 juillet 2026 (APK 1.0.28+28 — retour 2b, swipe listes, OTA dev publié)
 
 ---
 

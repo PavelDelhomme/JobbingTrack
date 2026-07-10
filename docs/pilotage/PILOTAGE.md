@@ -1,6 +1,6 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : 2 juillet 2026 (étape 2 mobile active ; **Phase C déploiement préparée** sur `feat/deploy-portainer-production`)
+Dernière mise à jour : 11 juillet 2026 (étape 2 mobile active ; APK 1.0.28+28 OTA dev)
 
 > **Porteur — par où commencer ?**  
 > Mobile (validation produit) : **[`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md)** → puis [`TODOS_A_VALIDER.md`](TODOS_A_VALIDER.md) § étape active.  
