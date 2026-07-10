@@ -77,11 +77,21 @@ function runDelete(label, sql) {
 function getExclusiveCompanyIds(userId) {
   const safeId = sqlEscape(userId);
   const raw = sqlQuery(
-    `SELECT DISTINCT "companyId" FROM "Application" WHERE "userId" = '${safeId}' AND "companyId" IS NOT NULL;`,
+    `SELECT DISTINCT cid FROM (
+      SELECT "companyId" AS cid FROM "Application" WHERE "userId" = '${safeId}' AND "companyId" IS NOT NULL
+      UNION
+      SELECT "agencyId" AS cid FROM "Application" WHERE "userId" = '${safeId}' AND "agencyId" IS NOT NULL
+    ) s WHERE cid IS NOT NULL;`,
   );
   if (!raw) return [];
   return raw.split('\n').map((line) => line.trim()).filter(Boolean);
 }
+
+/** Aucune candidature (tous comptes) ne référence cette entreprise. */
+const COMPANY_UNREFERENCED_SQL = `NOT EXISTS (
+  SELECT 1 FROM "Application" a
+  WHERE a."companyId" = c.id OR a."agencyId" = c.id
+)`;
 
 /**
  * Supprime toutes les entités métier d'un utilisateur (hard delete SQL).
@@ -180,7 +190,7 @@ function purgeUserBusinessData(email, options = {}) {
       `WITH d AS (
         DELETE FROM "Company" c
         WHERE c.id IN (${idList})
-          AND NOT EXISTS (SELECT 1 FROM "Application" a WHERE a."companyId" = c.id)
+          AND ${COMPANY_UNREFERENCED_SQL}
         RETURNING 1
       ) SELECT COUNT(*) FROM d;`,
     );
@@ -204,7 +214,12 @@ function purgeUserBusinessData(email, options = {}) {
 
   deleted.companiesOwned = runDelete(
     'Company(owned)',
-    `WITH d AS (DELETE FROM "Company" WHERE "userId" = ${uid} RETURNING 1) SELECT COUNT(*) FROM d;`,
+    `WITH d AS (
+      DELETE FROM "Company" c
+      WHERE c."userId" = ${uid}
+        AND ${COMPANY_UNREFERENCED_SQL}
+      RETURNING 1
+    ) SELECT COUNT(*) FROM d;`,
   );
 
   const after = auditUserBusinessData(userId);
