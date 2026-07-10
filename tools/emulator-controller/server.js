@@ -151,6 +151,71 @@ function execCapture(cmd, opts = {}) {
   });
 }
 
+/** Processus build/install en cours — annulables via POST /cancel-operation */
+let activeBuildProcess = null;
+let activeInstallProcess = null;
+/** Empêche deux installs ADB concurrentes (même appareil ou flotte). */
+let activeInstallDeviceId = null;
+
+async function relaunchAppSingleInstance(deviceId) {
+  const execOpts = { cwd: MOBILE_PATH };
+  await execPromise(`adb -s ${deviceId} shell am force-stop ${ANDROID_PACKAGE}`, execOpts);
+  // -S : force-stop puis start — une seule instance / task (évite doublons dans le recents)
+  await execPromise(`adb -s ${deviceId} shell am start -S -n ${ANDROID_PACKAGE}/.MainActivity`, execOpts);
+}
+
+function execCaptureTracked(cmd, opts = {}) {
+  return new Promise((resolve) => {
+    const env = { ...envWithAndroid(), ...(opts.env || {}) };
+    const child = exec(cmd, { maxBuffer: 10 * 1024 * 1024, env, ...opts }, (err, stdout, stderr) => {
+      if (activeBuildProcess === child) activeBuildProcess = null;
+      const out = stdout == null ? '' : (Buffer.isBuffer(stdout) ? stdout.toString() : String(stdout));
+      const serr = stderr == null ? '' : (Buffer.isBuffer(stderr) ? stderr.toString() : String(stderr));
+      resolve({
+        stdout: out.trim(),
+        stderr: serr.trim(),
+        code: err && err.killed ? 130 : (err ? (typeof err.code === 'number' ? err.code : 1) : 0),
+        cancelled: !!(err && err.killed),
+      });
+    });
+    activeBuildProcess = child;
+  });
+}
+
+function execPromiseTracked(cmd, opts = {}) {
+  return new Promise((resolve, reject) => {
+    const child = exec(cmd, { maxBuffer: 10 * 1024 * 1024, env: envWithAndroid(), ...opts }, (err, stdout, stderr) => {
+      if (activeInstallProcess === child) activeInstallProcess = null;
+      if (err && err.killed) {
+        return reject(Object.assign(new Error('Commande interrompue (annulation)'), { cancelled: true }));
+      }
+      if (err) {
+        const msg = Buffer.isBuffer(stderr) ? stderr.toString() : (stderr || stdout || err.message);
+        return reject(new Error(typeof msg === 'string' ? msg : String(msg)));
+      }
+      const out = stdout == null ? '' : (Buffer.isBuffer(stdout) ? stdout.toString() : String(stdout));
+      const serr = stderr == null ? '' : (Buffer.isBuffer(stderr) ? stderr.toString() : String(stderr));
+      resolve({ stdout: out.trim(), stderr: serr.trim() });
+    });
+    activeInstallProcess = child;
+  });
+}
+
+function cancelActiveOperations() {
+  const cancelled = [];
+  if (activeBuildProcess) {
+    activeBuildProcess.kill('SIGTERM');
+    activeBuildProcess = null;
+    cancelled.push('build');
+  }
+  if (activeInstallProcess) {
+    activeInstallProcess.kill('SIGTERM');
+    activeInstallProcess = null;
+    cancelled.push('install');
+  }
+  return cancelled;
+}
+
 function parsePubspecVersion() {
   try {
     const yaml = fs.readFileSync(path.join(MOBILE_PATH, 'pubspec.yaml'), 'utf8');
@@ -674,7 +739,7 @@ const routes = {
 
       if (fs.existsSync(BUILD_APK_SCRIPT)) {
         const cmd = `bash "${BUILD_APK_SCRIPT}"`;
-        ({ stdout, stderr, code } = await execCapture(cmd, { cwd: REPO_ROOT, env: baseEnv }));
+        ({ stdout, stderr, code } = await execCaptureTracked(cmd, { cwd: REPO_ROOT, env: baseEnv }));
       } else {
         const outputsDir = path.join(MOBILE_PATH, 'build', 'app', 'outputs');
         try {
@@ -685,7 +750,19 @@ const routes = {
           await execCapture(`bash "${patchScript}"`, { cwd: REPO_ROOT, env: baseEnv });
         }
         await execCapture('flutter clean', { cwd: MOBILE_PATH, env: baseEnv });
-        ({ stdout, stderr, code } = await execCapture('flutter build apk --debug', { cwd: MOBILE_PATH, env: baseEnv }));
+        ({ stdout, stderr, code } = await execCaptureTracked('flutter build apk --debug', { cwd: MOBILE_PATH, env: baseEnv }));
+      }
+
+      if (code === 130) {
+        writeBuildSession({
+          id: buildId,
+          startedAt: buildId,
+          finishedAt: new Date().toISOString(),
+          inProgress: false,
+          success: false,
+          message: 'Build annulé',
+        });
+        return send(res, 200, { success: false, cancelled: true, message: 'Build annulé par l’utilisateur' });
       }
 
       const apkPath = resolveApkPath();
@@ -770,9 +847,8 @@ const routes = {
       push('install', true, 'Installation APK en cours…');
       await execPromise(`adb -s ${deviceId} install -r "${apkPath}"`, execOpts);
       push('install', true, 'APK installé');
-      await execPromise(`adb -s ${deviceId} shell am force-stop ${ANDROID_PACKAGE}`, execOpts);
-      push('restart', true, 'Application relancée');
-      await execPromise(`adb -s ${deviceId} shell am start -n ${ANDROID_PACKAGE}/.MainActivity`, execOpts);
+      await relaunchAppSingleInstance(deviceId);
+      push('restart', true, 'Application relancée (instance unique)');
       deviceDetailsCache.delete(deviceId);
       send(res, 200, {
         success: true,
@@ -780,9 +856,107 @@ const routes = {
         message: 'App installée et relancée sur l’appareil.',
       });
     } catch (e) {
+      const cancelled = !!(e && (e.cancelled || (e.message && String(e.message).includes('interrompu'))));
       push('error', false, e.message);
-      send(res, 500, { success: false, error: e.message, steps });
+      send(res, cancelled ? 200 : 500, {
+        success: false,
+        cancelled,
+        error: e.message,
+        steps,
+      });
     }
+  },
+
+  async '/adb-reverse-device'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      if (!deviceId) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "…" } requis' });
+      }
+      const reversed = await setupAdbReverseForDevice(deviceId, { force: true });
+      send(res, 200, {
+        success: true,
+        ports: reversed,
+        detail: `${reversed} port(s) API mappés (adb reverse)`,
+      });
+    } catch (e) {
+      send(res, 500, { success: false, error: e.message });
+    }
+  },
+
+  async '/install-apk-device'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      if (!deviceId) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "…" } requis' });
+      }
+      if (activeInstallProcess || activeInstallDeviceId) {
+        return send(res, 409, {
+          success: false,
+          error: 'Installation déjà en cours sur un appareil — attendez la fin ou « Arrêter l’installation ».',
+          busyDeviceId: activeInstallDeviceId,
+        });
+      }
+      const apkPath = resolveApkPath();
+      if (!apkPath || !fs.existsSync(apkPath)) {
+        return send(res, 400, { success: false, error: 'APK non trouvé. Lancez d’abord « Build APK ».' });
+      }
+      activeInstallDeviceId = deviceId;
+      const sizeMo = (fs.statSync(apkPath).size / 1024 / 1024).toFixed(1);
+      const pubspec = parsePubspecVersion();
+      try {
+        await execPromiseTracked(`adb -s ${deviceId} install -r "${apkPath}"`, { cwd: MOBILE_PATH });
+        deviceDetailsCache.delete(deviceId);
+        send(res, 200, {
+          success: true,
+          detail: `APK installé (${sizeMo} Mo)`,
+          apkPath,
+          version: pubspec?.version,
+          buildNumber: pubspec?.buildNumber,
+        });
+      } finally {
+        if (activeInstallDeviceId === deviceId) activeInstallDeviceId = null;
+      }
+    } catch (e) {
+      activeInstallDeviceId = null;
+      const cancelled = !!(e && e.cancelled);
+      send(res, cancelled ? 200 : 500, {
+        success: false,
+        cancelled,
+        error: (e && e.message) || String(e),
+      });
+    }
+  },
+
+  async '/launch-app-device'(req, res, body) {
+    try {
+      const deviceId = body && body.deviceId;
+      if (!deviceId) {
+        return send(res, 400, { success: false, error: 'Body { "deviceId": "…" } requis' });
+      }
+      await relaunchAppSingleInstance(deviceId);
+      send(res, 200, { success: true, detail: 'Application relancée (instance unique)' });
+    } catch (e) {
+      send(res, 500, { success: false, error: e.message });
+    }
+  },
+
+  async '/cancel-operation'(req, res) {
+    const cancelled = cancelActiveOperations();
+    try {
+      const session = readBuildSession();
+      if (session?.inProgress) {
+        writeBuildSession({
+          ...session,
+          inProgress: false,
+          success: false,
+          finishedAt: new Date().toISOString(),
+          message: 'Annulé par l’utilisateur',
+        });
+        if (!cancelled.includes('build')) cancelled.push('build');
+      }
+    } catch (_) { /* ignore */ }
+    send(res, 200, { success: true, cancelled, message: cancelled.length ? 'Opération annulée' : 'Aucune opération en cours' });
   },
 
   /** Prépare adb reverse sur tous les appareils + expose IP LAN détectée (sans commande manuelle). */
@@ -858,12 +1032,10 @@ const routes = {
         return send(res, 400, { success: false, error: 'Body { "deviceId": "emulator-5554" } requis' });
       }
       const execOpts = { cwd: MOBILE_PATH };
-      await execPromise(`adb -s ${deviceId} shell am force-stop ${ANDROID_PACKAGE}`, execOpts);
-      await new Promise(r => setTimeout(r, 800));
-      await execPromise(`adb -s ${deviceId} shell am start -n ${ANDROID_PACKAGE}/.MainActivity`, execOpts);
+      await relaunchAppSingleInstance(deviceId);
       // Délai pour que l'app et uiautomator soient prêts (évite "uiauto machine failed")
       await new Promise(r => setTimeout(r, 5500));
-      send(res, 200, { success: true, message: 'App fermée puis relancée' });
+      send(res, 200, { success: true, message: 'App fermée puis relancée (instance unique)' });
     } catch (e) {
       send(res, 500, { success: false, error: e.message });
     }
@@ -1467,7 +1639,7 @@ const server = http.createServer((req, res) => {
     if (!handler) {
       return send(res, 404, { error: 'Not found' });
     }
-    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/setup-dev', '/stop-app', '/uninstall-app', '/restart', '/force-restart-app', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info', '/adb-shell'];
+    const postRoutes = ['/start-avd', '/build-apk', '/install-run', '/adb-reverse-device', '/install-apk-device', '/launch-app-device', '/cancel-operation', '/setup-dev', '/stop-app', '/uninstall-app', '/restart', '/force-restart-app', '/run-flutter', '/input-tap', '/input-text', '/input-keyevent', '/input-swipe', '/clear-field', '/ui-dump', '/find-and-tap', '/tap-field-and-type', '/screen-info', '/adb-shell'];
     if (req.method === 'POST' && postRoutes.includes(pathname)) {
       let data = '';
       req.on('data', (chunk) => { data += chunk; });

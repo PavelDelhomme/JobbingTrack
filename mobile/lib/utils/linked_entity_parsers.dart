@@ -55,6 +55,20 @@ Map<String, dynamic>? nestedMap(dynamic value, String key) {
   return null;
 }
 
+Map<String, dynamic>? firstContactFromEntityRaw(Map<String, dynamic> raw) {
+  final direct = nestedMap(raw, 'contact');
+  if (isMeaningfulContactMap(direct)) return direct;
+  final contacts = raw['contacts'];
+  if (contacts is List) {
+    for (final item in contacts) {
+      if (item is! Map) continue;
+      final nested = nestedMap(item, 'contact');
+      if (isMeaningfulContactMap(nested)) return nested;
+    }
+  }
+  return null;
+}
+
 String contactDisplayNameFromMap(Map<String, dynamic>? c) {
   if (c == null) return 'Contact';
   final first = c['firstName']?.toString().trim() ?? '';

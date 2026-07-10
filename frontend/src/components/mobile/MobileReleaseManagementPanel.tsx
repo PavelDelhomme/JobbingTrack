@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/hooks/auth";
 import { FRONTEND_URLS } from "@/config/ports.config";
 import { MobileApkBuildPanel } from "@/components/mobile/MobileApkBuildPanel";
 import { writeWizardPublish } from "@/lib/mobile/mobileOtaWizardStorage";
+import { fetchApkInfo, type ApkInfo } from "@/lib/mobile/emulatorControllerClient";
 
 type MobileRelease = {
   id: string;
@@ -90,6 +91,150 @@ function formatDate(value?: string) {
   return d.toLocaleString("fr-FR");
 }
 
+function formatVersionLabel(version?: string | null, build?: number | null): string {
+  if (!version || build == null) return "—";
+  return `v${version}+${build}`;
+}
+
+function VersionAlignmentCard({
+  hints,
+  diskApk,
+  activeDev,
+  activeProd,
+  releasesDir,
+  publicApiUrl,
+  onRefreshDisk,
+  diskLoading,
+}: {
+  hints?: DeployHints;
+  diskApk: ApkInfo | null;
+  activeDev?: MobileRelease | null;
+  activeProd?: MobileRelease | null;
+  releasesDir: string;
+  publicApiUrl: string | null;
+  onRefreshDisk: () => void;
+  diskLoading: boolean;
+}) {
+  const pubspecLabel = formatVersionLabel(hints?.pubspecVersion, hints?.pubspecBuild ?? null);
+  const diskLabel =
+    diskApk?.exists && diskApk.version
+      ? formatVersionLabel(diskApk.version, diskApk.buildNumber ?? null)
+      : diskApk?.exists === false
+        ? "Aucun APK sur le serveur de build"
+        : "—";
+  const devLabel = activeDev ? formatVersionLabel(activeDev.version, activeDev.buildNumber) : "aucune";
+  const prodLabel = activeProd ? formatVersionLabel(activeProd.version, activeProd.buildNumber) : "aucune";
+
+  const pubspecMatchesDisk =
+    hints?.pubspecVersion &&
+    hints.pubspecBuild != null &&
+    diskApk?.version === hints.pubspecVersion &&
+    diskApk?.buildNumber === hints.pubspecBuild;
+
+  const diskMatchesDev =
+    diskApk?.version &&
+    diskApk.buildNumber != null &&
+    activeDev &&
+    diskApk.version === activeDev.version &&
+    diskApk.buildNumber === activeDev.buildNumber;
+
+  const rows: { label: string; value: string; hint?: string; tone?: "ok" | "warn" | "muted" }[] = [
+    {
+      label: "Code source (pubspec.yaml)",
+      value: pubspecLabel,
+      hint: "Prochaine version après « Build APK » (incrément auto du 3e chiffre = build, ex. 1.0.18+18).",
+    },
+    {
+      label: "APK compilé (disque build)",
+      value: diskLabel,
+      hint: diskApk?.modifiedAt ? `Modifié ${formatDate(diskApk.modifiedAt)}` : undefined,
+      tone: diskApk?.exists ? (pubspecMatchesDisk ? "ok" : "warn") : "muted",
+    },
+    {
+      label: "Canal dev OTA (téléchargement bêta)",
+      value: devLabel,
+      hint: activeDev ? `Publié ${formatDate(activeDev.createdAt)}` : "Publish dev requis après build USB.",
+      tone: activeDev ? (diskMatchesDev ? "ok" : "warn") : "muted",
+    },
+    {
+      label: "Canal production OTA",
+      value: prodLabel,
+      hint: activeProd ? "Utilisateurs finaux — promote depuis dev." : "Normal en local : aucune prod tant que non promu.",
+      tone: activeProd ? "ok" : "muted",
+    },
+  ];
+
+  return (
+    <section className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm dark:border-slate-600 dark:bg-gray-900">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Vue d’ensemble des versions</h2>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Quatre sources distinctes : code, APK USB, OTA dev, OTA prod. Un écart pubspec ≠ dev est{" "}
+            <strong>normal</strong> si vous n’avez pas cliqué « Publier sur canal dev » après le dernier build.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRefreshDisk}
+          disabled={diskLoading}
+          className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-2 py-1 text-xs hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800"
+        >
+          {diskLoading ? "…" : "Rafraîchir APK disque"}
+        </button>
+      </div>
+
+      <div className="mt-4 overflow-x-auto">
+        <table className="min-w-[640px] w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 dark:border-gray-700">
+              <th className="px-2 py-2 font-medium">Source</th>
+              <th className="px-2 py-2 font-medium">Version</th>
+              <th className="px-2 py-2 font-medium">Commentaire</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.label} className="border-b border-gray-100 dark:border-gray-800">
+                <td className="whitespace-nowrap px-2 py-2 font-medium text-gray-800 dark:text-gray-200">
+                  {row.label}
+                </td>
+                <td
+                  className={`whitespace-nowrap px-2 py-2 font-mono text-sm ${
+                    row.tone === "ok"
+                      ? "text-emerald-700 dark:text-emerald-300"
+                      : row.tone === "warn"
+                        ? "text-amber-800 dark:text-amber-200"
+                        : "text-gray-700 dark:text-gray-300"
+                  }`}
+                >
+                  {row.value}
+                </td>
+                <td className="px-2 py-2 text-xs text-gray-500 dark:text-gray-400">{row.hint ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <dl className="mt-4 grid gap-2 text-xs text-gray-600 dark:text-gray-400 sm:grid-cols-2">
+        <div>
+          <dt className="font-medium text-gray-700 dark:text-gray-300">Stockage releases</dt>
+          <dd>
+            <code className="break-all">{releasesDir}</code>
+          </dd>
+        </div>
+        <div>
+          <dt className="font-medium text-gray-700 dark:text-gray-300">API OTA publique</dt>
+          <dd>
+            {publicApiUrl ? <code className="break-all">{publicApiUrl}</code> : "PUBLIC_API_URL non définie"}
+          </dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
 export function MobileReleaseManagementPanel() {
   const { token } = useAuth();
   const [state, setState] = useState<AdminReleaseState | null>(null);
@@ -106,6 +251,8 @@ export function MobileReleaseManagementPanel() {
   const [releaseNotes, setReleaseNotes] = useState("");
   const [apkFile, setApkFile] = useState<File | null>(null);
   const [hintsApplied, setHintsApplied] = useState(false);
+  const [diskApk, setDiskApk] = useState<ApkInfo | null>(null);
+  const [diskLoading, setDiskLoading] = useState(false);
 
   const apiBase =
     typeof window !== "undefined" ? "" : FRONTEND_URLS.api.replace(/\/$/, "");
@@ -117,6 +264,18 @@ export function MobileReleaseManagementPanel() {
 
   const adminApi = (path: string) =>
     `${apiBase}/api/v1/admin${path.startsWith("/") ? path : `/${path}`}`;
+
+  const refreshDiskApk = useCallback(async () => {
+    setDiskLoading(true);
+    try {
+      const info = await fetchApkInfo();
+      setDiskApk(info);
+    } catch {
+      setDiskApk(null);
+    } finally {
+      setDiskLoading(false);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     if (!token) {
@@ -178,7 +337,8 @@ export function MobileReleaseManagementPanel() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+    void refreshDiskApk();
+  }, [load, refreshDiskApk]);
 
   const uploadApkFile = async (file: File) => {
     if (!token) return;
@@ -380,43 +540,16 @@ export function MobileReleaseManagementPanel() {
       ) : null}
 
       {state ? (
-        <details className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-200">
-          <summary className="cursor-pointer font-semibold">État serveur OTA (détails)</summary>
-          <ul className="mt-2 list-inside list-disc space-y-1 text-xs">
-            <li>
-              Stockage : <code>{state.releasesDir}</code>
-            </li>
-            <li>
-              API OTA : {publicApiUrl ? <code>{publicApiUrl}</code> : "PUBLIC_API_URL non définie"}
-            </li>
-            <li>
-              <code>pubspec.yaml</code> :{" "}
-              <strong>
-                {hints?.pubspecVersion ?? "—"}
-              </strong>
-              {" · "}
-              build <strong>{hints?.pubspecBuild ?? "—"}</strong>
-              {" · "}
-              format JobbingTrack : le 3e chiffre = build (ex. 1.0.12+12). Incrément auto à chaque « Build APK ».
-            </li>
-            <li>
-              Dev actif :{" "}
-              {activeDev ? `v${activeDev.version}+${activeDev.buildNumber}` : "aucun"}
-              {" · "}
-              Prod actif :{" "}
-              {activeProd ? `v${activeProd.version}+${activeProd.buildNumber}` : "aucun"}
-            </li>
-            {hints?.needsPubspecBump ? (
-              <li className="text-amber-800 dark:text-amber-200">
-                Prochain build suggéré :{" "}
-                <code>
-                  {hints.suggestedVersion}+{hints.suggestedBuild}
-                </code>{" "}
-                (incrément automatique au clic « Build APK », ou édition manuelle pubspec).
-              </li>
-            ) : null}
-          </ul>
-        </details>
+        <VersionAlignmentCard
+          hints={hints}
+          diskApk={diskApk}
+          activeDev={activeDev ?? null}
+          activeProd={activeProd ?? null}
+          releasesDir={state.releasesDir}
+          publicApiUrl={publicApiUrl ?? null}
+          onRefreshDisk={() => void refreshDiskApk()}
+          diskLoading={diskLoading}
+        />
       ) : null}
       {apiDiag ? (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
@@ -539,40 +672,46 @@ export function MobileReleaseManagementPanel() {
       </details>
 
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold">Historique des versions</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-semibold">Historique des versions OTA</h2>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Publications serveur (canal dev/prod). Faites défiler horizontalement pour voir toutes les colonnes.
+              La release <strong>active</strong> par canal est servie par l’endpoint OTA « latest ».
+            </p>
+          </div>
           <button
             type="button"
-            onClick={() => void load()}
-            className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+            onClick={() => {
+              void load();
+              void refreshDiskApk();
+            }}
+            disabled={loading}
+            className="text-sm text-blue-600 hover:underline disabled:opacity-50 dark:text-blue-400"
           >
-            Actualiser
+            {loading ? "Actualisation…" : "Actualiser"}
           </button>
         </div>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Chaque publication crée une entrée (package APK, notes, canal). La release{" "}
-          <strong>active</strong> par canal est celle servie par l’OTA.
-        </p>
         {loading ? (
           <p className="mt-4 text-sm text-gray-500">Chargement…</p>
         ) : !state?.releases?.length ? (
           <p className="mt-4 text-sm text-gray-500">Aucune release enregistrée. Uploadez un premier APK.</p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+          <div className="mt-4 -mx-1 overflow-x-auto pb-2">
+            <table className="min-w-[1100px] w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="px-2 py-2">Version</th>
-                  <th className="px-2 py-2">Build</th>
-                  <th className="px-2 py-2">Canal</th>
-                  <th className="px-2 py-2">Statut</th>
-                  <th className="px-2 py-2">Package</th>
-                  <th className="px-2 py-2">Taille</th>
-                  <th className="px-2 py-2">Notes</th>
-                  <th className="px-2 py-2">Date</th>
-                  <th className="px-2 py-2">Auteur</th>
-                  <th className="px-2 py-2">GitHub</th>
-                  <th className="px-2 py-2">Actions</th>
+                  <th className="whitespace-nowrap px-2 py-2">Version</th>
+                  <th className="whitespace-nowrap px-2 py-2">Build</th>
+                  <th className="whitespace-nowrap px-2 py-2">Canal</th>
+                  <th className="whitespace-nowrap px-2 py-2">Statut</th>
+                  <th className="whitespace-nowrap px-2 py-2 min-w-[220px]">Package (nom fichier)</th>
+                  <th className="whitespace-nowrap px-2 py-2">Taille</th>
+                  <th className="whitespace-nowrap px-2 py-2 min-w-[200px]">Notes</th>
+                  <th className="whitespace-nowrap px-2 py-2">Date</th>
+                  <th className="whitespace-nowrap px-2 py-2">Auteur</th>
+                  <th className="whitespace-nowrap px-2 py-2">GitHub</th>
+                  <th className="whitespace-nowrap px-2 py-2 sticky right-0 bg-white dark:bg-gray-900">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -586,25 +725,28 @@ export function MobileReleaseManagementPanel() {
                       isActiveDev || isActiveProd ? "bg-emerald-50/50 dark:bg-emerald-950/20" : ""
                     }`}
                   >
-                    <td className="px-2 py-2 font-medium">
+                    <td className="whitespace-nowrap px-2 py-2 font-medium">
                       {r.version}
-                      {isActiveDev || isActiveProd ? (
-                        <span className="ml-1 text-xs text-emerald-700 dark:text-emerald-300">● OTA</span>
+                      {isActiveDev ? (
+                        <span className="ml-1 text-xs text-emerald-700 dark:text-emerald-300">● dev OTA</span>
+                      ) : null}
+                      {isActiveProd ? (
+                        <span className="ml-1 text-xs text-indigo-700 dark:text-indigo-300">● prod OTA</span>
                       ) : null}
                     </td>
-                    <td className="px-2 py-2">{r.buildNumber}</td>
-                    <td className="px-2 py-2">{r.channel}</td>
-                    <td className="px-2 py-2">{statusBadge(r.status, r.channel)}</td>
-                    <td className="px-2 py-2 max-w-[140px] truncate text-xs" title={r.filename ?? undefined}>
+                    <td className="whitespace-nowrap px-2 py-2">{r.buildNumber}</td>
+                    <td className="whitespace-nowrap px-2 py-2">{r.channel}</td>
+                    <td className="whitespace-nowrap px-2 py-2">{statusBadge(r.status, r.channel)}</td>
+                    <td className="px-2 py-2 font-mono text-xs whitespace-nowrap" title={r.filename ?? undefined}>
                       {r.filename ?? "—"}
                     </td>
-                    <td className="px-2 py-2 text-xs">{r.fileSizeLabel ?? "—"}</td>
-                    <td className="px-2 py-2 max-w-[160px] truncate text-xs" title={r.releaseNotes || undefined}>
+                    <td className="whitespace-nowrap px-2 py-2 text-xs">{r.fileSizeLabel ?? "—"}</td>
+                    <td className="px-2 py-2 text-xs max-w-[280px] whitespace-pre-wrap break-words">
                       {r.releaseNotes?.trim() ? r.releaseNotes : "—"}
                     </td>
-                    <td className="px-2 py-2">{formatDate(r.createdAt)}</td>
-                    <td className="px-2 py-2 text-xs">{r.createdBy ?? "—"}</td>
-                    <td className="px-2 py-2 text-xs">
+                    <td className="whitespace-nowrap px-2 py-2">{formatDate(r.createdAt)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-xs">{r.createdBy ?? "—"}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-xs">
                       {r.githubReleaseUrl ? (
                         <a
                           href={r.githubReleaseUrl}
@@ -620,7 +762,7 @@ export function MobileReleaseManagementPanel() {
                         "—"
                       )}
                     </td>
-                    <td className="px-2 py-2">
+                    <td className="whitespace-nowrap px-2 py-2 sticky right-0 bg-white dark:bg-gray-900">
                       <div className="flex flex-wrap items-center gap-1">
                         {(() => {
                           const href = resolveDownloadHref(r);
@@ -729,7 +871,14 @@ function ChannelCard({
           ) : null}
         </div>
       ) : (
-        <p className="mt-3 text-sm text-gray-500">Aucune release active.</p>
+        <p className="mt-3 text-sm text-gray-500">
+          Aucune release active.
+          {title.includes("PRODUCTION") ? (
+            <span className="block text-xs text-gray-400">
+              Attendu en local : utilisez « Promouvoir dev → production » seulement avant mise en prod réelle.
+            </span>
+          ) : null}
+        </p>
       )}
       {onPromote ? (
         <button

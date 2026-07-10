@@ -7,6 +7,7 @@ class FollowUp {
   final String? notes;
   final DateTime? completedAt;
   final String? response;
+  final String? contactDisplayName;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -19,12 +20,40 @@ class FollowUp {
     this.notes,
     this.completedAt,
     this.response,
+    this.contactDisplayName,
     required this.createdAt,
     required this.updatedAt,
   });
 
   factory FollowUp.fromJson(Map<String, dynamic> json) {
     final dateStr = json['followUpDate'] ?? json['scheduledDate'];
+    String? contactName;
+    final contactRaw = json['contact'];
+    if (contactRaw is Map) {
+      final first = contactRaw['firstName']?.toString().trim() ?? '';
+      final last = contactRaw['lastName']?.toString().trim() ?? '';
+      final full = '$first $last'.trim();
+      contactName = full.isNotEmpty ? full : contactRaw['email']?.toString();
+    } else if (json['contacts'] is List) {
+      for (final item in json['contacts'] as List) {
+        if (item is! Map) continue;
+        final c = item['contact'];
+        if (c is Map) {
+          final first = c['firstName']?.toString().trim() ?? '';
+          final last = c['lastName']?.toString().trim() ?? '';
+          final full = '$first $last'.trim();
+          if (full.isNotEmpty) {
+            contactName = full;
+            break;
+          }
+          final email = c['email']?.toString().trim();
+          if (email != null && email.isNotEmpty) {
+            contactName = email;
+            break;
+          }
+        }
+      }
+    }
     return FollowUp(
       id: json['id']?.toString() ?? '',
       applicationId: json['applicationId']?.toString() ?? '',
@@ -36,6 +65,7 @@ class FollowUp {
           ? DateTime.tryParse(json['completedAt'].toString())
           : null,
       response: json['response']?.toString(),
+      contactDisplayName: contactName,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
     );

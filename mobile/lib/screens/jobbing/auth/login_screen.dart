@@ -9,6 +9,7 @@ import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/services/biometric_credential_store.dart';
 import 'package:jobbingtrack_mobile/config/debug_test_accounts.dart';
 import 'package:jobbingtrack_mobile/utils/post_auth_navigation.dart';
+import 'package:jobbingtrack_mobile/services/app_version_info.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,11 +28,17 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _biometricAvailable = false;
   String? _savedAccountEmail;
   bool _showFullLoginForm = false;
+  String? _appVersionLabel;
 
   @override
   void initState() {
     super.initState();
     _initOptions();
+    AppVersionInfo.getDetails().then((details) {
+      if (mounted) {
+        setState(() => _appVersionLabel = details.technical);
+      }
+    });
   }
 
   Future<void> _initOptions() async {
@@ -82,7 +89,12 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     if (submit) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _login();
+        if (!mounted) return;
+        setState(() {
+          _keepLoggedIn = true;
+          _enableBiometric = false;
+        });
+        _login();
       });
     }
   }
@@ -704,6 +716,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(fontSize: 10, color: Colors.grey[400], decoration: TextDecoration.underline),
                   ),
                 ),
+
+                if (_appVersionLabel != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Version $_appVersionLabel',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                  ),
+                ],
 
                 const SizedBox(height: 24),
               ],

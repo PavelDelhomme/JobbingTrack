@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
+import 'package:jobbingtrack_mobile/models/followup.dart';
+import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 
 /// Statuts modifiables manuellement par l'utilisateur (pas les statuts calculés par relances/délais).
 const kManualApplicationStatusCodes = [
@@ -151,6 +153,30 @@ String followUpStatusLabel(String status) {
     default:
       return status;
   }
+}
+
+/// Canal extrait des notes `[Canal: Email]` (formulaire relance).
+String followUpChannelFromNotes(String? notes) {
+  final match = RegExp(r'\[Canal:\s*([^\]]+)\]').firstMatch(notes ?? '');
+  return match?.group(1)?.trim() ?? '';
+}
+
+/// Notes sans la ligne canal (affichage liste).
+String followUpNotesWithoutChannel(String? notes) {
+  if (notes == null || notes.isEmpty) return '';
+  return notes
+      .split('\n')
+      .where((line) => !line.trim().startsWith('[Canal:'))
+      .join('\n')
+      .trim();
+}
+
+/// Titre liste relance : date + canal.
+String followUpListTitle(FollowUp followUp) {
+  final channel = followUpChannelFromNotes(followUp.notes);
+  final dateLabel = formatSmartEventDate(followUp.scheduledDate);
+  if (channel.isNotEmpty) return '$dateLabel · $channel';
+  return dateLabel;
 }
 
 String contactDisplayName(Map<String, dynamic> contact) {

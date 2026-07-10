@@ -98,15 +98,34 @@ async function proxyPost<T>(
   path: string,
   body: Record<string, unknown> = {},
   timeoutMs = 120_000,
+  signal?: AbortSignal,
 ): Promise<{ ok: boolean; data: T; status: number }> {
-  const res = await fetch(`${PROXY}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  const data = (await res.json().catch(() => ({}))) as T;
-  return { ok: res.ok, data, status: res.status };
+  try {
+    const res = await fetch(`${PROXY}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: signal ?? AbortSignal.timeout(timeoutMs),
+    });
+    const data = (await res.json().catch(() => ({}))) as T;
+    return { ok: res.ok, data, status: res.status };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    const aborted = e instanceof Error && e.name === "AbortError";
+    return {
+      ok: false,
+      data: {
+        success: false,
+        error: message,
+        cancelled: aborted,
+        message: aborted ? "Opération annulée" : `Réseau : ${message}`,
+        _hint:
+          "Proxy /api/emulator-proxy injoignable ou requête interrompue (timeout, dev server Next). "
+          + "Vérifiez le contrôleur : curl http://127.0.0.1:5055/health",
+      } as T,
+      status: 0,
+    };
+  }
 }
 
 export async function fetchEmulatorHealth(): Promise<EmulatorHealth | null> {
@@ -166,25 +185,110 @@ export function localApkDownloadHref(): string {
   return `${PROXY}/download-apk`;
 }
 
+export async function cancelEmulatorOperation(): Promise<{ cancelled?: string[] }> {
+  const { data } = await proxyPost<{ success?: boolean; cancelled?: string[] }>(
+    "/cancel-operation",
+    {},
+    15_000,
+  );
+  return { cancelled: data.cancelled };
+}
+
+export type InstallStepResult = {
+  success?: boolean;
+  cancelled?: boolean;
+  error?: string;
+  detail?: string;
+  ports?: number;
+};
+
+export async function adbReverseDevice(
+  deviceId: string,
+  signal?: AbortSignal,
+): Promise<InstallStepResult> {
+  const { ok, data } = await proxyPost<InstallStepResult & { success?: boolean }>(
+    "/adb-reverse-device",
+    { deviceId },
+    60_000,
+    signal,
+  );
+  if (data.cancelled) return { success: false, cancelled: true };
+  if (!ok || data.success === false) {
+    return { success: false, error: data.error || "adb reverse échoué" };
+  }
+  return { success: true, detail: data.detail, ports: data.ports };
+}
+
+export async function installApkDeviceOnly(
+  deviceId: string,
+  signal?: AbortSignal,
+): Promise<InstallStepResult> {
+  const res = await fetch(`${PROXY}/install-apk-device`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ deviceId }),
+    signal: signal ?? AbortSignal.timeout(600_000),
+  });
+  const data = (await res.json().catch(() => ({}))) as InstallStepResult & { success?: boolean };
+  if (data.cancelled) return { success: false, cancelled: true };
+  if (!res.ok || data.success === false) {
+    return { success: false, error: data.error || `Installation HTTP ${res.status}` };
+  }
+  return { success: true, detail: data.detail };
+}
+
+export async function launchAppOnDevice(
+  deviceId: string,
+  signal?: AbortSignal,
+): Promise<InstallStepResult> {
+  const { ok, data } = await proxyPost<InstallStepResult & { success?: boolean }>(
+    "/launch-app-device",
+    { deviceId },
+    60_000,
+    signal,
+  );
+  if (data.cancelled) return { success: false, cancelled: true };
+  if (!ok || data.success === false) {
+    return { success: false, error: data.error || "Relance app échouée" };
+  }
+  return { success: true, detail: data.detail };
+}
+
 export async function installApkOnDevice(
   deviceId: string,
+  signal?: AbortSignal,
 ): Promise<{
   success?: boolean;
   message?: string;
   error?: string;
   steps?: { phase: string; ok: boolean; detail?: string; at?: string }[];
 }> {
-  const { data } = await proxyPost<{
+  type InstallPayload = {
     success?: boolean;
     message?: string;
     error?: string;
+    cancelled?: boolean;
+    _hint?: string;
     steps?: { phase: string; ok: boolean; detail?: string; at?: string }[];
-  }>(
+  };
+  const { ok, data, status } = await proxyPost<InstallPayload>(
     "/install-run",
     { deviceId },
-    300_000,
+    600_000,
+    signal,
   );
-  return data;
+  if (data.cancelled) {
+    return { success: false, error: "Installation annulée", steps: data.steps };
+  }
+  if (!ok || data.success === false) {
+    const err = data.error || data.message || (status ? `HTTP ${status}` : "Échec réseau");
+    return {
+      success: false,
+      error: [err, data._hint].filter(Boolean).join(" — "),
+      steps: data.steps,
+    };
+  }
+  return { success: true, ...data };
 }
 
 export async function fetchBuiltApkBlob(): Promise<Blob> {

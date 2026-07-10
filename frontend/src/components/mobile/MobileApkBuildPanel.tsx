@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  adbReverseDevice,
   bootstrapEmulatorDev,
   buildApkFromBackoffice,
+  cancelEmulatorOperation,
   fetchApkInfo,
   fetchAdbDevices,
   fetchBuildSession,
   fetchEmulatorHealth,
-  installApkOnDevice,
+  installApkDeviceOnly,
+  launchAppOnDevice,
   localApkDownloadHref,
   formatApkDownloadFilename,
   type AdbDevice,
@@ -24,6 +27,13 @@ import {
   summarizeBuildWarnings,
   type BuildLogLevel,
 } from "@/lib/mobile/buildLogUtils";
+import {
+  actionToneClass,
+  deviceMatchesBuiltApk,
+  resolveDeviceApkAction,
+  resolveBuildApkAction,
+  resolveWizardBanner,
+} from "@/lib/mobile/deviceApkAction";
 
 import {
   installMatchesApk,
@@ -55,6 +65,19 @@ type MobileApkBuildPanelProps = {
 };
 
 type LogLine = { ts: string; msg: string; level: BuildLogLevel };
+
+type InstallStepId = "reverse" | "install" | "launch";
+type InstallStepStatus = "pending" | "active" | "done" | "error" | "cancelled";
+
+const INSTALL_STEPS: { id: InstallStepId; label: string }[] = [
+  { id: "reverse", label: "adb reverse — ports API vers le téléphone" },
+  { id: "install", label: "adb install -r — copie APK sur l’appareil" },
+  { id: "launch", label: "Relance JobbingTrack (force-stop + start)" },
+];
+
+function initialInstallSteps(): Record<InstallStepId, InstallStepStatus> {
+  return { reverse: "pending", install: "pending", launch: "pending" };
+}
 
 function nowLabel(): string {
   return new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -104,6 +127,15 @@ function formatActivityLog(lines: LogLine[]): string {
   return lines.map((line) => `[${line.ts}] ${line.msg}`).join("\n");
 }
 
+function InlineSpinner({ className = "" }: { className?: string }) {
+  return (
+    <span
+      className={`inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent opacity-80 ${className}`}
+      aria-hidden
+    />
+  );
+}
+
 function historyLabel(entry: BuildHistoryEntry): string {
   const ver = entry.version ? `v${entry.version}+${entry.buildNumber ?? "?"}` : "version ?";
   return `${ver} — ${entry.success ? "OK" : "KO"} — ${formatWhen(entry.finishedAt)}`;
@@ -134,8 +166,7 @@ function StepPill({
 }
 
 function deviceMatchesApk(d: AdbDevice, info: ApkInfo | null): boolean {
-  if (!info?.version || info.buildNumber == null || !d.appInstalled) return false;
-  return d.appVersionName === info.version && String(d.appVersionCode) === String(info.buildNumber);
+  return deviceMatchesBuiltApk(d, info);
 }
 
 export function MobileApkBuildPanel({
@@ -163,6 +194,7 @@ export function MobileApkBuildPanel({
   const [buildSeconds, setBuildSeconds] = useState(0);
   const [installing, setInstalling] = useState(false);
   const [installPhase, setInstallPhase] = useState<string | null>(null);
+  const [installStepStatus, setInstallStepStatus] = useState(initialInstallSteps);
   const [activityLog, setActivityLog] = useState<LogLine[]>([]);
   const [buildHistory, setBuildHistory] = useState<BuildHistoryEntry[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
@@ -170,8 +202,12 @@ export function MobileApkBuildPanel({
   const [lastBuildWarnings, setLastBuildWarnings] = useState<string[]>([]);
   const [copyHint, setCopyHint] = useState<string | null>(null);
   const [installDone, setInstallDone] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [historyRefreshing, setHistoryRefreshing] = useState(false);
   const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
   const buildAbortRef = useRef<AbortController | null>(null);
+  const installAbortRef = useRef<AbortController | null>(null);
+  const installInFlightRef = useRef(false);
   const bootstrapOnceRef = useRef(false);
 
   useEffect(() => {
@@ -219,8 +255,13 @@ export function MobileApkBuildPanel({
   );
 
   const loadBuildHistory = useCallback(async () => {
-    const sessionData = await fetchBuildSession();
-    return applySessionPayload(sessionData) ?? [];
+    setHistoryRefreshing(true);
+    try {
+      const sessionData = await fetchBuildSession();
+      return applySessionPayload(sessionData) ?? [];
+    } finally {
+      setHistoryRefreshing(false);
+    }
   }, [applySessionPayload]);
 
   const clearLog = useCallback(() => {
@@ -236,6 +277,8 @@ export function MobileApkBuildPanel({
 
   const refreshStatus = useCallback(
     async (opts?: { full?: boolean }) => {
+      setRefreshing(true);
+      try {
       const health = await fetchEmulatorHealth();
       setControllerOk(!!health?.ok);
       const info = await fetchApkInfo();
@@ -250,6 +293,8 @@ export function MobileApkBuildPanel({
       });
       if (info && adb.devices.some((d) => deviceMatchesApk(d, info))) {
         setInstallDone(true);
+      } else {
+        setInstallDone(false);
       }
       const sessionData = await fetchBuildSession();
       const history = applySessionPayload(sessionData);
@@ -272,6 +317,9 @@ export function MobileApkBuildPanel({
       }
       setLastRefreshAt(nowLabel());
       return { history: history ?? sessionData?.history ?? [] };
+      } finally {
+        setRefreshing(false);
+      }
     },
     [applySessionPayload],
   );
@@ -368,14 +416,75 @@ export function MobileApkBuildPanel({
     && apkInfo?.version === activeDevRelease.version
     && String(apkInfo?.buildNumber) === String(activeDevRelease.buildNumber),
   );
+  const selectedDeviceInfo = devices.find((d) => d.id === selectedDevice) ?? devices[0] ?? null;
+  const deviceAction = resolveDeviceApkAction(selectedDeviceInfo, apkInfo);
+  const buildAction = resolveBuildApkAction(apkInfo, selectedDeviceInfo);
+  const wizardBanner = resolveWizardBanner(apkInfo, selectedDeviceInfo);
   const deviceHasMatchingApp = Boolean(
-    apkInfo && devices.some((d) => deviceMatchesApk(d, apkInfo)),
+    selectedDeviceInfo && apkInfo && deviceMatchesBuiltApk(selectedDeviceInfo, apkInfo),
   );
   const installSatisfied = installDone || deviceHasMatchingApp;
-  const selectedDeviceInfo = devices.find((d) => d.id === selectedDevice) ?? devices[0] ?? null;
-  const deviceLabelVersion = selectedDeviceInfo?.appInstalled && selectedDeviceInfo.appVersionName
-    ? `v${selectedDeviceInfo.appVersionName} (${selectedDeviceInfo.appVersionCode ?? "?"})`
-    : null;
+  const deviceLabelVersion = selectedDeviceInfo?.appInstalled === false
+    ? null
+    : selectedDeviceInfo?.appInstalled && selectedDeviceInfo.appVersionName
+      ? `v${selectedDeviceInfo.appVersionName}+${selectedDeviceInfo.appVersionCode ?? "?"}`
+      : selectedDeviceInfo && apkReady
+        ? "app absente"
+        : null;
+  const step2NeedsInstall = apkReady && deviceAction.kind === "install";
+
+  const actionLocked = building || installing || bootstrapping || publishing || promoting;
+
+  const setInstallStep = useCallback((id: InstallStepId, status: InstallStepStatus) => {
+    setInstallStepStatus((prev) => ({ ...prev, [id]: status }));
+  }, []);
+
+  const resetInstallSteps = useCallback(() => {
+    setInstallStepStatus(initialInstallSteps());
+  }, []);
+
+  const cancelBuild = useCallback(async () => {
+    pushLog("Annulation du build demandée…", "warning");
+    buildAbortRef.current?.abort();
+    await cancelEmulatorOperation();
+    setBuilding(false);
+    buildAbortRef.current = null;
+    await refreshStatus({ full: true });
+    pushLog("Build annulé.", "warning");
+  }, [pushLog, refreshStatus]);
+
+  const cancelInstall = useCallback(async () => {
+    pushLog("Annulation de l’installation demandée…", "warning");
+    installAbortRef.current?.abort();
+    installInFlightRef.current = false;
+    await cancelEmulatorOperation();
+    setInstalling(false);
+    setInstallPhase(null);
+    installAbortRef.current = null;
+    setInstallStepStatus((prev) => {
+      const next = { ...prev };
+      for (const step of INSTALL_STEPS) {
+        if (next[step.id] === "active") next[step.id] = "cancelled";
+      }
+      return next;
+    });
+    await refreshStatus({ full: true });
+    pushLog("Installation annulée.", "warning");
+  }, [pushLog, refreshStatus]);
+
+  const currentOperation = building
+    ? `Étape 1 — compilation APK (${buildSeconds}s)`
+    : installing
+      ? `Étape 2 — ${installPhase || "installation ADB"}`
+      : publishing
+        ? "Étape 3 — publication canal dev"
+        : promoting
+          ? "Étape 5 — promotion production"
+          : bootstrapping
+            ? "Préparation contrôleur émulateur"
+            : refreshing
+              ? "Actualisation statut appareil / APK"
+              : null;
 
   const step1State = building
     ? "active"
@@ -393,8 +502,8 @@ export function MobileApkBuildPanel({
       ? "active"
       : installSatisfied
         ? "done"
-        : devices.length > 0
-          ? "ready"
+        : step2NeedsInstall || (devices.length > 0 && !installSatisfied)
+          ? "active"
           : "ready";
 
   const step3State = !apkReady || !installSatisfied
@@ -452,9 +561,15 @@ export function MobileApkBuildPanel({
         setLastBuildError(errText || "Build échoué");
       }
     } catch (e) {
+      const aborted = e instanceof Error && e.name === "AbortError";
       const msg = e instanceof Error ? e.message : String(e);
-      pushLog(`Erreur : ${msg}`, "error");
-      setLastBuildError(msg);
+      if (aborted) {
+        pushLog("Build annulé (requête interrompue).", "warning");
+        setLastBuildError(null);
+      } else {
+        pushLog(`Erreur : ${msg}`, "error");
+        setLastBuildError(msg);
+      }
     } finally {
       setBuilding(false);
       buildAbortRef.current = null;
@@ -462,39 +577,105 @@ export function MobileApkBuildPanel({
     }
   };
 
-  const runInstall = async () => {
+  const runInstall = async (options?: { force?: boolean }) => {
+    if (installInFlightRef.current || installing) {
+      pushLog("Installation déjà en cours — patientez ou « Arrêter l’installation ».", "warning");
+      return;
+    }
+    if (building || bootstrapping || publishing || promoting) return;
     if (!apkReady) {
       pushLog("Étape 2 bloquée — terminez l’étape 1 (APK requis).");
       return;
     }
     if (!selectedDevice) return;
+    if (
+      !options?.force &&
+      apkInfo &&
+      selectedDeviceInfo &&
+      deviceMatchesApk(selectedDeviceInfo, apkInfo)
+    ) {
+      pushLog("APK déjà installé sur l’appareil (même version) — rien à refaire.", "info");
+      setInstallDone(true);
+      return;
+    }
+    installInFlightRef.current = true;
+    resetInstallSteps();
     setInstalling(true);
     setInstallPhase("Préparation…");
-    pushLog(`Étape 2 — installation sur ${selectedDevice}…`);
+    installAbortRef.current = new AbortController();
+    const signal = installAbortRef.current.signal;
+    const deviceName =
+      devices.find((d) => d.id === selectedDevice)?.model || selectedDevice;
+    const apkMo = apkInfo?.sizeBytes
+      ? `${Math.round(apkInfo.sizeBytes / 1024 / 1024)} Mo`
+      : "~150 Mo";
+    const installVersionLabel = builtLabel ?? "APK buildé";
+    pushLog(`Étape 2 — installation USB ${installVersionLabel} sur ${deviceName} (${selectedDevice})…`);
+
     try {
-      setInstallPhase("adb reverse + installation APK…");
-      const result = await installApkOnDevice(selectedDevice);
-      if (result.steps?.length) {
-        for (const s of result.steps) {
-          pushLog(`${s.phase} : ${s.detail || (s.ok ? "OK" : "échec")}`);
-        }
-      }
-      pushLog(result.message || result.error || "Terminé.");
-      if (result.success) {
-        setInstallDone(true);
-        writeWizardInstall({
-          version: apkInfo?.version || "1.0.0",
-          buildNumber: String(apkInfo?.buildNumber ?? "1"),
-          deviceId: selectedDevice,
+      setInstallStep("reverse", "active");
+      setInstallPhase("Étape 2a — adb reverse (ports API)…");
+      pushLog("adb reverse — mapping ports API…");
+      const reverse = await adbReverseDevice(selectedDevice, signal);
+      if (reverse.cancelled) throw new DOMException("Annulé", "AbortError");
+      if (!reverse.success) throw new Error(reverse.error || "adb reverse échoué");
+      setInstallStep("reverse", "done");
+      pushLog(reverse.detail || "adb reverse OK", "success");
+
+      setInstallStep("install", "active");
+      setInstallPhase(`Étape 2b — adb install ${installVersionLabel} (${apkMo}, 1–3 min)…`);
+      pushLog(`adb install -r ${installVersionLabel} (${apkMo}) — copie APK vers le téléphone…`);
+      const install = await installApkDeviceOnly(selectedDevice, signal);
+      if (install.cancelled) throw new DOMException("Annulé", "AbortError");
+      if (!install.success) throw new Error(install.error || "adb install échoué");
+      setInstallStep("install", "done");
+      pushLog(install.detail || "APK installé", "success");
+
+      setInstallStep("launch", "active");
+      setInstallPhase("Étape 2c — relance application…");
+      pushLog("Relance JobbingTrack (force-stop + start)…");
+      const launch = await launchAppOnDevice(selectedDevice, signal);
+      if (launch.cancelled) throw new DOMException("Annulé", "AbortError");
+      if (!launch.success) throw new Error(launch.error || "Relance échouée");
+      setInstallStep("launch", "done");
+      pushLog(launch.detail || "Application relancée", "success");
+
+      pushLog("Installation terminée — vérifiez la version sur l’écran Connexion.", "success");
+      setInstallDone(true);
+      writeWizardInstall({
+        version: apkInfo?.version || "1.0.0",
+        buildNumber: String(apkInfo?.buildNumber ?? "1"),
+        deviceId: selectedDevice,
+      });
+      await refreshStatus({ full: true });
+    } catch (e) {
+      const aborted = e instanceof DOMException && e.name === "AbortError";
+      if (aborted) {
+        await cancelEmulatorOperation();
+        pushLog("Installation annulée.", "warning");
+        setInstallStepStatus((prev) => {
+          const next = { ...prev };
+          for (const step of INSTALL_STEPS) {
+            if (next[step.id] === "active") next[step.id] = "cancelled";
+          }
+          return next;
         });
-        pushLog("Installation réussie — passez à l’étape 3 (publish dev).", "success");
-        await refreshStatus({ full: true });
       } else {
-        pushLog(result.error || "Installation échouée.", "error");
+        const msg = e instanceof Error ? e.message : String(e);
+        pushLog(`Erreur installation : ${msg}`, "error");
+        setInstallStepStatus((prev) => {
+          const next = { ...prev };
+          for (const step of INSTALL_STEPS) {
+            if (next[step.id] === "active") next[step.id] = "error";
+          }
+          return next;
+        });
       }
     } finally {
+      installInFlightRef.current = false;
       setInstalling(false);
       setInstallPhase(null);
+      installAbortRef.current = null;
     }
   };
 
@@ -517,7 +698,7 @@ export function MobileApkBuildPanel({
         </ul>
       </details>
 
-      {apkReady && (builtLabel || activeDevLabel || deviceLabelVersion) ? (
+      {apkReady && (builtLabel || activeDevLabel || selectedDeviceInfo) ? (
         <div className="rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-100">
           <p className="font-semibold">Alignement des versions</p>
           <ul className="mt-2 space-y-1 text-xs leading-relaxed">
@@ -525,12 +706,31 @@ export function MobileApkBuildPanel({
               <strong>APK buildé (étape 1)</strong> : {builtLabel ?? "—"}
             </li>
             <li>
-              <strong>Téléphone (étape 2)</strong> : {deviceLabelVersion ?? "non détecté / app absente"}
-              {builtLabel && deviceLabelVersion && !deviceHasMatchingApp ? (
-                <span className="ml-1 text-amber-800 dark:text-amber-200">
-                  — différent de l&apos;APK : réinstallez (USB) ou attendez l&apos;OTA (étape 4).
+              <strong>
+                Appareil sélectionné
+                {selectedDeviceInfo?.model ? ` (${selectedDeviceInfo.model})` : ""}
+              </strong>
+              {" : "}
+              {selectedDeviceInfo?.appInstalled === false ? (
+                <span className="font-medium text-red-700 dark:text-red-300">
+                  app absente — installer {builtLabel ?? "l’APK"}
                 </span>
-              ) : null}
+              ) : deviceLabelVersion === "app absente" ? (
+                <span className="font-medium text-red-700 dark:text-red-300">app absente</span>
+              ) : deviceLabelVersion ? (
+                <>
+                  {deviceLabelVersion}
+                  {builtLabel && deviceHasMatchingApp ? (
+                    <span className="ml-1 font-medium text-emerald-700 dark:text-emerald-300">— aligné</span>
+                  ) : builtLabel ? (
+                    <span className="ml-1 text-amber-800 dark:text-amber-200">
+                      — ≠ APK {builtLabel} : réinstallez (étape 2)
+                    </span>
+                  ) : null}
+                </>
+              ) : (
+                <span className="text-gray-600 dark:text-gray-400">sélectionnez un appareil USB</span>
+              )}
             </li>
             <li>
               <strong>Canal dev OTA (étape 3)</strong> : {activeDevLabel ?? "aucune release active"}
@@ -543,6 +743,39 @@ export function MobileApkBuildPanel({
           </ul>
         </div>
       ) : null}
+
+      {actionLocked ? (
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Une opération est en cours — les autres actions sont verrouillées jusqu’à la fin ou « Arrêter ».
+        </p>
+      ) : null}
+
+      {currentOperation ? (
+        <div className="flex items-center gap-2 rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm text-blue-950 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-100">
+          <InlineSpinner />
+          <span className="font-medium">{currentOperation}</span>
+        </div>
+      ) : null}
+
+      <div className={`rounded-lg border px-4 py-3 text-sm ${actionToneClass(wizardBanner.tone)}`}>
+        <p className="font-semibold">{wizardBanner.title}</p>
+        <p className="mt-1 text-xs leading-relaxed">{wizardBanner.detail}</p>
+        {!apkReady ? (
+          <p className="mt-2 text-xs font-medium">Prochaine action : étape 1 — {buildAction.buttonLabel}</p>
+        ) : deviceAction.kind === "up_to_date" ? (
+          <p className="mt-2 text-xs font-medium">
+            Prochaine action pour re-tester : étape 1 — <strong>{buildAction.buttonLabel}</strong>, puis étape 2 — Réinstaller
+          </p>
+        ) : deviceAction.kind === "install" || deviceAction.kind === "reinstall" ? (
+          <p className="mt-2 text-xs font-medium">
+            Prochaine action : étape 2 —{" "}
+            {deviceAction.kind === "install" ? "Installer sur l’appareil" : "Réinstaller l’APK"}
+            {buildAction.kind === "rebuild_recommended" ? (
+              <> (ou étape 1 — {buildAction.buttonLabel} si code modifié)</>
+            ) : null}
+          </p>
+        ) : null}
+      </div>
 
       <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
         <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -566,13 +799,33 @@ export function MobileApkBuildPanel({
       <section className="rounded-xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm dark:border-emerald-900 dark:from-emerald-950/30 dark:to-gray-900">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Étape 1 — Build APK</h2>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Compile l’APK debug. Obligatoire avant l’installation sur appareil.
+          {buildAction.kind === "first_build"
+            ? "Compile l’APK debug. Obligatoire avant l’installation USB."
+            : buildAction.kind === "rebuild_optional"
+              ? "APK déjà compilé et installé sur le téléphone. Rebuild pour intégrer de nouveaux correctifs."
+              : "APK déjà sur le serveur. Rebuild si le code mobile a changé depuis la dernière compilation."}
         </p>
+
+        <div
+          className={`mt-3 rounded-md border px-3 py-2 text-xs leading-relaxed ${actionToneClass(buildAction.tone)}`}
+        >
+          <p className="font-semibold">{buildAction.title}</p>
+          <p className="mt-1 opacity-90">{buildAction.detail}</p>
+        </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
           <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${controllerOk ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-900"}`}>
             Contrôleur : {bootstrapping ? "…" : controllerOk ? "connecté" : "attente"}
           </span>
+          {apkReady && buildAction.kind === "rebuild_optional" ? (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100">
+              Synchronisé avec le téléphone
+            </span>
+          ) : apkReady ? (
+            <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-900 dark:bg-sky-900/40 dark:text-sky-100">
+              APK sur disque
+            </span>
+          ) : null}
           {apkReady ? (
             <span className="text-xs text-gray-600 dark:text-gray-400">
               APK v{apkInfo?.version}+{apkInfo?.buildNumber}
@@ -644,40 +897,97 @@ export function MobileApkBuildPanel({
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
-            disabled={building || bootstrapping}
+            disabled={(actionLocked && !building) || Boolean(buildAction.deferToStep2)}
+            title={
+              buildAction.deferToStep2
+                ? "APK déjà compilé — passez à l’étape 2 « Installer » (rebuild seulement si le code a changé)"
+                : undefined
+            }
             onClick={() => void runBuild()}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            className="inline-flex min-w-[180px] items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
           >
-            {building ? `Build… ${buildSeconds}s` : "Lancer le build APK"}
+            {building ? (
+              <>
+                <InlineSpinner className="border-white/40 border-t-white" />
+                Build… {buildSeconds}s
+              </>
+            ) : (
+              buildAction.buttonLabel
+            )}
           </button>
+          {building ? (
+            <button
+              type="button"
+              onClick={() => void cancelBuild()}
+              className="inline-flex items-center gap-1 rounded-lg border border-red-400 bg-white px-4 py-2 text-sm font-medium text-red-800 hover:bg-red-50 dark:border-red-700 dark:bg-red-950 dark:text-red-100"
+            >
+              Arrêter le build
+            </button>
+          ) : null}
           {apkReady ? (
             <a
               href={localApkDownloadHref()}
               download={apkInfo?.downloadFilename || formatApkDownloadFilename(apkInfo?.version, apkInfo?.buildNumber)}
-              className="rounded-lg border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-50 dark:text-emerald-200"
+              aria-disabled={actionLocked}
+              className={`rounded-lg border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-800 dark:text-emerald-200 ${
+                actionLocked ? "pointer-events-none opacity-50" : "hover:bg-emerald-50"
+              }`}
             >
               Télécharger APK
             </a>
           ) : null}
         </div>
+        {buildAction.deferToStep2 ? (
+          <p className="mt-2 text-xs font-medium text-emerald-800 dark:text-emerald-200">
+            APK {builtLabel} prêt — étape 2 « Installer sur l’appareil » suffit. Rebuild uniquement si le code mobile a changé.
+          </p>
+        ) : apkReady && buildAction.kind === "rebuild_optional" ? (
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Le bouton « Télécharger APK » sert au transfert manuel ; pour valider les correctifs récents, préférez Rebuild + Réinstaller.
+          </p>
+        ) : null}
       </section>
 
       <section
-        className={`rounded-xl border-2 p-5 shadow-sm transition-opacity ${
-          apkReady
-            ? "border-sky-200 bg-gradient-to-br from-sky-50 to-white dark:border-sky-900 dark:from-sky-950/30 dark:to-gray-900"
-            : "border-gray-200 bg-gray-50 opacity-75 dark:border-gray-700 dark:bg-gray-900/50"
+        className={`rounded-xl border-2 p-5 shadow-sm transition-all ${
+          installing
+            ? "border-sky-500 ring-2 ring-sky-200 dark:ring-sky-900"
+            : step2NeedsInstall
+              ? "border-red-400 bg-gradient-to-br from-red-50 to-white ring-2 ring-red-200 dark:border-red-800 dark:from-red-950/30 dark:to-gray-900 dark:ring-red-900"
+              : apkReady
+                ? "border-sky-200 bg-gradient-to-br from-sky-50 to-white dark:border-sky-900 dark:from-sky-950/30 dark:to-gray-900"
+                : "border-amber-200 bg-amber-50/30 dark:border-amber-900 dark:bg-amber-950/10"
         }`}
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Étape 2 — Appareil (ADB)</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Étape 2 — Appareil (ADB)
+            {apkReady && builtLabel ? (
+              <span className="ml-2 text-sm font-normal text-gray-600 dark:text-gray-300">
+                — {step2NeedsInstall ? "installer" : "cible"} {builtLabel}
+              </span>
+            ) : null}
+            {installing ? (
+              <span className="ml-2 inline-flex items-center gap-1 text-sm font-normal text-sky-700 dark:text-sky-300">
+                <InlineSpinner className="h-3 w-3 border-sky-600 border-t-transparent" />
+                en cours
+              </span>
+            ) : null}
+          </h2>
           <button
             type="button"
-            disabled={bootstrapping}
+            disabled={actionLocked || refreshing}
             onClick={() => void refreshStatus({ full: true })}
-            className="text-xs text-blue-600 hover:underline"
+            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline disabled:opacity-50"
           >
-            Actualiser (détails)
+            {refreshing ? (
+              <>
+                <InlineSpinner className="h-3 w-3 border-blue-600 border-t-transparent" />
+                Actualisation…
+              </>
+            ) : (
+              "Actualiser (détails)"
+            )}
           </button>
         </div>
 
@@ -716,37 +1026,161 @@ export function MobileApkBuildPanel({
               <p className="mt-3 text-sm text-gray-500">Aucun appareil prêt — USB débogage activé, mode transfert fichiers.</p>
             ) : (
               <div className="mt-3 space-y-2">
-                {devices.map((d) => (
+                {installing ? (
+                  <div className="rounded-lg border border-sky-200 bg-sky-50/80 px-3 py-3 dark:border-sky-800 dark:bg-sky-950/30">
+                    <p className="text-xs font-semibold text-sky-900 dark:text-sky-100">
+                      Progression installation
+                      {installPhase ? (
+                        <span className="ml-2 font-normal text-sky-700 dark:text-sky-300">{installPhase}</span>
+                      ) : null}
+                    </p>
+                    <ol className="mt-2 space-y-1.5">
+                      {INSTALL_STEPS.map((step) => {
+                        const st = installStepStatus[step.id];
+                        return (
+                          <li
+                            key={step.id}
+                            className={`flex items-start gap-2 text-xs ${
+                              st === "done"
+                                ? "text-emerald-700 dark:text-emerald-300"
+                                : st === "active"
+                                  ? "font-medium text-sky-800 dark:text-sky-200"
+                                  : st === "error"
+                                    ? "text-red-700 dark:text-red-300"
+                                    : st === "cancelled"
+                                      ? "text-amber-700 dark:text-amber-300"
+                                      : "text-gray-500"
+                            }`}
+                          >
+                            <span className="mt-0.5 shrink-0">
+                              {st === "active" ? (
+                                <InlineSpinner className="h-3 w-3 border-sky-600 border-t-transparent" />
+                              ) : st === "done" ? (
+                                "✓"
+                              ) : st === "error" ? (
+                                "✗"
+                              ) : st === "cancelled" ? (
+                                "—"
+                              ) : (
+                                "○"
+                              )}
+                            </span>
+                            <span>{step.label}</span>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </div>
+                ) : null}
+                {devices.map((d) => {
+                  const matchesApk = apkInfo ? deviceMatchesApk(d, apkInfo) : false;
+                  const absent = d.appInstalled === false;
+                  const isSelected = selectedDevice === d.id;
+                  return (
                   <label
                     key={d.id}
-                    className={`flex cursor-pointer gap-3 rounded-lg border p-3 ${selectedDevice === d.id ? "border-sky-500 bg-sky-50/80" : "border-gray-200"}`}
+                    className={`flex gap-3 rounded-lg border p-3 text-gray-900 dark:text-gray-100 ${
+                      actionLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                    } ${
+                      isSelected
+                        ? matchesApk
+                          ? "border-emerald-500 bg-emerald-50/90 dark:bg-emerald-950/40"
+                          : absent
+                            ? "border-red-400 bg-red-50/90 dark:bg-red-950/40"
+                            : "border-sky-500 bg-sky-50/90 dark:bg-sky-950/40"
+                        : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
+                    }`}
                   >
                     <input
                       type="radio"
                       name="adb-device"
-                      checked={selectedDevice === d.id}
+                      checked={isSelected}
+                      disabled={actionLocked}
                       onChange={() => setSelectedDevice(d.id)}
                       className="mt-1"
                     />
-                    <div className="text-sm">
-                      <p className="font-medium">{deviceLabel(d)}</p>
-                      <p className="text-xs text-gray-500">{d.id}{d.androidVersion ? ` · Android ${d.androidVersion}` : ""}</p>
+                    <div className="min-w-0 flex-1 text-sm">
+                      <p className="font-medium">{d.model || d.id}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300">
+                        {d.id}
+                        {d.androidVersion ? ` · Android ${d.androidVersion}` : ""}
+                      </p>
+                      <p
+                        className={`mt-0.5 text-xs font-medium ${
+                          matchesApk
+                            ? "text-emerald-700 dark:text-emerald-300"
+                            : absent
+                              ? "text-red-700 dark:text-red-300"
+                              : d.appInstalled
+                                ? "text-amber-800 dark:text-amber-200"
+                                : "text-gray-500 dark:text-gray-400"
+                        }`}
+                      >
+                        {absent
+                          ? "App absente — installation requise"
+                          : d.appInstalled && d.appVersionName
+                            ? `v${d.appVersionName}+${d.appVersionCode ?? "?"}`
+                            : "Version inconnue"}
+                        {apkInfo?.exists && matchesApk ? " · aligné APK" : apkInfo?.exists && d.appInstalled ? " · MAJ USB" : ""}
+                      </p>
                     </div>
                   </label>
-                ))}
-                <button
-                  type="button"
-                  disabled={installing || !selectedDevice}
-                  onClick={() => void runInstall()}
-                  className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
-                >
-                  {installing ? installPhase || "Installation…" : "Installer sur l’appareil"}
-                </button>
+                  );
+                })}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={
+                      installing ||
+                      building ||
+                      bootstrapping ||
+                      publishing ||
+                      promoting ||
+                      !selectedDevice ||
+                      !apkReady ||
+                      deviceAction.kind === "up_to_date"
+                    }
+                    onClick={() => void runInstall()}
+                    className="inline-flex min-w-[200px] items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    {installing ? (
+                      <>
+                        <InlineSpinner className="border-white/40 border-t-white" />
+                        {installPhase || "Installation…"}
+                      </>
+                    ) : deviceAction.kind === "up_to_date" ? (
+                      "Déjà à jour"
+                    ) : deviceAction.kind === "install" ? (
+                      "Installer sur l’appareil"
+                    ) : (
+                      "Réinstaller l’APK"
+                    )}
+                  </button>
+                  {installing ? (
+                    <button
+                      type="button"
+                      onClick={() => void cancelInstall()}
+                      className="inline-flex items-center gap-1 rounded-lg border border-red-400 bg-white px-4 py-2 text-sm font-medium text-red-800 hover:bg-red-50 dark:border-red-700 dark:bg-red-950 dark:text-red-100"
+                    >
+                      Arrêter l’installation
+                    </button>
+                  ) : null}
+                  {!installing && deviceAction.kind === "up_to_date" ? (
+                    <button
+                      type="button"
+                      disabled={actionLocked || !selectedDevice || !apkReady}
+                      onClick={() => void runInstall({ force: true })}
+                      className="inline-flex min-w-[200px] items-center justify-center gap-2 rounded-lg border border-sky-600 px-4 py-2 text-sm font-medium text-sky-700 hover:bg-sky-50 disabled:opacity-50 dark:text-sky-300 dark:hover:bg-sky-950/30"
+                    >
+                      Réinstaller quand même
+                    </button>
+                  ) : null}
+                </div>
                 {installSatisfied ? (
                   <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                    {deviceHasMatchingApp && !installDone
-                      ? "Version déjà installée sur l’appareil — passez à l’étape 3."
-                      : "Installation réussie — passez à l’étape 3."}
+                    {deviceHasMatchingApp
+                      ? "Version déjà installée sur l’appareil — étape 2 OK. Rebuild (étape 1) si vous devez re-tester des correctifs."
+                      : "Installation terminée — version alignée sur l’APK buildé."}
                   </p>
                 ) : null}
               </div>
@@ -783,11 +1217,18 @@ export function MobileApkBuildPanel({
           {onPublishRequest && !devPublishDone ? (
             <button
               type="button"
-              disabled={publishing || publishBlocked}
+              disabled={actionLocked || publishing || publishBlocked}
               onClick={onPublishRequest}
-              className="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="mt-3 inline-flex min-w-[200px] items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {publishing ? "Publication…" : "Publier sur canal dev"}
+              {publishing ? (
+                <>
+                  <InlineSpinner className="border-white/40 border-t-white" />
+                  Publication canal dev…
+                </>
+              ) : (
+                "Publier sur canal dev"
+              )}
             </button>
           ) : null}
         </section>
@@ -827,11 +1268,18 @@ export function MobileApkBuildPanel({
           {!prodPromoted ? (
             <button
               type="button"
-              disabled={promoting}
+              disabled={actionLocked || promoting}
               onClick={onPromoteRequest}
-              className="mt-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              className="mt-3 inline-flex min-w-[220px] items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
             >
-              {promoting ? "Promotion…" : "Promouvoir dev → production"}
+              {promoting ? (
+                <>
+                  <InlineSpinner className="border-white/40 border-t-white" />
+                  Promotion production…
+                </>
+              ) : (
+                "Promouvoir dev → production"
+              )}
             </button>
           ) : null}
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
@@ -878,12 +1326,28 @@ export function MobileApkBuildPanel({
           </span>
           <button
             type="button"
+            disabled={historyRefreshing || building}
             onClick={() => void loadBuildHistory()}
-            className="text-xs text-blue-600 hover:underline"
+            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline disabled:opacity-50"
           >
-            Actualiser
+            {historyRefreshing ? (
+              <>
+                <InlineSpinner className="h-3 w-3 border-blue-600 border-t-transparent" />
+                Actualisation…
+              </>
+            ) : (
+              "Actualiser"
+            )}
           </button>
         </div>
+        <p className="border-b border-gray-200 px-3 py-2 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
+          Sessions de compilation sur le contrôleur émulateur (USB). Une ligne = un « Build APK » lancé ici.
+          {apkInfo?.exists && buildHistory[0]?.version
+            ? ` Dernier build listé : v${buildHistory[0].version}+${buildHistory[0].buildNumber ?? "?"}.`
+            : ""}
+          {" "}
+          L’historique OTA (publications) est plus bas — publish dev seulement si vous voulez tester la MAJ OTA.
+        </p>
         {buildHistory.length === 0 ? (
           <p className="px-3 py-4 text-sm text-gray-400">
             Aucun build enregistré — lancez un build ; les 30 derniers sont conservés côté contrôleur.

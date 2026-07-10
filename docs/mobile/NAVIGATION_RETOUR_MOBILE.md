@@ -44,12 +44,14 @@ Implémentation : `MainShellScreen`, `DrawerBackScope`, `ApplicationsScreen`.
 
 | Situation | Retour attendu |
 |-----------|----------------|
-| Sous-onglet Candidatures **> 0** (Entreprises, Contacts, …) | Liste **Candidatures** (sous-onglet 0), reste onglet barre basse Candidatures |
-| Sous-onglet **0** + barre basse Candidatures | **Accueil** |
-| Barre basse **Calendrier** ou **Profil** (sans pile) | **Accueil** |
+| Sous-onglet Candidatures **> 0** (Entreprises, Contacts, …) | Liste **Candidatures** (sous-onglet 0), reste onglet barre basse Candidatures — **priorité** sur `returnTabOnBack` drawer |
+| Sous-onglet **0** + barre basse Candidatures | **Accueil** (ou onglet drawer d’origine si `returnTabOnBack` posé) |
+| Barre basse **Calendrier** ↔ **Profil** (sans pile) | Retour vers **onglet barre basse précédent** (ex. Calendrier → Profil → retour → Calendrier) |
+| Barre basse **Calendrier** ou **Profil** seul (sans switch récent) | **Accueil** |
 | **Accueil** (drawer fermé, pile vide) | 1er retour : snackbar « Appuyez à nouveau… » ; 2e retour (< 2 s) : **arrière-plan** |
 | Drawer ouvert (n’importe quel onglet) | Ferme le drawer |
-| Drawer → hub (ex. Calendrier → drawer Entreprises) avec `returnTabOnBack` | 1er retour : **onglet shell d’origine** (ex. Calendrier) |
+| Drawer global → hub (ex. Profil → drawer Entreprises) avec `returnTabOnBack` | 1er retour : sous-onglet 0 ; 2e retour : **Profil** |
+| Onglet **Calendrier** | Drawer **Calendrier** (filtres Planning/Liste) — pas le drawer global ; navigation Profil via **barre basse** |
 
 ---
 

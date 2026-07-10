@@ -46,7 +46,9 @@ class _AppDrawerState extends State<AppDrawer> {
     final isAdmin = AdminAccess.canAccessAdmin(user);
     final isImpersonating = authProvider.isImpersonating;
 
-    return Drawer(
+    return ValueListenableBuilder<int>(
+      valueListenable: ShellTabRegistry.revision,
+      builder: (context, _, __) => Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
@@ -283,6 +285,7 @@ class _AppDrawerState extends State<AppDrawer> {
             ),
         ],
       ),
+    ),
     );
   }
 
@@ -311,8 +314,7 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   Widget _buildDrawerTile(BuildContext context, _DrawerItem item) {
-    final currentRoute = ModalRoute.of(context)?.settings.name;
-    final isSelected = currentRoute == item.route;
+    final isSelected = ShellNavigation.isDrawerRouteSelected(item.route);
 
     return ListTile(
       leading: Icon(

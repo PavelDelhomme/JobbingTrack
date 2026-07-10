@@ -65,13 +65,25 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     );
     _tabController.addListener(_onSubTabChanged);
     ApplicationsSubTabRegistry.registerGoToFirstSubTab(_goToFirstSubTab);
+    ApplicationsSubTabRegistry.setCurrentIndex(_tabController.index.clamp(0, 5));
     ShellTabRegistry.setCurrentTab(1, applicationsSubTab: _tabController.index);
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadAll());
   }
 
+  static const _subTabTitles = [
+    'Candidatures',
+    'Entreprises',
+    'Contacts',
+    'Entretiens',
+    'Relances',
+    'Appels',
+  ];
+
   void _onSubTabChanged() {
-    if (!_tabController.indexIsChanging && mounted) {
-      ShellTabRegistry.setCurrentTab(1, applicationsSubTab: _tabController.index);
+    if (!mounted) return;
+    ApplicationsSubTabRegistry.setCurrentIndex(_tabController.index);
+    ShellTabRegistry.setCurrentTab(1, applicationsSubTab: _tabController.index);
+    if (!_tabController.indexIsChanging) {
       setState(() {});
     }
   }
@@ -171,13 +183,17 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final tabTitle = _subTabTitles[_tabController.index.clamp(0, _subTabTitles.length - 1)];
+    return DrawerBackScope(
+      scaffoldKey: _scaffoldKey,
+      active: widget.isShellVisible,
+      child: Scaffold(
       key: _scaffoldKey,
       drawer: const AppDrawer(),
       appBar: AppBar(
         leading: const AppDrawerLeadingButton(),
         automaticallyImplyLeading: false,
-        title: const Text('Candidatures'),
+        title: Text(tabTitle),
         centerTitle: true,
         actions: [
           ShellAppBarActions(
@@ -206,24 +222,21 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
           ],
         ),
       ),
-      body: DrawerBackScope(
-        scaffoldKey: _scaffoldKey,
-        active: widget.isShellVisible,
-        child: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildCandidaturesTab(),
-            _buildEntreprisesTab(),
-            _buildContactsTab(),
-            _buildEntretiensTab(),
-            _buildRelancesTab(),
-            _buildAppelsTab(),
-          ],
-        ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildCandidaturesTab(),
+          _buildEntreprisesTab(),
+          _buildContactsTab(),
+          _buildEntretiensTab(),
+          _buildRelancesTab(),
+          _buildAppelsTab(),
+        ],
       ),
       floatingActionButton: widget.isShellVisible && (_tabController.index == 0 || _tabController.index == 1 || _tabController.index == 2)
           ? shellFabPadding(context, child: _buildFab()!)
           : null,
+    ),
     );
   }
 
@@ -562,12 +575,21 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
   }
 
   Widget _relanceTile(FollowUp f) {
+    final title = followUpListTitle(f);
+    final contactLabel = f.contactDisplayName;
+    final notesBody = followUpNotesWithoutChannel(f.notes);
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: const Icon(Icons.schedule_send, color: Colors.teal),
-        title: Text(formatSmartEventDate(f.scheduledDate)),
-        subtitle: Text(f.notes ?? followUpStatusLabel(f.status)),
+        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          contactLabel?.isNotEmpty == true
+              ? contactLabel!
+              : (notesBody.isNotEmpty ? notesBody : followUpStatusLabel(f.status)),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),

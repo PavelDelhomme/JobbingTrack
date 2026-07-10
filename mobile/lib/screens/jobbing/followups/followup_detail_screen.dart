@@ -52,7 +52,7 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
           _followUp = FollowUp.fromJson(raw);
           _application = app;
           _company = companyFromLinkedMap(nestedMap(raw, 'company')) ?? app?.company;
-          _contact = nestedMap(raw, 'contact');
+          _contact = firstContactFromEntityRaw(raw);
           _loading = false;
         });
       }

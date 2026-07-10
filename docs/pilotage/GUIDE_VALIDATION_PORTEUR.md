@@ -1,6 +1,6 @@
 # Guide validation porteur — JobbingTrack
 
-Dernière mise à jour : 10 juillet 2026
+Dernière mise à jour : 10 juillet 2026 (UX backoffice OTA + version login APK)
 
 ## En une phrase
 
@@ -18,9 +18,19 @@ Dernière mise à jour : 10 juillet 2026
 | [`TODOS_A_VERIFIER.md`](TODOS_A_VERIFIER.md) | Preuves **agent** (smokes, CI) | Lecture seule — pas votre checklist |
 | [`TODOS.md`](TODOS.md) | Backlog **technique agent** | **Ne pas suivre** pour valider le produit |
 
-**APK actuel porteur** : **1.0.15+15** installé — reprendre la checklist étape 2 (FAB 6–11, sortie impersonnalisation).
+**Versions typiques (10/07)** :
 
-**OTA / publish dev** : uniquement si vous modifiez le **code mobile** et voulez tester la MAJ OTA — voir [`OTA_RELEASES_BACKOFFICE.md`](../mobile/OTA_RELEASES_BACKOFFICE.md) § règle développement.
+| Source | Exemple | Signification |
+|--------|---------|---------------|
+| **pubspec.yaml** (code) | `1.0.18+18` | Prochaine version après un « Build APK » |
+| **APK sur disque** (build USB) | peut = pubspec | Fichier compilé prêt à installer |
+| **Canal dev OTA** | `1.0.15+15` | MAJ OTA proposée aux testeurs — **≠ pubspec** tant que vous n’avez pas « Publier sur canal dev » |
+| **Canal prod OTA** | aucune | **Normal en local** — promote seulement avant prod réelle |
+| **Téléphone installé** | variable | Install USB ou MAJ OTA — voir version en bas de l’écran **Connexion** |
+
+**Règle développement** : build + install USB suffit pour valider l’étape 2. **Publish dev OTA** seulement si vous voulez tester la MAJ OTA (étape 4 du wizard backoffice).
+
+Doc détaillée : [`OTA_RELEASES_BACKOFFICE.md`](../mobile/OTA_RELEASES_BACKOFFICE.md)
 
 ---
 
@@ -45,7 +55,7 @@ Dernière mise à jour : 10 juillet 2026
 ```
 Étape 1  Inscription + email          ✅ OK (25/06)
 Étape 2  Navigation + FAB mobile      ▶ EN COURS — retours partiels (pas OK global)
-         └─ Parcours OTA (backoffice) ▶ EN COURS — **1.0.15+15** publié dev **10/07** ; reste install USB + MAJ OTA Samsung (étapes 2–4)
+         └─ Parcours OTA (backoffice) ▶ EN COURS — dev **1.0.15+15** ; UI wizard améliorée 10/07
 Étape 3  SMTP @jobbingtrack.com       ⏸ bloquée par étape 2
 Étape 4  Agent email backoffice       ⏸ bloquée par étape 3
 Étape 5  Consentements RGPD /agent    ⏸ bloquée par étape 4
@@ -55,12 +65,51 @@ Dernière mise à jour : 10 juillet 2026
 
 | File | Où | Statut typique | Pour clôturer |
 |------|-----|----------------|---------------|
-| **A — Mobile Samsung** | App Flutter | **1.0.15+15** installé **10/07** ; FAB 6–11 + sortie impersonnalisation à revalider | [`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md) § étape 2 → `OK Mobile — navigation…` ligne 320 |
-| **B — Releases OTA** | `/backoffice/mobile/releases` | Build **1.0.15+15** OK ; canal dev **1.0.15+15** **10/07** ; téléphone encore **1.0.13** → réinstaller ou OTA étape 4 | Guide [`OTA_RELEASES_BACKOFFICE.md`](../mobile/OTA_RELEASES_BACKOFFICE.md) → **4 MAJ OTA Samsung** → `OK Mobile releases OTA backoffice` ligne 416 |
+| **A — Mobile Samsung** | App Flutter | FAB 6–11 + points navigation **re-test** après rebuild | Ce guide § étape 2 → `OK Mobile — navigation…` ligne 320 |
+| **B — Releases OTA** | `https://jobbingtrack.localhost:5443/backoffice/mobile/releases` | Wizard avec spinners ; vue versions ; historique scrollable | [`OTA_RELEASES_BACKOFFICE.md`](../mobile/OTA_RELEASES_BACKOFFICE.md) → ligne 416 |
 
-**Warning Kotlin au build** : APK produit quand même — dette **BL-26-09** (`docs/mobile/ANDROID_TOOLCHAIN.md`), **pas bloquant** pour étape 2 ni OTA.
+**Warning Kotlin au build** : APK produit quand même — dette **BL-26-09**, **pas bloquant**.
 
 **Détail officiel mobile** : [`TODOS_A_VALIDER.md` § Étape 2](TODOS_A_VALIDER.md#étape-2--ligne-320--navigation-retour-admin-relances-ajouts-candidature)
+
+---
+
+## Backoffice — `/backoffice/mobile/releases` (HTTPS)
+
+URL locale typique : `https://jobbingtrack.localhost:5443/backoffice/mobile/releases`
+
+### Wizard (panneau vert — étapes 1 à 5)
+
+| Étape | Action | Ce que vous devez voir |
+|-------|--------|------------------------|
+| **1 Build APK** | « Lancer le build APK » ou « **Rebuild APK** » | Sans APK → Lancer. APK déjà compilé (même version que le téléphone) → **Rebuild APK** pour intégrer les correctifs récents |
+| **2 Appareil ADB** | Brancher Samsung, autoriser USB debug, « Actualiser (détails) » | Spinner sur Actualiser ; bouton Install/Réinstaller avec libellé de phase (`adb install`, etc.) |
+| **3 Publish dev** | Après install OK | « Publier sur canal dev » avec spinner — **optionnel** si vous validez seulement en USB |
+| **4 OTA Samsung** | Ouvrir l’app | Dialog MAJ si version installée < canal dev |
+| **5 Promote prod** | Après validation dev | **Ne pas utiliser** en dev quotidien — prod vide = normal |
+
+**Pendant toute opération** : bandeau bleu en haut du wizard indique l’étape exacte en cours.
+
+**Cas fréquent (téléphone déjà à jour)** : bannière verte → **Rebuild APK** (étape 1) puis **Réinstaller l’APK** (étape 2). Pendant build/install : autres boutons verrouillés ; **Arrêter** disponible ; progression ADB en 3 sous-étapes.
+
+**Historique des builds** (sous le journal session) : sessions de compilation locales — peut différer de l’historique OTA si publish non fait.
+
+### Vue d’ensemble des versions (tableau)
+
+Quatre lignes distinctes :
+
+1. **Code source (pubspec.yaml)** — version après prochain build  
+2. **APK compilé (disque build)** — fichier prêt USB  
+3. **Canal dev OTA** — ce que le téléphone reçoit en MAJ OTA  
+4. **Canal production OTA** — « aucune » est **attendu** en local  
+
+Un écart pubspec > dev OTA est **normal** si vous n’avez pas republié après le dernier build.
+
+### Historique des versions OTA
+
+Tableau avec **scroll horizontal** — toutes les colonnes (package complet, notes, auteur, GitHub). Les lignes **● dev OTA** / **● prod OTA** indiquent la release active par canal.
+
+**Upload manuel** (section repliée) : secours uniquement ; préférez « Publier sur canal dev » du wizard.
 
 ---
 
@@ -75,10 +124,10 @@ Dernière mise à jour : 10 juillet 2026
 | # | Vérification |
 |---|--------------|
 | 1 | Téléphone branché USB, stack Docker up (`jobbingtrack-api-gateway` healthy) |
-| 2 | APK **debug** installé (`build-apk-debug.sh` + `adb install -r …`) |
+| 2 | APK **debug** installé via backoffice étape 2 **ou** `build-apk-debug.sh` + `adb install -r …` |
 | 3 | `adb reverse tcp:5002 tcp:5002` actif |
 | 4 | Données lisibles : ~**7 candidatures** (sinon `node scripts/mobile/reset-porteur-validation-data.js --confirm`) |
-| 5 | Sur login : **Connexion ADMIN** puis plus tard **Connexion USER** (boutons debug) — ne pas retaper le mot de passe 64 caractères |
+| 5 | Sur login : **Connexion ADMIN** puis **Connexion USER** — version affichée **en bas** (`Version 1.0.x+x`) |
 
 ### Parcours à faire (cochez mentalement)
 
@@ -86,97 +135,77 @@ Numéros = colonnes du tableau dans `TODOS_A_VALIDER.md` § étape 2.
 
 #### A — Navigation retour
 
-| # | Où | Action | OK si… |
-|---|-----|--------|--------|
-| **1** | **Profil** (barre basse) → **Paramètres** | Touchez **retour** (←) | Vous revenez sur **Profil**, pas sur Accueil |
-| **2** | **Calendrier** (barre basse) → icône **Profil** / drawer | Puis **retour** | Vous revenez au **Calendrier** (ou écran d’avant) |
-| **2b** | **Candidatures** → sous-onglet **Entreprises** (ou Contacts, …) | Retour système | Liste **Candidatures** (sous-onglet 0) — **ne doit pas** fermer l’app |
-| **2b2** | Liste **Candidatures** (sous-onglet 0) | Retour | **Accueil** |
-| **2c** | Drawer → **Entreprises** depuis **Calendrier** | Puis retour | Retour **Calendrier** (onglet d’avant), pas Accueil |
+| # | Où | Action | OK si… | Re-test 10/07 |
+|---|-----|--------|--------|---------------|
+| **1** | **Profil** → **Paramètres** | Retour (←) | Retour **Profil** | ✅ déjà OK |
+| **2** | **Calendrier** (barre basse) → **Profil** (barre basse) | Retour système | Retour **Calendrier** (pas Accueil) | ⚠️ **re-test** — le drawer Calendrier est **filtres only** (Planning/Liste), pas de lien Profil |
+| **2c** | **Accueil** ou **Candidatures** → drawer **Entreprises** | Retour | Retour onglet d’origine (ex. Accueil) **après** passage par liste Candidatures si vous étiez dans Entreprises | ⚠️ re-test |
+| **2b** | **Candidatures** → sous-onglet **Entreprises** | Retour système | Liste **Candidatures** (sous-onglet 0) — **pas Accueil** | ⚠️ **re-test** (correctif 10/07) |
+| **2b2** | Liste **Candidatures** | Retour | **Accueil** | ✅ déjà OK |
+| **2d** | Drawer **Entreprises** depuis **Calendrier** | — | **N/A** — le Calendrier n’a pas le drawer global (filtres uniquement) | — |
 
 #### B — Comptes USER vs ADMIN
 
-| # | Compte | Action | OK si… |
-|---|--------|--------|--------|
-| **3** | **TEST_USER** (`Connexion USER`) | Ouvrez le **drawer** (menu ☰) | **Pas** de section « Administration » |
-| **4** | **TEST_ADMIN** ou admin (`Connexion ADMIN`) | Drawer → **Administration** → hub → **Utilisateurs** → ouvrir un compte test → **Impersonnaliser** | Hub accessible ; actions OK ; bannière orange **Impersonnalisation** visible sur **tous** les écrans ; bouton **Désimpersonnaliser** (bannière ou drawer) → retour hub admin `/admin` |
+| # | Compte | Action | OK si… | Re-test |
+|---|--------|--------|--------|---------|
+| **3** | **TEST_USER** | Drawer | Pas « Administration » | ✅ |
+| **4** | **TEST_ADMIN** | Impersonnaliser | Bannière compacte ; **Désimpersonnaliser** → hub admin | ✅ UI ; ⚠️ re-test sortie si doute |
 
 #### C — Relances (liste)
 
-| # | Où | Action | OK si… |
-|---|-----|--------|--------|
-| **5** | Onglet **Candidatures** → sous-onglet **Relances** | Parcourez la liste | Pas de crash ; **pas** de gros FAB « + » global sur cet écran |
+| # | Où | Action | OK si… | Re-test |
+|---|-----|--------|--------|---------|
+| **5** | **Relances** | Parcourir | Pas de crash ; titre `date · canal` | ✅ |
+| **6** | FAB **Relance** depuis candidature | Créer → **Voir** | Détail relance + **contact** si candidature en a un | ⚠️ **re-test** contact sur détail |
 
-*Astuce données* : candidature **Orange** a 2 relances seedées.
+#### D — FAB depuis une candidature
 
-#### D — FAB depuis une candidature (cœur de l’étape)
-
-Ouvrez une candidature (ex. **Capgemini** ou **Orange**) → bouton **+** (FAB) → **Ajouter** :
-
-| # | Type | Action | OK si… |
-|---|------|--------|--------|
-| **6** | **Relance** | Remplir date + notes → **Créer** | Snackbar + **Voir** ouvre le **détail relance** |
-| **7** | **Appel** | Avec contact (picker) ou sans | Appel créé ; détail accessible |
-| **8** | **Entretien** | Date du jour, lieu, notes | Entretien créé ; détail accessible |
-| **9** | **Contact** | Créer ou lier un contact | Contact visible sur la **fiche candidature** |
+| # | Type | OK si… | Statut porteur |
+|---|------|--------|----------------|
+| **6** | Relance | Snackbar + Voir → détail | Partiel — re-test contact |
+| **7** | Appel | Créé + détail | **À tester** |
+| **8** | Entretien | Créé + détail | **À tester** |
+| **9** | Contact | Visible sur fiche | **À tester** |
 
 #### E — Shell candidatures / contacts
 
-| # | Où | Action | OK si… |
+| # | Où | Action | Statut |
 |---|-----|--------|--------|
-| **10** | Barre basse **Candidatures** | Allez sous-onglet Relances ou Appels, puis **re-touchez Candidatures** | Retour à la **liste principale** des candidatures |
-| **11** | Candidatures → sous-onglet **Contacts** | FAB **+** | Sheet création contact + choix **entreprise** |
+| **10** | Barre **Candidatures** | Re-tap → liste principale | **À tester** |
+| **11** | Sous-onglet **Contacts** | FAB **+** | **À tester** |
 
-#### F — Retour système Android (Accueil)
+#### F — Retour système Android
 
-| # | Où | Action | OK si… |
+| # | Où | Action | Statut |
 |---|-----|--------|--------|
-| **12** | Onglet **Accueil** (barre basse, pile vide, drawer fermé) | Appuyez **deux fois** sur retour système (< 2 s) | 1er appui : snackbar **flottante au-dessus de la barre basse** — *« Appuyez à nouveau pour mettre l'application en arrière-plan (pas de fermeture forcée) »* ; 2e appui : app en **arrière-plan** Android (processus conservé, pas kill) |
+| **12** | **Accueil** | Double retour < 2 s | **À tester** |
 
-### Retours porteur déjà confirmés (17/06)
+### Retours porteur — synthèse
 
-| Sujet | Statut |
-|-------|--------|
-| Retour Profil → Accueil | **OK** |
-| Retour listes candidatures | **OK** (actualisation au retour : à surveiller) |
-| Drawer USER sans Administration | **OK** |
-| Hub ADMIN | **OK** |
-| Édition prénom/nom/email/tél (base) | **OK** |
-| Impersonnalisation → sortie | **KO** → correctif agent : rebuild APK + re-test point 4 |
-| FAB 6–11 | **À re-tester** |
-
-### Backlog noté (ne bloque pas si corrigé + re-test OK)
-
-- **Tutoriel première connexion** : parcours complet, bypass partiel, reprise aux blocs clés (`BL-TUT-01`)
-- **Recherche globale** : recherches récentes + toutes entités utilisateur avec filtres (`BL-26-19`)
-- **Profil** : changement email (double saisie + lien validation), téléphone avec indicatif pays (`BL-26-20`)
-- **Logs mobile** : erreurs profil remontées au backoffice admin (`BL-26-21`)
-
-### Points bonus (mentionnés ligne 517 — si vous avez le temps)
-
-Non bloquants pour dire OK étape 2, mais utiles à noter en « Notes porteur » :
-
-- **FAB accueil** : créer candidature **ou** contact depuis l’accueil
-- **Analytics** : activé par défaut (pas de bannière « Analytics OFF »)
-- **Détail appel** : liens cliquables vers contact / candidature / entreprise
+| Sujet | Statut | Action |
+|-------|--------|--------|
+| Retour Profil / listes | **OK** | — |
+| Retour Calendrier (point 2) | **KO** → correctif | **Re-test obligatoire** |
+| Sous-onglets Candidatures (2b) | **KO** → correctif | **Re-test obligatoire** |
+| Impersonnalisation | **OK** UI compacte | Re-test sortie si besoin |
+| FAB 6–11 | **Non confirmés** | **Re-test après rebuild APK** |
+| Install USB backoffice | Ne doit plus « Failed to fetch » | Vérifier spinner étape 2 |
+| Version login | Nouveau 10/07 | Vérifier en bas écran Connexion |
 
 ### Quand tout est OK
-
-Répondez dans le chat (ou remplissez la ligne 517 du tableau) :
 
 ```text
 OK Mobile — navigation retour, admin, relances, ajouts candidature
 
-Notes : Samsung R5CT7263YJL, 7 candidatures seed, points 1–11 OK
-Preuves : (optionnel) capture drawer USER sans admin + FAB relance Capgemini
+Notes : Samsung …, points 1–12 OK, version login visible, backoffice wizard OK
 ```
 
-En cas de blocage sur **un seul** point :
+En cas de blocage :
 
 ```text
 KO Mobile — navigation retour, admin, relances, ajouts candidature
 
-Point 6 : FAB relance → snackbar OK mais « Voir » ne ouvre pas le détail
+Point 2 : retour Calendrier → toujours Accueil
 ```
 
 L’agent corrige → vous **re-testez la même étape** (pas l’étape 3).
@@ -188,30 +217,22 @@ L’agent corrige → vous **re-testez la même étape** (pas l’étape 3).
 | Étape | Sujet | Quand | Guide détaillé |
 |-------|--------|-------|----------------|
 | **1** | Inscription + vérif email | ✅ Fait | `TODOS_A_VALIDER.md` § étape 1 |
-| **2** | Navigation + FAB + admin | **Maintenant** | **Ce guide** § ci-dessus |
-| **3** | SMTP `@jobbingtrack.com` (OVH) | Après OK étape 2 | `TODOS_A_VALIDER.md` § étape 3 + `docs/emails/OVH_MX_PLAN_JOBBINGTRACK.md` |
-| **4** | Agent email `/agent` | Après OK étape 3 | `TODOS_A_VALIDER.md` § étape 4 — navigateur + backoffice |
+| **2** | Navigation + FAB + admin | **Maintenant** | **Ce guide** |
+| **3** | SMTP `@jobbingtrack.com` (OVH) | Après OK étape 2 | `TODOS_A_VALIDER.md` § étape 3 |
+| **4** | Agent email `/agent` | Après OK étape 3 | `TODOS_A_VALIDER.md` § étape 4 |
 | **5** | Consentements RGPD sync mobile↔web | Après OK étape 4 | `TODOS_A_VALIDER.md` § étape 5 |
-
-Après l’étape **5** : validations Lot D restantes (lignes 324+ du tableau) puis déploiement prod.
 
 ---
 
 ## Plus tard — compatibilité Android (pas maintenant)
 
-**Ne pas** lancer la matrice multi-API tant que l’**étape 2** n’est pas validée (OK explicite).
-
-Après étapes **1→5** et avant bêta Play Store :
+**Ne pas** lancer la matrice multi-API tant que l’**étape 2** n’est pas validée.
 
 → [`../mobile/STRATEGIE_COMPATIBILITE_ANDROID.md`](../mobile/STRATEGIE_COMPATIBILITE_ANDROID.md)
 
-Résumé : `compileSdk 36` déjà OK ; tester **plusieurs API** (AVD + Blackview si ancien), pas deux fois Android 16 seul.
-
 ---
 
-## File parallèle — Déploiement VPS (optionnel maintenant)
-
-Ne bloque **pas** l’étape 2 mobile. Si vous avez un VPS prêt :
+## File parallèle — Déploiement VPS (optionnel)
 
 → [`../production/PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md)
 
@@ -221,9 +242,9 @@ Ne bloque **pas** l’étape 2 mobile. Si vous avez un VPS prêt :
 
 | Fichier | Pourquoi |
 |---------|----------|
-| `TODOS.md` | Backlog technique agent (centaines de lignes) |
-| `TODOS_A_VALIDER.md` § P1A/P1B en haut | Validations backoffice **reportées** après mobile |
-| `TODOS_A_VERIFIER.md` | Preuves agent — pas une todo porteur |
+| `TODOS.md` | Backlog technique agent |
+| `TODOS_A_VALIDER.md` § P1A/P1B en haut | Validations backoffice reportées |
+| `TODOS_A_VERIFIER.md` | Preuves agent |
 | `docs/BACKLOG.md` | Idées futures |
 
 ---
@@ -233,8 +254,9 @@ Ne bloque **pas** l’étape 2 mobile. Si vous avez un VPS prêt :
 | Problème | Action |
 |----------|--------|
 | Trop de candidatures | `node scripts/mobile/reset-porteur-validation-data.js --confirm` |
-| Login admin mobile | `node scripts/mobile/setup/sync-admin-mobile-login.js` + rebuild APK debug |
+| Login admin mobile | `node scripts/mobile/setup/sync-admin-mobile-login.js` + rebuild APK |
 | Erreur réseau mobile | `adb reverse tcp:5002 tcp:5002` + `diagnose-mobile-api-connection.js` |
-| Perdu dans la doc | Revenir **ici** — [`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md) |
-| Logique retour complète | [`../mobile/NAVIGATION_RETOUR_MOBILE.md`](../mobile/NAVIGATION_RETOUR_MOBILE.md) |
-| Bloqué en impersonnalisation | Drawer → **Désimpersonnaliser** ou bannière orange en haut → hub admin |
+| Install backoffice bloqué | Attendre fin spinner (jusqu’~10 min) ; vérifier contrôleur `curl http://127.0.0.1:5055/health` |
+| Confusion versions | Backoffice → **Vue d’ensemble des versions** (4 lignes) |
+| Perdu dans la doc | Revenir **ici** |
+| Bloqué en impersonnalisation | Drawer → **Désimpersonnaliser** ou bannière en haut |

@@ -5,21 +5,28 @@ import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/main_shell_screen.
 class ShellTabRegistry {
   static int currentTab = 0;
   static int currentApplicationsSubTab = 0;
+  static final ValueNotifier<int> revision = ValueNotifier(0);
 
   static void setCurrentTab(int tab, {int? applicationsSubTab}) {
     currentTab = tab.clamp(0, 3);
     if (applicationsSubTab != null) {
       currentApplicationsSubTab = applicationsSubTab.clamp(0, 5);
     }
+    revision.value++;
   }
 }
 
 /// Sous-onglets Candidatures (Entreprises, Contacts, …) — retour vers liste principale.
 class ApplicationsSubTabRegistry {
   static VoidCallback? _goToFirstSubTab;
+  static int currentIndex = 0;
 
   static void registerGoToFirstSubTab(VoidCallback? callback) {
     _goToFirstSubTab = callback;
+  }
+
+  static void setCurrentIndex(int index) {
+    currentIndex = index.clamp(0, 5);
   }
 
   static void goToFirstSubTab() {
@@ -59,6 +66,21 @@ class ShellBackRegistry {
 
   static void invokeSystemBack() {
     _handler?.call();
+  }
+}
+
+/// Bascule d’onglet shell sans recréer la route (préserve retour barre basse).
+class ShellNavigationRegistry {
+  static void Function(MainShellArgs args)? _apply;
+
+  static void registerApplyHandler(void Function(MainShellArgs args)? handler) {
+    _apply = handler;
+  }
+
+  static bool applyInPlace(MainShellArgs args) {
+    if (_apply == null) return false;
+    _apply!(args);
+    return true;
   }
 }
 
@@ -121,13 +143,31 @@ class ShellNavigation {
     if (shellArgs != null) {
       final currentTab = ShellTabRegistry.currentTab;
       final targetTab = shellArgs.initialTab;
+      final targetSubTab = shellArgs.applicationsTabIndex;
+
+      if (targetTab == currentTab &&
+          targetTab == 1 &&
+          targetSubTab == ShellTabRegistry.currentApplicationsSubTab) {
+        return;
+      }
+
+      int? returnTab;
+      if (targetTab != currentTab) {
+        returnTab = currentTab;
+      }
+
       final enriched = MainShellArgs(
         initialTab: shellArgs.initialTab,
         applicationsTabIndex: shellArgs.applicationsTabIndex,
         applicationStatusFilter: shellArgs.applicationStatusFilter,
-        returnTabOnBack:
-            currentTab != targetTab ? currentTab : null,
+        returnTabOnBack: returnTab,
       );
+
+      final routeName = ModalRoute.of(context)?.settings.name;
+      if (routeName == '/home' && ShellNavigationRegistry.applyInPlace(enriched)) {
+        return;
+      }
+
       Navigator.of(context).pushNamedAndRemoveUntil(
         '/home',
         (r) => r.isFirst,
@@ -139,5 +179,16 @@ class ShellNavigation {
     final current = ModalRoute.of(context)?.settings.name;
     if (current == route) return;
     Navigator.of(context).pushNamed(route);
+  }
+
+  /// Indique si une entrée drawer correspond à l’onglet / sous-onglet shell actif.
+  static bool isDrawerRouteSelected(String route) {
+    final shellArgs = _shellRoutes[route];
+    if (shellArgs == null) return false;
+    if (shellArgs.initialTab != ShellTabRegistry.currentTab) return false;
+    if (shellArgs.initialTab == 1) {
+      return shellArgs.applicationsTabIndex == ShellTabRegistry.currentApplicationsSubTab;
+    }
+    return true;
   }
 }

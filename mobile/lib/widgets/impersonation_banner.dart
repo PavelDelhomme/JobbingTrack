@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/navigation/app_navigator.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 
-/// Bannière persistante + sortie impersonnalisation (session admin requise en amont).
+/// Bannière compacte + sortie impersonnalisation (session admin requise en amont).
 class ImpersonationBanner extends StatelessWidget {
   final Widget? child;
 
@@ -15,7 +15,6 @@ class ImpersonationBanner extends StatelessWidget {
     await auth.exitImpersonation();
     final nav = appNavigatorKey.currentState;
     if (nav == null) return;
-    // Shell principal + hub admin : drawer et barre basse restent accessibles.
     nav.pushNamedAndRemoveUntil('/home', (route) => false);
     nav.pushNamed('/admin');
     if (context.mounted) {
@@ -35,55 +34,40 @@ class ImpersonationBanner extends StatelessWidget {
     }
 
     final targetEmail = auth.user?.email ?? '';
-    final adminEmail = auth.impersonatorEmail ?? 'administrateur';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Material(
-          elevation: 4,
+          elevation: 2,
           color: Colors.orange.shade100,
           child: SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Icon(Icons.switch_account, color: Colors.orange.shade900),
-                  const SizedBox(width: 8),
+                  Icon(Icons.switch_account, size: 18, color: Colors.orange.shade900),
+                  const SizedBox(width: 6),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Impersonnalisation — $targetEmail',
-                          style: TextStyle(
-                            color: Colors.orange.shade900,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                        Text(
-                          'Admin : $adminEmail — touchez Désimpersonnaliser pour revenir',
-                          style: TextStyle(
-                            color: Colors.orange.shade900.withValues(alpha: 0.85),
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => exitAndRestoreAdminSession(context),
                     child: Text(
-                      'Désimpersonnaliser',
+                      targetEmail,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Colors.orange.shade900,
                         fontWeight: FontWeight.w600,
+                        fontSize: 12,
                       ),
                     ),
+                  ),
+                  IconButton(
+                    tooltip: 'Désimpersonnaliser',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    onPressed: () => exitAndRestoreAdminSession(context),
+                    icon: Icon(Icons.switch_account, color: Colors.orange.shade900, size: 22),
                   ),
                 ],
               ),
