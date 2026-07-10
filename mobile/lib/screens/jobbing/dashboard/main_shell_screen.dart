@@ -115,7 +115,17 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   /// Hiérarchie retour shell — voir docs/mobile/NAVIGATION_RETOUR_MOBILE.md
   void _handleSystemBackImpl() {
-    // 1. Retour drawer cross-tab (ex. Accueil → Entreprises drawer → retour Accueil)
+    // 0. Drawer ouvert sur l'onglet actif
+    if (ShellDrawerRegistry.closeAnyOpenDrawer()) {
+      return;
+    }
+    // 0b. Écran empilé (détail candidature, paramètres profil, …)
+    final nav = appNavigatorKey.currentState;
+    if (nav != null && nav.canPop()) {
+      nav.pop();
+      return;
+    }
+    // 1. Retour drawer cross-tab (ex. Accueil → drawer Entreprises → retour Accueil)
     if (_pendingReturnTab != null && _pendingReturnTab != _selectedIndex) {
       setState(() {
         _selectedIndex = _pendingReturnTab!.clamp(0, 3);

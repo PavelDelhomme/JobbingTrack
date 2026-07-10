@@ -73,6 +73,16 @@ function runDelete(label, sql) {
   return parseCount(out.split('\n').pop() || out, label);
 }
 
+/** IDs entreprise liées aux candidatures de l'utilisateur (capturés avant suppression Application). */
+function getExclusiveCompanyIds(userId) {
+  const safeId = sqlEscape(userId);
+  const raw = sqlQuery(
+    `SELECT DISTINCT "companyId" FROM "Application" WHERE "userId" = '${safeId}' AND "companyId" IS NOT NULL;`,
+  );
+  if (!raw) return [];
+  return raw.split('\n').map((line) => line.trim()).filter(Boolean);
+}
+
 /**
  * Supprime toutes les entités métier d'un utilisateur (hard delete SQL).
  */
@@ -88,6 +98,7 @@ function purgeUserBusinessData(email, options = {}) {
 
   const safeId = sqlEscape(userId);
   const uid = `'${safeId}'`;
+  const exclusiveCompanyIds = getExclusiveCompanyIds(userId);
   const deleted = {};
 
   deleted.applicationStatusHistory = runDelete(
@@ -157,23 +168,25 @@ function purgeUserBusinessData(email, options = {}) {
     ) SELECT COUNT(*) FROM d;`,
   );
 
-  deleted.companiesExclusive = runDelete(
-    'Company(exclusive)',
-    `WITH d AS (
-      DELETE FROM "Company" c
-      WHERE c.id IN (SELECT DISTINCT "companyId" FROM "Application" WHERE "userId" = ${uid})
-        AND NOT EXISTS (
-          SELECT 1 FROM "Application" a2
-          WHERE a2."companyId" = c.id AND a2."userId" <> ${uid}
-        )
-      RETURNING 1
-    ) SELECT COUNT(*) FROM d;`,
-  );
-
   deleted.applications = runDelete(
     'Application',
     `WITH d AS (DELETE FROM "Application" WHERE "userId" = ${uid} RETURNING 1) SELECT COUNT(*) FROM d;`,
   );
+
+  if (exclusiveCompanyIds.length > 0) {
+    const idList = exclusiveCompanyIds.map((id) => `'${sqlEscape(id)}'`).join(',');
+    deleted.companiesExclusive = runDelete(
+      'Company(exclusive)',
+      `WITH d AS (
+        DELETE FROM "Company" c
+        WHERE c.id IN (${idList})
+          AND NOT EXISTS (SELECT 1 FROM "Application" a WHERE a."companyId" = c.id)
+        RETURNING 1
+      ) SELECT COUNT(*) FROM d;`,
+    );
+  } else {
+    deleted.companiesExclusive = 0;
+  }
 
   deleted.contactCompany = runDelete(
     'ContactCompany',

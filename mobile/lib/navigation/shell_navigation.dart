@@ -54,6 +54,18 @@ class ShellDrawerRegistry {
       }
     }
   }
+
+  /// Ferme le premier drawer ouvert ; retourne true si un drawer a été fermé.
+  static bool closeAnyOpenDrawer() {
+    for (final key in _keys.toList()) {
+      final state = key.currentState;
+      if (state?.isDrawerOpen == true) {
+        state!.closeDrawer();
+        return true;
+      }
+    }
+    return false;
+  }
 }
 
 /// Délègue le retour système au [MainShellScreen] quand un onglet shell consomme déjà le PopScope.

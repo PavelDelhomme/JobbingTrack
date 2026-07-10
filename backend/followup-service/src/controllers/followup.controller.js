@@ -83,12 +83,12 @@ const sanitizeStatus = (status) => {
   return allowed.includes(value) ? value : 'PENDING';
 };
 
-const mapFollowup = (followup) => {
+const mapFollowup = (followup) => ({
   ...followup,
   followUpDate: followup.followUpDate?.toISOString(),
   createdAt: followup.createdAt?.toISOString(),
   updatedAt: followup.updatedAt?.toISOString(),
-  ...(followup.contacts?.[0]?.contact ? { contact: followup.contacts[0].contact } : {})
+  ...(followup.contacts?.[0]?.contact ? { contact: followup.contacts[0].contact } : {}),
 });
 
 async function getApplicationForUser(applicationId, userId) {

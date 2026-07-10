@@ -472,8 +472,13 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 
 | Sujet | Statut porteur | Suite agent |
 |-------|----------------|-------------|
-| Retour Profil → Accueil | **OK** | — |
-| Retour listes candidatures | **KO 17/06 v3** — Entreprises → retour fermait l’app | **Correctif 17/06 (v4)** : un seul `PopScope` shell ; `DrawerBackScope(active:)` ; doc [`NAVIGATION_RETOUR_MOBILE.md`](../mobile/NAVIGATION_RETOUR_MOBILE.md) — **rebuild APK + re-test 2b** |
+| Retour Calendrier → Profil → retour | **KO 10/07** — allait à Accueil | **Correctif 10/07 soir** : un seul PopScope shell — **re-test APK 1.0.26+26** |
+| Retour Candidatures → Entreprises → retour ×2 | **KO 10/07** | **Correctif 10/07 soir** : idem — 1er retour sous-onglet 0, 2e Accueil |
+| Retour Accueil → drawer Entreprises | **OK 10/07** | — |
+| Liste candidatures → retour Accueil | **OK** | — |
+| Drawer Calendrier Planning/Liste | **OK 10/07** | — |
+| Bannière impersonnalisation TEST_ADMIN | **OK 10/07** | — |
+| Relances liste vide + API 503 followups | **KO infra 10/07** | `followup-service` corrigé + redémarré ; **seed** données porteur requis |
 | Drawer USER sans Administration | **OK** | — |
 | Hub ADMIN + navigation | **OK** | — |
 | Édition prénom/nom/email/tél | **OK** (refonte UX email/tél — **BL-26-20**) | backlog |

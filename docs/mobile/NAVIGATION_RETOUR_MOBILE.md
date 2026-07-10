@@ -1,16 +1,18 @@
 # Navigation retour — app mobile JobbingTrack
 
-Dernière mise à jour : 17 juin 2026
+Dernière mise à jour : 10 juillet 2026
 
 Document de référence pour la validation porteur (étape 2) et les évolutions UI.  
 Implémentation : `MainShellScreen`, `DrawerBackScope`, `ApplicationsScreen`.
+
+**Correctif 10/07** : un seul `PopScope` sur `MainShellScreen` — les `DrawerBackScope` n'interceptent plus le retour système (évite double pas : Calendrier→Profil→Accueil en un geste).
 
 ---
 
 ## Principes
 
-1. **Une seule gestion du retour shell** — `PopScope` sur `MainShellScreen` uniquement.
-2. **Onglets invisibles (IndexedStack)** — `DrawerBackScope(active: false)` pour ne pas intercepter le retour système en parallèle.
+1. **Une seule gestion du retour shell** — `PopScope` sur `MainShellScreen` uniquement (drawer fermé → `Navigator.pop` → logique onglets).
+2. **Onglets invisibles (IndexedStack)** — `DrawerBackScope(active: false)` enregistre seulement le scaffold (pas de second PopScope).
 3. **Écrans empilés (détail)** — le retour système fait `Navigator.pop()` vers la liste ou l’écran précédent.
 4. **Pas de fermeture forcée** au premier retour sur Accueil — snackbar puis 2e retour → arrière-plan Android.
 
