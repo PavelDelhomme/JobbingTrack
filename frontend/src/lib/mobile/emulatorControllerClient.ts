@@ -219,22 +219,58 @@ export async function adbReverseDevice(
   return { success: true, detail: data.detail, ports: data.ports };
 }
 
+function isRetryableInstallNetworkError(message: string): boolean {
+  return /failed to fetch|network_changed|load failed|network error|réseau\s*:/i.test(message);
+}
+
+function installRetryDelayMs(attempt: number): number {
+  return attempt * 2500;
+}
+
 export async function installApkDeviceOnly(
   deviceId: string,
   signal?: AbortSignal,
 ): Promise<InstallStepResult> {
-  const res = await fetch(`${PROXY}/install-apk-device`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ deviceId }),
-    signal: signal ?? AbortSignal.timeout(600_000),
-  });
-  const data = (await res.json().catch(() => ({}))) as InstallStepResult & { success?: boolean };
-  if (data.cancelled) return { success: false, cancelled: true };
-  if (!res.ok || data.success === false) {
-    return { success: false, error: data.error || `Installation HTTP ${res.status}` };
+  const maxAttempts = 3;
+  let lastError = "Installation échouée";
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    if (signal?.aborted) {
+      return { success: false, cancelled: true };
+    }
+
+    const { ok, data, status } = await proxyPost<InstallStepResult & { success?: boolean }>(
+      "/install-apk-device",
+      { deviceId },
+      600_000,
+      signal,
+    );
+
+    if (data.cancelled) return { success: false, cancelled: true };
+    if (ok && data.success !== false) {
+      return { success: true, detail: data.detail };
+    }
+
+    lastError = data.error || `Installation HTTP ${status || "réseau"}`;
+    if (status === 409) {
+      return { success: false, error: lastError };
+    }
+
+    const retryable = status === 0 || isRetryableInstallNetworkError(lastError);
+    if (retryable && attempt < maxAttempts && !signal?.aborted) {
+      await new Promise((r) => setTimeout(r, installRetryDelayMs(attempt)));
+      continue;
+    }
+
+    if (isRetryableInstallNetworkError(lastError)) {
+      lastError +=
+        " — connexion interrompue (souvent hot-reload Next.js pendant l’install). "
+        + "Attendez la fin du rechargement, puis recliquez « Réinstaller l’APK » sans toucher au code.";
+    }
+    return { success: false, error: lastError };
   }
-  return { success: true, detail: data.detail };
+
+  return { success: false, error: lastError };
 }
 
 export async function launchAppOnDevice(

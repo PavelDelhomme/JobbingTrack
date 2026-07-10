@@ -19,8 +19,9 @@ test("Mobile releases OTA — panel chargé sans 404", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /Mobile — releases OTA/i })).toBeVisible({
     timeout: 60_000,
   });
-  await expect(page.getByText(/Vue d'ensemble des versions/i)).toBeVisible();
-  await expect(page.getByText(/Comment déployer une release Android/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Vue d['’]ensemble des versions/i })).toBeVisible();
+  await expect(page.getByText(/Alignement des versions/i)).toBeVisible();
+  await expect(page.getByText(/Build APK, publication canal dev/i)).toBeVisible();
   await expect(page.getByText(/Diagnostic API \(404\)/i)).toHaveCount(0);
   await expect(page.getByText(/Historique des builds/i)).toBeVisible();
 });
