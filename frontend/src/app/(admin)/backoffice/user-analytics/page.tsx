@@ -43,6 +43,13 @@ function formatDeviceIdLabel(deviceId?: string | null): string {
   return `ID ${id.slice(0, 8)}…`;
 }
 
+function formatSessionIdLabel(sessionId?: string | null): string {
+  if (!sessionId?.trim()) return "—";
+  const id = sessionId.trim();
+  if (id.length <= 16) return id;
+  return `${id.slice(0, 8)}…${id.slice(-4)}`;
+}
+
 interface UserStats {
   totalSessions: number;
   activeSessions: number;
@@ -615,6 +622,7 @@ export default function UserAnalyticsPage() {
                       <table className="w-full text-sm">
                         <thead className="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
                           <tr>
+                            <th className="pb-2 pr-4">ID session</th>
                             <th className="pb-2 pr-4">Plateforme</th>
                             <th className="pb-2 pr-4">Appareil / OS</th>
                             <th className="pb-2 pr-4">Démarrée</th>
@@ -626,6 +634,12 @@ export default function UserAnalyticsPage() {
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                           {stats.activeSessionsList!.map((s) => (
                             <tr key={s.sessionId}>
+                              <td
+                                className="py-2 pr-4 font-mono text-xs text-gray-600 dark:text-gray-400"
+                                title={s.sessionId}
+                              >
+                                {formatSessionIdLabel(s.sessionId)}
+                              </td>
                               <td className="py-2 pr-4 font-medium text-gray-900 dark:text-white">
                                 {s.platform}
                               </td>

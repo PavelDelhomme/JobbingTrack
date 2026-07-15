@@ -3,15 +3,19 @@ import 'package:flutter/scheduler.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/models/company.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/services/offline_entity_cache.dart';
+import 'package:jobbingtrack_mobile/services/offline_list_loader.dart';
 
 class ApplicationProvider with ChangeNotifier {
   List<Application> _applications = [];
   bool _isLoading = false;
   String? _lastError;
+  bool _isOfflineData = false;
 
   List<Application> get applications => _applications;
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
+  bool get isOfflineData => _isOfflineData;
 
   void _notifySafely() {
     final phase = SchedulerBinding.instance.schedulerPhase;
@@ -27,6 +31,7 @@ class ApplicationProvider with ChangeNotifier {
 
   Future<void> loadApplications({
     String? token,
+    String? userId,
     Future<String?> Function()? renewToken,
   }) async {
     _isLoading = true;
@@ -34,9 +39,19 @@ class ApplicationProvider with ChangeNotifier {
     _notifySafely();
 
     try {
-      _applications = await ApiService.getApplications(token: token);
+      final result = await OfflineListLoader.load<Application>(
+        userId: userId,
+        cacheKey: OfflineEntityKeys.applications,
+        fetch: () => ApiService.getApplications(token: token),
+        fromJson: Application.fromJson,
+        toJson: (app) => app.toJson(),
+      );
+      _applications = result.items;
+      _isOfflineData = result.fromCache;
       _isLoading = false;
-      _lastError = null;
+      _lastError = result.fromCache
+          ? 'Données en cache (hors ligne)'
+          : null;
       _notifySafely();
     } catch (e) {
       final msg = e.toString().replaceAll('Exception: ', '');
@@ -45,20 +60,30 @@ class ApplicationProvider with ChangeNotifier {
         final fresh = await renewToken();
         if (fresh != null && fresh.isNotEmpty) {
           try {
-            _applications = await ApiService.getApplications(token: fresh);
+            final result = await OfflineListLoader.load<Application>(
+              userId: userId,
+              cacheKey: OfflineEntityKeys.applications,
+              fetch: () => ApiService.getApplications(token: fresh),
+              fromJson: Application.fromJson,
+              toJson: (app) => app.toJson(),
+            );
+            _applications = result.items;
+            _isOfflineData = result.fromCache;
             _isLoading = false;
-            _lastError = null;
+            _lastError = result.fromCache ? 'Données en cache (hors ligne)' : null;
             _notifySafely();
             return;
           } catch (retryErr) {
             _lastError = retryErr.toString().replaceAll('Exception: ', '');
             _isLoading = false;
+            _isOfflineData = false;
             _notifySafely();
             return;
           }
         }
       }
       _lastError = msg;
+      _isOfflineData = false;
       _isLoading = false;
       _notifySafely();
     }
@@ -166,6 +191,7 @@ class ApplicationProvider with ChangeNotifier {
     _applications = [];
     _isLoading = false;
     _lastError = null;
+    _isOfflineData = false;
     _notifySafely();
   }
 }

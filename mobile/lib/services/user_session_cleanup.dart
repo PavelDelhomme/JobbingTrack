@@ -3,6 +3,7 @@ import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/local_phone_integrations_service.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
+import 'package:jobbingtrack_mobile/services/offline_entity_cache.dart';
 import 'package:jobbingtrack_mobile/services/push_notification_service.dart';
 
 /// Purge des données utilisateur locales lors d'une **déconnexion volontaire**.
@@ -19,6 +20,7 @@ class UserSessionCleanup {
     await ApiConfigStore.clearAnalyticsSessionId();
     await AnalyticsTelemetryQueue.instance.clearAll();
     await OfflineBusinessSyncQueue.instance.clearAll();
+    await OfflineEntityCache.instance.clearAll();
     await LocalPhoneIntegrationsService.clearLocalCaches();
     await MobileAnalyticsService.instance.onUserLogout();
   }

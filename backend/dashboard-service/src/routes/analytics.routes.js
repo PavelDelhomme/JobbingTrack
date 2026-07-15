@@ -55,6 +55,7 @@ const optionalAuth = async (req, res, next) => {
 // Sessions
 router.post('/sessions', optionalAuth, analyticsController.createSession);
 router.put('/sessions/:sessionId', optionalAuth, analyticsController.updateSession);
+router.post('/sessions/reconcile-stale', authenticate, analyticsController.reconcileStaleSessions);
 
 // Événements
 router.post('/events/batch', optionalAuth, analyticsController.trackEventsBatch);

@@ -1,6 +1,6 @@
 # TODOs à vérifier par l’agent
 
-Dernière mise à jour : 11 juillet 2026 (APK 1.0.28+28 OTA dev ; stack arrêtée fin session)
+Dernière mise à jour : 13 juillet 2026 (reprise stack ; analytics sessions ; APK Samsung relancé)
 
 ## Rôle
 
@@ -19,6 +19,8 @@ Ce fichier liste ce que l’agent doit vérifier techniquement avant de demander
 | A2c | Backoffice OTA — polling ADB sans saut layout | **10/07** : poll silencieux (20 s), pas de bandeau « Actualisation » ; fingerprint devices. | [x] |
 | A2d | Mobile — session impersonnalisation expirée | **10/07** : renouvellement JWT impersonnalisation via token admin ; refresh avant candidatures. APK **1.0.27+27**. | [x] agent |
 | A2e | Fin session 11/07 — build APK + OTA dev + mail récap + arrêt stack | **11/07 fin soir** : APK **1.0.28+28** build host (`~/flutter-sdk`) + install Samsung + `publish-built-dev.sh` OK ; seed porteur reset OK ; smoke navigation OK (1er run) ; mail `[JobbingTrack] Recap agent mobile etape 2 — 11/07/2026` **6/6 HTTP 202** ; stack arrêtée (`docker compose down` + `docker stop` résiduels — **0** conteneur running). Reprise : `docker compose up -d` puis OTA Samsung. | [x] |
+| A2f | Analytics backoffice — sessions actives fantômes + colonne ID session | **13/07** : branche `feat/mobile-etape-2-analytics-sessions` ; `reconcileStaleAnalyticsSessions()` (seuil 30 min, env `ANALYTICS_SESSION_STALE_MINUTES`) au chargement stats + `POST /api/v1/analytics/sessions/reconcile-stale` ; colonne **ID session** (`formatSessionIdLabel`) sur `/backoffice/user-analytics` ; script `scripts/analytics/purge-stale-user-sessions.js` ; reconcile API **140** sessions fermées → **0 actives** / 203 total ; `npm run type-check` frontend **OK** ; lint ciblé page **0 erreur** (warnings préexistants). | [x] agent — **porteur** : vérifier tableau sessions actives raisonnable après ouverture app mobile |
+| A2g | Mobile — mode hors ligne lecture + sync retour réseau | **13/07** : `OfflineEntityCache` + `OfflineListLoader` (cache gzip/chiffré par userId) ; providers candidatures/entreprises/contacts/entretiens/relances ; `NetworkRecoveryService` (poll 8 s + bouton Réessayer via `autoDetectApi` + flush file) ; bandeau `OfflineModeBanner` ; `flutter test` offline **3/3 OK**. | [ ] porteur : mode avion → listes cache ; réseau ON → sync auto + Réessayer |
 | A3 | Bypass biométrie smokes (pas produit) | Pref `test_automation_skip_biometric` (debug APK) ; smokes sans prompt Samsung ; **restauration auto** fin batterie + `clear-smoke-device-adb.js` ; biométrie porteur inchangée hors pref | [x] |
 | A4 | Hub admin ADB multi-comptes | `smoke-mobile-admin-hub-adb.js` OK : admin visible → hub → retour TEST_USER sans blocage login | [x] **02/07** : `SMOKE_SHARED_SHELL=1 ADB_FAST=1 smoke-mobile-admin-hub-adb.js` **OK** (~4 min) — drawer logout + `Connexion ADMIN` / `Connexion USER` ; hub + Statistiques + restore porteur ; fix `logoutViaDrawer` dans `tools/adb-lib/flows.js` |
 | A4b | Admin mobile — actions détail utilisateur | **10/07 soir** : fix Overlay v2 — `ImpersonationBanner` en `Stack` + `rootScaffoldMessengerKey` (plus `Column`/`ScaffoldMessenger.of` dans builder MaterialApp). Session impersonnalisation **persiste** après `adb install -r` (données app conservées — attendu). **Reste porteur** : re-test bannière + désimpersonnalisation sur APK **1.0.25+25**. | [ ] |

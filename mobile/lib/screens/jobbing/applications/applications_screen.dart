@@ -12,6 +12,11 @@ import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/navigation/shell_list_refresh_mixin.dart';
 import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/services/network_recovery_service.dart';
+import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
+import 'package:jobbingtrack_mobile/services/offline_entity_cache.dart';
+import 'package:jobbingtrack_mobile/services/offline_list_loader.dart';
+import 'package:jobbingtrack_mobile/widgets/offline_mode_banner.dart';
 import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
@@ -57,6 +62,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
   String? _statusFilter;
   List<Call> _calls = [];
   bool _callsLoading = false;
+  bool _callsOfflineData = false;
+  bool _retrying = false;
 
   @override
   void initState() {
@@ -125,14 +132,50 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     _loadAll();
   }
 
-  Future<void> _loadCalls() async {
+  Future<void> _loadCalls({String? userId}) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    final uid = userId ?? auth.user?.id;
     setState(() => _callsLoading = true);
     try {
-      final list = await ApiService.getCalls(token: auth.token);
-      if (mounted) setState(() { _calls = list; _callsLoading = false; });
+      final result = await OfflineListLoader.load<Call>(
+        userId: uid,
+        cacheKey: OfflineEntityKeys.calls,
+        fetch: () => ApiService.getCalls(token: auth.token),
+        fromJson: Call.fromJson,
+        toJson: (c) => c.toJson(),
+      );
+      if (mounted) {
+        setState(() {
+          _calls = result.items;
+          _callsOfflineData = result.fromCache;
+          _callsLoading = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _callsLoading = false);
+    }
+  }
+
+  Future<void> _retryConnectionAndLoad() async {
+    if (_retrying || !mounted) return;
+    setState(() => _retrying = true);
+    try {
+      await NetworkRecoveryService.recoverConnection();
+      if (!mounted) return;
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      await auth.refreshSessionIfOnline();
+      if (!mounted) return;
+      await _loadAll();
+      if (!mounted) return;
+      if (!await ApiService.isReachable()) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Toujours hors ligne — données en cache si disponibles'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _retrying = false);
     }
   }
 
@@ -140,6 +183,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     final auth = Provider.of<AuthProvider>(context, listen: false);
     await auth.refreshSessionIfOnline();
     final token = auth.token;
+    final userId = auth.user?.id;
     final appProvider = Provider.of<ApplicationProvider>(context, listen: false);
     final companyProvider = Provider.of<CompanyProvider>(context, listen: false);
     final contactProvider = Provider.of<ContactProvider>(context, listen: false);
@@ -151,20 +195,18 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     await Future.wait([
       appProvider.loadApplications(
         token: token,
+        userId: userId,
         renewToken: () async {
           final ok = await auth.trySilentTokenRefresh();
           return ok ? auth.token : null;
         },
       ),
-      companyProvider.loadCompanies(token: token).catchError((_) {}),
-      contactProvider.loadContacts(token: token).catchError((_) {}),
-      interviewProvider.loadInterviews(token: token).catchError((_) {}),
-      followUpProvider.loadFollowUps(token: token).catchError((_) {}),
+      companyProvider.loadCompanies(token: token, userId: userId).catchError((_) {}),
+      contactProvider.loadContacts(token: token, userId: userId).catchError((_) {}),
+      interviewProvider.loadInterviews(token: token, userId: userId).catchError((_) {}),
+      followUpProvider.loadFollowUps(token: token, userId: userId).catchError((_) {}),
+      _loadCalls(userId: userId),
     ]);
-
-    try {
-      _calls = await ApiService.getCalls(token: token);
-    } catch (_) {}
 
     if (!mounted) return;
     setState(() => _callsLoading = false);
@@ -174,7 +216,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
 
     if (!mounted) return;
     final err = appProvider.lastError;
-    if (err != null && err.isNotEmpty) {
+    final offline = appProvider.isOfflineData;
+    if (err != null && err.isNotEmpty && !offline && appProvider.applications.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Candidatures : $err')),
       );
@@ -182,23 +225,21 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
   }
 
   Future<void> _loadApplications() async {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    await auth.refreshSessionIfOnline();
-    final appProvider = Provider.of<ApplicationProvider>(context, listen: false);
-    final companyProvider = Provider.of<CompanyProvider>(context, listen: false);
-    await appProvider.loadApplications(
-      token: auth.token,
-      renewToken: () async {
-        final ok = await auth.trySilentTokenRefresh();
-        return ok ? auth.token : null;
-      },
-    );
-    appProvider.enrichCompanies({for (final c in companyProvider.companies) c.id: c.name});
-    if (!mounted) return;
-    final err = appProvider.lastError;
-    if (err != null && err.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Candidatures : $err')));
-    }
+    await _retryConnectionAndLoad();
+  }
+
+  bool _showOfflineBanner(BuildContext context) {
+    final app = context.watch<ApplicationProvider>();
+    final company = context.watch<CompanyProvider>();
+    final contact = context.watch<ContactProvider>();
+    final interview = context.watch<InterviewProvider>();
+    final followUp = context.watch<FollowUpProvider>();
+    return app.isOfflineData ||
+        company.isOfflineData ||
+        contact.isOfflineData ||
+        interview.isOfflineData ||
+        followUp.isOfflineData ||
+        _callsOfflineData;
   }
 
   @override
@@ -242,15 +283,26 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildCandidaturesTab(),
-          _buildEntreprisesTab(),
-          _buildContactsTab(),
-          _buildEntretiensTab(),
-          _buildRelancesTab(),
-          _buildAppelsTab(),
+          if (_showOfflineBanner(context))
+            OfflineModeBanner(
+              pendingSyncCount: OfflineBusinessSyncQueue.instance.pendingCount,
+              onRetry: _retrying ? null : _retryConnectionAndLoad,
+            ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildCandidaturesTab(),
+                _buildEntreprisesTab(),
+                _buildContactsTab(),
+                _buildEntretiensTab(),
+                _buildRelancesTab(),
+                _buildAppelsTab(),
+              ],
+            ),
+          ),
         ],
       ),
       floatingActionButton: widget.isShellVisible && (_tabController.index == 0 || _tabController.index == 1 || _tabController.index == 2)
@@ -320,7 +372,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
         padding: const EdgeInsets.all(16),
         child: appProvider.isLoading
             ? const Center(child: CircularProgressIndicator(color: Colors.blue))
-            : error != null && error.isNotEmpty && applications.isEmpty
+            : !appProvider.isOfflineData && error != null && error.isNotEmpty && applications.isEmpty
                 ? _buildErrorState(error)
                 : applications.isEmpty
                 ? Column(
@@ -836,9 +888,15 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
           ),
           const SizedBox(height: 20),
           ElevatedButton.icon(
-            onPressed: _loadApplications,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Réessayer'),
+            onPressed: _retrying ? null : _retryConnectionAndLoad,
+            icon: _retrying
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+            label: Text(_retrying ? 'Connexion…' : 'Réessayer'),
           ),
         ],
       ),
