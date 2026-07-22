@@ -148,6 +148,40 @@ class CompanyService {
       throw error;
     }
   }
+
+  /**
+   * Garantit un companyId appartenant au user du token.
+   * Si companyId pointe vers l'entreprise d'un autre compte, clone via getOrCreate(name).
+   */
+  async ensureOwnedCompanyId({
+    companyId,
+    companyName,
+    companyData = {},
+    authToken,
+    userId,
+  }) {
+    if (companyId) {
+      const existing = await this.getCompanyById(companyId, authToken);
+      if (existing && existing.userId === userId) {
+        return existing.id;
+      }
+      const nameFromId = existing?.name;
+      const resolvedName = (companyName && String(companyName).trim()) || nameFromId;
+      if (!resolvedName) {
+        throw new Error('Entreprise introuvable ou non accessible pour ce compte');
+      }
+      logger.warn(
+        `Entreprise ${companyId} hors scope user ${userId} → getOrCreate("${resolvedName}")`,
+      );
+      return this.getOrCreateCompany(resolvedName, companyData || {}, authToken);
+    }
+
+    if (companyName && String(companyName).trim()) {
+      return this.getOrCreateCompany(companyName, companyData || {}, authToken);
+    }
+
+    throw new Error('companyId ou companyName requis');
+  }
 }
 
 module.exports = new CompanyService();

@@ -8,6 +8,7 @@ RUN apt-get update \
     ca-certificates \
     curl \
     git \
+    imagemagick \
     openjdk-17-jdk-headless \
   && rm -rf /var/lib/apt/lists/* \
   # SDK Flutter monté depuis l'hôte (volume ro) : évite « dubious ownership » au build

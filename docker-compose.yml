@@ -142,6 +142,9 @@ services:
       - MOBILE_PROJECT_PATH=/workspace/mobile
       - EMULATOR_CONTROLLER_HOST=0.0.0.0
       - FLUTTER_BIN=/opt/flutter/bin/flutter
+      - EMULATOR_LIVE_CAPTURE_MS=50
+      - EMULATOR_LIVE_MAX_WIDTH=720
+      - EMULATOR_LIVE_JPEG_QUALITY=55
     restart: unless-stopped
 
   

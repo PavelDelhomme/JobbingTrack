@@ -456,10 +456,12 @@ async function queryDeviceDetails(deviceId, { useCache = true } = {}) {
   return details;
 }
 
-/** Cache frames ADB — sert la dernière image immédiatement pendant qu'un screencap est en cours. */
+/** Cache frames ADB — JPEG réduit pour le live web (beaucoup plus rapide que PNG full). */
 const liveFrames = new Map();
 const liveCaptureLoops = new Map();
-const LIVE_CAPTURE_INTERVAL_MS = parseInt(process.env.EMULATOR_LIVE_CAPTURE_MS || '120', 10);
+const LIVE_CAPTURE_INTERVAL_MS = parseInt(process.env.EMULATOR_LIVE_CAPTURE_MS || '50', 10);
+const LIVE_MAX_WIDTH = parseInt(process.env.EMULATOR_LIVE_MAX_WIDTH || '720', 10);
+const LIVE_JPEG_QUALITY = parseInt(process.env.EMULATOR_LIVE_JPEG_QUALITY || '55', 10);
 
 function getLiveFrame(deviceId) {
   return liveFrames.get(deviceId) || null;
@@ -468,18 +470,90 @@ function getLiveFrame(deviceId) {
 function captureLiveFrame(deviceId) {
   const existing = liveFrames.get(deviceId);
   if (existing?.inFlight) return existing.inFlight;
-  const promise = execPromise(`adb -s ${deviceId} exec-out screencap -p`, { encoding: null })
-    .then(({ stdout }) => {
-      liveFrames.set(deviceId, { buffer: stdout, capturedAt: Date.now(), inFlight: null });
-      return stdout;
-    })
-    .catch((err) => {
-      const prev = liveFrames.get(deviceId);
-      if (prev) prev.inFlight = null;
-      throw err;
+
+  const promise = new Promise((resolve, reject) => {
+    const adb = spawn(
+      'adb',
+      ['-s', deviceId, 'exec-out', 'screencap', '-p'],
+      { stdio: ['ignore', 'pipe', 'pipe'] },
+    );
+    const convert = spawn(
+      'convert',
+      [
+        'png:-',
+        '-resize',
+        `${LIVE_MAX_WIDTH}x>`,
+        '-quality',
+        String(LIVE_JPEG_QUALITY),
+        'jpeg:-',
+      ],
+      { stdio: ['pipe', 'pipe', 'pipe'] },
+    );
+    adb.stdout.pipe(convert.stdin);
+    const chunks = [];
+    convert.stdout.on('data', (c) => chunks.push(c));
+    let adbErr = '';
+    let convertErr = '';
+    adb.stderr.on('data', (d) => {
+      adbErr += d.toString();
     });
+    convert.stderr.on('data', (d) => {
+      convertErr += d.toString();
+    });
+    adb.on('error', reject);
+    convert.on('error', (err) => {
+      // Fallback PNG brut si ImageMagick absent
+      execPromise(`adb -s ${deviceId} exec-out screencap -p`, { encoding: null })
+        .then(({ stdout }) => {
+          liveFrames.set(deviceId, {
+            buffer: stdout,
+            contentType: 'image/png',
+            capturedAt: Date.now(),
+            inFlight: null,
+          });
+          resolve(stdout);
+        })
+        .catch(reject);
+    });
+    convert.on('close', (code) => {
+      if (code !== 0 || chunks.length === 0) {
+        execPromise(`adb -s ${deviceId} exec-out screencap -p`, { encoding: null })
+          .then(({ stdout }) => {
+            liveFrames.set(deviceId, {
+              buffer: stdout,
+              contentType: 'image/png',
+              capturedAt: Date.now(),
+              inFlight: null,
+            });
+            resolve(stdout);
+          })
+          .catch((e) =>
+            reject(
+              new Error(
+                convertErr || adbErr || e.message || `convert exit ${code}`,
+              ),
+            ),
+          );
+        return;
+      }
+      const buffer = Buffer.concat(chunks);
+      liveFrames.set(deviceId, {
+        buffer,
+        contentType: 'image/jpeg',
+        capturedAt: Date.now(),
+        inFlight: null,
+      });
+      resolve(buffer);
+    });
+  }).catch((err) => {
+    const prev = liveFrames.get(deviceId);
+    if (prev) prev.inFlight = null;
+    throw err;
+  });
+
   liveFrames.set(deviceId, {
     buffer: existing?.buffer || null,
+    contentType: existing?.contentType || 'image/jpeg',
     capturedAt: existing?.capturedAt || 0,
     inFlight: promise,
   });
@@ -516,15 +590,19 @@ function stopLiveCaptureLoop(deviceId) {
   liveCaptureLoops.delete(deviceId);
 }
 
-function sendPng(res, buffer, capturedAt) {
+function sendImage(res, buffer, contentType, capturedAt) {
   const ageMs = capturedAt ? Date.now() - capturedAt : 0;
   res.writeHead(200, {
-    'Content-Type': 'image/png',
+    'Content-Type': contentType || 'image/jpeg',
     'Access-Control-Allow-Origin': '*',
     'Cache-Control': 'no-store',
     'X-Frame-Age-Ms': String(ageMs),
   });
   res.end(buffer);
+}
+
+function sendPng(res, buffer, capturedAt) {
+  sendImage(res, buffer, 'image/png', capturedAt);
 }
 
 /** Lit le chemin du SDK Flutter depuis mobile/android/local.properties */
@@ -1464,7 +1542,7 @@ const routes = {
     try {
       const cached = getLiveFrame(device);
       if (cached?.buffer) {
-        sendPng(res, cached.buffer, cached.capturedAt);
+        sendImage(res, cached.buffer, cached.contentType || 'image/jpeg', cached.capturedAt);
         const age = Date.now() - cached.capturedAt;
         if (age > LIVE_CAPTURE_INTERVAL_MS && !cached.inFlight) {
           captureLiveFrame(device).catch(() => {});
@@ -1472,10 +1550,57 @@ const routes = {
         return;
       }
       const buffer = await captureLiveFrame(device);
-      sendPng(res, buffer, getLiveFrame(device)?.capturedAt || Date.now());
+      const frame = getLiveFrame(device);
+      sendImage(
+        res,
+        buffer,
+        frame?.contentType || 'image/jpeg',
+        frame?.capturedAt || Date.now(),
+      );
     } catch (e) {
       send(res, 500, { success: false, error: e.message });
     }
+  },
+
+  async '/mjpeg'(req, res, _, url) {
+    const device = new URL(url, 'http://x').searchParams.get('device');
+    if (!device) {
+      return send(res, 400, { success: false, error: 'Query ?device= requis' });
+    }
+    startLiveCaptureLoop(device);
+    const boundary = 'jtframe';
+    res.writeHead(200, {
+      'Content-Type': `multipart/x-mixed-replace; boundary=${boundary}`,
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      Connection: 'keep-alive',
+    });
+    let closed = false;
+    req.on('close', () => {
+      closed = true;
+      stopLiveCaptureLoop(device);
+    });
+    const push = async () => {
+      while (!closed) {
+        try {
+          let frame = getLiveFrame(device);
+          if (!frame?.buffer || frame.inFlight) {
+            await captureLiveFrame(device).catch(() => null);
+            frame = getLiveFrame(device);
+          }
+          if (frame?.buffer && !closed) {
+            const type = frame.contentType || 'image/jpeg';
+            res.write(`--${boundary}\r\nContent-Type: ${type}\r\nContent-Length: ${frame.buffer.length}\r\n\r\n`);
+            res.write(frame.buffer);
+            res.write('\r\n');
+          }
+        } catch {
+          /* ignore frame errors */
+        }
+        await new Promise((r) => setTimeout(r, LIVE_CAPTURE_INTERVAL_MS));
+      }
+    };
+    void push();
   },
 
   async '/live/start'(req, res, _, url) {
@@ -1656,7 +1781,7 @@ const server = http.createServer((req, res) => {
     handler(req, res, body, url).catch((e) => send(res, 500, { success: false, error: e.message }));
   };
 
-  if (req.method === 'GET' && (pathname === '/screenshot' || pathname === '/live/start' || pathname === '/live/stop')) {
+  if (req.method === 'GET' && (pathname === '/screenshot' || pathname === '/mjpeg' || pathname === '/live/start' || pathname === '/live/stop')) {
     const handler = routes[pathname];
     return handler(req, res, null, url).catch((e) => send(res, 500, { success: false, error: e.message }));
   }

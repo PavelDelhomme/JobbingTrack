@@ -71,7 +71,7 @@ export default function MobileEmulatorPage() {
     current: 0,
     total: 0,
   });
-  const [liveViewOn, setLiveViewOn] = useState(false);
+  const [liveViewOn, setLiveViewOn] = useState(true);
   const [buildElapsedSeconds, setBuildElapsedSeconds] = useState(0);
   const screenshotBlobRef = useRef<string | null>(null);
   const dragStart = useRef<{ x: number; y: number; time: number } | null>(null);
@@ -933,7 +933,6 @@ export default function MobileEmulatorPage() {
 
   useEffect(() => {
     let cancelled = false;
-    let inFlight = false;
 
     const revokeBlob = () => {
       if (screenshotBlobRef.current) {
@@ -956,53 +955,20 @@ export default function MobileEmulatorPage() {
       return;
     }
 
+    // Flux MJPEG continu (beaucoup plus fluide que le polling PNG).
     fetch(
       `${base()}/live/start?device=${encodeURIComponent(selectedDevice)}`,
     ).catch(() => {});
-
-    const minGapMs = journeyRunning ? 350 : 16;
-
-    const tick = async () => {
-      while (!cancelled) {
-        if (inFlight) {
-          await new Promise((r) => setTimeout(r, 8));
-          continue;
-        }
-        inFlight = true;
-        const t0 = performance.now();
-        try {
-          const res = await fetch(
-            `${base()}/screenshot?device=${encodeURIComponent(selectedDevice)}&live=1&t=${Date.now()}`,
-            { cache: "no-store" },
-          );
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const blob = await res.blob();
-          const objectUrl = URL.createObjectURL(blob);
-          if (cancelled) {
-            URL.revokeObjectURL(objectUrl);
-          } else {
-            revokeBlob();
-            screenshotBlobRef.current = objectUrl;
-            setScreenshotUrl(objectUrl);
-          }
-        } catch {
-          /* adb / contrôleur transitoire */
-        } finally {
-          inFlight = false;
-        }
-        const elapsed = performance.now() - t0;
-        await new Promise((r) =>
-          setTimeout(r, Math.max(0, minGapMs - elapsed)),
-        );
-      }
-    };
-
-    void tick();
+    revokeBlob();
+    setScreenshotUrl(
+      `${base()}/mjpeg?device=${encodeURIComponent(selectedDevice)}&t=${Date.now()}`,
+    );
 
     return () => {
       cancelled = true;
       revokeBlob();
       stopLive(selectedDevice);
+      void cancelled;
     };
   }, [selectedDevice, controllerOk, controllerUrl, journeyRunning, liveViewOn]);
 
@@ -1507,14 +1473,14 @@ export default function MobileEmulatorPage() {
                   <span className="text-xs font-normal text-gray-500 dark:text-gray-500 ml-2">
                     clic = tap | glisser = scroll/swipe
                   </span>
-                  <label className="ml-auto flex items-center gap-2 text-sm font-normal text-gray-600 dark:text-gray-400 cursor-pointer">
+                  <label className="ml-auto flex items-center gap-2 text-sm font-medium text-indigo-700 dark:text-indigo-300 cursor-pointer bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800">
                     <input
                       type="checkbox"
                       checked={liveViewOn}
                       onChange={(e) => setLiveViewOn(e.target.checked)}
                       className="rounded border-gray-300 dark:border-gray-600"
                     />
-                    Aperçu continu (hors parcours)
+                    Aperçu live appareil ADB
                   </label>
                 </h2>
                 <div
@@ -1535,7 +1501,7 @@ export default function MobileEmulatorPage() {
                     <div className="w-[360px] h-[640px] flex items-center justify-center text-gray-500 text-center px-4 text-sm">
                       {journeyRunning
                         ? "Rafraichissement..."
-                        : "Cochez « Aperçu continu » ou lancez un parcours pour afficher l’écran."}
+                        : "Sélectionnez un appareil ADB puis laissez « Aperçu live » coché pour le rendu en direct."}
                     </div>
                   )}
                 </div>
