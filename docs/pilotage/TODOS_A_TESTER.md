@@ -29,6 +29,15 @@
 | MOB-ENT-01 porteur | Liste entreprises OK ; contacts détail KO | **REWORK** | Suite : contacts liés company |
 | AppSnack mobile | clear + durée forcée (relance créée/supprimée) | **Fix** APK 1.0.34 | Re-test D.6 |
 
+### MOB-ENT-01 suite — contacts liés entreprise (22/07)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| Cause | ContactCompany pointait vers anciennes Company (autre owner) après backfill apps | **Confirmé** SQL | |
+| `backfill-contact-company-links.sql` | INSERT liens vers Company owned + via ContactApplication | **OK** Capgemini 2, Dassault 1, Orange 1 ; OVH 0 (pas de contact) | |
+| `GET /contacts/company/:id` | OR ContactCompany + ContactApplication | **Fix** contact.controller | restart contact-service |
+| Porteur | Détail Capgemini → Marie/Luc visibles | **À valider** | rafraîchir app |
+
 ### PILOTAGE-UI-04 — Tableau de suivi interactif (22/07)
 
 | Test | Attendu | Résultat | Suite |

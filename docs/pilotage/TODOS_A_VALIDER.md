@@ -14,7 +14,7 @@
 
 | ID | À faire | Décision | Notes |
 |----|---------|----------|-------|
-| **MOB-ENT-01** | Onglet **Entreprises** : voir OVHcloud, Capgemini, etc. (mêmes noms que candidatures) ; ouvrir détail (candidatures + contacts) | **REWORK 22/07** | Liste OK ; **contacts liés absents / incohérents** dans le détail → à reprendre |
+| **MOB-ENT-01** | Onglet **Entreprises** : voir OVHcloud, Capgemini, etc. ; détail candidatures + **contacts liés** | **REWORK 22/07** → re-test | Fix liens ContactCompany + API ; Capgemini doit montrer Marie/Luc |
 | **WEB-LOGIN-01** | Login backoffice : mauvais mdp → bandeau rouge FR, **sans** overlay Next.js rouge | **OK 22/07** | Bandeau FR OK ; plus d’overlay Next ; `console.warn` login retiré — reste ligne réseau 401 navigateur (normale) |
 | **EMU-LIVE-01** | `/backoffice/mobile-emulator` : device ADB + **Aperçu live** → écran téléphone en direct | **OK 22/07** | Samsung + flux live visible |
 | **PILOTAGE-UI-04** | `/backoffice/pilotage` → **Tableau de suivi** : items à valider, boutons OK/KO, écriture dans les `.md` (dev/préprod) | | SUPER_ADMIN · fix nginx `/api/pilotage` 22/07 — hard refresh HTTPS 5443 |
