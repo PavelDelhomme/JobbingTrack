@@ -501,6 +501,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       ],
     },
     {
+      id: "pilotage",
+      label: "Pilotage",
+      icon: "🧭",
+      isCollapsible: false,
+      items: [
+        {
+          name: "Suivi des tâches",
+          href: "/backoffice/pilotage",
+          icon: "🧭",
+        },
+      ],
+    },
+    {
       id: "dev",
       label: "Développement",
       icon: "🛠️",

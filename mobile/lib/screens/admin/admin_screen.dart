@@ -33,6 +33,7 @@ class AdminScreen extends StatelessWidget {
                 crossAxisSpacing: 16,
                 children: [
                   _buildCard(context, Icons.people_alt, 'Utilisateurs', Colors.indigo[600]!, '/users'),
+                  _buildCard(context, Icons.explore, 'Pilotage', Colors.brown[600]!, '/admin/pilotage'),
                   _buildCard(context, Icons.analytics, 'Analytics', Colors.teal[600]!, '/analytics'),
                   _buildCard(context, Icons.speed, 'Performances', Colors.blueGrey[700]!, '/performance'),
                   _buildCard(context, Icons.article, 'Logs', Colors.amber[600]!, '/logs'),

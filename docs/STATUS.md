@@ -1,6 +1,34 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 17 juin 2026 — **triage repo/scripts (phase D)** ; validation mobile **en pause**.
+**Dernière mise à jour** : **22 juillet 2026**
+
+## ▶ Où on en est
+
+| | |
+|---|---|
+| **Phase** | **B** — Gate pré-prod mobile |
+| **Point** | **B2-D.6 FAB Relance** |
+| **APK** | `1.0.31+31` |
+| **UI suivi** | `/backoffice/pilotage` |
+
+## Process de suivi (depuis 22/07)
+
+1. **`pilotage/TODOS.md`** — liste à faire + récemment fait  
+2. **`pilotage/TODOS_A_TESTER.md`** — tests & résultats (ex-`TODOS_A_VERIFIER`)  
+3. **OK** → `pilotage/TODOS_DONE.md` · **KO** → retour `TODOS.md`  
+4. Porteur : phase active seule dans `pilotage/TODOS_A_VALIDER.md`  
+5. Règles : `pilotage/PILOTAGE.md` · branches : `development/BRANCHES.md`
+
+## Correctifs du jour (22/07)
+
+- Popup crashs mobile/logs : fermeture clic extérieur + Escape  
+- Process pilotage clarifié + page backoffice Pilotage  
+- Crash Flutter setState shell : corrigé (APK 1.0.31) — re-test D.6  
+- **À diagnostiquer** : mémoire multi-onglets backoffice (`PERF-TAB-01`)
+
+---
+
+## Historique (ne pas suivre à la place de TODOS « En cours »)
 
 ## Priorité immédiate — chantier en cours
 

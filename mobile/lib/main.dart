@@ -39,6 +39,7 @@ import 'package:jobbingtrack_mobile/screens/jobbing/auth/permissions_gate_screen
 import 'package:jobbingtrack_mobile/utils/post_auth_navigation.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/interim/interim_screen.dart';
 import 'package:jobbingtrack_mobile/screens/admin/admin_screen.dart';
+import 'package:jobbingtrack_mobile/screens/admin/pilotage_screen.dart';
 import 'package:jobbingtrack_mobile/widgets/admin_guard.dart';
 import 'package:jobbingtrack_mobile/widgets/telemetry_lifecycle_bridge.dart';
 import 'package:jobbingtrack_mobile/widgets/telemetry_dev_status_banner.dart';
@@ -227,6 +228,8 @@ class JobbingTrackMobileApp extends StatelessWidget {
             return PermissionsGateScreen(nextRoute: next is String ? next : '/home');
           },
           '/admin': (context) => const AdminGuard(child: AdminScreen()),
+          '/admin/pilotage': (context) =>
+              const AdminGuard(child: PilotageScreen()),
         },
         ),
       ),

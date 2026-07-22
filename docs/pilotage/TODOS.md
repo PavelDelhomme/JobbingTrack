@@ -1,72 +1,87 @@
-# TODOS — chantier backoffice / API / doc (JobbingTrack)
+# TODOS — choses à faire (source de vérité)
 
-> **Porteur** : ce fichier est le **backlog technique agent** (lots A–H, centaines de tâches).  
-> **Pour valider le produit** → **[`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md)** + [`TODOS_A_VALIDER.md`](TODOS_A_VALIDER.md).
+Dernière mise à jour : **22 juillet 2026**
 
-**Dernière mise à jour : 2 juillet 2026** — feuille de route réorganisée ; **Phase C déploiement préparée** (`feat/deploy-portainer-production`) ; checklist porteur [`PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md).
+## Process de suivi (obligatoire)
 
-## Feuille de route — ordre de travail (juin 2026)
+```
+TODOS.md          →  travail / backlog / priorité
+       ↓
+TODOS_A_TESTER.md →  tests & résultats pour chaque item ouvert
+       ↓
+   OK  → TODOS_DONE.md   (+ retirer de A_TESTER, avancer TODOS)
+   KO  → revenir dans TODOS.md (prochaine action)
+```
 
-> **Règle porteur** : ne pas démarrer triage dépôt, réorganisation fichiers, Lot H/E, audit secrets ni campagne validations backoffice P1C tant que les **phases A + B** ne sont pas clôturées. Voir `PILOTAGE.md`.  
-> **Branche agent (07/07)** : travail fonctionnel sur **`feat/<sujet>`** — merge **`dev`** à la fin de chaque bloc TODO (ex. BL-26-04, BL-26-05…). Ne pas committer directement sur `dev`. Voir `docs/development/BRANCHES.md`.
+**Porteur** valide le bloc phase active dans [`TODOS_A_VALIDER.md`](TODOS_A_VALIDER.md) (uniquement la phase en cours, sans mode d’emploi).  
+**Agent** exécute / corrige via ce fichier + preuves dans `TODOS_A_TESTER.md`.  
+**UI** : backoffice **Pilotage** (`/backoffice/pilotage`) — SUPER_ADMIN / ADMIN.
 
-### Phase A — EN COURS (mobile + agent utilisateur)
+Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BRANCHES.md`](../development/BRANCHES.md)
 
-| # | Sujet | Prochaine action | Preuve / script |
-|---|--------|------------------|-----------------|
-| A1 | **Smokes ADB fiables et rapides** | Gate : `smoke-run-mobile-fast.js` ; pré-vol `smoke-preflight.js` ; refus appels entrants **uniquement** pendant scripts `scripts/mobile/smoke/` (`smoke-runtime.js`, pas de `.env`) | `TODOS_A_VERIFIER.md` § phase mobile |
-| A2 | **Bypass biométrie smokes uniquement** | Pref `test_automation_skip_biometric` + `prepareSmokeSession` ; ne pas casser biométrie produit (validée porteur 19/06) | APK debug rebuild après changements Flutter |
-| A3 | **Parcours mobile métier** | FAB candidature (ciblage exact poste/entreprise), navigation retour shell, offline, entités, profil | Smokes listés dans `smoke-run-mobile-fast.js` |
-| A4 | **Hub admin mobile** | ~~Switch TEST_ADMIN → hub → restore TEST_USER~~ **OK 02/07** ; **suite** : actions détail utilisateur (désactivation, rôle, reset, impersonation) | `smoke-mobile-admin-hub-adb.js` + test manuel hub → Utilisateurs → détail |
-| A4b | **Admin mobile — détail utilisateur** | Fix garde biométrique (fallback dialogue si empreinte refusée / mode smoke ADB) ; API `/users/:id/status` protégée ADMIN | `admin_sensitive_action_guard.dart` ; validation porteur étape 2 point 4 |
-| A5 | **Agent email `/agent`** | Sync consentements mobile → BDD → web ; UI **switches** statut RGPD (grantedAt) ; même `userId` que session mobile | `AgentEmailContent.tsx`, API `/email-agent/consents` |
-| A6 | **Auth / vérif email smokes** | `ensure-test-accounts-ready.js` ; renvoi vérif API ; deep link ADB | `smoke-verify-email-adb.js`, `smoke-resend-verification-api.js` |
-| A7 | **FAB détail candidature — picker contact unifié** | Sections candidature → entreprise → autres ; recherche scrollable ; « Créer nouveau contact » + import téléphone ; multi-contacts entretien ; validations FR prénom/nom (majuscule auto) | `contact_picker_sheet.dart`, `application_detail_screen.dart` ; smokes FAB existants |
-| A8 | **Calendrier — vue Planning + drawer dédié** | Vue **Planning** par défaut (semaine/jour) ; drawer calendrier (filtres types, bascule liste) ; retirer **Profil** et **Événements** du drawer principal (doublon barre basse) | `events_screen.dart`, `calendar_drawer.dart`, `app_drawer.dart` |
-| A9 | **Isolation données par utilisateur** | Contacts, candidatures, notifications scopés `userId` — smoke API 2 comptes | `smoke-user-data-isolation-api.js` |
-| A10 | **Changement statut candidature — notif in-app (pas mail instantané)** | Snackbar + centre notifications (pas email séparé ; digest 18h section statuts OK) ; FCM prod = chantier distinct (`dev-push-*`) | `NotificationProvider`, `_notifyStatusIfChanged` ; doc `NOTIFICATION_CENTER.md` |
+---
 
-### Phase B — Gate validation porteur (après A)
+## Récemment terminé (max 1 catégorie + 3 sous-items)
 
-| # | Sujet | Ordre | Bloquant |
-|---|--------|-------|----------|
-| B0 | **File stricte porteur** | **1→5** lignes 319–323 dans `TODOS_A_VALIDER.md` | **Oui** — merge `dev` interdit avant OK étape 5 |
-| B1 | Validations Lot D restantes | 324+ après B0 | Oui pour clôture phase B |
-| B2 | **D8 — Hub tests backoffice** | UI `/backoffice/mobile-emulator` | Gate pré-prod |
-| B3 | Batterie complète optionnelle | `smoke-run-mobile-validation.js` | Non bloquant merge |
+### Mobile B2 — stabilisation shell / crash (22/07)
 
-Détail pas à pas porteur : **[`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md)** (checklist simple) · détail officiel **`TODOS_A_VALIDER.md` § « File de validation porteur »**.
+1. **OK** B2-B.3 USER drawer sans Administration  
+2. **OK** B2-B.4 Impersonnaliser → Désimpersonnaliser → hub  
+3. **OK** B2-C.5 Relances + correctif `ShellTabRegistry` setState (APK **1.0.31**)
 
-### Phase C — Déploiement VPS / OTA mobile (**préparé agent — actions porteur**)
+---
 
-> Checklist porteur pas à pas : **[`docs/production/PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md)**  
-> Branche : **`feat/deploy-portainer-production`** · Merge `dev` après 1er deploy VPS OK.
+## ▶ En cours maintenant
 
-| # | Sujet | Livré agent | Action porteur | Statut |
-|---|--------|-------------|----------------|--------|
-| C1 | Stack Portainer Git | `deploy/production/docker-compose.yml`, `.env.example`, `PREMIER_DEPLOIEMENT.md` | Créer stack `jobbingtrack` sur VPS | [ ] porteur |
-| C2 | NPM + HTTPS | Doc `PORTAINER_STACK.md` | Proxy `api.*` + web → 127.0.0.1:3000/3001 | [ ] porteur |
-| C3 | CI images GHCR | `build-push-images.yml`, webhooks documentés | Secrets `DEV_DEPLOY_URL` / `PROD_DEPLOY_URL` | [ ] porteur |
-| C4 | OTA Android in-app | API releases + install au démarrage | Tester Samsung canal **dev** | [ ] porteur |
-| C5 | Backoffice push mobile | `/backoffice/mobile/releases` | Upload dev → **Valider → PRODUCTION** | [ ] porteur |
-| C6 | Builds mobile | `build-apk-release.sh`, `mobile-release-android.yml` | `API_BASE_URL` prod + rebuild APK | [x] porteur |
-| C7 | SMTP `@jobbingtrack.com` | doc OVH | Action **porteur** OVH (MX Plan) — après étape 2 mobile | [ ] bloqué 320 |
-| C8 | Gate préprod 9 étapes | `A_VALIDER_AVANT_PRODUCTION.md` | Après C1–C6 + clôture mobile B | [ ] |
+| ID | Phase | Item | Action immédiate | Preuve / test |
+|----|-------|------|------------------|---------------|
+| **B2-D.6** | B | FAB Relance | Porteur : créer relance depuis candidature | [`TODOS_A_VALIDER.md`](TODOS_A_VALIDER.md) · [`TODOS_A_TESTER.md`](TODOS_A_TESTER.md) |
+| B2-D.7 | B | FAB Appel | après D.6 | idem |
+| B2-D.8 | B | FAB Entretien | après D.7 | idem |
+| B2-D.9 | B | FAB Contact | après D.8 | idem |
+| B2-E.10–11 | B | Shell re-tap / FAB contact | après D | idem |
+| B2-F.12 | B | Double retour Accueil | après E | idem |
+| UX-LOGS-01 | D | Popup crashs : clic extérieur | **Corrigé agent** — re-test porteur | `AnalyticsRecordDetailDialog` |
+| PERF-TAB-01 | D | Diagnostic mémoire multi-onglets backoffice | Mesurer RAM/CPU/réseau 1 vs N onglets | `TODOS_A_TESTER.md` § Mémoire |
+| PILOTAGE-UI-01 | D | UI Pilotage web | Page `/backoffice/pilotage` | livré MVP |
+| PILOTAGE-UI-02 | D | UI Pilotage mobile admin | Écran hub Admin → Pilotage (MVP) | livré MVP |
 
-### Phase D — POST-D8 / triage / hygiène (**EN COURS — branche `chore/repo-scripts-docs-hygiene`**)
+---
 
-| # | Sujet | Quand |
-|---|--------|-------|
-| D1 | **Lot H** — réorg `scripts/`, `tests/`, `tools/`, doublons | **Maintenant** — voir `docs/development/REPO_ORGANIZATION.md` |
-| D2 | **Lot E** — revue `.md`, doc mobile/hub/env | Après H0 inventaire scripts |
-| D3 | **Lot H bis** — audit secrets (`.env` seule source valeurs réelles) | Avant prod |
-| D4 | **Triage dépôt** — `flutter-mobile-app/` vs `mobile/`, credentials `tests/` | Phase D |
-| D5 | **Backoffice secondaire** — Statistics P1B, Performances P1C | Phase D (validations dans `TODOS_A_VALIDER.md` lignes P1B/P1C) |
-| D6 | **Versionnement semver** | Phase D / gate prod |
-| D7 | **A2 — Services & Logs backoffice** | **Gate prod** — **BL-26-27** ; après clôture mobile étape 2 (pas pendant) |
-| **—** | **Reprise validation mobile** étapes 1→5 | **Après** triage scripts/docs initial (porteur) |
+## File Phase B (gate porteur)
 
-Backlog détaillé historique : sections **Lot A–H** plus bas dans ce fichier (ne pas dérouler linéairement).
+| # | Item | Statut |
+|---|------|--------|
+| B1 | Inscription + email | ✅ DONE |
+| **B2** | Navigation + FAB | **▶ D.6** |
+| B3 | SMTP OVH | ⏸ |
+| B4 | Agent email admin | ⏸ |
+| B5 | Consentements RGPD | ⏸ |
+
+---
+
+## File Phase C (déploiement — parallèle)
+
+Voir [`../production/PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md) · C0–C8 dans archive / doc déploiement.
+
+---
+
+## File Phase D (après B — extraits prioritaires)
+
+| ID | Sujet |
+|----|-------|
+| PERF-TAB-01 | Diagnostic + éventuelle pause polling onglets arrière-plan |
+| A2k | Budget mémoire projet 101 Go + tooltips / couleurs / downsampling |
+| A2l | Axes % Synthèse (fix agent livré — re-check) |
+| PILOTAGE-UI-02 | Suivi tâches sur mobile admin |
+| Lot H / E | Hygiène repo / docs (déjà partiel) |
+
+---
+
+## Archive backlog (lots historiques)
+
+> Ne pas traiter linéairement. Prioriser **En cours maintenant**.
+
 
 ## Backlog documenté porteur — retours récap session 26/06
 

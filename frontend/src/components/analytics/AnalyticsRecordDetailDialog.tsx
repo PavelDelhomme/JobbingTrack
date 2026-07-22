@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { formatLocalDateTime } from "@/lib/utils/date";
 
 type RecordLike = Record<string, unknown>;
@@ -27,6 +28,15 @@ export function AnalyticsRecordDetailDialog({
   record: RecordLike | null;
   onClose: () => void;
 }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   if (!open || !record) return null;
 
   const entries = Object.entries(record).filter(
@@ -39,8 +49,12 @@ export function AnalyticsRecordDetailDialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby="analytics-detail-title"
+      onClick={onClose}
     >
-      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900 sm:rounded-xl">
+      <div
+        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900 sm:rounded-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700 sm:px-6">
           <h2
             id="analytics-detail-title"

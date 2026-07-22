@@ -1,0 +1,49 @@
+{
+  "updatedAt": "2026-07-22",
+  "apk": "1.0.31+31",
+  "phase": {
+    "id": "B",
+    "label": "Gate pré-prod mobile",
+    "step": "B2",
+    "subStep": "D",
+    "point": "D.6",
+    "title": "FAB Relance"
+  },
+  "recentDone": [
+    { "id": "B2-B.3", "label": "USER drawer sans Administration" },
+    { "id": "B2-B.4", "label": "Impersonnaliser → hub admin" },
+    { "id": "B2-C.5", "label": "Relances + fix ShellTabRegistry (1.0.31)" }
+  ],
+  "queue": [
+    { "id": "B2-D.6", "status": "active", "label": "FAB Relance" },
+    { "id": "B2-D.7", "status": "pending", "label": "FAB Appel" },
+    { "id": "B2-D.8", "status": "pending", "label": "FAB Entretien" },
+    { "id": "B2-D.9", "status": "pending", "label": "FAB Contact" },
+    { "id": "B2-E.10", "status": "pending", "label": "Re-tap Candidatures" },
+    { "id": "B2-E.11", "status": "pending", "label": "FAB contact onglet" },
+    { "id": "B2-F.12", "status": "pending", "label": "Double retour Accueil" }
+  ],
+  "openFixes": [
+    {
+      "id": "UX-LOGS-01",
+      "label": "Popup crashs : fermer au clic extérieur / Escape",
+      "status": "fixed_pending_retest"
+    },
+    {
+      "id": "PERF-TAB-01",
+      "label": "Diagnostic mémoire multi-onglets backoffice",
+      "status": "todo"
+    },
+    {
+      "id": "PILOTAGE-UI-02",
+      "label": "Écran Pilotage mobile admin (miroir suivi-actif)",
+      "status": "mvp_shipped"
+    }
+  ],
+  "files": {
+    "todos": "docs/pilotage/TODOS.md",
+    "tester": "docs/pilotage/TODOS_A_TESTER.md",
+    "valider": "docs/pilotage/TODOS_A_VALIDER.md",
+    "done": "docs/pilotage/TODOS_DONE.md"
+  }
+}

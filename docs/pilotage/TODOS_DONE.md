@@ -10,6 +10,8 @@ Ce fichier archive ce que le porteur a réellement validé. Les validations tech
 
 | Date | Élément validé | Environnement | Preuve / remarque |
 |------|----------------|---------------|-------------------|
+| 22/07/2026 | Process pilotage refondu (TODOS → A_TESTER → DONE) + UI `/backoffice/pilotage` | docs + local | Livré agent ; porteur suit B2-D.6 |
+| 22/07/2026 | Popup crashs mobile/logs — fermeture backdrop/Escape | local | Fix `AnalyticsRecordDetailDialog` — re-test porteur |
 | 22/07/2026 | Mobile B2 — **B.3** USER drawer sans Administration | Samsung + APK 1.0.31 | OK porteur explicite |
 | 22/07/2026 | Mobile B2 — **B.4** ADMIN impersonnaliser → Désimpersonnaliser → hub | Samsung | OK porteur explicite |
 | 22/07/2026 | Mobile B2 — **C.5** Candidatures → Relances (liste sans crash) | Samsung | OK porteur ; crash setState pendant build corrigé agent (APK 1.0.31) |

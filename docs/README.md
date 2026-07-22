@@ -11,7 +11,9 @@ Ce dossier centralise la documentation. **Point d’entrée produit** : **[STATU
 **Porteur (validation produit)** :
 
 1. **[pilotage/GUIDE_VALIDATION_PORTEUR.md](pilotage/GUIDE_VALIDATION_PORTEUR.md)** — **checklist mobile** (**B2-D.6 Relance** active).
-2. **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)** — cocher / répondre OK ou KO (position exacte en tête de fichier).
+2. **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)** — validations porteur **phase active seule**.
+3. **[pilotage/TODOS_A_TESTER.md](pilotage/TODOS_A_TESTER.md)** — tests & résultats.
+4. UI : `/backoffice/pilotage`
 
 **Vue globale** :
 
