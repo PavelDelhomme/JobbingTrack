@@ -1,87 +1,220 @@
 # TODOs à valider par le porteur
 
-Dernière mise à jour : 11 juillet 2026 (APK 1.0.28+28 — retour 2b, swipe listes, OTA dev publié)
+Dernière mise à jour : **22 juillet 2026** (APK **1.0.31+31** — crash shell corrigé)
 
 ---
 
-## Porteur — lire en premier
+## ▶ VOUS ÊTES ICI (lire en premier)
 
-| | |
-|---|---|
-| **Guide pas à pas (mobile, étape par étape)** | **[`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md)** ← **commencer ici** |
-| **Vous êtes ici** | **Étape 2 mobile** — checklist FAB 6–11 + re-test navigation → [§ étape 2](#étape-2--ligne-320--navigation-retour-admin-relances-ajouts-candidature) |
-| **Registre à cocher après test** | Ligne **320** (étape 2) ; releases OTA **OK 10/07** (ligne 416) |
-| **Ne pas utiliser pour valider** | [`TODOS.md`](TODOS.md) = backlog **agent** uniquement |
+| Champ | Valeur |
+|-------|--------|
+| **Phase** | **B — Gate pré-prod mobile** (feuille de route `PILOTAGE.md`) |
+| **Étape** | **2 / 5** — Navigation + FAB + admin |
+| **Sous-étape** | **D — FAB depuis candidature** |
+| **Point exact** | **D.6 Relance** → puis D.7 Appel → D.8 Entretien → D.9 Contact → **E.10–11** → **F.12** |
+| **Ce n’est PAS** | P1A / P1B / P1C backoffice (file secondaire plus bas, **reportée**) |
+| **Guide pas à pas** | [`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md) § Étape 2 |
+| **Preuves agent** | [`TODOS_A_VERIFIER.md`](TODOS_A_VERIFIER.md) (lecture seule) |
+| **Backlog technique** | [`TODOS.md`](TODOS.md) — **ne pas** utiliser pour valider |
+| **Déjà validé** | [`TODOS_DONE.md`](TODOS_DONE.md) |
 
-**Réponse attendue après l’étape 2** (OK **global** uniquement si points 1–11 + impersonnalisation + FAB 6–11 confirmés) :
+**Réponse OK globale** (uniquement quand A→F sont OK) :
 
 ```text
 OK Mobile — navigation retour, admin, relances, ajouts candidature
 ```
 
-**Retours porteur 17/06/2026 (partiel — pas d’OK global)** : navigation retour Profil/Accueil et listes candidatures **OK** ; drawer USER sans admin et hub ADMIN **OK** ; édition prénom/nom/email/tél **OK** ; **KO** sortie impersonnalisation (bloquant) ; points FAB 6–11 **non confirmés** ; backlog produit noté (tutoriel, recherche globale, profil email/tél, logs backoffice, actualisation listes au retour, double retour système).
+**Réponses partielles** (pendant le parcours) : `OK Étape2-D6 FAB Relance`, `OK Étape2-E10 re-tap`, etc.
 
 ---
 
-## File mobile 1→5 (ordre strict)
+## Carte des fichiers (ordre de lecture)
 
-| Étape | Statut | Aller à |
-|-------|--------|---------|
-| **1** Inscription + email | ✅ OK 25/06 | [§ étape 1](#étape-1--ligne-319--inscription--télémétrie--vérif-email-ok-2506) |
-| **2** Navigation + FAB | **▶ EN COURS — retours partiels porteur** | [§ étape 2](#étape-2--ligne-320--navigation-retour-admin-relances-ajouts-candidature) · [guide](GUIDE_VALIDATION_PORTEUR.md#étape-2--5--checklist-mobile-samsung) |
-| **3** SMTP OVH | ⏸ après 2 | [§ étape 3](#étape-3--ligne-321--email-migration-smtp-jobbingtrackcom-ovh) |
-| **4** Agent email | ⏸ après 3 | [§ étape 4](#étape-4--ligne-322--agent-email--activation-admin--gestion) |
-| **5** Consentements RGPD | ⏸ après 4 | [§ étape 5](#étape-5--ligne-323--consentements-rgpd-agent-sync-mobile) |
+| # | Fichier | Qui | Rôle |
+|---|---------|-----|------|
+| 1 | [`PILOTAGE.md`](PILOTAGE.md) | tous | Phases A→E, règle bloquante |
+| 2 | **Ce fichier** (`TODOS_A_VALIDER.md`) | **porteur** | Validations produit ouvertes, une à la fois |
+| 3 | [`TODOS_A_VERIFIER.md`](TODOS_A_VERIFIER.md) | agent | Preuves techniques (smokes, CI) |
+| 4 | [`TODOS_DONE.md`](TODOS_DONE.md) | archive | OK porteur archivés |
+| 5 | [`TODOS.md`](TODOS.md) | agent | Backlog technique ordonné |
 
-**Déploiement VPS** (parallèle, indépendant de l’étape 2) : [`../production/PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md)
+---
 
-**Compat Android multi-appareils** (bêta / Play Store — **pas maintenant**) : [`../mobile/STRATEGIE_COMPATIBILITE_ANDROID.md`](../mobile/STRATEGIE_COMPATIBILITE_ANDROID.md)
+## File mobile 1→5 (ordre strict — Phase B)
+
+| Étape | Code | Sujet | Statut | Aller à |
+|-------|------|-------|--------|---------|
+| **1** | B1 | Inscription + email | ✅ OK 25/06 → [`DONE`](TODOS_DONE.md) | — |
+| **2** | **B2** | Navigation + FAB + admin | **▶ EN COURS — D.6** | [§ Étape 2](#étape-2--navigation--fab--admin) |
+| **3** | B3 | SMTP OVH `@jobbingtrack.com` | ⏸ après B2 | [§ Étape 3](#étape-3--ligne-321--email-migration-smtp-jobbingtrackcom-ovh) |
+| **4** | B4 | Agent email admin | ⏸ après B3 | [§ Étape 4](#étape-4--ligne-322--agent-email--activation-admin--gestion) |
+| **5** | B5 | Consentements RGPD `/agent` | ⏸ après B4 | [§ Étape 5](#étape-5--ligne-323--consentements-rgpd-agent-sync-mobile) |
+
+**Parallèle (indépendant)** : Phase C déploiement VPS → [`../production/PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md)
 
 ---
 
 ## Règle
 
-Ce fichier bloque la suite produit. Tant qu’une ligne **bloquante** est ouverte ici, l’agent ne doit pas avancer vers une nouvelle fonctionnalité **hors phase mobile A** (voir `PILOTAGE.md`).
+Ce fichier bloque la suite produit. Tant qu’une ligne **bloquante** (file mobile B1→B5) est ouverte, l’agent ne démarre **pas** de nouvelle feature hors phase mobile A — sauf demande explicite.
 
-Règle d’ordre : l’agent et le porteur traitent **la première ligne ouverte Lot D / Infra mobile** uniquement pour la validation produit. Les lignes **P1B / P1C backoffice** plus bas sont **reportées (phase D)** — ne pas les traiter avant clôture mobile, sauf demande explicite du porteur.
+- Traiter **la première sous-étape ouverte** de l’étape active (ici **B2-D**).
+- Les blocs **P1A / P1B / P1C** plus bas = **phase D**, reportés.
+- Après `OK` porteur explicite → archive dans `TODOS_DONE.md` (date + env + preuve).
+- Preuves agent → `TODOS_A_VERIFIER.md` (l’agent ne coche pas à la place du porteur).
 
-Quand une ligne est validée par le porteur, la déplacer vers `TODOS_DONE.md` avec la date, l’environnement et la preuve.
-
-## Priorités (échelle)
+### Priorités (échelle — après clôture mobile)
 
 | Niveau | Sens |
 |--------|------|
-| **P0** | Bloquant produit local : sécurité, rapports, menaces, HTTPS — à valider avant le reste. |
-| **P1A** | Sécurité / opérations sensibles : alertes, archives, restauration, tests offensifs contrôlés, actions avant purge. |
-| **P1B** | Observabilité métier : Statistics, logs, corrélation, chiffres cohérents. |
-| **P1C** | UX backoffice et lisibilité sécurité : thème, popup, graphes, navigation, pages de sécurité non destructives. |
-| **P1D** | Gate de fin de journée / avant gros merge : suite complète et lecture rapports. |
-| **P2** | Utile mais non bloquant pour la file courte ; peut attendre la fin des P0/P1 ou aller dans `docs/BACKLOG.md` si reporté. |
+| **P0** | Bloquant sécurité / HTTPS / rapports |
+| **P1A** | Ops sensibles : archives, restauration, tests offensifs, alertes |
+| **P1B** | Observabilité : Statistics, logs, corrélation |
+| **P1C** | UX backoffice : thème, graphes, navigation |
+| **P1D** | Gate fin de journée / avant gros merge |
+| **P2** | Utile, non bloquant |
 
-## Comment valider
+### Prérequis UI (backoffice)
 
-Le porteur valide la première ligne ouverte soit en répondant dans le chat avec `OK` ou `KO` + détail, soit en renseignant les colonnes de cette même ligne :
+| # | Action |
+|---|--------|
+| 1 | Stack up : `docker ps --filter name=jobbingtrack` (postgres + frontend healthy) |
+| 2 | Login : [http://localhost:5003/login](http://localhost:5003/login) (`ADMIN_EMAIL` / `ADMIN_PASSWORD`) |
+| 3 | Hub : [http://localhost:5003/b4ck0ff1ce](http://localhost:5003/b4ck0ff1ce) |
+| 4 | Terminal à la racine du repo |
 
-- `Notes porteur` : observations libres, ressenti UI, problème vu, amélioration souhaitée.
-- `Preuves porteur` : capture, chemin de rapport, URL testée, valeur observée, compteur avant/après.
-- `Décision porteur` : `OK <nom exact>` ou `KO <nom exact>` + détail.
+### Prérequis mobile (Étape 2)
 
-L’agent ne coche pas à la place du porteur : après un `OK` explicite, il archive la ligne dans `TODOS_DONE.md` ; après un `KO`, il corrige ou crée la tâche de correction avant toute suite.
-
-## Mode opératoire détaillé pour valider
-
-Guide pas à pas : **où cliquer**, **quelles commandes lancer**, **quoi regarder**, **quoi répondre**. Une ligne du tableau = une validation à la fois.
-
-### Prérequis communs (toutes les validations UI)
-
-| Étape | Action |
-|-------|--------|
-| 1 | Stack locale up : conteneurs `jobbingtrack-postgres` et `jobbingtrack-frontend` **healthy** (`docker ps --filter name=jobbingtrack`). Si down : cible Make documentée **`up-full`** (équivalent `docker compose up -d` depuis la racine du repo). |
-| 2 | Connexion : [https://jobbingtrack.localhost:5443/login](https://jobbingtrack.localhost:5443/login) (ou [http://localhost:5003/login](http://localhost:5003/login)) avec `ADMIN_EMAIL` / `ADMIN_PASSWORD` du `.env`. |
-| 3 | Hub backoffice : [https://jobbingtrack.localhost:5443/b4ck0ff1ce](https://jobbingtrack.localhost:5443/b4ck0ff1ce) — menu latéral gauche. |
-| 4 | Terminal : se placer à la racine du repo (`cd …/JobbingTrack`). Préférer `/usr/bin/env node …` si la commande `node` échoue silencieusement (shell `lazynvm`). |
+| # | Action |
+|---|--------|
+| 1 | APK **1.0.31+31** (ou plus récent) sur Samsung |
+| 2 | `adb reverse tcp:5002 tcp:5002` |
+| 3 | ~7 candidatures (sinon `node scripts/mobile/reset-porteur-validation-data.js --confirm`) |
+| 4 | Comptes `.env` : `TEST_USER_*`, `TEST_ADMIN_*`, ou `admin@jobbingtrack.com` |
 
 ---
+
+## Étape 2 — Navigation + FAB + admin
+
+**Identifiant** : `B2` · **APK** : `1.0.31+31` · **Appareil** : Samsung `R5CT7263YJL`
+
+### Progression B2 (lettres = sous-étapes)
+
+| Sous-étape | Points | Statut 22/07 |
+|------------|--------|--------------|
+| **A** Navigation retour | 1, 2, 2b, 2c | ✅ OK |
+| **B** USER / ADMIN | 3, 4 | ✅ OK |
+| **C** Liste Relances | 5 | ✅ OK (+ crash setState corrigé) |
+| **D** FAB candidature | **6 → 9** | **▶ EN COURS — commencer à 6** |
+| **E** Shell | 10, 11 | ⏸ après D |
+| **F** Double retour Accueil | 12 | ⏸ après E |
+
+---
+
+### A — Navigation retour ✅
+
+| Point | Action | Attendu | Décision |
+|-------|--------|---------|----------|
+| **A.1** | Profil → Paramètres → retour | Retour **Profil** | **OK** |
+| **A.2** | Calendrier → Profil → retour système | Retour **Calendrier** | **OK** |
+| **A.2b** | Candidatures → Entreprises → retour ×2 | 1→ liste candidatures ; 2→ Accueil | **OK** (15/07) |
+| **A.2c** | Accueil → drawer Entreprises → retour | Accueil | **OK** |
+
+---
+
+### B — Comptes USER / ADMIN ✅
+
+| Point | Action | Attendu | Décision |
+|-------|--------|---------|----------|
+| **B.3** | Login **TEST_USER** → drawer | Pas « Administration » | **OK 22/07** |
+| **B.4** | **TEST_ADMIN** → impersonnaliser → **Désimpersonnaliser** | Retour **hub admin** | **OK 22/07** |
+
+---
+
+### C — Liste Relances ✅
+
+| Point | Action | Attendu | Décision |
+|-------|--------|---------|----------|
+| **C.5** | Candidatures → Relances | Liste sans crash | **OK 22/07** |
+
+> Crash Flutter `setState during build` (Relances / retour admin→home) : **corrigé** (`ShellTabRegistry` post-frame) dans APK **1.0.31**.
+
+---
+
+### D — FAB depuis une candidature ▶ **ICI**
+
+Ouvre une **candidature** → FAB **Ajouter** → …
+
+| Point | Action | Attendu | Réponse chat | Statut |
+|-------|--------|---------|--------------|--------|
+| **D.6** | **Relance** → Créer | Snackbar + Voir → détail | `OK Étape2-D6 FAB Relance` | **▶ À FAIRE** |
+| **D.7** | **Appel** | Créé + Voir → détail | `OK Étape2-D7 FAB Appel` | **À FAIRE** |
+| **D.8** | **Entretien** | Créé + Voir → détail | `OK Étape2-D8 FAB Entretien` | **À FAIRE** |
+| **D.9** | **Contact** | Visible sur détail candidature | `OK Étape2-D9 FAB Contact` | **À FAIRE** |
+
+---
+
+### E — Shell candidatures ⏸
+
+| Point | Action | Attendu | Réponse chat | Statut |
+|-------|--------|---------|--------------|--------|
+| **E.10** | Sous-onglet Relances/Appels → re-clic **Candidatures** (barre basse) | Liste candidatures (sous-onglet 0) | `OK Étape2-E10 re-tap` | ⏸ |
+| **E.11** | Onglet Contacts → FAB **+** | Sheet + picker entreprise | `OK Étape2-E11 FAB contact` | ⏸ |
+
+---
+
+### F — Retour système Accueil ⏸
+
+| Point | Action | Attendu | Réponse chat | Statut |
+|-------|--------|---------|--------------|--------|
+| **F.12** | Accueil → double retour système (< 2 s) | Quit / comportement attendu | `OK Étape2-F12 double retour` | ⏸ |
+
+---
+
+### Prérequis / smokes agent (référence)
+
+Smokes : `smoke-mobile-navigation-adb.js`, `smoke-mobile-application-detail-fab-adb.js`, `smoke-mobile-admin-hub-adb.js`, `smoke-mobile-impersonation-adb.js`.
+
+**Notes backlog non bloquantes** (après OK global B2) : notes entretien pré/pendant/post (**BL-26-36**), tutoriel (**BL-TUT-01**), recherche globale (**BL-26-19**).
+
+### Clôture Étape 2
+
+Quand **A→F** sont OK, répondre :
+
+```text
+OK Mobile — navigation retour, admin, relances, ajouts candidature
+```
+
+L’agent archive alors cette étape dans `TODOS_DONE.md` et débloque **Étape 3 (B3 SMTP)**.
+
+---
+
+### Annexes mobile (hors chemin critique B2-D)
+
+| Sujet | Statut | Détail |
+|-------|--------|--------|
+| Mobile — erreurs & retours backoffice | [ ] | Aide & retours → backoffice `/mobile/logs` → `OK Mobile logs backoffice` |
+| Mobile — releases OTA | **OK 10/07** | Wizard + publish + promote |
+| Design system OTA | **OK 10/07** | Feedback clair/sombre |
+| Récap agent HTML | [ ] | `OK récap agent HTML` |
+| Hub admin parité backoffice | [ ] | Performances / Analytics / Logs / Utilisateurs |
+| Vue d’ensemble erreurs web | [ ] | Carte erreurs ouvertes 7 j |
+
+---
+
+## Étape 1 — Inscription (archivée)
+
+✅ **OK 25/06** — détails dans [`TODOS_DONE.md`](TODOS_DONE.md).
+
+---
+
+---
+
+# ⏸ FILE SECONDAIRE — Backoffice P0/P1A/P1B/P1C (phase D)
+
+> **Ne pas confondre avec la file mobile ci-dessus.**  
+> Ces validations (P1A archives, P1B Statistics, P1C UX) sont **reportées** tant que l’**Étape 2 mobile** n’est pas clôturée (`OK Mobile — navigation…`), sauf demande explicite du porteur.  
+> L’échelle P0→P2 ci-dessous reste la priorité **après** clôture mobile (ou en parallèle Phase C déploiement uniquement).
 
 ### P1A — Archive logs sécurité sans purge
 
@@ -342,177 +475,6 @@ Menu **Statistics** → sous-onglets en haut de page.
 
 ---
 
-## File de validation porteur — ordre strict (juin 2026)
-
-> **Règle absolue** : tant que l’étape **N** n’est pas validée (`Décision porteur` = `OK …` + ligne archivée dans `TODOS_DONE.md`), **ne pas** passer à l’étape **N+1**.  
-> **Reprise 25/06/2026** : **étape 1 clos** (`TODOS_DONE.md`) — **étape 2 active** (navigation + FAB, ligne 320).
-
-| Étape | Ligne tableau | Sujet | Bloque |
-|-------|---------------|-------|--------|
-| **1** | **319** | Inscription + télémétrie + vérif email | ~~tout le reste~~ **OK 25/06** |
-| **2** | **320** | Navigation retour, admin, relances, FAB candidature | étapes 3–5 + lignes 324+ |
-| **3** | **321** | Migration SMTP `@jobbingtrack.com` (OVH) | étapes 4–5 + agent email complet |
-| **4** | **322** | Agent email — activation admin + gestion | étape 5 |
-| **5** | **323** | Agent email — consentements RGPD `/agent` (sync mobile) | lignes Lot D suivantes (324+, 332 picker…) |
-
-**Format de réponse porteur** (chat ou colonnes du tableau) :
-
-```text
-OK Mobile — Inscription + télémétrie obligatoire + vérif email
-Notes : mail reçu sur paul.delhomme@proton.me, deep link OK
-Preuves : capture écran « Vérifiez votre email » + login après clic lien
-```
-
-En cas de `KO` : décrire **exactement** ce qui bloque (écran, message, boîte mail, compte). L’agent corrige, met à jour `TODOS_A_VERIFIER.md`, puis tu re-testes **la même étape**.
-
----
-
-### Étape 1 — Ligne 319 : Inscription + télémétrie + vérif email (**OK 25/06**)
-
-> Archivé `TODOS_DONE.md` — décision porteur : **OK Mobile — Inscription + télémétrie obligatoire + vérif email** (smoke agent + mail reçu + page vérifiée).
-
-**Environnement** : Samsung `R5CT7263YJL` (ou AVD) + stack locale (`gateway` `127.0.0.1:5002`, `adb reverse tcp:5002 tcp:5002`). APK debug installé (`bash scripts/mobile/setup/build-apk-debug.sh`).
-
-**Prérequis agent (17/06 reprise — ne pas refaire toi)** :
-
-- Gateway `127.0.0.1:5002` → **200** ; Samsung `R5CT7263YJL` + `adb reverse tcp:5002 tcp:5002`
-- `node scripts/mobile/ensure-test-accounts-ready.js` → TEST_USER + TEST_ADMIN **OK**
-- `node scripts/mobile/smoke/api/smoke-resend-verification-api.js` → **OK** (~26 s, EmailLog + renvoi + verify)
-- Correctifs chemins `scripts/mobile/email/` + `adb-lib` (`../../../../tools/adb-lib` sous `smoke/adb/`)
-- Smoke ADB refus télémétrie : à confirmer **manuellement** (Test A ci-dessous) si l’UI inscription a changé
-- **`node scripts/mobile/smoke/adb/smoke-etape1-inscription-adb.js`** → **OK 25/06** Samsung : Tests **A→E** autonomes (alias `test+mob…@delhomme.ovh`, EmailLog, deep link, login). Fix validateur email alias `+` dans l’app.
-
-**Toi — à tester sur appareil** :
-
-| # | Action | Résultat attendu | Preuve à noter |
-|---|--------|------------------|----------------|
-| 1 | Ouvrir app → **Créer un compte** (alias **réel** que tu consultes) | Formulaire visible | ex. `test+porteur20260617@delhomme.ovh` — voir [`BOITE_MAIL_INSCRIPTION_TESTS.md`](../mobile/BOITE_MAIL_INSCRIPTION_TESTS.md) |
-| 2 | Case **télémétrie** : cochée par défaut | cochée | capture ou « cochée OK » |
-| 3 | Décocher télémétrie → **Créer** | **Bloqué** — message explicite | texte du message |
-| 4 | Recocher télémétrie → remplir champs → **Créer** | Écran **« Vérifiez votre email »** + bouton renvoi | capture |
-| 5 | Ouvrir la boîte **`test@delhomme.ovh`** (alias `test+…`) — **pas** `candidatures@…` | Mail JobbingTrack reçu (< 5 min) | sujet + destinataire exact |
-| 6 | Cliquer le **lien web** OU `jobbingtrack://verify-email?token=…` | App ouvre écran vérif → **login possible** | « lien web OK » / « deep link OK » |
-| 7 | (Option) Bouton **renvoi** sur écran attente | Second mail ou message succès | si testé |
-
-**Commandes utiles (diagnostic si mail absent)** :
-
-```bash
-node scripts/mobile/setup/diagnose-registration-email.js
-node scripts/mobile/smoke/api/smoke-resend-verification-api.js
-# EmailLog : scripts/ops/list-email-logs.cjs ou backoffice Email Monitor
-```
-
-**Note smoke ADB « Telemetry »** : le script `smoke-register-telemetry-refuse-adb.js` remplit des **noms de test** (ex. RefuseTel) — ce n'est pas un blocage produit. Il utilise `@example.com` volontairement (Test A UI sans mail réel).
-
-**Décision** : `OK Mobile — Inscription + télémétrie obligatoire + vérif email` **ou** `KO …` + détail.
-
----
-
-### Mobile — erreurs & retours backoffice (prérequis étape 2)
-
-| Lot | Sujet | Environnement | Action porteur | Statut |
-|-----|-------|---------------|----------------|--------|
-| Mobile | Administration → **Mobile — erreurs & retours** | local + Samsung | (1) **Paramètres → Aide & retours → Signaler un bug** — message test → **Envoyer**. (2) Backoffice : menu **Mobile → Mobile — erreurs & retours** (`/backoffice/mobile/logs`) — ligne « message de test » (~20 s). (3) Clic ligne : diagnostic + capture. (4) « Erreurs auto » si télémétrie ON. | **[ ]** | **Preuve agent 29/06 17:18** : porteur mobile OK — `verify-porteur-mobile-feedback.js` → `[bug] message de test`, diagnostic + capture, écran `help_feedback/bug`, Samsung. **Reste porteur** : clic détail backoffice → `OK Mobile logs backoffice`. |
-| Mobile | **Mobile — releases OTA** | local | (1) **`docker compose up -d emulator-controller`**. (2) **`https://jobbingtrack.localhost:5443/backoffice/mobile/releases`**. (3) Build + install + publish dev + promote prod. (4) Samsung OTA si canal dev actif. | **[x]** | **Porteur 10/07 soir** : design system **OK** ; rebuild **v1.0.25+25** + réinstall ADB → « appareil déjà synchronisé » ; publish dev **OK** ; promote production **OK**. → `OK Mobile releases OTA backoffice` (wizard USB + publish + prod). |
-| Design | **Design system — feedback clair/sombre (BL-26-33)** | backoffice | Menu utilisateur → clair / sombre / système sur **Mobile — releases OTA**. | **[x]** | **Porteur 10/07 soir** : `OK Design system feedback OTA` — cartes ambre lisibles, toggle thème OK. |
-
-| Ops | **Récap agent — rendu HTML** | Gmail | Ouvrir le mail test **`[JobbingTrack] Test récap HTML BL-26-03`** (ou prochain récap agent) : sections colorées OK/KO, tableaux lisibles, pas de bloc `<pre>` monospace. | **[ ]** | **Preuve agent 07/07** : 2 emails envoyés (`Récap validation 07/07` + `5/5 smokes OK + APK 1.0.12`) → `pauldelhomme.pro@gmail.com` **HTTP 202** ; Jest **3/3**. **Reste porteur** : `OK Récap agent HTML`. |
-
-**Décision récap HTML** : `OK récap agent HTML` **ou** `KO …` + capture messagerie.
-
----
-
-### Mobile — hub admin parité backoffice (prérequis étape 2, point 4)
-
-| Lot | Sujet | Environnement | Action porteur | Statut |
-|-----|-------|---------------|----------------|--------|
-| Mobile | Drawer **ADMINISTRATION** → hub + sous-pages | Samsung + local | Login **TEST_ADMIN** → hub. **Performances** : onglets Hôte & stack / Appareils mobile. **Analytics** : KPI + détail par ligne. **Logs** : fiche détail. **Utilisateurs** : action sensible = empreinte ; impersonation avec bannière « Quitter ». | **[ ]** | **Preuve agent 17/06** : perf dual-tab ; analytics structuré ; user biométrie + impersonation. APK à réinstaller. |
-
-**Décision** : `OK Mobile hub admin parité backoffice` **ou** `KO …` + page + capture.
-
----
-
-### Backoffice web — vue d'ensemble & logs mobile (prérequis étape 2)
-
-| Lot | Sujet | Environnement | Action porteur | Statut |
-|-----|-------|---------------|----------------|--------|
-| Web | **Vue d'ensemble** + **Mobile — erreurs & retours** | local | (1) Carte **Erreurs ouvertes** (~7 j) → lien avec filtre ouvertes. (2) Page logs : **7 jours** par défaut, erreurs auto visibles (ex. 11:30). (3) Détail technique complet (adresse, errno). | **[ ]** | **Preuve agent 17/06** : plage 7 j alignée dashboard ; limite 500 ; filtre ouvert par défaut ; `?status=open`. **Suite 17/06** : API `excludeTest=true` + 2e fetch dashboard corrigé (`days=7`) ; compteur carte = 0 hors données `live-verify-*` avec filtre test actif. |
-
-**Décision** : `OK Backoffice vue d'ensemble erreurs` **ou** `KO …` + capture.
-
----
-
-### Étape 2 — Ligne 320 : Navigation retour, admin, relances, ajouts candidature
-
-**Prérequis** : étape **1** validée et archivée dans `TODOS_DONE.md`.
-
-> **Données trop volumineuses ?** Si le compte porteur (`admin@jobbingtrack.com`) affiche des centaines de candidatures, exécuter d’abord :
-> `node scripts/mobile/reset-porteur-validation-data.js --confirm`
-> Guide : [`docs/mobile/RESET_DONNEES_PORTEUR_VALIDATION.md`](../../mobile/RESET_DONNEES_PORTEUR_VALIDATION.md) — jeu minimal **7 candidatures** (1 / entreprise) + contacts, relances, appels, entretiens, calendrier.
-
-**Comptes** (`.env`) : `TEST_USER_*` (user normal) + `TEST_ADMIN_*` (admin mobile). Pour parcours métier sur votre compte réel : **`admin@jobbingtrack.com`** après reset ci-dessus.
-
-| # | Action | Résultat attendu | Preuve à noter |
-|---|--------|------------------|----------------|
-| 1 | **Profil** → Paramètres → bouton **retour** | Retour **Profil**, pas Accueil forcé | OK/KO retour profil |
-| 2 | Drawer → **Calendrier** (barre basse) → **Profil** → retour | Retour Calendrier ou onglet précédent | OK/KO retour shell |
-| 3 | Login **TEST_USER** → drawer | Section **Administration absente** | capture drawer USER |
-| 4 | Logout → login **TEST_ADMIN** → drawer **Administration** → hub → **Utilisateurs** → détail compte test | Hub + sous-pages accessibles ; **désactiver puis réactiver** un compte test (dialogue de confirmation si pas d'empreinte) ; autres actions OK | liste pages + statut compte OK |
-| 5 | Onglet **Relances** | Liste charge **sans crash date** ; **pas** de FAB + global | OK relances |
-| 6 | **Candidature** → détail → FAB **Ajouter** → **Relance** → Créer | Snackbar + **Voir** → détail relance | OK FAB relance |
-| 7 | Idem → **Appel** : picker contact (sections) ou sans contact | Appel créé ; **Voir** → détail | OK FAB appel |
-| 8 | Idem → **Entretien** : date du jour, lieu, notes, contacts optionnels | Entretien créé ; **Voir** → détail | OK FAB entretien |
-| 9 | Idem → **Contact** : création ou liaison | Contact visible sur détail candidature | OK FAB contact |
-| 10 | Onglet **Candidatures** → sous-onglet Relances/Appels → re-clic **Candidatures** (barre basse) | Retour **liste candidatures** (sous-onglet 0) | OK re-tap candidatures |
-| 11 | Onglet **Contacts** (dans Candidatures) → FAB **+** | Sheet création contact avec picker entreprise | OK FAB contact onglet |
-
-**Smokes agent (référence)** : `smoke-mobile-navigation-adb.js`, `smoke-mobile-application-detail-fab-adb.js`, `smoke-mobile-admin-hub-adb.js`, `smoke-mobile-impersonation-adb.js`. **Preuve agent 07/07** : batterie rapide **12/16 OK** ; impersonnalisation + FAB + admin hub OK ; **BL-26-15** refresh listes au retour (code mergé). **Action porteur** : rebuild APK **1.0.0+12** sur Samsung puis checklist points 1–11 + désimpersonnalisation.
-
-**Retours porteur 22/07/2026 (suite étape 2)** :
-
-| Point | Statut | Détail |
-|-------|--------|--------|
-| **A** Navigation retour (1, 2, 2b, 2c) | **OK** (15/07) | Déjà validé session précédente |
-| **3** Connexion USER → drawer | **OK** | Pas « Administration » |
-| **4** ADMIN → impersonnaliser → Désimpersonnaliser | **OK** | Retour hub admin |
-| **5** Candidatures → Relances | **OK** | Liste sans crash |
-| Crash Flutter `setState during build` | **Corrigé + APK 1.0.31** | `ShellTabRegistry` notifie en post-frame ; install Samsung OK — **suite** FAB 6–9 |
-
-**Retours porteur 10/07/2026 (soir — partiel)** :
-
-| Point | Statut | Détail |
-|-------|--------|--------|
-| **2** Calendrier → Profil → retour | **OK** | Retour Calendrier |
-| **2b** Candidatures → Entreprises → retour ×2 | **KO partiel** | 1er retour OK ; 2e → Calendrier au lieu Accueil — **correctif 11/07** |
-| **6** FAB Relance | **Partiel** | Création OK ; snackbar trop longue ; pas de corbeille — **corbeille détail 11/07** ; snackbar 3s |
-| **7** FAB Appel | **Partiel** | Création OK ; libellés « Liens » — **sections liées 11/07** ; statut appel planifié à tort — **inférence COMPLETED 11/07** |
-| **8** FAB Entretien | **Partiel** | Création OK ; notes pré/pendant/post manquantes — **backlog BL-26-36** |
-| **9–11** | **OK** | Contact, re-tap Candidatures, FAB contact onglet |
-
-**Retours porteur 17/06/2026** :
-
-| Sujet | Statut porteur | Suite agent |
-|-------|----------------|-------------|
-| Retour Calendrier → Profil → retour | **KO 10/07** — allait à Accueil | **Correctif 10/07 soir** : un seul PopScope shell — **re-test APK 1.0.26+26** |
-| Retour Candidatures → Entreprises → retour ×2 | **KO partiel 10/07** — 2e → Calendrier | **Correctif 11/07** : sous-onglet 0 → Accueil direct |
-| Retour Accueil → drawer Entreprises | **OK 10/07** | — |
-| Liste candidatures → retour Accueil | **OK** | — |
-| Drawer Calendrier Planning/Liste | **OK 10/07** | — |
-| Bannière impersonnalisation TEST_ADMIN | **OK 10/07** | — |
-| Relances liste vide + API 503 followups | **KO infra 10/07** | `followup-service` corrigé + redémarré ; **seed** données porteur requis |
-| Drawer USER sans Administration | **OK** | — |
-| Hub ADMIN + navigation | **OK** | — |
-| Édition prénom/nom/email/tél | **OK** (refonte UX email/tél — **BL-26-20**) | backlog |
-| Impersonnalisation sans **Désimpersonnaliser** | **OK porteur 08/07** | Session ADMIN requise ; bannière + drawer OK ; **correctif 08/07 soir** : sortie → hub admin + shell (drawer/barre basse) — re-test après rebuild |
-| Double/triple retour système (arrière-plan) | à spécifier / valider | **Correctif 17/06 (v2)** : `DrawerBackScope` délègue au shell ; snackbar globale flottante ; `canPop: false` — **rebuild APK + re-test Accueil** |
-| FAB relances / appels / entretiens / contacts (6–11) | **non confirmés** | re-test porteur après APK |
-| Tutoriel première connexion (skip + reprise) | backlog | **BL-TUT-01** |
-| Recherche globale (récents + toutes entités) | backlog | **BL-26-19** |
-| Liste historique **Appels** | manquante dans hub Candidatures | **Correctif 17/06** : 6e sous-onglet **Appels** + drawer `/calls` → shell |
-| Contact vide cliquable (détail relance) | **KO** | **Correctif 17/06** : `isMeaningfulContactMap` — pas de navigation si contact vide |
-| Warnings build Kotlin / pub outdated | build **OK** | **BL-26-09** — dette documentée, pas bloquant debug |
-
-**Décision** : **pas d’OK global** tant que impersonnalisation + points 6–11 non re-validés. Après rebuild : `OK Mobile — navigation retour…` **ou** `KO …` point par point.
 
 ---
 
@@ -599,7 +561,7 @@ Seulement alors : lignes **324+** (intérim, entities, notifications, picker/pla
 | Lot D | Mobile — déconnexion drawer/menu (régression 19/06) | Samsung R5CT7263YJL | (1) Drawer → **Déconnexion** → confirmer → écran **Connexion** en ~2 s (session effacée). (2) Menu **⋮** → **Déconnexion** → idem. (3) Écran empreinte → **Se déconnecter** → idem. (4) Après déconnexion : cold start → login (pas d’accueil direct). | OK logout | Samsung R5CT7263YJL | OK déconnexion drawer menu | [x] | **Validation porteur 19/06** : OK. Archivé `TODOS_DONE.md`. **Preuve agent 19/06** : `appNavigatorKey`, smoke ADB drawer **OK**. |
 | Lot D | Mobile — biométrie (login, déverrouillage, reconnexion empreinte) | Samsung R5CT7263YJL | (1) Login : cocher biométrie → déverrouillage immédiat sans fermer app. (2) Cold start : empreinte → accueil. (3) Après déconnexion : compte enregistré + **Connexion par empreinte**. (4) Paramètres : activation biométrie. (5) **Fallback mot de passe** : formulaire visible + « Se connecter avec le mot de passe » si empreinte refusée/changée. | biométrie OK | Samsung R5CT7263YJL | OK biométrie mobile | [x] | **Validation porteur 19/06** : « biométrie carrément OK ». Archivé `TODOS_DONE.md`. **Suite agent 19/06** : fallback mot de passe + smokes `TEST_USER_*` **OK** ADB sans empreinte. |
 | Lot D | Mobile — Inscription + télémétrie obligatoire + vérif email | appareil + local | **Étape 1 file stricte** — voir § « File de validation porteur » ci-dessus. | mail reçu + vérif OK | Samsung + smoke agent | OK Mobile — Inscription + télémétrie obligatoire + vérif email | [x] | **Validation porteur 25/06** + smoke `smoke-etape1-inscription-adb.js` A→E. Fix alias `+`. Archivé `TODOS_DONE.md`. |
-| Lot D | Mobile — navigation retour, admin, relances, ajouts candidature | appareil + local | **Étape 2** — voir § ligne 320. | OK navigation retour admin relances ajouts | Samsung | OK Mobile — navigation retour, admin, relances, ajouts candidature | OK Mobile — navigation retour, admin, relances, ajouts candidature | [x] | **Validation porteur 17/06/2026** : « OK Mobile - navigation retour, admin, relances, ajouts candidatures ». **Preuve agent 02/07** : smokes navigation, FAB, admin-hub OK. Archivé après clôture étape 2 — suite : releases OTA + hub admin.
+| Lot D | Mobile — navigation retour, admin, relances, ajouts candidature | appareil + local | **Étape 2 active** — § B2-D.6 | APK 1.0.31+31 | Samsung | | **[ ] EN COURS** | A/B/C OK 22/07 ; suite D6→F12. |
 | Infra | Email — migration SMTP `@jobbingtrack.com` (OVH) | OVH + préprod | **Étape 3** — après OK releases OTA (ou dérogation porteur). Checklist `docs/emails/OVH_MX_PLAN_JOBBINGTRACK.md`. | | | | **[ ]** | **Preuve agent 25/06** : diagnostic documenté ; MX/SPF OK ; blocage = offre redirect. Transition : `maily.ovh`.
 | Backoffice | Agent email — activation admin + gestion | local | **Étape 4** — après OK ligne 321 (ou dérogation porteur si IMAP dev suffit). | | | | **[ ] bloquée par 321** | **Preuve agent 25/06** : UI toggle + API `PUT …/agent-enabled`. **Reste porteur** : activer admin + triage IMAP.
 | Lot D | Agent email — consentements RGPD `/agent` (sync mobile) | local | **Étape 5** — après OK ligne 322. Même compte mobile + `/agent`. | | | | **[ ] bloquée par 322** | **Preuve agent 17/06** : switches `AgentEmailContent.tsx`. **Reste porteur** : sync mobile→web.
@@ -713,7 +675,7 @@ Seulement alors : lignes **324+** (intérim, entities, notifications, picker/pla
 | 3. Lecture détaillée | Ouvrir `tests/results/<horodatage>/summary.json`, `report.html`, `report.txt` **et** `/b4ck0ff1ce/test-reports` | **0 échec bloquant** ; comprendre chaque ligne en échec avant de pousser |
 | 4. Frontend rapide (complément) | Depuis `frontend/` : `npm run type-check` + `npm run lint` | Pas de nouvelle erreur introduite par le lot |
 
-Bloc recommandé (équivalent validé le 13/05 — voir `docs/TODOS.md`) :
+Bloc recommandé (équivalent validé le 13/05 — voir `docs/pilotage/TODOS.md`) :
 
 ```bash
 TEST_NOPROMPT=1 \
@@ -759,11 +721,11 @@ bash scripts/run-all-tests-with-reports.sh
 Guides : [`PORTAINER_STACK.md`](../production/PORTAINER_STACK.md) · [`MOBILE_RELEASE_PIPELINE.md`](../production/MOBILE_RELEASE_PIPELINE.md) · [`PREMIER_DEPLOIEMENT.md`](../../deploy/production/PREMIER_DEPLOIEMENT.md)
 
 
-Les chantiers non encore prêts pour validation porteur restent dans `docs/TODOS.md` (env strictes, pentest, PQC, purge menaces après OK P0, etc.).
+Les chantiers non encore prêts pour validation porteur restent dans `docs/pilotage/TODOS.md` (env strictes, pentest, PQC, purge menaces après OK P0, etc.).
 
 ## À ne pas valider ici
 
 - Préprod/prod réelle : utiliser `A_VALIDER_AVANT_PRODUCTION.md`.
 - Déploiement serveur : utiliser `DEPLOIEMENT_PRODUCTION.md`.
 - Validation production réelle : utiliser `VALIDATION_PRODUCTION.md`.
-- Tâche technique non livrée : rester dans `docs/TODOS.md`.
+- Tâche technique non livrée : rester dans `docs/pilotage/TODOS.md`.

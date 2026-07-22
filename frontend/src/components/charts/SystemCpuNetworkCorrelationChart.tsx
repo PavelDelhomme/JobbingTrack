@@ -89,6 +89,7 @@ export function SystemCpuNetworkCorrelationChart({
           yAxisId="left"
           stroke="#3B82F6"
           domain={[0, percentMax]}
+          allowDataOverflow
           unit=" %"
           tick={{ fontSize: 11 }}
           label={{

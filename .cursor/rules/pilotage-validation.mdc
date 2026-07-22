@@ -16,4 +16,4 @@ Après chaque travail :
 - déplacer vers `docs/pilotage/TODOS_DONE.md` uniquement après validation explicite du porteur ;
 - utiliser `docs/production/A_VALIDER_AVANT_PRODUCTION.md`, `docs/production/DEPLOIEMENT_PRODUCTION.md` et `docs/production/VALIDATION_PRODUCTION.md` seulement pour préprod/prod.
 
-`docs/pilotage/TODOS.md` reste le backlog technique ; il ne vaut pas validation produit. Les stubs `docs/TODOS.md` (racine) redirigent vers ce fichier.
+`docs/pilotage/TODOS.md` reste le backlog technique ; il ne vaut pas validation produit.

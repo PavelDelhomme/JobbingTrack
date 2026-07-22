@@ -115,6 +115,7 @@ export function SystemCpuMemoryAreaCharts({
               stroke="#9CA3AF"
               unit="%"
               domain={[0, cpuMax]}
+              allowDataOverflow
               tick={{ fontSize: 12 }}
             />
             <Tooltip
@@ -178,6 +179,7 @@ export function SystemCpuMemoryAreaCharts({
               stroke="#9CA3AF"
               unit="%"
               domain={[0, memMax]}
+              allowDataOverflow
               tick={{ fontSize: 12 }}
             />
             <Tooltip

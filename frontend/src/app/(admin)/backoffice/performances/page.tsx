@@ -36,6 +36,8 @@ import {
 } from "@/lib/utils/date";
 import {
   buildSystemNetworkMbRateRows,
+  resolveMemoryUsagePercent,
+  sanitizeSystemPercent,
   systemNetworkRateAxisMax,
   type SystemNetworkMbRow,
   type SystemPercentSeriesRow,
@@ -267,13 +269,15 @@ export default function PerformancesPage() {
               timestamp,
               ...(timeMs != null ? { timeMs } : {}),
               cpuUsagePercent:
-                d.cpuUsagePercent != null || d.cpu_usage_percent != null
-                  ? Number(d.cpuUsagePercent ?? d.cpu_usage_percent)
-                  : undefined,
+                sanitizeSystemPercent(
+                  d.cpuUsagePercent ?? d.cpu_usage_percent,
+                ) ?? undefined,
               memoryUsagePercent:
-                d.memoryUsagePercent != null || d.memory_usage_percent != null
-                  ? Number(d.memoryUsagePercent ?? d.memory_usage_percent)
-                  : undefined,
+                resolveMemoryUsagePercent({
+                  percent: d.memoryUsagePercent ?? d.memory_usage_percent,
+                  usedBytes: d.memoryUsedBytes ?? d.memory_used_bytes,
+                  totalBytes: d.memoryTotalBytes ?? d.memory_total_bytes,
+                }) ?? undefined,
               networkRxBytes:
                 d.networkRxBytes != null
                   ? Number(d.networkRxBytes)
@@ -456,14 +460,8 @@ export default function PerformancesPage() {
         timestamp: d.timestamp,
         time: formatLocalChartAxisTick(timeMs, { withDate: false }),
         datetime: formatLocalDateTime(d.timestamp),
-        cpu:
-          d.cpuUsagePercent != null && !Number.isNaN(d.cpuUsagePercent)
-            ? Number(d.cpuUsagePercent)
-            : null,
-        memory:
-          d.memoryUsagePercent != null && !Number.isNaN(d.memoryUsagePercent)
-            ? Number(d.memoryUsagePercent)
-            : null,
+        cpu: sanitizeSystemPercent(d.cpuUsagePercent),
+        memory: sanitizeSystemPercent(d.memoryUsagePercent),
         networkRxMb: rxMb != null ? Math.round(rxMb * 100) / 100 : null,
         networkTxMb: txMb != null ? Math.round(txMb * 100) / 100 : null,
         responseTimeMs:

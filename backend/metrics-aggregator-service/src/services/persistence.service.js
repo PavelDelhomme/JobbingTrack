@@ -420,12 +420,20 @@ class PersistenceService {
       const snapshot = await prisma.systemMetricsSnapshot.create({
         data: {
           timestamp: new Date(),
-          cpuUsagePercent: metricsData.cpu?.usage || metricsData.cpu?.percent || 0,
+          cpuUsagePercent: metricsData.cpu?.percent
+            ?? metricsData.cpu?.usage_percent
+            ?? metricsData.cpu?.usagePercent
+            ?? (Number(metricsData.cpu?.usage) <= 100 ? metricsData.cpu?.usage : 0)
+            ?? 0,
           cpuCores: metricsData.cpu?.cores || 1,
           cpuLoadAverage1m: metricsData.load?.average || metricsData.load?.[0] || null,
           cpuLoadAverage5m: metricsData.load?.[1] || null,
           cpuLoadAverage15m: metricsData.load?.[2] || null,
-          memoryUsagePercent: metricsData.memory?.usage || metricsData.memory?.percent || 0,
+          memoryUsagePercent: metricsData.memory?.percent
+            ?? metricsData.memory?.usage_percent
+            ?? metricsData.memory?.usagePercent
+            ?? (Number(metricsData.memory?.usage) <= 100 ? metricsData.memory?.usage : 0)
+            ?? 0,
           memoryUsedBytes: this._safeBigInt(metricsData.memory?.used) * BigInt(1024 * 1024), // MB to Bytes
           memoryTotalBytes: this._safeBigInt(metricsData.memory?.total) * BigInt(1024 * 1024),
           memoryFreeBytes: this._safeBigInt(metricsData.memory?.free) * BigInt(1024 * 1024),

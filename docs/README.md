@@ -10,8 +10,8 @@ Ce dossier centralise la documentation. **Point d’entrée produit** : **[STATU
 
 **Porteur (validation produit)** :
 
-1. **[pilotage/GUIDE_VALIDATION_PORTEUR.md](pilotage/GUIDE_VALIDATION_PORTEUR.md)** — **checklist mobile étape par étape** (étape 2 active).
-2. **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)** — cocher / répondre OK ou KO.
+1. **[pilotage/GUIDE_VALIDATION_PORTEUR.md](pilotage/GUIDE_VALIDATION_PORTEUR.md)** — **checklist mobile** (**B2-D.6 Relance** active).
+2. **[pilotage/TODOS_A_VALIDER.md](pilotage/TODOS_A_VALIDER.md)** — cocher / répondre OK ou KO (position exacte en tête de fichier).
 
 **Vue globale** :
 
@@ -36,7 +36,7 @@ Ce dossier centralise la documentation. **Point d’entrée produit** : **[STATU
 | [INDEX.md](INDEX.md) | Index thématique (GitHub, recherche rapide) |
 | [navigation.md](navigation.md) | Liens partagés entre README de sous-dossiers |
 
-> Les fichiers `PLAN.md`, `TODOS.md`, `BACKLOG.md`, `RESOLUTIONS.md`, `ERRORS.md` **à la racine de `docs/`** sont des **redirects** vers les chemins ci-dessus (compatibilité des anciens liens).
+> Les anciens chemins `docs/TODOS.md` / `docs/PLAN.md` à la racine de `docs/` sont **supprimés ou redirigés** : utiliser uniquement `docs/pilotage/` et `docs/project/`.
 
 ## Validation et production
 
