@@ -2,6 +2,10 @@ import { NextRequest } from "next/server";
 import fs from "fs";
 import path from "path";
 import { requirePilotageAdmin, securePilotageJson } from "@/lib/pilotage/auth";
+import {
+  isPilotageInteractiveAllowed,
+  pilotageEnvDenialMessage,
+} from "@/lib/pilotage/envGate";
 import { resolvePilotageById } from "@/lib/pilotage/paths";
 import {
   detectRawSecrets,
@@ -61,6 +65,13 @@ export async function PUT(request: NextRequest, context: Ctx) {
     return securePilotageJson(
       { success: false, error: auth.error },
       { status: auth.status },
+    );
+  }
+
+  if (!isPilotageInteractiveAllowed()) {
+    return securePilotageJson(
+      { success: false, error: pilotageEnvDenialMessage() },
+      { status: 403 },
     );
   }
 

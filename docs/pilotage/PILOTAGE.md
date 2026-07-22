@@ -22,6 +22,21 @@ App prod Samsung : dossier **`mobile/`** · proto refactor UI : **`flutter-mobil
 
 Flux : `TODOS` → tests dans `A_TESTER` → **OK** → `DONE` · **KO** → retour `TODOS`.
 
+### Backoffice — Tableau de suivi
+
+Page **Pilotage / Suivi des tâches** (`/backoffice/pilotage`) :
+
+1. Onglet **Tableau de suivi** — parse les `.md`, affiche « où j’en suis », items **À valider** avec boutons **OK / KO** (+ note) qui écrivent dans `TODOS_A_VALIDER.md` et une preuve courte dans `TODOS_A_TESTER.md`.
+2. Onglet **Vue synthèse** — snapshot `suivi-actif.json`.
+3. Onglet **Fichiers bruts** — édition markdown (SUPER_ADMIN).
+
+**Écriture** (OK/KO + PUT fichiers) : uniquement si `JT_RUNTIME_ENV` ∈ `development|dev|local|preprod|staging|test|ci` (pas `production` / `prod`). Auth : lecture ADMIN+, actions SUPER_ADMIN.
+
+**Sync UI ↔ fichiers** :
+- Fichiers → UI : à chaque chargement / rafraîchir (pas de watch temps réel).
+- UI → fichiers : OK/KO et édition brute écrivent immédiatement dans `docs/pilotage/` (montage Docker **RW** requis : `./docs/pilotage` sous le frontend).
+- Onglet « Vue synthèse » : snapshot `suivi-actif.json` (mis à jour au OK si l’item est dans la queue).
+
 ## Branches / commits
 
 Suivre [`../development/BRANCHES.md`](../development/BRANCHES.md) :  

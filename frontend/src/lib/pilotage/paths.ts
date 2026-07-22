@@ -13,10 +13,22 @@ export function resolveProjectRoot(): string {
     "/workspace",
     path.resolve(process.cwd(), "../.."),
   ];
+  const withPilotage: string[] = [];
   for (const root of candidates) {
     const probe = path.join(root, "docs", "pilotage", "TODOS.md");
-    if (fs.existsSync(probe)) return root;
+    if (fs.existsSync(probe)) withPilotage.push(root);
   }
+  // Préférer une racine où docs/pilotage est writable (ex. bind-mount rw).
+  for (const root of withPilotage) {
+    const dir = path.join(root, "docs", "pilotage");
+    try {
+      fs.accessSync(dir, fs.constants.W_OK);
+      return root;
+    } catch {
+      /* try next */
+    }
+  }
+  if (withPilotage.length) return withPilotage[0];
   return path.resolve(process.cwd(), "..");
 }
 

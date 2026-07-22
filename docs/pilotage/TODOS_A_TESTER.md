@@ -13,13 +13,25 @@
 
 ## En cours — Phase B / B2
 
+### PILOTAGE-UI-04 — Tableau de suivi interactif (22/07)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| `GET /api/pilotage/board` | Parse TODOS / A_VALIDER → where + items | **OK live** (23 items A_VALIDER, 16 en cours) | |
+| `POST /api/pilotage/board/action` | OK/KO SUPER_ADMIN écrit A_VALIDER + note A_TESTER | **OK** après montage RW `docs/pilotage` (avant : EROFS `/workspace:ro`) | Re-test porteur UI |
+| Gate env | `JT_RUNTIME_ENV=production` → 403 écriture | **OK** unit `envGate.test.ts` | Ajouter `JT_RUNTIME_ENV` au `.env` local |
+| Corrélation md ↔ board | Round-trip mémoire + live write/restore | **OK** Jest + smoke API (restauré) | |
+| Compose frontend | Volume `./docs/pilotage` RW sous `/workspace` | **OK** `docker compose up -d frontend` | |
+| UI onglet Tableau | Où j’en suis + liste À valider + boutons OK/KO | **Livré agent** | Dev/préprod uniquement |
+| Unites | `mdTables` + `envGate` + `board.correlation` | **OK** Jest 8/8 | |
+
 ### PILOTAGE-UI-03 — Fichiers pilotage dans le backoffice (22/07)
 
 | Test | Attendu | Résultat | Suite |
 |------|---------|----------|-------|
 | Titre onglet `/backoffice/pilotage` | « Pilotage / Suivi des tâches » | **OK** `BACKOFFICE_DOCUMENT_TITLES` | |
 | `GET /api/pilotage/files` | JWT ADMIN+ | **Livré** | |
-| `GET/PUT …/files/:id` | Whitelist docs/pilotage · redact · write SUPER_ADMIN | **Livré** | |
+| `GET/PUT …/files/:id` | Whitelist docs/pilotage · redact · write SUPER_ADMIN + gate hors prod | **Livré** (+ gate UI-04) | |
 | `/api/docs/pilotage/*` | **403** (plus public) | **Livré** | |
 | UI onglet Fichiers | Lire/éditer TODOS*, PILOTAGE, suivi-actif | **Livré** | Re-test porteur SUPER_ADMIN |
 

@@ -40,6 +40,11 @@
       "status": "fixed_pending_retest"
     },
     {
+      "id": "PILOTAGE-UI-04",
+      "label": "Tableau de suivi interactif (parse md OK/KO)",
+      "status": "shipped_pending_retest"
+    },
+    {
       "id": "PILOTAGE-UI-03",
       "label": "UI fichiers pilotage sécurisée + titre page",
       "status": "shipped"

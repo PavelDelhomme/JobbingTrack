@@ -1,7 +1,8 @@
 # TODOs à valider (phase active uniquement)
 
 > **Process** : voir [`PILOTAGE.md`](PILOTAGE.md).  
-> Tu remplis **uniquement** ce fichier pour la phase en cours. Pas d’autres phases ici.
+> Tu remplis **uniquement** ce fichier pour la phase en cours. Pas d’autres phases ici.  
+> **UI** : `/backoffice/pilotage` → onglet **Tableau de suivi** (OK/KO écrit ici automatiquement en dev/préprod).
 
 **Phase active** : **B — Gate pré-prod mobile**  
 **Point exact** : **B2-D.6** FAB Relance (+ correctifs session 22/07 à re-valider)  
@@ -16,6 +17,7 @@
 | **MOB-ENT-01** | Onglet **Entreprises** : voir OVHcloud, Capgemini, etc. (mêmes noms que candidatures) ; ouvrir détail (candidatures + contacts) | | Backfill + fix ownership ; rafraîchir liste |
 | **WEB-LOGIN-01** | Login backoffice : mauvais mdp → bandeau rouge FR, **sans** overlay Next.js rouge | | Ne doit plus afficher « Invalid email or password » en Console Error |
 | **EMU-LIVE-01** | `/backoffice/mobile-emulator` : device ADB + **Aperçu live** → écran téléphone en direct | | scrcpy PC reste le plus fluide |
+| **PILOTAGE-UI-04** | `/backoffice/pilotage` → **Tableau de suivi** : items à valider, boutons OK/KO, écriture dans les `.md` (dev/préprod) | | SUPER_ADMIN |
 
 ---
 

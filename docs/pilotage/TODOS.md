@@ -35,6 +35,7 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 | ID | Phase | Item | Action immédiate | Preuve / test |
 |----|-------|------|------------------|---------------|
+| **PILOTAGE-UI-04** | D | Tableau de suivi interactif (parse md → OK/KO UI → écriture fichiers) | API `/api/pilotage/board` + gate hors prod (`JT_RUNTIME_ENV`) | [`TODOS_A_TESTER.md`](TODOS_A_TESTER.md) § PILOTAGE-UI-04 |
 | **PILOTAGE-UI-03** | D | UI Pilotage : titres onglet + lecture/édition sécurisée des md | API `/api/pilotage/files` ADMIN/SUPER_ADMIN + redact secrets | [`TODOS_A_TESTER.md`](TODOS_A_TESTER.md) § PILOTAGE-UI-03 |
 | **MOB-ARCH-01** | A/D | `flutter-mobile-app` : UI kit centralisé + écrans fins (réutilisation max, moins de duplication mémoire UI) | Theme + widgets partagés + MainShell IndexedStack ; modèles via barrel | [`TODOS_A_TESTER.md`](TODOS_A_TESTER.md) § MOB-ARCH-01 |
 | **MOB-ENT-01** | B | Liste Entreprises vide alors que candidatures ont un nom (ex. OVHcloud) | Scope `by-name` + ownership + backfill entreprises orphelines ; liste + détail (candidatures/contacts) | [`TODOS_A_TESTER.md`](TODOS_A_TESTER.md) § MOB-ENT-01 |
