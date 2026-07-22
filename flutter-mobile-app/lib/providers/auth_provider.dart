@@ -1,22 +1,16 @@
 import 'package:flutter/foundation.dart';
-import '../main.dart';
-import '../services/api_service.dart';
+import 'package:jobbingtrack_flutter/datas/models/user.dart';
+import 'package:jobbingtrack_flutter/services/api_service.dart';
 
 class AuthProvider with ChangeNotifier {
   User? _user;
   String? _token;
   bool _isLoading = false;
-  User? _selectedUser;
 
   User? get user => _user;
   String? get token => _token;
   bool get isLoading => _isLoading;
-  User? get selectedUser => _selectedUser;
-
-  void setSelectedUser(User? user) {
-    _selectedUser = user;
-    notifyListeners();
-  }
+  bool get isAuthenticated => _token != null && _user != null;
 
   Future<void> login(String email, String password) async {
     _isLoading = true;
@@ -24,15 +18,17 @@ class AuthProvider with ChangeNotifier {
 
     try {
       final response = await ApiService.login(email, password);
-
-      if (response['success'] == true) {
-        _token = response['token'];
-        _user = User.fromJson(response['user']);
+      if (response['success'] == true && response['token'] != null) {
+        _token = response['token'] as String;
+        _user = User.fromJson(
+          Map<String, dynamic>.from(response['user'] as Map),
+        );
+        ApiService.setAuthToken(_token);
         _isLoading = false;
         notifyListeners();
-      } else {
-        throw Exception(response['message'] ?? 'Erreur de connexion');
+        return;
       }
+      throw Exception(response['error'] ?? response['message'] ?? 'Erreur de connexion');
     } catch (e) {
       _isLoading = false;
       notifyListeners();
@@ -43,7 +39,7 @@ class AuthProvider with ChangeNotifier {
   Future<void> logout() async {
     _user = null;
     _token = null;
-    _selectedUser = null;
+    ApiService.setAuthToken(null);
     notifyListeners();
   }
 }
