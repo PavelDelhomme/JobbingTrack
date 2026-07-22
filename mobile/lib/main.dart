@@ -156,6 +156,10 @@ class JobbingTrackMobileApp extends StatelessWidget {
         theme: ThemeData(
           primarySwatch: Colors.blue,
           useMaterial3: true,
+          snackBarTheme: const SnackBarThemeData(
+            behavior: SnackBarBehavior.floating,
+            // Durée courte par défaut — les SnackBar avec action ne restent plus collés.
+          ),
           // Pas de fontFamily : Inter n'est pas dans pubspec → crash au lancement sur Android si on le met
         ),
         initialRoute: '/',

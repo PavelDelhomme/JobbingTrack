@@ -7,6 +7,22 @@ import {
   type MdTable,
 } from "@/lib/pilotage/mdTables";
 import { resolvePilotageById } from "@/lib/pilotage/paths";
+import {
+  applyBoardAction,
+  buildCycleViews,
+  loadValidationBoardFile,
+} from "@/lib/pilotage/validationBoard";
+import type {
+  CycleView,
+  DecisionStamp,
+  ValidationBoardFile,
+  ValidationTask,
+} from "@/lib/pilotage/validationBoardTypes";
+import {
+  buildItemsTermines,
+  parseRecentDoneSection,
+  type TermineItem,
+} from "@/lib/pilotage/termines";
 
 export type BoardItem = {
   id: string;
@@ -17,14 +33,35 @@ export type BoardItem = {
   decision?: string;
   notes?: string;
   phase?: string;
-  status: "open" | "ok" | "ko" | "pending" | "active";
+  status:
+    | "open"
+    | "ok"
+    | "ko"
+    | "pending"
+    | "active"
+    | "partial"
+    | "deferred"
+    | "rework";
+  /** Présent pour les entrées de la section Terminées. */
+  completedAt?: string;
+  completedAtLabel?: string;
 };
 
 export type PilotageBoard = {
   where: string;
   itemsEnCours: BoardItem[];
   itemsAValider: BoardItem[];
+  itemsTodosAll: BoardItem[];
+  /** Alias : uniquement « Récemment terminé » dans TODOS.md. */
+  itemsRecentDone: BoardItem[];
+  /** Fusion chrono : récent TODOS + A_VALIDER OK/KO + board + TODOS_DONE. */
+  itemsTermines: TermineItem[];
   updatedAt: string;
+  validation: ValidationBoardFile;
+  cycles: CycleView[];
+  tasksNow: ValidationTask[];
+  tasksLater: ValidationTask[];
+  tasksDecided: ValidationTask[];
 };
 
 function colIndex(headers: string[], ...names: string[]): number {
@@ -38,6 +75,9 @@ function colIndex(headers: string[], ...names: string[]): number {
 
 function decisionStatus(decision: string): BoardItem["status"] {
   const d = decision.toUpperCase();
+  if (d.includes("PLUS TARD") || d.includes("PLUS_TARD")) return "deferred";
+  if (d.includes("PARTIEL")) return "partial";
+  if (d.includes("REWORK")) return "rework";
   if (d.includes("OK")) return "ok";
   if (d.includes("KO")) return "ko";
   if (!decision.trim()) return "open";
@@ -104,7 +144,45 @@ function parseTodosEnCours(content: string): BoardItem[] {
   return items;
 }
 
-function extractWhere(pilotageMd: string | null, validerMd: string | null): string {
+/** Toutes les tables TODOS utiles (En cours, File Phase B, backlog visible). */
+function parseTodosCatalog(content: string): BoardItem[] {
+  const tables = parseMarkdownTables(content);
+  const items: BoardItem[] = [];
+  const seen = new Set<string>();
+  for (const t of tables) {
+    const sec = t.section || "";
+    if (/récemment terminé/i.test(sec)) continue;
+    if (/process/i.test(sec) && /suivi/i.test(sec)) continue;
+    const iId = colIndex(t.headers, "id", "#", "point");
+    const iPhase = colIndex(t.headers, "phase");
+    const iItem = colIndex(t.headers, "item", "à faire", "action");
+    const iAction = colIndex(t.headers, "action immédiate", "action", "statut");
+    for (const row of t.rows) {
+      const id = stripMdBold(row[iId] || "");
+      if (!id || id === "—" || (/^\d+$/.test(id) && row.length < 3)) continue;
+      const key = `${sec}::${id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const label = stripMdBold(row[iItem] || id);
+      const action = stripMdBold(row[iAction] || "");
+      items.push({
+        id,
+        source: "TODOS",
+        section: sec || "TODOS",
+        phase: stripMdBold(row[iPhase] || ""),
+        label,
+        action: action !== label ? action : undefined,
+        status: /en cours|maintenant/i.test(sec) ? "active" : "pending",
+      });
+    }
+  }
+  return items;
+}
+
+function extractWhere(
+  pilotageMd: string | null,
+  validerMd: string | null,
+): string {
   if (pilotageMd) {
     const m = pilotageMd.match(/\*\*Phase[^*]*\*\*[^\n]*/);
     if (m) return m[0].replace(/\*\*/g, "").trim();
@@ -116,16 +194,47 @@ function extractWhere(pilotageMd: string | null, validerMd: string | null): stri
   return "Phase active non détectée";
 }
 
+function sortTasks(tasks: ValidationTask[]): ValidationTask[] {
+  return [...tasks].sort(
+    (a, b) => a.order - b.order || a.id.localeCompare(b.id),
+  );
+}
+
 export function buildPilotageBoard(): PilotageBoard {
   const todos = readFile("TODOS");
   const valider = readFile("TODOS_A_VALIDER");
+  const done = readFile("TODOS_DONE");
   const pilotage = readFile("PILOTAGE");
+  const validation = loadValidationBoardFile();
+  const cycles = buildCycleViews(validation);
+  const allTasks = Object.values(validation.tasks);
+  const recent = todos ? parseRecentDoneSection(todos) : [];
+  const termines = buildItemsTermines({
+    todosMd: todos,
+    doneMd: done,
+    validerMd: valider,
+    validationTasks: allTasks,
+  });
 
   return {
     where: extractWhere(pilotage, valider),
     itemsEnCours: todos ? parseTodosEnCours(todos) : [],
     itemsAValider: valider ? parseValider(valider) : [],
+    itemsTodosAll: todos ? parseTodosCatalog(todos) : [],
+    itemsRecentDone: recent,
+    itemsTermines: termines,
     updatedAt: new Date().toISOString(),
+    validation,
+    cycles,
+    tasksNow: sortTasks(
+      allTasks.filter((t) =>
+        ["open", "partial", "rework"].includes(t.status),
+      ),
+    ),
+    tasksLater: sortTasks(allTasks.filter((t) => t.status === "deferred")),
+    tasksDecided: sortTasks(
+      allTasks.filter((t) => t.status === "ok" || t.status === "ko"),
+    ),
   };
 }
 
@@ -142,14 +251,33 @@ function pickValiderTable(tables: MdTable[], itemId: string): MdTable | null {
 }
 
 /**
- * Applique OK / KO sur TODOS_A_VALIDER.md (+ note optionnelle).
- * Met aussi à jour une ligne de preuve courte dans TODOS_A_TESTER.md.
+ * Applique une décision sur le board riche (+ sync A_VALIDER).
+ * Fallback legacy md si la tâche n’est pas dans validation-board.
  */
 export function applyValiderDecision(opts: {
   itemId: string;
-  decision: "OK" | "KO";
+  decision: "OK" | "KO" | DecisionStamp;
   note?: string;
 }): { ok: true; message: string } | { ok: false; error: string } {
+  const decision = opts.decision as DecisionStamp;
+  if (
+    decision === "OK" ||
+    decision === "KO" ||
+    decision === "PARTIEL" ||
+    decision === "PLUS_TARD" ||
+    decision === "REWORK"
+  ) {
+    const rich = applyBoardAction({
+      type: "decide",
+      itemId: opts.itemId,
+      decision,
+      note: opts.note,
+    });
+    if (rich.ok) {
+      return { ok: true, message: rich.message };
+    }
+  }
+
   const resolved = resolvePilotageById("TODOS_A_VALIDER");
   if (!resolved.ok) return { ok: false, error: resolved.error };
   if (!fs.existsSync(resolved.absPath)) {
@@ -160,7 +288,10 @@ export function applyValiderDecision(opts: {
   const tables = parseMarkdownTables(content);
   const table = pickValiderTable(tables, opts.itemId);
   if (!table) {
-    return { ok: false, error: `Item « ${opts.itemId} » introuvable dans A_VALIDER` };
+    return {
+      ok: false,
+      error: `Item « ${opts.itemId} » introuvable dans A_VALIDER`,
+    };
   }
   const found = findRowById(table, [opts.itemId]);
   if (!found) {
@@ -182,7 +313,6 @@ export function applyValiderDecision(opts: {
   } else if (opts.decision === "OK" && !stripMdBold(cells[iNotes] || "")) {
     cells[iNotes] = "porteur UI";
   }
-  // garder id/label
   cells[iId] = found.cells[iId] || cells[iId];
   cells[iTodo] = found.cells[iTodo] || cells[iTodo];
 
@@ -190,7 +320,10 @@ export function applyValiderDecision(opts: {
   try {
     fs.writeFileSync(resolved.absPath, content, "utf8");
   } catch (e: unknown) {
-    const code = e && typeof e === "object" && "code" in e ? String((e as { code: unknown }).code) : "";
+    const code =
+      e && typeof e === "object" && "code" in e
+        ? String((e as { code: unknown }).code)
+        : "";
     if (code === "EROFS" || code === "EACCES") {
       return {
         ok: false,
@@ -201,59 +334,10 @@ export function applyValiderDecision(opts: {
     throw e;
   }
 
-  appendTesterNote(opts.itemId, opts.decision, opts.note);
-  bumpSuiviActif(opts.itemId, opts.decision);
-
   return {
     ok: true,
     message: `${opts.itemId} → ${stamp} écrit dans TODOS_A_VALIDER.md`,
   };
 }
 
-function appendTesterNote(itemId: string, decision: string, note?: string) {
-  const r = resolvePilotageById("TODOS_A_TESTER");
-  if (!r.ok || !fs.existsSync(r.absPath)) return;
-  const block = `\n### UI Pilotage — ${itemId} (${new Date().toISOString().slice(0, 10)})\n\n| Test | Résultat | Notes |\n|------|----------|-------|\n| Décision porteur (UI) | **${decision}** | ${(note || "—").replace(/\|/g, "/")} |\n`;
-  fs.appendFileSync(r.absPath, block, "utf8");
-}
-
-function bumpSuiviActif(itemId: string, decision: string) {
-  const r = resolvePilotageById("SUIVI_ACTIF");
-  if (!r.ok || !fs.existsSync(r.absPath)) return;
-  try {
-    const json = JSON.parse(fs.readFileSync(r.absPath, "utf8")) as {
-      updatedAt?: string;
-      queue?: Array<{ id: string; status: string; label: string }>;
-      recentDone?: Array<{ id: string; label: string }>;
-    };
-    json.updatedAt = new Date().toISOString().slice(0, 10);
-    if (decision === "OK" && Array.isArray(json.queue)) {
-      const idx = json.queue.findIndex(
-        (q) => q.id.includes(itemId) || itemId.includes(q.id.replace(/^B2-/, "")),
-      );
-      if (idx >= 0) {
-        const done = json.queue[idx];
-        json.recentDone = [
-          { id: done.id, label: done.label },
-          ...(json.recentDone || []),
-        ].slice(0, 5);
-        json.queue = json.queue.filter((_, i) => i !== idx);
-        if (json.queue[0]) json.queue[0].status = "active";
-      }
-    }
-    const text = `${JSON.stringify(json, null, 2)}\n`;
-    fs.writeFileSync(r.absPath, text, "utf8");
-    for (const mirror of [
-      `${r.root}/frontend/src/lib/pilotage/suiviActif.json`,
-      `${r.root}/frontend/public/pilotage/suivi-actif.json`,
-    ]) {
-      try {
-        fs.writeFileSync(mirror, text, "utf8");
-      } catch {
-        /* ignore */
-      }
-    }
-  } catch {
-    /* ignore */
-  }
-}
+export { applyBoardAction };

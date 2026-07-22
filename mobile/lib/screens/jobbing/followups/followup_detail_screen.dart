@@ -4,11 +4,13 @@ import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/models/company.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/companies/company_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contact_detail_screen.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
+import 'package:jobbingtrack_mobile/utils/app_snack.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/utils/linked_entity_parsers.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
@@ -138,11 +140,11 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
         token: token,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Relance mise à jour')));
+        AppSnack.success('Relance mise à jour', context: context);
         _load();
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      if (mounted) AppSnack.error('Erreur: $e', context: context);
     }
   }
 
@@ -167,14 +169,18 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
     try {
       final token = Provider.of<AuthProvider>(context, listen: false).token;
       await ApiService.deleteFollowUp(f.id, token: token);
+      try {
+        await Provider.of<FollowUpProvider>(context, listen: false)
+            .loadFollowUps(token: token);
+      } catch (_) {
+        /* best-effort sync liste globale */
+      }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Relance mise à la corbeille'), duration: Duration(seconds: 3)),
-        );
         Navigator.of(context).pop(true);
+        AppSnack.info('Relance mise à la corbeille');
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      if (mounted) AppSnack.error('Erreur: $e', context: context);
     }
   }
 
@@ -185,16 +191,17 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
       appBar: AppBar(
         title: const Text('Relance'),
         actions: [
-          IconButton(tooltip: 'Modifier', icon: const Icon(Icons.edit_outlined), onPressed: _showEditDialog),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'trash') _moveToTrash();
-            },
-            itemBuilder: (ctx) => const [
-              PopupMenuItem(value: 'trash', child: Text('Mettre à la corbeille')),
-            ],
+          IconButton(
+            tooltip: 'Corbeille',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: _moveToTrash,
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'Modifier',
+        onPressed: _showEditDialog,
+        child: const Icon(Icons.edit_outlined),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

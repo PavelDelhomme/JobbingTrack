@@ -30,6 +30,7 @@ import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_sc
 import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
+import 'package:jobbingtrack_mobile/utils/app_snack.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/widgets/application_card.dart';
 import 'package:jobbingtrack_mobile/widgets/company_create_dialog.dart';
@@ -768,28 +769,35 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     final title = followUpListTitle(f);
     final contactLabel = f.contactDisplayName;
     final notesBody = followUpNotesWithoutChannel(f.notes);
+    Future<void> openDetail() async {
+      final changed = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),
+      );
+      if (changed == true && mounted) {
+        final auth = Provider.of<AuthProvider>(context, listen: false);
+        await Provider.of<FollowUpProvider>(context, listen: false)
+            .loadFollowUps(token: auth.token);
+      }
+    }
+
     return _swipeListTile(
       id: 'followup-${f.id}',
       label: title,
-      onOpen: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),
-      ),
-      onEdit: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),
-      ),
+      onOpen: openDetail,
+      onEdit: openDetail,
       onArchive: () async {
         final auth = Provider.of<AuthProvider>(context, listen: false);
         await ApiService.archiveFollowUp(f.id, token: auth.token);
         await Provider.of<FollowUpProvider>(context, listen: false).loadFollowUps(token: auth.token);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Relance archivée')));
+          AppSnack.info('Relance archivée', context: context);
         }
       },
       onTrash: () async {
         final auth = Provider.of<AuthProvider>(context, listen: false);
         await Provider.of<FollowUpProvider>(context, listen: false).deleteFollowUp(f.id, token: auth.token);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Relance mise à la corbeille')));
+          AppSnack.info('Relance mise à la corbeille', context: context);
         }
       },
       listTile: ListTile(
@@ -803,9 +811,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
           overflow: TextOverflow.ellipsis,
         ),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),
-        ),
+        onTap: openDetail,
       ),
     );
   }

@@ -8,6 +8,7 @@ import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
+import 'package:jobbingtrack_mobile/utils/app_snack.dart';
 
 class FollowUpsScreen extends StatefulWidget {
   const FollowUpsScreen({super.key});
@@ -416,12 +417,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
       await provider.markAsCompleted(followUp.id, result, token: auth.token);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Relance marquée comme terminée'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppSnack.success('Relance marquée comme terminée', context: context);
       }
     }
   }
@@ -452,12 +448,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
       await provider.deleteFollowUp(id, token: auth.token);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Relance supprimée'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnack.info('Relance supprimée', context: context);
       }
     }
   }

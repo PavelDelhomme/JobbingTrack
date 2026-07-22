@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_flutter/core/navigation/app_routes.dart';
 import 'package:jobbingtrack_flutter/core/navigation/main_shell.dart';
-import 'package:jobbingtrack_flutter/core/theme/app_theme.dart';
+import 'package:jobbingtrack_flutter/core/theme/theme.dart';
 import 'package:jobbingtrack_flutter/providers/application_provider.dart';
 import 'package:jobbingtrack_flutter/providers/auth_provider.dart';
 import 'package:jobbingtrack_flutter/screens/jobbing/applications/applications_screen.dart';

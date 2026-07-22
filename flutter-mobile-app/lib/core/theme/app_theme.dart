@@ -42,6 +42,10 @@ abstract class AppTheme {
           ),
         ),
       ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+      ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textMuted,

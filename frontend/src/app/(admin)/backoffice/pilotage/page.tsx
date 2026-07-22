@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdminLayout } from "@/components/features";
+import { PilotageBoardView } from "@/components/pilotage/PilotageBoardView";
+import type { BoardActionPayload } from "@/components/pilotage/pilotageUi";
 import { useAuth } from "@/lib/hooks/auth";
 import suivi from "@/lib/pilotage/suiviActif.json";
 import { PILOTAGE_FILES } from "@/lib/pilotage/allowedFiles";
-import type { BoardItem, PilotageBoard } from "@/lib/pilotage/board";
+import type { PilotageBoard } from "@/lib/pilotage/board";
 
 type QueueItem = { id: string; status: string; label: string };
 type FixItem = { id: string; label: string; status: string };
@@ -43,28 +45,16 @@ type BoardResponse = {
 
 type Tab = "board" | "overview" | "files";
 
-function statusBadge(status: BoardItem["status"]) {
-  switch (status) {
-    case "ok":
-      return "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200";
-    case "ko":
-      return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200";
-    case "active":
-      return "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100";
-    case "open":
-      return "bg-indigo-100 text-indigo-900 dark:bg-indigo-900/40 dark:text-indigo-100";
-    default:
-      return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
-  }
-}
-
 export default function PilotagePage() {
   const { user, token } = useAuth();
   const allowed =
     user?.role === "SUPER_ADMIN" || user?.role === "ADMIN";
   const canWriteRole = user?.role === "SUPER_ADMIN";
 
-  const queue = (suivi.queue ?? []) as QueueItem[];
+  const queue = useMemo(
+    () => (suivi.queue ?? []) as QueueItem[],
+    [],
+  );
   const fixes = (suivi.openFixes ?? []) as FixItem[];
   const recent = suivi.recentDone ?? [];
   const active = useMemo(
@@ -87,8 +77,6 @@ export default function PilotagePage() {
   const [canWriteBoard, setCanWriteBoard] = useState(false);
   const [runtimeEnv, setRuntimeEnv] = useState("?");
   const [loadingBoard, setLoadingBoard] = useState(false);
-  const [actingId, setActingId] = useState<string | null>(null);
-  const [notes, setNotes] = useState<Record<string, string>>({});
 
   const authHeaders = useCallback((): HeadersInit => {
     return token
@@ -167,34 +155,23 @@ export default function PilotagePage() {
     if (tab === "files" && allowed && token) void loadFile(fileId);
   }, [tab, fileId, allowed, token, loadFile]);
 
-  const decide = async (itemId: string, decision: "OK" | "KO") => {
+  const runBoardAction = async (payload: BoardActionPayload) => {
     if (!canWriteBoard) return;
-    setActingId(itemId);
     setErr(null);
     setMsg(null);
-    try {
-      const res = await fetch("/api/pilotage/board/action", {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({
-          itemId,
-          decision,
-          note: notes[itemId]?.trim() || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setErr(data.error || "Action refusée");
-        return;
-      }
-      setMsg(data.message || `${itemId} → ${decision}`);
-      if (data.board) setBoard(data.board);
-      else await loadBoard();
-    } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "Erreur réseau");
-    } finally {
-      setActingId(null);
+    const res = await fetch("/api/pilotage/board/action", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      setErr(data.error || "Action refusée");
+      throw new Error(data.error || "Action refusée");
     }
+    setMsg(data.message || "OK");
+    if (data.board) setBoard(data.board);
+    else await loadBoard();
   };
 
   const saveFile = async () => {
@@ -246,14 +223,9 @@ export default function PilotagePage() {
         path: `docs/pilotage/${f.relativePath}`,
       }));
 
-  const openAValider =
-    board?.itemsAValider.filter((i) => i.status === "open") ?? [];
-  const decidedAValider =
-    board?.itemsAValider.filter((i) => i.status !== "open") ?? [];
-
   return (
     <AdminLayout>
-      <div className="mx-auto max-w-5xl space-y-6 p-6">
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <div className="space-y-2">
           <Link
             href="/backoffice"
@@ -266,9 +238,17 @@ export default function PilotagePage() {
             Pilotage — suivi des tâches
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Parse les{" "}
-            <code className="text-xs">docs/pilotage/*.md</code> · OK/KO écrit
-            dans les fichiers · écriture{" "}
+            Validation porteur en{" "}
+            <strong>HTTPS</strong> :{" "}
+            <a
+              className="text-indigo-600 underline dark:text-indigo-400"
+              href="https://jobbingtrack.localhost:5443/backoffice/pilotage"
+            >
+              https://jobbingtrack.localhost:5443/backoffice/pilotage
+            </a>
+            {" · "}
+            ne pas utiliser <code className="text-xs">https://localhost:5003</code>{" "}
+            (ERR_SSL) · écriture{" "}
             {interactive ? "autorisée" : "bloquée"} (
             <code className="text-xs">{runtimeEnv}</code>)
           </p>
@@ -309,182 +289,30 @@ export default function PilotagePage() {
         )}
 
         {tab === "board" && (
-          <div className="space-y-8">
-            <section className="rounded-xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900/50 dark:bg-amber-950/30">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-200">
-                    Où j&apos;en suis
-                  </p>
-                  <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
-                    {board?.where ??
-                      `Phase ${suivi.phase.id} · ${suivi.phase.step} · ${active?.id ?? suivi.phase.point}`}
-                  </p>
-                  <p className="mt-1 text-gray-700 dark:text-gray-300">
-                    {active?.label ?? suivi.phase.title}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void loadBoard()}
-                  disabled={loadingBoard}
-                  className="rounded-lg bg-white/80 px-3 py-1.5 text-sm dark:bg-gray-900/60"
-                >
-                  {loadingBoard ? "…" : "Rafraîchir"}
-                </button>
-              </div>
-              {!interactive && (
-                <p className="mt-3 text-sm text-amber-900 dark:text-amber-100">
-                  Lecture seule : environnement production (ou non autorisé).
-                  Les actions OK/KO / édition md sont réservées à dev / préprod /
-                  staging.
-                </p>
-              )}
-              {interactive && !canWriteBoard && (
-                <p className="mt-3 text-sm text-amber-900 dark:text-amber-100">
-                  Compte ADMIN : lecture du tableau. SUPER_ADMIN pour valider
-                  OK/KO.
-                </p>
-              )}
-            </section>
-
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                À valider ({openAValider.length} ouvert
-                {openAValider.length > 1 ? "s" : ""})
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Source :{" "}
-                <code className="text-xs">TODOS_A_VALIDER.md</code> — OK/KO
-                écrit directement dans le fichier (+ note dans A_TESTER).
+          <div className="space-y-3">
+            {!interactive && (
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                Lecture seule : environnement production. Actions réservées à
+                dev / préprod / staging.
               </p>
-              {loadingBoard && !board ? (
-                <p className="text-sm text-gray-500">Chargement…</p>
-              ) : openAValider.length === 0 ? (
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Aucun item ouvert à valider.
-                </p>
-              ) : (
-                <ul className="space-y-3">
-                  {openAValider.map((item) => (
-                    <li
-                      key={`${item.section}-${item.id}`}
-                      className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <p className="font-mono text-xs text-gray-500">
-                            {item.id}
-                            <span className="ml-2 font-sans text-gray-400">
-                              · {item.section}
-                            </span>
-                          </p>
-                          <p className="mt-1 font-medium text-gray-900 dark:text-gray-100">
-                            {item.label}
-                          </p>
-                          {item.notes ? (
-                            <p className="mt-1 text-sm text-gray-500">
-                              {item.notes}
-                            </p>
-                          ) : null}
-                        </div>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusBadge(item.status)}`}
-                        >
-                          à faire
-                        </span>
-                      </div>
-                      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                        <input
-                          type="text"
-                          placeholder="Note (optionnelle)"
-                          value={notes[item.id] ?? ""}
-                          onChange={(e) =>
-                            setNotes((n) => ({
-                              ...n,
-                              [item.id]: e.target.value,
-                            }))
-                          }
-                          disabled={!canWriteBoard}
-                          className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-950"
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            disabled={!canWriteBoard || actingId === item.id}
-                            onClick={() => void decide(item.id, "OK")}
-                            className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
-                          >
-                            OK
-                          </button>
-                          <button
-                            type="button"
-                            disabled={!canWriteBoard || actingId === item.id}
-                            onClick={() => void decide(item.id, "KO")}
-                            className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
-                          >
-                            KO
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            {(board?.itemsEnCours.length ?? 0) > 0 && (
-              <section className="space-y-3">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  En cours (TODOS.md)
-                </h2>
-                <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200 dark:divide-gray-700 dark:border-gray-700">
-                  {board!.itemsEnCours.map((item) => (
-                    <li
-                      key={item.id}
-                      className="bg-amber-50 px-4 py-3 text-sm dark:bg-amber-950/30"
-                    >
-                      <p className="font-medium text-gray-900 dark:text-gray-100">
-                        <span className="font-mono text-xs">{item.id}</span> —{" "}
-                        {item.label}
-                      </p>
-                      {item.action ? (
-                        <p className="mt-1 text-gray-600 dark:text-gray-400">
-                          {item.action}
-                        </p>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              </section>
             )}
-
-            {decidedAValider.length > 0 && (
-              <section className="space-y-3">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Déjà décidé
-                </h2>
-                <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200 dark:divide-gray-700 dark:border-gray-700">
-                  {decidedAValider.map((item) => (
-                    <li
-                      key={`done-${item.section}-${item.id}`}
-                      className="flex items-center justify-between bg-white px-4 py-3 text-sm dark:bg-gray-900"
-                    >
-                      <span>
-                        <span className="font-mono text-xs text-gray-500">
-                          {item.id}
-                        </span>{" "}
-                        {item.label}
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusBadge(item.status)}`}
-                      >
-                        {item.decision || item.status}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+            {interactive && !canWriteBoard && (
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                Compte ADMIN : lecture. SUPER_ADMIN pour valider.
+              </p>
+            )}
+            {loadingBoard && !board ? (
+              <p className="text-sm text-gray-500">Chargement…</p>
+            ) : board ? (
+              <PilotageBoardView
+                board={board}
+                canWrite={canWriteBoard}
+                loading={loadingBoard}
+                onRefresh={() => void loadBoard()}
+                onAction={runBoardAction}
+              />
+            ) : (
+              <p className="text-sm text-gray-500">Tableau indisponible.</p>
             )}
           </div>
         )}
@@ -513,18 +341,16 @@ export default function PilotagePage() {
               </h2>
               <ol className="list-decimal space-y-1 pl-5 text-sm text-gray-700 dark:text-gray-300">
                 <li>
-                  <strong>TODOS.md</strong> — quoi faire
+                  Valider dans l&apos;onglet <strong>Tableau de suivi</strong>{" "}
+                  (fiche détail + checklist).
                 </li>
                 <li>
-                  <strong>TODOS_A_TESTER.md</strong> — tests & résultats
+                  Sync automatique vers{" "}
+                  <strong>validation-board.json</strong> +{" "}
+                  <strong>TODOS_A_VALIDER.md</strong>.
                 </li>
                 <li>
-                  OK → <strong>TODOS_DONE.md</strong> · KO → retour{" "}
-                  <strong>TODOS.md</strong>
-                </li>
-                <li>
-                  Porteur : phase active dans{" "}
-                  <strong>TODOS_A_VALIDER.md</strong> (onglet Tableau)
+                  Preuves appendées dans <strong>TODOS_A_TESTER.md</strong>.
                 </li>
               </ol>
               <button
@@ -679,8 +505,7 @@ export default function PilotagePage() {
             )}
             {canWriteRole && !interactive && (
               <p className="text-xs text-amber-700 dark:text-amber-300">
-                Écriture fichiers désactivée hors dev/préprod (
-                {runtimeEnv}).
+                Écriture fichiers désactivée hors dev/préprod ({runtimeEnv}).
               </p>
             )}
 

@@ -13,6 +13,7 @@ import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contact_detail_scre
 import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
+import 'package:jobbingtrack_mobile/utils/app_snack.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/providers/notification_provider.dart';
 import 'package:jobbingtrack_mobile/utils/contact_name_utils.dart';
@@ -179,12 +180,17 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   }
 
   void _showCreatedSnack(String message, {VoidCallback? onOpen}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 3),
-        action: onOpen != null ? SnackBarAction(label: 'Voir', onPressed: onOpen) : null,
-      ),
+    AppSnack.show(
+      message,
+      duration: const Duration(seconds: 3),
+      action: onOpen != null
+          ? SnackBarAction(
+              label: 'Voir',
+              textColor: Colors.white,
+              onPressed: onOpen,
+            )
+          : null,
+      context: context,
     );
   }
 
@@ -221,25 +227,26 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     return created;
   }
 
-  void _notifyStatusIfChanged(String? previousStatus) {
+  void _notifyStatusIfChanged(String? previousStatus, {bool showSnack = true}) {
     final current = app.status;
     if (previousStatus == null || current == previousStatus || !mounted) return;
     final auth = Provider.of<AuthProvider>(context, listen: false);
     Provider.of<NotificationProvider>(context, listen: false)
         .loadNotifications(token: auth.token, auth: auth)
         .catchError((_) {});
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Statut mis à jour : ${applicationStatusLabel(current)}'),
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: 'Notifications',
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            MobileNotificationCenter.openSheet(context);
-          },
-        ),
+    if (!showSnack) return;
+    AppSnack.show(
+      'Statut mis à jour : ${applicationStatusLabel(current)}',
+      duration: const Duration(seconds: 3),
+      action: SnackBarAction(
+        label: 'Notifications',
+        textColor: Colors.white,
+        onPressed: () {
+          AppSnack.clear();
+          MobileNotificationCenter.openSheet(context);
+        },
       ),
+      context: context,
     );
   }
 
@@ -338,9 +345,14 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                           icon: Icons.schedule_send_outlined,
                           title: formatSmartEventDate(f.scheduledDate),
                           subtitle: f.notes ?? followUpStatusLabel(f.status),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),
-                          ),
+                          onTap: () async {
+                            final deleted = await Navigator.of(context).push<bool>(
+                              MaterialPageRoute(
+                                builder: (_) => FollowupDetailScreen(followUp: f),
+                              ),
+                            );
+                            if (deleted == true && mounted) await _load();
+                          },
                         )),
                   const SizedBox(height: 16),
                   _sectionHeader('Entretiens'),
@@ -694,7 +706,9 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   }
 
   Future<void> _showAddRelance(BuildContext context) async {
-    DateTime date = DateTime.now().add(const Duration(days: 3));
+    final now = DateTime.now();
+    // Défaut : dans 3 jours à 09:00 (évite une heure « maintenant » peu lisible).
+    DateTime date = DateTime(now.year, now.month, now.day + 3, 9, 0);
     final notesController = TextEditingController();
     String channel = 'Email';
     Map<String, dynamic>? selectedContact;
@@ -705,7 +719,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Nouvelle relance'),
+          title: const Text('Relance'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -714,7 +728,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.calendar_today),
                   title: Text(formatSmartEventDate(date)),
-                  subtitle: const Text('Date prévue'),
+                  subtitle: const Text('Date et heure prévues'),
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: ctx,
@@ -722,7 +736,20 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                       firstDate: DateTime.now().subtract(const Duration(days: 1)),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                     );
-                    if (picked != null) setDialogState(() => date = picked);
+                    if (picked == null || !ctx.mounted) return;
+                    final time = await showTimePicker(
+                      context: ctx,
+                      initialTime: TimeOfDay.fromDateTime(date),
+                    );
+                    setDialogState(() {
+                      date = DateTime(
+                        picked.year,
+                        picked.month,
+                        picked.day,
+                        time?.hour ?? 9,
+                        time?.minute ?? 0,
+                      );
+                    });
                   },
                 ),
                 const SizedBox(height: 8),
@@ -818,12 +845,14 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
       );
       if (mounted) {
         await _load();
-        _notifyStatusIfChanged(previousStatus);
+        _notifyStatusIfChanged(previousStatus, showSnack: false);
         _showCreatedSnack(
           'Relance créée',
           onOpen: () async {
             await Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: created)),
+              MaterialPageRoute(
+                builder: (_) => FollowupDetailScreen(followUp: created),
+              ),
             );
             if (mounted) _load();
           },
@@ -994,7 +1023,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
       );
       if (mounted) {
         await _load();
-        _notifyStatusIfChanged(previousStatus);
+        _notifyStatusIfChanged(previousStatus, showSnack: false);
         _showCreatedSnack(
           'Entretien créé',
           onOpen: () async {

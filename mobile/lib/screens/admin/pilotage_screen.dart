@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_hub_leading.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-/// Miroir mobile du suivi pilotage (source docs/pilotage/suivi-actif.json).
-/// Mettre à jour les constantes quand le point actif change.
+/// Miroir mobile du suivi pilotage.
+/// Les décisions OK/KO se font sur le Pilotage **web HTTPS**.
 class PilotageScreen extends StatelessWidget {
   const PilotageScreen({super.key});
 
-  static const _apk = '1.0.31+31';
+  static const _apk = '1.0.33+33';
   static const _activeId = 'B2-D.6';
   static const _activeLabel = 'FAB Relance';
   static const _phase = 'B — Gate pré-prod mobile';
+
+  /// Canonique HTTPS (proxy 5443) — pas localhost:5003.
+  static final _pilotageWebUri = Uri.parse(
+    'https://jobbingtrack.localhost:5443/backoffice/pilotage',
+  );
 
   static const _queue = <(String, String, bool)>[
     ('B2-D.6', 'FAB Relance', true),
@@ -26,6 +33,18 @@ class PilotageScreen extends StatelessWidget {
     'B2-B.4 Impersonnaliser → hub',
     'B2-C.5 Relances + fix ShellTabRegistry',
   ];
+
+  Future<void> _openWebPilotage(BuildContext context) async {
+    final ok = await launchUrl(_pilotageWebUri, mode: LaunchMode.externalApplication);
+    if (!ok && context.mounted) {
+      await Clipboard.setData(ClipboardData(text: _pilotageWebUri.toString()));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('URL Pilotage HTTPS copiée — ouvrir sur le PC'),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +88,19 @@ class PilotageScreen extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () => _openWebPilotage(context),
+              icon: const Icon(Icons.open_in_browser),
+              label: const Text('Valider sur Pilotage web (HTTPS)'),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Décisions OK / KO / PARTIEL / Plus tard : uniquement via\n'
+              'https://jobbingtrack.localhost:5443/backoffice/pilotage\n'
+              '(pas http://localhost:5003 — provoque ERR_SSL si forcé en https)',
+              style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
+            ),
             const SizedBox(height: 20),
             Text('File B2', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
@@ -93,13 +125,6 @@ class PilotageScreen extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text('• $r', style: theme.textTheme.bodyMedium),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Détail : TODOS.md → TODOS_A_TESTER.md → DONE. '
-              'Validation porteur : TODOS_A_VALIDER.md. '
-              'Web : /backoffice/pilotage',
-              style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
             ),
           ],
         ),

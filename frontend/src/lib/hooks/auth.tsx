@@ -439,14 +439,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             error.response.statusText ||
             "Erreur serveur";
 
-          // Authentication errors - no retry
+          // Authentication errors - no retry (attendu : bandeau UI, pas de bruit console)
           if (error.response.status === 401 || error.response.status === 403) {
             const code = error.response.data?.code;
-            console.warn(
-              `⚠️ Login refusé (${error.response.status}):`,
-              errorMessage,
-              code || "",
-            );
             setLoading(false);
             return {
               ok: false,

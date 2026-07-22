@@ -11,7 +11,8 @@ export type PilotageFileId =
   | "TODOS_A_VERIFIER"
   | "TODOS_DONE"
   | "GUIDE_VALIDATION_PORTEUR"
-  | "SUIVI_ACTIF";
+  | "SUIVI_ACTIF"
+  | "VALIDATION_BOARD";
 
 export type PilotageFileMeta = {
   id: PilotageFileId;
@@ -86,6 +87,14 @@ export const PILOTAGE_FILES: PilotageFileMeta[] = [
     relativePath: "suivi-actif.json",
     label: "suivi-actif.json",
     description: "État compact pour l’UI",
+    writable: true,
+    contentType: "json",
+  },
+  {
+    id: "VALIDATION_BOARD",
+    relativePath: "validation-board.json",
+    label: "validation-board.json",
+    description: "Cycles, checklists, statuts riches (validation UI)",
     writable: true,
     contentType: "json",
   },

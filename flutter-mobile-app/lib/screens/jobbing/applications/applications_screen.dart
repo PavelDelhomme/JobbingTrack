@@ -47,16 +47,28 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
               );
 
     if (widget.embedded) {
-      return SafeArea(
-        child: Column(
-          children: [
-            const AppPageHeader(
-              title: 'Mes Candidatures',
-              showBack: false,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Expanded(child: body),
-          ],
+      return Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              const AppPageHeader(
+                title: 'Mes Candidatures',
+                showBack: false,
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Expanded(child: body),
+            ],
+          ),
+        ),
+        floatingActionButton: AppFab(
+          tooltip: 'Nouvelle candidature',
+          label: 'Candidature',
+          onPressed: () {
+          AppSnackbar.show(
+            context,
+            'Formulaire candidature — à brancher (proto)',
+          );
+          },
         ),
       );
     }
@@ -65,6 +77,16 @@ class _ApplicationsScreenState extends State<ApplicationsScreen> {
       title: 'Mes Candidatures',
       accentColor: AppColors.primary,
       body: body,
+      floatingActionButton: AppFab(
+        tooltip: 'Nouvelle candidature',
+        label: 'Candidature',
+        onPressed: () {
+          AppSnackbar.show(
+            context,
+            'Formulaire candidature — à brancher (proto)',
+          );
+        },
+      ),
     );
   }
 }

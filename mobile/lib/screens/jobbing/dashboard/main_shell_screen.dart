@@ -181,6 +181,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
         now.difference(_lastBackToBackgroundPrompt!) > const Duration(seconds: 2)) {
       _lastBackToBackgroundPrompt = now;
       final bottom = mounted ? shellBottomExtra(context) + 8 : kShellBottomNavHeight + 8;
+      rootScaffoldMessengerKey.currentState?.clearSnackBars();
       rootScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(
           content: const Text(
@@ -189,6 +190,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
           margin: EdgeInsets.fromLTRB(16, 0, 16, bottom),
+          dismissDirection: DismissDirection.down,
         ),
       );
       return;

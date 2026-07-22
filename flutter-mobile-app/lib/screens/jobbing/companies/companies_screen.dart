@@ -15,6 +15,16 @@ class CompaniesScreen extends StatelessWidget {
       headline: 'Gestion des entreprises',
       accentColor: AppColors.purple,
       embedded: embedded,
+      floatingActionButton: AppFab(
+        tooltip: 'Nouvelle entreprise',
+        label: 'Entreprise',
+        onPressed: () {
+          AppSnackbar.show(
+            context,
+            'Formulaire entreprise — à brancher (proto)',
+          );
+        },
+      ),
     );
   }
 }

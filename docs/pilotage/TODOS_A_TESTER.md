@@ -13,6 +13,22 @@
 
 ## En cours — Phase B / B2
 
+### PILOTAGE-UI-05 — Validation riche backoffice (22/07)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| `validation-board.json` | Cycles correctifs / FAB / shell + checklists | **Livré** seed 15 tâches | |
+| `GET /api/pilotage/board` | `cycles`, `tasksNow/Later/Decided` | **Livré** | |
+| Actions `decide/checklist/reorder/move/note` | Sync JSON + A_VALIDER + A_TESTER | **Livré** | Re-test porteur |
+| UI fiche détail | Desktop panneau + mobile bottom sheet | **Livré** | |
+| Partiel / Plus tard / cycle FAB | Statuts + progression `n/m OK` | **Livré** unit | |
+| Jest | `validationBoard.test` + suite pilotage | **OK** 12/12 | |
+| Section **Terminées** | Chrono : Récemment terminé + A_VALIDER OK/KO + TODOS_DONE ; sync OK → prepend TODOS.md | **Livré** 22/07 | Re-test porteur UI |
+| WEB-LOGIN-01 porteur | Bandeau FR, pas overlay Next | **OK 22/07** | `console.warn` 401 retiré ; ligne Network 401 reste normale |
+| EMU-LIVE-01 porteur | Samsung + MJPEG live | **OK 22/07** | |
+| MOB-ENT-01 porteur | Liste entreprises OK ; contacts détail KO | **REWORK** | Suite : contacts liés company |
+| AppSnack mobile | clear + durée forcée (relance créée/supprimée) | **Fix** APK 1.0.34 | Re-test D.6 |
+
 ### PILOTAGE-UI-04 — Tableau de suivi interactif (22/07)
 
 | Test | Attendu | Résultat | Suite |
@@ -24,6 +40,7 @@
 | Compose frontend | Volume `./docs/pilotage` RW sous `/workspace` | **OK** `docker compose up -d frontend` | |
 | UI onglet Tableau | Où j’en suis + liste À valider + boutons OK/KO | **Livré agent** | Dev/préprod uniquement |
 | Unites | `mdTables` + `envGate` + `board.correlation` | **OK** Jest 8/8 | |
+| HTTPS 5443 `/api/pilotage/{board,files}` | **200** via Next (pas gateway) ; `interactive`/`canWrite` true | **OK** smoke JWT SUPER_ADMIN 22/07 | Avant : 404 nginx→gateway |
 
 ### PILOTAGE-UI-03 — Fichiers pilotage dans le backoffice (22/07)
 
@@ -77,6 +94,44 @@
 | Live web `/backoffice/mobile-emulator` | MJPEG + Aperçu continu | **OK** contrôleur rebuild : JPEG 720p q55, `/mjpeg`, capture ~50 ms ; screenshot ~0,5 s puis cache ~10 ms | Cocher **Aperçu continu**, device Samsung |
 | Admin web | Connexion SUPER_ADMIN backoffice | **OK** agent | Tester admin mobile depuis web + téléphone |
 
+### DEV-HTTPS-01 — Forcer HTTPS 5443 (22/07)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| `http://localhost:5003/…` | **308** → `https://jobbingtrack.localhost:5443/…` | **OK** middleware | |
+| `https://localhost:5003` | ERR_SSL (port HTTP) — ne pas utiliser | Documenté | |
+| Canonique Pilotage | `https://jobbingtrack.localhost:5443/backoffice/pilotage` | **OK** | |
+| `APP_URL` | HTTPS 5443 | **OK** .env + example | |
+| Nginx `/api/pilotage/*` | Proxy vers **frontend** (pas gateway) | **OK** 22/07 — sinon 404 « Route non trouvée » | reload `dev-https-proxy` |
+| `JT_RUNTIME_ENV` frontend | `development` → écriture OK | **OK** compose | |
+
+---
+
+### B2-D.6 FAB Relance — correctifs agent (22/07)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| Dialog création | Titre **Relance** (pas « Nouvelle relance ») | **Fix** `application_detail_screen` | Re-test porteur |
+| Date défaut | +3 j à **09:00** + time picker | **Fix** | |
+| Détail relance | FAB **Modifier** · corbeille AppBar (plus dans ⋮) | **Fix** `followup_detail_screen` | |
+| Après corbeille | Liste candidature / onglet Relances se rafraîchit | **Fix** `pop(true)` + `_load` / provider | |
+| APK | bump **1.0.33+33** | **Livré** pubspec | Installer Samsung |
+
+### PILOTAGE-UI-05 suite — accordéons + catalogue md (22/07)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| Sections rétractables | À valider / Cycles / Plus tard / A_VALIDER / En cours / Catalogue TODOS | **Livré** `PilotageBoardView` | |
+| Catalogue TODOS.md | Tables + actions détaillées | **Livré** `itemsTodosAll` | |
+
+### MOB-ARCH-02 — restruct `flutter-mobile-app` (22/07)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| `lib/` racine | Seulement `main.dart` | **OK** · app dans `core/app.dart` | |
+| `AppFab` + thème FAB/card | Listes candidature / entreprise / contact | **Livré** (forms stub) | Pas de FAB entretiens (lié entité) |
+| Calendrier / notifs / offline workflow | Reprise à zéro | **Backlog** | Après B2 |
+
 ### B2-D.6 FAB Relance (prochain test porteur)
 
 | Test | Attendu | Résultat | Suite |
@@ -119,3 +174,15 @@
 - Axes Y % Synthèse absurdes — agent 22/07  
 
 Historique technique long : conserver les preuves dans Git / `TODOS_DONE.md` ; ne pas ré-empiler ici.
+
+### UI Pilotage — MOB-ENT-01 (2026-07-22)
+
+| Test | Résultat | Notes |
+|------|----------|-------|
+| Action porteur (UI) | **REWORK** | Backfill + fix ownership ; rafraîchir liste |
+
+### UI Pilotage — EMU-LIVE-01 (2026-07-22)
+
+| Test | Résultat | Notes |
+|------|----------|-------|
+| Action porteur (UI) | **PARTIEL** | scrcpy PC reste le plus fluide |

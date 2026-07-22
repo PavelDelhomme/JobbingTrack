@@ -4,10 +4,12 @@ Dernière mise à jour : **22 juillet 2026**
 
 ## ▶ Où on en est
 
-**Phase B · B2 · D.6 FAB Relance** · APK `1.0.32+32`  
-Correctifs session : **MOB-ENT-01** · **WEB-LOGIN-01** · **EMU-LIVE-01** · **MOB-ARCH-01** (`flutter-mobile-app` UI kit)  
-UI : [`/backoffice/pilotage`](http://localhost:5003/backoffice/pilotage)  
-App prod Samsung : dossier **`mobile/`** · proto refactor UI : **`flutter-mobile-app/`**
+**Phase B · MOB-ENT-01 contacts entreprise (REWORK) · puis B2-D.6** · APK `1.0.34+34`  
+Correctifs session : **WEB-LOGIN-01 OK** · **EMU-LIVE-01 OK** · **MOB-ENT-01 REWORK** (liste OK, contacts détail à reprendre) · **PILOTAGE-UI-05** (+ section Terminées)  
+UI : **[`https://jobbingtrack.localhost:5443/backoffice/pilotage`](https://jobbingtrack.localhost:5443/backoffice/pilotage)** (HTTPS obligatoire — pas `localhost:5003`)  
+App prod Samsung : dossier **`mobile/`** · proto : **`flutter-mobile-app/`** (`lib/main.dart` → `lib/core/app.dart`)
+
+Guide décisions OK/KO/PARTIEL : [`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md).
 
 ## Process (fichiers)
 
@@ -26,16 +28,16 @@ Flux : `TODOS` → tests dans `A_TESTER` → **OK** → `DONE` · **KO** → ret
 
 Page **Pilotage / Suivi des tâches** (`/backoffice/pilotage`) :
 
-1. Onglet **Tableau de suivi** — parse les `.md`, affiche « où j’en suis », items **À valider** avec boutons **OK / KO** (+ note) qui écrivent dans `TODOS_A_VALIDER.md` et une preuve courte dans `TODOS_A_TESTER.md`.
+1. Onglet **Tableau de suivi** — validation riche : cycles (ex. FAB mobile), fiches détail avec sous-critères, **OK / PARTIEL / KO / REWORK / Plus tard**, réordonner ▲▼. État dans `validation-board.json` + sync `TODOS_A_VALIDER.md` + preuve `TODOS_A_TESTER.md`. Section **Terminées** : fusion chronologique de « Récemment terminé » (`TODOS.md`), décisions OK/KO (`A_VALIDER` + board), archive `TODOS_DONE.md` — mise à jour auto à chaque OK/KO (prepend dans `TODOS.md`).
 2. Onglet **Vue synthèse** — snapshot `suivi-actif.json`.
-3. Onglet **Fichiers bruts** — édition markdown (SUPER_ADMIN).
+3. Onglet **Fichiers bruts** — édition markdown/json (SUPER_ADMIN).
 
-**Écriture** (OK/KO + PUT fichiers) : uniquement si `JT_RUNTIME_ENV` ∈ `development|dev|local|preprod|staging|test|ci` (pas `production` / `prod`). Auth : lecture ADMIN+, actions SUPER_ADMIN.
+**Écriture** (actions + PUT fichiers) : uniquement si `JT_RUNTIME_ENV` ∈ `development|dev|local|preprod|staging|test|ci` (pas `production` / `prod`). Auth : lecture ADMIN+, actions SUPER_ADMIN.
 
 **Sync UI ↔ fichiers** :
-- Fichiers → UI : à chaque chargement / rafraîchir (pas de watch temps réel).
-- UI → fichiers : OK/KO et édition brute écrivent immédiatement dans `docs/pilotage/` (montage Docker **RW** requis : `./docs/pilotage` sous le frontend).
-- Onglet « Vue synthèse » : snapshot `suivi-actif.json` (mis à jour au OK si l’item est dans la queue).
+- Fichiers → UI : à chaque chargement / rafraîchir.
+- UI → fichiers : actions board écrivent `validation-board.json` + décision résumée dans `TODOS_A_VALIDER.md`.
+- Layout responsive : panneau détail desktop · bottom sheet mobile.
 
 ## Branches / commits
 

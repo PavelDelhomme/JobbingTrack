@@ -191,6 +191,8 @@ services:
       - NEXT_PUBLIC_METRICS_VIA_FRONTEND=true
       - NEXT_PUBLIC_TZ=${TZ:-Europe/Paris}
       - NODE_ENV=development
+      # Gate écriture Pilotage (OK/KO) — explicite hors production.
+      - JT_RUNTIME_ENV=${JT_RUNTIME_ENV:-development}
       # Polling désactivé par défaut (Linux + bind mount) pour réduire fortement la charge CPU du dev server Next.
       - NODE_OPTIONS=${FRONTEND_NODE_OPTIONS:---max-old-space-size=1536}
       - PORT=3000

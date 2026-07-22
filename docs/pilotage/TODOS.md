@@ -35,13 +35,15 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 | ID | Phase | Item | Action immédiate | Preuve / test |
 |----|-------|------|------------------|---------------|
+| **PILOTAGE-UI-05** | D | Validation riche UI : détail, partiel, plus tard, cycles FAB | `validation-board.json` + API actions + fiche responsive | [`TODOS_A_TESTER.md`](TODOS_A_TESTER.md) § PILOTAGE-UI-05 |
 | **PILOTAGE-UI-04** | D | Tableau de suivi interactif (parse md → OK/KO UI → écriture fichiers) | API `/api/pilotage/board` + gate hors prod (`JT_RUNTIME_ENV`) | [`TODOS_A_TESTER.md`](TODOS_A_TESTER.md) § PILOTAGE-UI-04 |
 | **PILOTAGE-UI-03** | D | UI Pilotage : titres onglet + lecture/édition sécurisée des md | API `/api/pilotage/files` ADMIN/SUPER_ADMIN + redact secrets | [`TODOS_A_TESTER.md`](TODOS_A_TESTER.md) § PILOTAGE-UI-03 |
 | **MOB-ARCH-01** | A/D | `flutter-mobile-app` : UI kit centralisé + écrans fins (réutilisation max, moins de duplication mémoire UI) | Theme + widgets partagés + MainShell IndexedStack ; modèles via barrel | [`TODOS_A_TESTER.md`](TODOS_A_TESTER.md) § MOB-ARCH-01 |
 | **MOB-ENT-01** | B | Liste Entreprises vide alors que candidatures ont un nom (ex. OVHcloud) | Scope `by-name` + ownership + backfill entreprises orphelines ; liste + détail (candidatures/contacts) | [`TODOS_A_TESTER.md`](TODOS_A_TESTER.md) § MOB-ENT-01 |
 | **WEB-LOGIN-01** | D | Login backoffice : overlay Next.js « Invalid email or password » | Message UI FR sans `console.error(Error)` ; cas précis (vide, format, non vérifié, réseau) ; credentials incorrects **générique** (anti-énumération) | [`TODOS_A_TESTER.md`](TODOS_A_TESTER.md) § WEB-LOGIN-01 |
 | **EMU-LIVE-01** | D | Aperçu live appareil ADB dans `/backoffice/mobile-emulator` | Flux MJPEG + case « Aperçu continu » sur device sélectionné | déjà partiel · re-test porteur |
-| **B2-D.6** | B | FAB Relance | Porteur : créer relance depuis candidature | [`TODOS_A_VALIDER.md`](TODOS_A_VALIDER.md) · [`TODOS_A_TESTER.md`](TODOS_A_TESTER.md) |
+| **MOB-ARCH-02** | A/D | `flutter-mobile-app` : `lib/` racine = `main.dart` seul · `core/app.dart` · AppFab + thème Material overlidé | Restructuration + FAB listes candidature/entreprise/contact | suite calendrier / notif / offline |
+| **B2-D.6** | B | FAB Relance | Fix détail : label Relance, date 09:00+3j, FAB edit, corbeille AppBar, refresh liste après trash | APK **1.0.33** · re-test porteur |
 | B2-D.7 | B | FAB Appel | après D.6 | idem |
 | B2-D.8 | B | FAB Entretien | après D.7 | idem |
 | B2-D.9 | B | FAB Contact | après D.8 | idem |

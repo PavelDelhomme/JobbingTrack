@@ -12,6 +12,7 @@ class FeaturePlaceholderScreen extends StatelessWidget {
     this.message = 'Cette fonctionnalité sera bientôt disponible',
     this.accentColor = AppColors.primary,
     this.embedded = false,
+    this.floatingActionButton,
   });
 
   final String title;
@@ -20,22 +21,26 @@ class FeaturePlaceholderScreen extends StatelessWidget {
   final String message;
   final Color accentColor;
   final bool embedded;
+  final Widget? floatingActionButton;
 
   @override
   Widget build(BuildContext context) {
     final body = EmptyState(icon: icon, title: headline, message: message);
 
     if (embedded) {
-      return SafeArea(
-        child: Column(
-          children: [
-            AppPageHeader(
-              title: title,
-              showBack: false,
-              accentColor: accentColor,
-            ),
-            Expanded(child: body),
-          ],
+      return Scaffold(
+        floatingActionButton: floatingActionButton,
+        body: SafeArea(
+          child: Column(
+            children: [
+              AppPageHeader(
+                title: title,
+                showBack: false,
+                accentColor: accentColor,
+              ),
+              Expanded(child: body),
+            ],
+          ),
         ),
       );
     }
@@ -44,6 +49,7 @@ class FeaturePlaceholderScreen extends StatelessWidget {
       title: title,
       accentColor: accentColor,
       body: body,
+      floatingActionButton: floatingActionButton,
     );
   }
 }

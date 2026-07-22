@@ -2,6 +2,7 @@
 library;
 
 export 'action_tile.dart';
+export 'app_fab.dart';
 export 'app_page_header.dart';
 export 'app_page_scaffold.dart';
 export 'app_primary_button.dart';

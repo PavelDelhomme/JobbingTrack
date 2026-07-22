@@ -10,8 +10,14 @@ abstract class AppSnackbar {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: success ? AppColors.green : AppColors.red,
+        backgroundColor: success ? AppColors.green : AppColors.primaryDark,
       ),
     );
   }
+
+  static void info(BuildContext context, String message) =>
+      show(context, message);
+
+  static void success(BuildContext context, String message) =>
+      show(context, message, success: true);
 }

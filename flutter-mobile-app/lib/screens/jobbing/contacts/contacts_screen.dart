@@ -15,6 +15,17 @@ class ContactsScreen extends StatelessWidget {
       headline: 'Gestion des contacts',
       accentColor: AppColors.green,
       embedded: embedded,
+      floatingActionButton: AppFab(
+        tooltip: 'Nouveau contact',
+        label: 'Contact',
+        icon: Icons.person_add_alt_1,
+        onPressed: () {
+          AppSnackbar.show(
+            context,
+            'Formulaire contact — à brancher (proto)',
+          );
+        },
+      ),
     );
   }
 }
