@@ -15,6 +15,21 @@ export async function GET(
       return NextResponse.json({ error: "Chemin invalide" }, { status: 400 });
     }
 
+    // Les docs pilotage passent uniquement par /api/pilotage/files (auth admin)
+    const normalizedRel = filePath.replace(/\\/g, "/").toLowerCase();
+    if (
+      normalizedRel === "pilotage" ||
+      normalizedRel.startsWith("pilotage/")
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Accès refusé. Utilisez /api/pilotage/files (ADMIN / SUPER_ADMIN).",
+        },
+        { status: 403 },
+      );
+    }
+
     // Chemin vers le dossier docs à la racine du projet
     // process.cwd() pointe vers frontend/, donc on remonte d'un niveau
     const projectRoot = path.join(process.cwd(), "..");

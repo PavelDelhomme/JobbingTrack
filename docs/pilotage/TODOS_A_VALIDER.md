@@ -4,8 +4,18 @@
 > Tu remplis **uniquement** ce fichier pour la phase en cours. Pas d’autres phases ici.
 
 **Phase active** : **B — Gate pré-prod mobile**  
-**Point exact** : **B2-D.6** FAB Relance  
-**APK** : `1.0.31+31` · Samsung
+**Point exact** : **B2-D.6** FAB Relance (+ correctifs session 22/07 à re-valider)  
+**APK** : `1.0.32+32` · Samsung
+
+---
+
+## Correctifs session 22/07 (re-valider avant / avec B2)
+
+| ID | À faire | Décision | Notes |
+|----|---------|----------|-------|
+| **MOB-ENT-01** | Onglet **Entreprises** : voir OVHcloud, Capgemini, etc. (mêmes noms que candidatures) ; ouvrir détail (candidatures + contacts) | | Backfill + fix ownership ; rafraîchir liste |
+| **WEB-LOGIN-01** | Login backoffice : mauvais mdp → bandeau rouge FR, **sans** overlay Next.js rouge | | Ne doit plus afficher « Invalid email or password » en Console Error |
+| **EMU-LIVE-01** | `/backoffice/mobile-emulator` : device ADB + **Aperçu live** → écran téléphone en direct | | scrcpy PC reste le plus fluide |
 
 ---
 

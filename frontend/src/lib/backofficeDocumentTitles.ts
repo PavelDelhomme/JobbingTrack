@@ -72,6 +72,9 @@ export const BACKOFFICE_DOCUMENT_TITLES: Record<string, string> = {
   "/backoffice/administration/mobile-logs": "Mobile / Erreurs & retours",
   "/backoffice/administration/mobile-releases": "Mobile / Releases OTA",
 
+  // — Pilotage
+  "/backoffice/pilotage": "Pilotage / Suivi des tâches",
+
   // — Gestion des emails
   "/backoffice/emails": "Gestion des emails / Dashboard",
   "/backoffice/email-monitor": "Gestion des emails / Email Monitor",

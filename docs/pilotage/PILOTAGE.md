@@ -4,8 +4,10 @@ Dernière mise à jour : **22 juillet 2026**
 
 ## ▶ Où on en est
 
-**Phase B · B2 · D.6 FAB Relance** · APK `1.0.31+31`  
-UI : [`/backoffice/pilotage`](http://localhost:5003/backoffice/pilotage)
+**Phase B · B2 · D.6 FAB Relance** · APK `1.0.32+32`  
+Correctifs session : **MOB-ENT-01** · **WEB-LOGIN-01** · **EMU-LIVE-01** · **MOB-ARCH-01** (`flutter-mobile-app` UI kit)  
+UI : [`/backoffice/pilotage`](http://localhost:5003/backoffice/pilotage)  
+App prod Samsung : dossier **`mobile/`** · proto refactor UI : **`flutter-mobile-app/`**
 
 ## Process (fichiers)
 

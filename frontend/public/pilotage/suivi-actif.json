@@ -1,6 +1,6 @@
 {
   "updatedAt": "2026-07-22",
-  "apk": "1.0.31+31",
+  "apk": "1.0.32+32",
   "phase": {
     "id": "B",
     "label": "Gate pré-prod mobile",
@@ -25,25 +25,37 @@
   ],
   "openFixes": [
     {
-      "id": "UX-LOGS-01",
-      "label": "Popup crashs : fermer au clic extérieur / Escape",
+      "id": "MOB-ENT-01",
+      "label": "Liste Entreprises sync ownership + backfill",
       "status": "fixed_pending_retest"
+    },
+    {
+      "id": "WEB-LOGIN-01",
+      "label": "Login backoffice messages sans overlay Next.js",
+      "status": "fixed_pending_retest"
+    },
+    {
+      "id": "EMU-LIVE-01",
+      "label": "Aperçu live ADB MJPEG",
+      "status": "fixed_pending_retest"
+    },
+    {
+      "id": "PILOTAGE-UI-03",
+      "label": "UI fichiers pilotage sécurisée + titre page",
+      "status": "shipped"
     },
     {
       "id": "PERF-TAB-01",
       "label": "Diagnostic mémoire multi-onglets backoffice",
       "status": "todo"
-    },
-    {
-      "id": "PILOTAGE-UI-02",
-      "label": "Écran Pilotage mobile admin (miroir suivi-actif)",
-      "status": "mvp_shipped"
     }
   ],
   "files": {
+    "pilotage": "docs/pilotage/PILOTAGE.md",
     "todos": "docs/pilotage/TODOS.md",
     "tester": "docs/pilotage/TODOS_A_TESTER.md",
     "valider": "docs/pilotage/TODOS_A_VALIDER.md",
-    "done": "docs/pilotage/TODOS_DONE.md"
+    "done": "docs/pilotage/TODOS_DONE.md",
+    "suivi": "docs/pilotage/suivi-actif.json"
   }
 }
