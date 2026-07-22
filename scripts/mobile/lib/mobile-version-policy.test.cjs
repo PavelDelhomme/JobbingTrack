@@ -7,6 +7,9 @@ const {
   computeSuggestedVersion,
   bumpPubspecForNextBuild,
   alignLegacyPubspec,
+  computeMobileSourceFingerprint,
+  writeStoredSourceFingerprint,
+  shouldBumpVersionForBuild,
 } = require('./mobile-version-policy.cjs');
 const fs = require('fs');
 const os = require('os');
@@ -50,5 +53,43 @@ test('alignLegacyPubspec migre 1.0.0+12 vers 1.0.12+12', () => {
   const aligned = alignLegacyPubspec(file);
   assert.equal(aligned.version, '1.0.12');
   assert.equal(aligned.buildNumber, 12);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('shouldBumpVersionForBuild : inchangé si empreinte égale', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jt-fp-'));
+  fs.mkdirSync(path.join(dir, 'lib'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'pubspec.yaml'), 'name: t\nversion: 1.0.29+29\n', 'utf8');
+  fs.writeFileSync(path.join(dir, 'lib', 'a.dart'), 'void main() {}\n', 'utf8');
+  const fp = computeMobileSourceFingerprint(dir);
+  writeStoredSourceFingerprint(dir, fp);
+  const decision = shouldBumpVersionForBuild(dir);
+  assert.equal(decision.bump, false);
+  assert.equal(decision.reason, 'unchanged');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('shouldBumpVersionForBuild : bump si sources changées', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jt-fp-'));
+  fs.mkdirSync(path.join(dir, 'lib'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'pubspec.yaml'), 'name: t\nversion: 1.0.29+29\n', 'utf8');
+  fs.writeFileSync(path.join(dir, 'lib', 'a.dart'), 'void main() {}\n', 'utf8');
+  writeStoredSourceFingerprint(dir, computeMobileSourceFingerprint(dir));
+  fs.writeFileSync(path.join(dir, 'lib', 'a.dart'), 'void main() { /* change */ }\n', 'utf8');
+  const decision = shouldBumpVersionForBuild(dir);
+  assert.equal(decision.bump, true);
+  assert.equal(decision.reason, 'sources-changed');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('shouldBumpVersionForBuild : force ignore empreinte', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jt-fp-'));
+  fs.mkdirSync(path.join(dir, 'lib'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'pubspec.yaml'), 'name: t\nversion: 1.0.29+29\n', 'utf8');
+  fs.writeFileSync(path.join(dir, 'lib', 'a.dart'), 'void main() {}\n', 'utf8');
+  writeStoredSourceFingerprint(dir, computeMobileSourceFingerprint(dir));
+  const decision = shouldBumpVersionForBuild(dir, { force: true });
+  assert.equal(decision.bump, true);
+  assert.equal(decision.reason, 'force');
   fs.rmSync(dir, { recursive: true, force: true });
 });

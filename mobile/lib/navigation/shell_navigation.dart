@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/main_shell_screen.dart';
 
 /// Onglet shell courant (barre basse) — lu par le drawer pour le retour « page précédente ».
@@ -12,7 +13,17 @@ class ShellTabRegistry {
     if (applicationsSubTab != null) {
       currentApplicationsSubTab = applicationsSubTab.clamp(0, 5);
     }
-    revision.value++;
+    // Ne jamais notifier pendant un build (initState / mount) —
+    // sinon ValueListenableBuilder → setState → FlutterError (crash email).
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.idle ||
+        phase == SchedulerPhase.postFrameCallbacks) {
+      revision.value++;
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      revision.value++;
+    });
   }
 }
 

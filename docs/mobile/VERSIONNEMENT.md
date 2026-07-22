@@ -21,18 +21,24 @@ version: 1.0.12+12
 
 ---
 
-## Incrément automatique
+## Incrément automatique (smart)
 
 À chaque **Build APK** (backoffice ou `build-apk-debug.sh`) :
 
-1. Le script `bump-pubspec-version.js` incrémente le build (`12` → `13`).
-2. Il met à jour la version affichée (`1.0.12` → `1.0.13`).
-3. Écrit `mobile/pubspec.yaml` : `1.0.13+13`.
+1. Le script calcule une **empreinte** du code mobile (`lib/`, sources Android app, `pubspec` hors ligne `version:`).
+2. **Si le code n’a pas changé** depuis le dernier APK → **pas d’incrément** (rebuild / réinstall sans fausse version).
+3. **Si le code a changé** → incrémente le build (`29` → `30`) et la version affichée (`1.0.29` → `1.0.30`).
+4. Après un build réussi, l’empreinte est enregistrée dans `mobile/build/.apk-source-fingerprint`.
 
-Désactiver : `SKIP_VERSION_BUMP=1` avant le build.
+Forcer un incrément même sans changement : `FORCE_VERSION_BUMP=1` ou  
+`node scripts/mobile/setup/bump-pubspec-version.js --bump`.
+
+Désactiver toute logique de bump : `SKIP_VERSION_BUMP=1` avant le build.
 
 Aligner un ancien `1.0.0+12` sans incrémenter :  
 `node scripts/mobile/setup/bump-pubspec-version.js --align-only`
+
+**Réinstaller l’APK** (étape 2 wizard / `reinstall-apk-adb.sh`) **ne bump jamais** la version.
 
 ---
 
@@ -53,8 +59,9 @@ Pourquoi le standard sépare ? Voir **[VERSIONNEMENT_EXPLICATION_PORTEUR.md](./V
 
 | Action | Exemple | Quand |
 |--------|---------|--------|
-| Build dev quotidien | `1.0.12+12` → `1.0.13+13` | **Automatique** |
-| Correctif nommé | `1.0.20+20` → `1.0.21+21` | Idem auto ; le « 21 » reste le build |
+| Build APK (code inchangé) | même `1.0.29+29` | **Pas d’incrément** (empreinte sources) |
+| Build APK (code mobile changé) | `1.0.29+29` → `1.0.30+30` | **Automatique** |
+| Rebuild forcé avec bump | `FORCE_VERSION_BUMP=1` | Manuel / flag |
 | Nouvelle fonctionnalité (mineure) | `1.0.25+25` → `1.1.25+25` ou `1.1.26+26` | Éditer pubspec : monter **MINOR**, puis builds suivants sur `1.1.x` |
 | Refonte | `1.1.30+30` → `2.0.31+31` | Éditer pubspec : monter **MAJOR** |
 

@@ -326,17 +326,17 @@ Menu **Statistics** → sous-onglets en haut de page.
 
 ### P1C — UX backoffice (une validation = une réponse)
 
-| Validation | Navigation | Étapes |
-|------------|------------|--------|
-| Mode sombre | Barre haute → icône 🌙/☀️ | Passer sombre → F5 sur `/b4ck0ff1ce` → reste sombre. |
-| Popup paramètres | Bouton **Paramètres** barre haute | Clic hors popup / `Escape` ferme ; clic dedans OK. |
-| Graphes conteneurs | **Performances** → **Conteneurs** [lien](http://localhost:5003/b4ck0ff1ce/performances/containers) | « Tous les conteneurs » : couleurs CPU/RAM distinctes. |
-| Plages temporelles | Sous-pages Performances | 24 h → 7 j → personnalisé : pas de vide durable. |
-| 1re navigation perf. | Hub → **Performances** | Délai + graphes présents. |
-| Sécurité FR | Sous-onglets Sécurité | [Politiques](http://localhost:5003/b4ck0ff1ce/security/policies) [Menaces](http://localhost:5003/b4ck0ff1ce/security/threats) [Firewall](http://localhost:5003/b4ck0ff1ce/security/firewall) [Logs](http://localhost:5003/b4ck0ff1ce/security/logs) [Analyse](http://localhost:5003/b4ck0ff1ce/security/analysis) [Réseau](http://localhost:5003/b4ck0ff1ce/security/network) |
-| Comparaison rapports | [test-reports](http://localhost:5003/b4ck0ff1ce/test-reports) | 2 rapports non sécurité → **Comparer** → tableau. |
-| Menu Tests | **Développement** → **Tests** | Clic = vue d’ensemble ; **Rapports de tests** dans sous-menu. |
-| Responsive backoffice complet | DevTools navigateur ou écran réel | Vérifier petit écran, écran moyen et largeur intermédiaire sur `/b4ck0ff1ce`, Email Monitor, Utilisateurs, Sécurité, Performances, Statistics et Rapports : menu utilisable, pas de débordement horizontal, tableaux/listes lisibles, filtres empilés, boutons accessibles. |
+| Validation | Navigation | Étapes | Statut |
+|------------|------------|--------|--------|
+| Mode sombre | Barre haute → icône 🌙/☀️ | Passer sombre → F5 sur `/b4ck0ff1ce` → reste sombre. | **OK porteur 22/07** |
+| Popup paramètres | Bouton **Paramètres** barre haute | Clic hors popup / `Escape` ferme ; clic dedans OK. | **OK porteur 22/07** |
+| Graphes conteneurs | **Performances** → **Conteneurs** [lien](http://localhost:5003/b4ck0ff1ce/performances/containers) | « Tous les conteneurs » : couleurs CPU/RAM distinctes. | **OK 22/07** couleurs — **reste** moteur couleurs stables + styles ligne + tooltip séries visibles triées |
+| Plages temporelles | Sous-pages Performances | 24 h → 7 j → personnalisé : pas de vide durable. | |
+| 1re navigation perf. | Hub → **Performances** | Délai + graphes présents. | |
+| Sécurité FR | Sous-onglets Sécurité | [Politiques](http://localhost:5003/b4ck0ff1ce/security/policies) [Menaces](http://localhost:5003/b4ck0ff1ce/security/threats) [Firewall](http://localhost:5003/b4ck0ff1ce/security/firewall) [Logs](http://localhost:5003/b4ck0ff1ce/security/logs) [Analyse](http://localhost:5003/b4ck0ff1ce/security/analysis) [Réseau](http://localhost:5003/b4ck0ff1ce/security/network) | |
+| Comparaison rapports | [test-reports](http://localhost:5003/b4ck0ff1ce/test-reports) | 2 rapports non sécurité → **Comparer** → tableau. | |
+| Menu Tests | **Développement** → **Tests** | Clic = vue d’ensemble ; **Rapports de tests** dans sous-menu. | |
+| Responsive backoffice complet | DevTools navigateur ou écran réel | Vérifier petit écran, écran moyen et largeur intermédiaire sur `/b4ck0ff1ce`, Email Monitor, Utilisateurs, Sécurité, Performances, Statistics et Rapports : menu utilisable, pas de débordement horizontal, tableaux/listes lisibles, filtres empilés, boutons accessibles. | |
 
 **Réponses** : `OK <nom exact ligne tableau>` ou `KO <nom exact>` + ce que tu vois.
 
@@ -467,6 +467,16 @@ node scripts/mobile/smoke/api/smoke-resend-verification-api.js
 | 11 | Onglet **Contacts** (dans Candidatures) → FAB **+** | Sheet création contact avec picker entreprise | OK FAB contact onglet |
 
 **Smokes agent (référence)** : `smoke-mobile-navigation-adb.js`, `smoke-mobile-application-detail-fab-adb.js`, `smoke-mobile-admin-hub-adb.js`, `smoke-mobile-impersonation-adb.js`. **Preuve agent 07/07** : batterie rapide **12/16 OK** ; impersonnalisation + FAB + admin hub OK ; **BL-26-15** refresh listes au retour (code mergé). **Action porteur** : rebuild APK **1.0.0+12** sur Samsung puis checklist points 1–11 + désimpersonnalisation.
+
+**Retours porteur 22/07/2026 (suite étape 2)** :
+
+| Point | Statut | Détail |
+|-------|--------|--------|
+| **A** Navigation retour (1, 2, 2b, 2c) | **OK** (15/07) | Déjà validé session précédente |
+| **3** Connexion USER → drawer | **OK** | Pas « Administration » |
+| **4** ADMIN → impersonnaliser → Désimpersonnaliser | **OK** | Retour hub admin |
+| **5** Candidatures → Relances | **OK** | Liste sans crash |
+| Crash Flutter `setState during build` | **Corrigé + APK 1.0.31** | `ShellTabRegistry` notifie en post-frame ; install Samsung OK — **suite** FAB 6–9 |
 
 **Retours porteur 10/07/2026 (soir — partiel)** :
 

@@ -142,7 +142,7 @@ function VersionAlignmentCard({
     {
       label: "Code source (pubspec.yaml)",
       value: pubspecLabel,
-      hint: "Prochaine version après « Build APK » (incrément auto du 3e chiffre = build, ex. 1.0.18+18).",
+      hint: "Version du code. Incrément auto seulement si le code mobile a changé (sinon Rebuild garde la même version).",
     },
     {
       label: "APK compilé (disque build)",

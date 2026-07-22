@@ -845,7 +845,7 @@ const routes = {
       const reversed = await setupAdbReverseForDevice(deviceId, { force: true });
       push('adb_reverse', true, `${reversed} port(s) API mappés`);
       push('install', true, 'Installation APK en cours…');
-      await execPromise(`adb -s ${deviceId} install -r "${apkPath}"`, execOpts);
+      await execPromise(`adb -s ${deviceId} install -r -d "${apkPath}"`, execOpts);
       push('install', true, 'APK installé');
       await relaunchAppSingleInstance(deviceId);
       push('restart', true, 'Application relancée (instance unique)');
@@ -905,7 +905,7 @@ const routes = {
       const sizeMo = (fs.statSync(apkPath).size / 1024 / 1024).toFixed(1);
       const pubspec = parsePubspecVersion();
       try {
-        await execPromiseTracked(`adb -s ${deviceId} install -r "${apkPath}"`, { cwd: MOBILE_PATH });
+        await execPromiseTracked(`adb -s ${deviceId} install -r -d "${apkPath}"`, { cwd: MOBILE_PATH });
         deviceDetailsCache.delete(deviceId);
         send(res, 200, {
           success: true,

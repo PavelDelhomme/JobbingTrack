@@ -47,6 +47,11 @@ import {
   summarizeDockerServiceHealth,
   type DockerServiceRow,
 } from "@/lib/metrics/serviceHealthOverview";
+import {
+  formatMetricMb,
+  formatMetricPercent,
+  normalizeServiceCardMetrics,
+} from "@/lib/metrics/serviceCardMetrics";
 import { averagePriorityResponseTimeMs } from "@/lib/metrics/responseTimePresentation";
 import { PriorityResponseServicesSummary } from "@/components/monitoring/PriorityResponseServicesSummary";
 import { fetchSecurityAnalysisSummary } from "@/lib/security/securityAnalysisSummary";
@@ -1115,17 +1120,34 @@ export default function BackofficePage() {
                     ? prevService.status // Garder 'running' si on était en ligne et que la requête échoue
                     : dockerStatus;
 
+                const rawMetrics = dockerService.metrics || prevService?.metrics;
+                const normalized = normalizeServiceCardMetrics(rawMetrics);
                 return {
                   ...service,
                   status: finalStatus,
-                  metrics: dockerService.metrics
+                  metrics: rawMetrics
                     ? {
-                        cpu: dockerService.metrics.cpu_percent,
-                        memory: {
-                          percent: dockerService.metrics.memory_percent,
-                          usage: dockerService.metrics.memory_usage_mb,
+                        // Forme canonique pour l’UI (évite cpu=number + memory.usage déjà en Mo mal relus)
+                        cpu_percent: normalized.cpuPercent ?? undefined,
+                        memory_percent: normalized.memoryPercent ?? undefined,
+                        memory_usage_mb: normalized.memoryUsageMb ?? undefined,
+                        cpu: {
+                          percentage: normalized.cpuPercent ?? undefined,
                         },
-                        pids: dockerService.metrics.pids,
+                        memory: {
+                          percentage: normalized.memoryPercent ?? undefined,
+                          percent: normalized.memoryPercent ?? undefined,
+                          usageMb: normalized.memoryUsageMb ?? undefined,
+                        },
+                        network:
+                          normalized.networkRxMb != null ||
+                          normalized.networkTxMb != null
+                            ? {
+                                rx_mb: normalized.networkRxMb ?? 0,
+                                tx_mb: normalized.networkTxMb ?? 0,
+                              }
+                            : undefined,
+                        pids: normalized.pids ?? undefined,
                       }
                     : prevService?.metrics,
                   health:
@@ -1918,6 +1940,10 @@ export default function BackofficePage() {
                     </span>
                   </div>
                 ))}
+              <p className="text-xs text-gray-500 dark:text-gray-400 pt-1">
+                Aperçu 5/{expectedServicesCount} du catalogue — clic pour le détail
+                (CPU / mémoire / réseau)
+              </p>
             </div>
           </div>
 
@@ -2272,94 +2298,98 @@ export default function BackofficePage() {
                           </div>
                         )}
 
-                        {/* Informations des métriques */}
-                        {service.metrics && (
-                          <div className="text-xs space-y-1 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center gap-1">
-                                <Cpu className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">
-                                  CPU:
-                                </span>
-                              </div>
-                              <span className="font-semibold text-blue-600 dark:text-blue-400">
-                                {service.metrics.cpu?.percentage !== undefined
-                                  ? `${service.metrics.cpu.percentage.toFixed(1)}%`
-                                  : service.metrics.cpu_percent !== undefined
-                                    ? `${Number(service.metrics.cpu_percent).toFixed(1)}%`
-                                    : service.metrics.cpu
-                                      ? `${service.metrics.cpu.toFixed(1)}%`
-                                      : service.status === "running"
-                                        ? "Actif (non remonté)"
-                                        : "N/A"}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center gap-1">
-                                <MemoryStick className="h-3 w-3 text-green-600 dark:text-green-400" />
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">
-                                  Mémoire:
-                                </span>
-                              </div>
-                              <span className="font-semibold text-green-600 dark:text-green-400">
-                                {service.metrics.memory?.percentage !==
-                                undefined
-                                  ? `${service.metrics.memory.percentage.toFixed(1)}%`
-                                  : service.metrics.memory_percent !== undefined
-                                    ? `${Number(service.metrics.memory_percent).toFixed(1)}%`
-                                    : service.metrics.memory?.percent
-                                      ? `${service.metrics.memory.percent.toFixed(1)}%`
-                                      : service.status === "running"
-                                        ? "Actif (non remonté)"
-                                        : "N/A"}
-                                {(service.metrics.memory?.usage ||
-                                  service.metrics.memory_usage_mb) && (
-                                  <span className="text-xs ml-1 text-gray-500">
-                                    (
-                                    {service.metrics.memory?.usage
-                                      ? (
-                                          service.metrics.memory.usage /
-                                          1024 /
-                                          1024
-                                        ).toFixed(0)
-                                      : Number(
-                                          service.metrics.memory_usage_mb,
-                                        ).toFixed(0)}{" "}
-                                    MB)
-                                  </span>
-                                )}
-                              </span>
-                            </div>
-                            {service.metrics.pids && (
+                        {/* Informations des métriques (formes Docker / UI normalisées) */}
+                        {(() => {
+                          const containerKey = `jobbingtrack-${service.id}`;
+                          const containerFallback =
+                            containerMetrics &&
+                            typeof containerMetrics === "object"
+                              ? (containerMetrics as Record<string, any>)[
+                                  containerKey
+                                ]
+                              : null;
+                          const cardMetrics = normalizeServiceCardMetrics(
+                            service.metrics,
+                            containerFallback,
+                          );
+                          const cpuLabel = formatMetricPercent(
+                            cardMetrics.cpuPercent,
+                          );
+                          const memLabel = formatMetricPercent(
+                            cardMetrics.memoryPercent,
+                          );
+                          const memMbLabel = formatMetricMb(
+                            cardMetrics.memoryUsageMb,
+                          );
+                          const netLabel = formatMetricMb(
+                            cardMetrics.networkTotalMb,
+                            2,
+                          );
+                          const hasAnyMetric =
+                            cpuLabel ||
+                            memLabel ||
+                            memMbLabel ||
+                            netLabel ||
+                            cardMetrics.pids != null;
+                          if (!hasAnyMetric && !service.metrics) return null;
+                          return (
+                            <div className="text-xs space-y-1 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
                               <div className="flex justify-between items-center">
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">
-                                  Processus:
-                                </span>
-                                <span className="font-semibold text-purple-600 dark:text-purple-400">
-                                  {service.metrics.pids}
+                                <div className="flex items-center gap-1">
+                                  <Cpu className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                                  <span className="text-gray-700 dark:text-gray-300 font-medium">
+                                    CPU:
+                                  </span>
+                                </div>
+                                <span className="font-semibold text-blue-600 dark:text-blue-400 tabular-nums">
+                                  {cpuLabel ??
+                                    (service.status === "running"
+                                      ? "Actif (non remonté)"
+                                      : "N/A")}
                                 </span>
                               </div>
-                            )}
-                            {service.metrics.network &&
-                              (service.metrics.network.rx ||
-                                service.metrics.network.tx) && (
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-1">
+                                  <MemoryStick className="h-3 w-3 text-green-600 dark:text-green-400" />
+                                  <span className="text-gray-700 dark:text-gray-300 font-medium">
+                                    Mémoire:
+                                  </span>
+                                </div>
+                                <span className="font-semibold text-green-600 dark:text-green-400 tabular-nums">
+                                  {memLabel ??
+                                    (service.status === "running"
+                                      ? "Actif (non remonté)"
+                                      : "N/A")}
+                                  {memMbLabel && (
+                                    <span className="text-xs ml-1 text-gray-500">
+                                      ({memMbLabel})
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                              {cardMetrics.pids != null && (
+                                <div className="flex justify-between items-center">
+                                  <span className="text-gray-700 dark:text-gray-300 font-medium">
+                                    Processus:
+                                  </span>
+                                  <span className="font-semibold text-purple-600 dark:text-purple-400 tabular-nums">
+                                    {cardMetrics.pids}
+                                  </span>
+                                </div>
+                              )}
+                              {netLabel && (
                                 <div className="flex justify-between items-center">
                                   <span className="text-gray-700 dark:text-gray-300 font-medium">
                                     Réseau:
                                   </span>
-                                  <span className="font-semibold text-orange-600 dark:text-orange-400">
-                                    {(
-                                      (service.metrics.network.rx +
-                                        service.metrics.network.tx) /
-                                      1024 /
-                                      1024
-                                    ).toFixed(2)}{" "}
-                                    MB
+                                  <span className="font-semibold text-orange-600 dark:text-orange-400 tabular-nums">
+                                    {netLabel}
                                   </span>
                                 </div>
                               )}
-                          </div>
-                        )}
+                            </div>
+                          );
+                        })()}
 
                         {/* Clic pour naviguer vers la page du service */}
                         <div
@@ -2381,6 +2411,18 @@ export default function BackofficePage() {
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {
+                      (
+                        Array.isArray(servicesWithMetrics) &&
+                        servicesWithMetrics.length > 0
+                          ? servicesWithMetrics
+                          : Array.isArray(services)
+                            ? services
+                            : []
+                      ).filter((s: { status?: string }) => s.status === "running")
+                        .length
+                    }
+                    /
+                    {
                       (Array.isArray(servicesWithMetrics) &&
                       servicesWithMetrics.length > 0
                         ? servicesWithMetrics
@@ -2389,7 +2431,10 @@ export default function BackofficePage() {
                           : []
                       ).length
                     }{" "}
-                    services disponibles
+                    catalogue en ligne
+                    {serviceHealthSummary.totalRunning > 0
+                      ? ` · ${serviceHealthSummary.totalRunning}/${serviceHealthSummary.expectedTotal} conteneurs Docker`
+                      : ""}
                   </p>
                   <div className="flex items-center gap-3">
                     <button

@@ -94,13 +94,24 @@ export function resolveDeviceApkAction(
     };
   }
 
+  const phoneCode = Number(device.appVersionCode);
+  const apkCode = Number(apk.buildNumber);
+  const isDowngrade =
+    Number.isFinite(phoneCode) && Number.isFinite(apkCode) && phoneCode > apkCode;
+
   const phone = deviceAppLabel(device) ?? "version inconnue";
   return {
     kind: "reinstall",
-    title: "Réinstallation recommandée",
-    detail: `${device.model || device.id} : ${phone} ≠ APK ${built ?? "buildé"}. `
-      + "Si vous venez de modifier le code mobile : étape 1 (Build APK) puis étape 2 (Installer). "
-      + "Sinon : étape 2 suffit (adb install -r).",
+    title: isDowngrade
+      ? "Réinstallation (alignement — downgrade autorisé)"
+      : "Réinstallation recommandée",
+    detail: isDowngrade
+      ? `${device.model || device.id} : ${phone} > APK ${built ?? "buildé"}. `
+        + "Étape 2 « Réinstaller » aligne sur l’APK canonique (downgrade USB autorisé). "
+        + "Ne pas Rebuild juste pour « monter » la version."
+      : `${device.model || device.id} : ${phone} ≠ APK ${built ?? "buildé"}. `
+        + "Si vous venez de modifier le code mobile : étape 1 (Build APK) puis étape 2 (Installer). "
+        + "Sinon : étape 2 suffit (adb install -r -d).",
     tone: "amber",
   };
 }

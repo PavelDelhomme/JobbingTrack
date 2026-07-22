@@ -82,7 +82,15 @@ if [[ "$use_fast" == "1" && "$app_installed" == "1" ]]; then
 fi
 
 if [[ "$installed" != "1" ]]; then
-  install_apk "streamed -r" -r || fail "adb install -r a échoué"
+  # -d autorise le downgrade (ex. téléphone en 1.0.30, APK canonique 1.0.29 après alignement)
+  if install_apk "streamed -r -d" -r -d; then
+    installed=1
+  else
+    log "install -r -d échoué — tentative désinstall + install propre..."
+    adb -s "$DEVICE_ID" uninstall "$PACKAGE" >/dev/null 2>&1 || true
+    install_apk "streamed fresh" || fail "adb install a échoué (même après uninstall)"
+    installed=1
+  fi
 fi
 
 if [[ "${LAUNCH_APP:-0}" == "1" ]]; then
