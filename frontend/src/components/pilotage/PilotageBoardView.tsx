@@ -276,12 +276,64 @@ export function PilotageBoardView({
         <div className="space-y-3">
           <AccordionSection
             id="now"
-            title="À valider maintenant (UI)"
+            title="Suite logique — à traiter maintenant"
             count={board.tasksNow.length}
             open={!!openSections.now}
             onToggle={toggle}
+            defaultHint="Ordre = priorité (order). OK/KO/PARTIEL/Plus tard → écriture live des .md"
           >
-            {renderValidationList(board.tasksNow)}
+            {board.tasksNow.length === 0 ? (
+              <p className="px-2 py-3 text-sm text-gray-500">
+                Rien d’ouvert — voir Plus tard ou Terminées.
+              </p>
+            ) : (
+              <ol className="list-decimal space-y-0 divide-y divide-gray-100 pl-5 dark:divide-gray-800">
+                {board.tasksNow.map((task, idx) => {
+                  const done = task.checklist.filter((c) => c.done).length;
+                  const total = task.checklist.length;
+                  return (
+                    <li key={task.id} className="marker:font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(task.id)}
+                        className={`flex w-full items-start justify-between gap-3 px-2 py-3 text-left transition hover:bg-gray-50 dark:hover:bg-gray-800/60 ${
+                          selectedId === task.id
+                            ? "bg-indigo-50 dark:bg-indigo-950/30"
+                            : ""
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="font-mono text-xs text-gray-500">
+                            #{idx + 1} · {task.id}
+                            {task.cycleId ? (
+                              <span className="ml-2 font-sans text-gray-400">
+                                · {task.cycleId}
+                              </span>
+                            ) : null}
+                          </p>
+                          <p className="mt-0.5 font-medium text-gray-900 dark:text-gray-100">
+                            {task.label}
+                          </p>
+                          <p className="mt-0.5 line-clamp-2 text-xs text-gray-500">
+                            {task.description}
+                          </p>
+                          {total > 0 ? (
+                            <p className="mt-0.5 text-xs text-gray-500">
+                              Critères {done}/{total}
+                            </p>
+                          ) : null}
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${taskStatusClass(task.status)}`}
+                        >
+                          {taskStatusLabel(task.status)}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
           </AccordionSection>
 
           <AccordionSection
@@ -320,10 +372,11 @@ export function PilotageBoardView({
 
           <AccordionSection
             id="later"
-            title="Plus tard"
+            title="Plus tard (reportées)"
             count={board.tasksLater.length}
             open={!!openSections.later}
             onToggle={toggle}
+            defaultHint="Tâches PLUS TARD / en attente de la suite logique"
           >
             {renderValidationList(board.tasksLater)}
           </AccordionSection>

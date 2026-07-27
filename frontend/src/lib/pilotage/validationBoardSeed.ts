@@ -227,21 +227,74 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
       section: "B2 — FAB",
       label: "FAB → Relance",
       description:
-        "Depuis une candidature : FAB → Relance → créer une relance.",
+        "APK ≥ 1.0.34. Depuis une candidature : FAB → Relance → créer / modifier / corbeille. Les snackbars doivent s’effacer seules (AppSnack).",
       expected:
-        "Snackbar succès + possibilité Voir détail ; relance créée.",
+        "Relance créée ; snack « Relance créée » / « mise à jour » / « corbeille » auto-dismiss (~2–3 s) sans barre collée ; Voir détail OK.",
       status: "open",
-      order: 200,
+      order: 25,
       checklist: [
+        { id: "apk-134", label: "APK ≥ 1.0.34 installé (rebuild si besoin)", done: false },
         { id: "open-app", label: "Ouvrir une candidature", done: false },
         {
           id: "fab-relance",
-          label: "FAB → Relance → formulaire",
+          label: "FAB → Relance → formulaire (date J+3 09:00)",
           done: false,
         },
         {
-          id: "create-ok",
-          label: "Créer → snackbar + Voir détail",
+          id: "create-snack",
+          label: "Créer → snack auto-dismiss (pas collée)",
+          done: false,
+        },
+        {
+          id: "edit-trash",
+          label: "Modifier + corbeille → snack OK, liste rafraîchie",
+          done: false,
+        },
+      ],
+    }),
+    task({
+      id: "APK-BUILD-01",
+      cycleId: "correctifs-2207",
+      section: "Correctifs session 22/07",
+      label: "Rebuild APK debug sans Zip kernel_blob",
+      description:
+        "Backoffice Mobile → Rebuild APK. Le script clean-flutter-apk-build.sh doit éviter compressDebugAssets / kernel_blob.bin.jar.",
+      expected:
+        "Build vert ; APK sur disque ; téléphone réinstallé avec version = pubspec.",
+      status: "open",
+      order: 5,
+      checklist: [
+        {
+          id: "rebuild-ok",
+          label: "Rebuild APK réussit (pas d’erreur Zip)",
+          done: false,
+        },
+        {
+          id: "version-match",
+          label: "Version téléphone = APK compilé après install",
+          done: false,
+        },
+      ],
+    }),
+    task({
+      id: "MOB-SNACK-01",
+      cycleId: "correctifs-2207",
+      section: "Correctifs session 22/07",
+      label: "Snackbars relance auto-dismiss (AppSnack)",
+      description:
+        "Après create/edit/trash relance, la barre disparaît seule ; les messages suivants s’affichent.",
+      expected: "Plus de barre collée bloquant « Relance créée / supprimée ».",
+      status: "open",
+      order: 22,
+      checklist: [
+        {
+          id: "create-dismiss",
+          label: "Création → snack disparaît ~2–3 s",
+          done: false,
+        },
+        {
+          id: "trash-dismiss",
+          label: "Corbeille → snack visible puis dismiss",
           done: false,
         },
       ],
@@ -251,9 +304,9 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
       cycleId: "fab-mobile",
       section: "B2 — FAB",
       label: "FAB → Appel",
-      description: "Depuis une candidature : FAB → Appel → créer.",
-      expected: "Appel créé sans crash ; feedback UI clair.",
-      status: "open",
+      description: "Après D.6 OK. Depuis une candidature : FAB → Appel → créer.",
+      expected: "Appel créé sans crash ; snack auto-dismiss.",
+      status: "deferred",
       order: 210,
       checklist: [
         { id: "fab-appel", label: "FAB → Appel → créer", done: false },
@@ -265,9 +318,9 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
       cycleId: "fab-mobile",
       section: "B2 — FAB",
       label: "FAB → Entretien",
-      description: "Depuis une candidature : FAB → Entretien → créer.",
-      expected: "Entretien créé ; feedback UI clair.",
-      status: "open",
+      description: "Après D.7 OK. FAB → Entretien → créer.",
+      expected: "Entretien créé ; snack auto-dismiss.",
+      status: "deferred",
       order: 220,
       checklist: [
         {
@@ -283,9 +336,9 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
       cycleId: "fab-mobile",
       section: "B2 — FAB",
       label: "FAB → Contact",
-      description: "Depuis une candidature : FAB → Contact → créer.",
-      expected: "Contact créé ; feedback UI clair.",
-      status: "open",
+      description: "Après D.8 OK. FAB → Contact → créer.",
+      expected: "Contact créé ; snack auto-dismiss.",
+      status: "deferred",
       order: 230,
       checklist: [
         { id: "fab-contact", label: "FAB → Contact → créer", done: false },
@@ -297,9 +350,9 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
       cycleId: "shell-b2",
       section: "B2 — Shell",
       label: "Re-tap Candidatures",
-      description: "Re-taper l’onglet Candidatures depuis Candidatures.",
+      description: "Après FAB D.6–D.9. Re-taper l’onglet Candidatures.",
       expected: "Comportement shell attendu sans crash.",
-      status: "open",
+      status: "deferred",
       order: 300,
       checklist: [
         { id: "retap", label: "Re-tap Candidatures OK", done: false },
@@ -310,9 +363,9 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
       cycleId: "shell-b2",
       section: "B2 — Shell",
       label: "Contacts → FAB +",
-      description: "Depuis l’onglet Contacts, utiliser FAB +.",
+      description: "Après E.10. Depuis l’onglet Contacts, FAB +.",
       expected: "FAB accessible et création possible.",
-      status: "open",
+      status: "deferred",
       order: 310,
       checklist: [
         {
@@ -327,10 +380,10 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
       cycleId: "shell-b2",
       section: "B2 — Shell",
       label: "Accueil double retour",
-      description: "Depuis Accueil, double retour système.",
+      description: "Après E. Depuis Accueil, double retour système.",
       expected:
         "Comportement double retour conforme (pas de crash / sortie contrôlée).",
-      status: "open",
+      status: "deferred",
       order: 320,
       checklist: [
         { id: "double-back", label: "Double retour Accueil OK", done: false },
@@ -341,16 +394,45 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
   const map: Record<string, ValidationTask> = {};
   for (const t of tasks) map[t.id] = t;
 
+  // Colonnes Kanban ADHD (pas tout « en cours »)
+  const setCol = (
+    id: string,
+    column: NonNullable<ValidationTask["column"]>,
+    status?: ValidationTask["status"],
+  ) => {
+    if (!map[id]) return;
+    map[id].column = column;
+    if (status) map[id].status = status;
+    map[id].kind = map[id].kind || "task";
+  };
+  setCol("APK-BUILD-01", "doing", "open");
+  setCol("MOB-ENT-01", "rework", "rework");
+  setCol("MOB-SNACK-01", "backlog", "open");
+  setCol("D.6", "backlog", "open");
+  setCol("WEB-LOGIN-01", "done", "ok");
+  setCol("EMU-LIVE-01", "done", "ok");
+  setCol("PILOTAGE-UI-04", "a_valider", "open");
+  setCol("PILOTAGE-UI-05", "a_valider", "open");
+  for (const id of ["D.7", "D.8", "D.9", "E.10", "E.11", "F.12"]) {
+    setCol(id, "later", "deferred");
+  }
+  for (const id of ["A.1–A.2c", "B.3", "B.4", "C.5"]) {
+    setCol(id, "done", "ok");
+  }
+
   return {
     version: 1,
     updatedAt: new Date().toISOString(),
+    focusTaskId: "APK-BUILD-01",
     cycles: [
       {
         id: "correctifs-2207",
-        label: "Correctifs session 22/07",
-        description: "Re-valider avant / avec B2",
+        label: "Correctifs + rebuild",
+        description: "MOB-ENT, login, émulateur, pilotage UI, APK, snacks",
         itemIds: [
+          "APK-BUILD-01",
           "MOB-ENT-01",
+          "MOB-SNACK-01",
           "WEB-LOGIN-01",
           "EMU-LIVE-01",
           "PILOTAGE-UI-04",
@@ -359,14 +441,14 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
       },
       {
         id: "fab-mobile",
-        label: "FAB mobile",
-        description: "Créations depuis candidature via FAB",
+        label: "FAB mobile (B2 D.6→D.9)",
+        description: "Ordre strict : Relance → Appel → Entretien → Contact",
         itemIds: ["D.6", "D.7", "D.8", "D.9"],
       },
       {
         id: "shell-b2",
-        label: "Shell B2 (nav / admin / relances / shell)",
-        description: "Navigation, admin, relances, re-tap, double retour",
+        label: "Shell B2 (nav / admin / shell)",
+        description: "Déjà OK partiel ; E/F après FAB",
         itemIds: [
           "A.1–A.2c",
           "B.3",

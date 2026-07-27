@@ -25,7 +25,37 @@ fi
 cd "$MOBILE_DIR"
 bash "$ROOT/scripts/mobile/setup/patch-android-plugin-gradle-kts.sh"
 bash "$ROOT/scripts/mobile/setup/ensure-flutter-gradle-cache.sh"
+
+# Toujours nettoyer avant assembleDebug — sinon compressDebugAssets / kernel_blob.bin.jar
+# peut échouer (« already contains entry … cannot overwrite »).
+bash "$ROOT/scripts/mobile/setup/clean-flutter-apk-build.sh" "$MOBILE_DIR"
 "$FLUTTER_BIN" pub get
-"$FLUTTER_BIN" build apk --debug "${DART_DEFINES[@]}"
+
+LOG="$(mktemp -t jt-apk-build.XXXXXX.log)"
+cleanup() { rm -f "$LOG"; }
+trap cleanup EXIT
+
+run_build() {
+  set +e
+  "$FLUTTER_BIN" build apk --debug "${DART_DEFINES[@]}" 2>&1 | tee "$LOG"
+  local code=${PIPESTATUS[0]}
+  set -e
+  return "$code"
+}
+
+if ! run_build; then
+  if grep -qiE 'kernel_blob|compressDebugAssets|already contains entry' "$LOG"; then
+    echo "[build-apk-debug] Erreur Zip/kernel_blob détectée — 2ᵉ tentative après clean profond…"
+    bash "$ROOT/scripts/mobile/setup/clean-flutter-apk-build.sh" "$MOBILE_DIR"
+    # Purge Gradle plus agressive sur le module app
+    rm -rf "$MOBILE_DIR/build" "$MOBILE_DIR/android/app/build" 2>/dev/null || true
+    "$FLUTTER_BIN" pub get
+    run_build
+  else
+    echo "[build-apk-debug] ÉCHEC (hors Zip/kernel_blob) — voir log ci-dessus" >&2
+    exit 1
+  fi
+fi
+
 node "$ROOT/scripts/mobile/setup/bump-pubspec-version.js" --write-fingerprint-only
 echo "[build-apk-debug] OK → mobile/build/app/outputs/flutter-apk/app-debug.apk"

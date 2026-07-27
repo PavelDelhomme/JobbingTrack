@@ -26,9 +26,27 @@ export type TaskHistoryEntry = {
   note?: string;
 };
 
+export type TaskKind = "block" | "cycle" | "task" | "feedback" | "error";
+
+export type KanbanColumnId =
+  | "inbox_feedback"
+  | "inbox_errors"
+  | "backlog"
+  | "doing"
+  | "a_tester"
+  | "a_valider"
+  | "rework"
+  | "later"
+  | "done";
+
 export type ValidationTask = {
   id: string;
   cycleId?: string;
+  /** Bloc parent (hiérarchie : Phase → Cycle → Tâche). */
+  parentId?: string;
+  kind?: TaskKind;
+  /** Colonne Kanban explicite (sinon dérivée du status + focus). */
+  column?: KanbanColumnId;
   section: string;
   label: string;
   description: string;
@@ -38,6 +56,8 @@ export type ValidationTask = {
   checklist: ChecklistItem[];
   porteurNote: string;
   history: TaskHistoryEntry[];
+  /** Réf. externe (crash file, user_error id). */
+  sourceRef?: string;
 };
 
 export type ValidationCycle = {
@@ -59,6 +79,8 @@ export type ValidationBoardFile = {
   updatedAt: string;
   cycles: ValidationCycle[];
   tasks: Record<string, ValidationTask>;
+  /** Unique focus TDAH — seule carte en « En cours ». */
+  focusTaskId?: string | null;
 };
 
 export type CycleView = ValidationCycle & {

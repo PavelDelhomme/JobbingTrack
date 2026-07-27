@@ -38,12 +38,28 @@ bash scripts/mobile/audit-android-toolchain.sh
 ## Procédure build
 
 ```bash
-# Debug Samsung (adb reverse)
+# Debug Samsung (adb reverse) — clean robuste inclus (anti kernel_blob Zip)
 bash scripts/mobile/setup/build-apk-debug.sh
+
+# Clean seul (si rebuild backoffice a planté sur compressDebugAssets)
+bash scripts/mobile/setup/clean-flutter-apk-build.sh
 
 # Release OTA (API prod injectée)
 API_BASE_URL=https://api.jobbingtrack.delhomme.ovh bash scripts/mobile/setup/build-apk-release.sh
 ```
+
+### Erreur `compressDebugAssets` / `kernel_blob.bin.jar`
+
+Symptôme Gradle :
+
+```text
+Zip file '.../compressed_assets/.../kernel_blob.bin.jar' already contains entry
+'assets/flutter_assets/kernel_blob.bin', cannot overwrite
+```
+
+Cause : résidus d’un build précédent (souvent après bump version / build interrompu).  
+Correctif permanent : `build-apk-debug.sh` appelle toujours `clean-flutter-apk-build.sh` puis **retente une fois** si le log contient `kernel_blob` / `compressDebugAssets`.  
+Ne plus lancer un `flutter build apk` nu sans clean sur ce projet.
 
 ## Références
 

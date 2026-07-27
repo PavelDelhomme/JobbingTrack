@@ -15,6 +15,7 @@ DART_DEFINES=(
 cd "$ROOT"
 node "$ROOT/scripts/mobile/setup/generate-debug-test-accounts.js"
 cd "$MOBILE_DIR"
+bash "$ROOT/scripts/mobile/setup/clean-flutter-apk-build.sh" "$MOBILE_DIR"
 "$FLUTTER_BIN" pub get
 "$FLUTTER_BIN" build apk --release "${DART_DEFINES[@]}"
 

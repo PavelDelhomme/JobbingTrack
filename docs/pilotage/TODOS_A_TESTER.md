@@ -38,6 +38,25 @@
 | `GET /contacts/company/:id` | OR ContactCompany + ContactApplication | **Fix** contact.controller | restart contact-service |
 | Porteur | Détail Capgemini → Marie/Luc visibles | **À valider** | rafraîchir app |
 
+### APK-BUILD-01 — anti Zip kernel_blob (27/07)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| Cause | `compressDebugAssets` / `kernel_blob.bin.jar already contains entry` | **Confirmé** log porteur 27/07 | build-apk-debug **sans** clean avant |
+| `clean-flutter-apk-build.sh` | flutter clean + purge compressed_assets / outputs | **Livré** | |
+| `build-apk-debug.sh` | clean systématique + retry si Zip | **Livré** | Rebuild backoffice |
+| Porteur | Rebuild vert → install 1.0.35 | **À valider** | |
+
+### PILOTAGE-KANBAN — contraste + promo inbox + docs (27/07)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| Contraste colonnes | `headerClass` / `cardClass` textes lisibles (pas blanc sur pastel) | **Livré** | Re-test UI |
+| Promo inbox | `promoteInbox` → carte board À faire / En cours ; dédoublonne sourceRef | **Livré** | |
+| Fichiers UI | Groupes Pilotage + Docs (STATUS/PLAN/BACKLOG/ERRORS/RESOLUTIONS) | **Livré** | |
+| `validation-board.json` | `sensitive` · pas de miroir `public/` · API ADMIN only | **Livré** | |
+| Whitelist | `docsRoot` pilotage\|docs + sandbox `docs/` | **Livré** | |
+
 ### PILOTAGE-UI-04 — Tableau de suivi interactif (22/07)
 
 | Test | Attendu | Résultat | Suite |
@@ -195,3 +214,13 @@ Historique technique long : conserver les preuves dans Git / `TODOS_DONE.md` ; n
 | Test | Résultat | Notes |
 |------|----------|-------|
 | Action porteur (UI) | **PARTIEL** | scrcpy PC reste le plus fluide |
+
+### PILOTAGE-KANBAN-01 — Kanban ADHD (27/07)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| Onglet Kanban | Colonnes distinctes ; WIP En cours = 1 | **Livré** | |
+| Focus banner | Une seule carte focus | **Livré** seed APK-BUILD-01 | |
+| À faire ≠ En cours | Open sans focus → backlog | **Livré** | |
+| Inbox retours/erreurs | Crashes feedback vs auto | **Livré** client fetch | |
+| setColumn / focus | Sync validation-board + Point exact | **Livré** | Re-test porteur |

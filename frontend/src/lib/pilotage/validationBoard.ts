@@ -153,26 +153,65 @@ export function mergeWithMdAndSeed(
       if (!cur.description) cur.description = seedTask.description;
       if (!cur.expected) cur.expected = seedTask.expected;
       if (!cur.cycleId) cur.cycleId = seedTask.cycleId;
+      if (!cur.column && seedTask.column) cur.column = seedTask.column;
+      if (!cur.kind && seedTask.kind) cur.kind = seedTask.kind;
+      if (!cur.parentId && seedTask.parentId) cur.parentId = seedTask.parentId;
+      // Enrich checklist labels from seed without wiping done flags
+      if (seedTask.checklist?.length) {
+        for (const sc of seedTask.checklist) {
+          if (!cur.checklist.some((c) => c.id === sc.id)) {
+            cur.checklist.push({ ...sc });
+          }
+        }
+      }
+    }
+  }
+
+  if (base.focusTaskId === undefined) {
+    base.focusTaskId = seed.focusTaskId ?? null;
+  }
+
+  // Cycles : fusionner les itemIds manquants du seed
+  for (const seedCycle of seed.cycles) {
+    const cur = base.cycles.find((c) => c.id === seedCycle.id);
+    if (!cur) {
+      base.cycles.push({ ...seedCycle, itemIds: [...seedCycle.itemIds] });
+    } else {
+      for (const id of seedCycle.itemIds) {
+        if (!cur.itemIds.includes(id)) cur.itemIds.push(id);
+      }
+      if (!cur.description && seedCycle.description) {
+        cur.description = seedCycle.description;
+      }
+      if (seedCycle.label) cur.label = seedCycle.label;
     }
   }
 
   if (validerMd) {
     const tables = parseMarkdownTables(validerMd);
+    const alias = (raw: string): string[] => {
+      const id = raw.trim();
+      const out = [id];
+      if (id.startsWith("B2-")) out.push(id.slice(3));
+      else if (/^[A-F]\.\d/.test(id) || /^D\.\d/.test(id)) out.push(`B2-${id}`);
+      return out;
+    };
     for (const t of tables) {
       const iId = colIndex(t.headers, "id", "point", "#");
       const iDec = colIndex(t.headers, "décision");
       const iNotes = colIndex(t.headers, "notes");
       for (const row of t.rows) {
-        const id = stripMdBold(row[iId] || "");
-        if (!id || !base.tasks[id]) continue;
+        const rawId = stripMdBold(row[iId] || "");
+        if (!rawId) continue;
+        const taskId = alias(rawId).find((c) => base.tasks[c]);
+        if (!taskId) continue;
         const mdStatus = statusFromMdDecision(stripMdBold(row[iDec] || ""));
         if (mdStatus) {
-          // Don't overwrite richer UI partial/deferred if md empty — md wins when set
-          base.tasks[id].status = mdStatus;
+          base.tasks[taskId].status = mdStatus;
         }
         const note = stripMdBold(row[iNotes] || "");
-        if (note && !base.tasks[id].porteurNote) {
-          base.tasks[id].porteurNote = note;
+        if (note && !base.tasks[taskId].porteurNote) {
+          base.tasks[taskId].porteurNote = note;
         }
       }
     }
@@ -203,12 +242,22 @@ export function loadValidationBoardFile(): ValidationBoardFile {
 
   const merged = mergeWithMdAndSeed(existing, validerMd);
 
-  // Persist bootstrap if missing
-  if (resolved.ok && !fs.existsSync(resolved.absPath)) {
-    try {
-      writeJsonSafe(resolved.absPath, merged);
-    } catch {
-      /* EROFS — return in-memory */
+  // Persister si nouveau seed (tâches/cycles manquants) pour que le JSON reste la vérité live
+  if (resolved.ok) {
+    const existingIds = new Set(Object.keys(existing?.tasks || {}));
+    const needsPersist =
+      !existing ||
+      Object.keys(merged.tasks).some((id) => !existingIds.has(id)) ||
+      merged.cycles.some((c) => {
+        const old = existing?.cycles.find((x) => x.id === c.id);
+        return !old || c.itemIds.some((id) => !old.itemIds.includes(id));
+      });
+    if (needsPersist) {
+      try {
+        writeJsonSafe(resolved.absPath, merged);
+      } catch {
+        /* EROFS — retour mémoire */
+      }
     }
   }
 
@@ -314,6 +363,42 @@ function appendTesterNote(itemId: string, action: string, note?: string) {
   }
 }
 
+/** Met à jour « Point exact » + PILOTAGE « Où on en est » vers la prochaine tâche ouverte. */
+function updatePointExactFromBoard(board: ValidationBoardFile): void {
+  const next = Object.values(board.tasks)
+    .filter((t) => ["open", "partial", "rework"].includes(t.status))
+    .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id))[0];
+  if (!next) return;
+
+  const pointLine = `**Point exact** : **${next.id}** ${next.label}`;
+  const valider = resolvePilotageById("TODOS_A_VALIDER");
+  if (valider.ok && fs.existsSync(valider.absPath)) {
+    try {
+      let md = fs.readFileSync(valider.absPath, "utf8");
+      if (/\*\*Point exact\*\*\s*:/.test(md)) {
+        md = md.replace(/\*\*Point exact\*\*\s*:[^\n]*/, pointLine);
+      }
+      fs.writeFileSync(valider.absPath, md, "utf8");
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const pilotage = resolvePilotageById("PILOTAGE");
+  if (pilotage.ok && fs.existsSync(pilotage.absPath)) {
+    try {
+      let md = fs.readFileSync(pilotage.absPath, "utf8");
+      const where = `**Phase B · ${next.id} ${next.label}**`;
+      if (/\*\*Phase B[^*]*\*\*/.test(md)) {
+        md = md.replace(/\*\*Phase B[^*]*\*\*[^\n]*/, where);
+        fs.writeFileSync(pilotage.absPath, md, "utf8");
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 function pushHistory(
   task: ValidationTask,
   action: string,
@@ -345,7 +430,15 @@ function statusFromDecision(d: DecisionStamp): TaskStatus {
 }
 
 export function applyBoardAction(opts: {
-  type: "decide" | "checklist" | "reorder" | "move" | "note";
+  type:
+    | "decide"
+    | "checklist"
+    | "reorder"
+    | "move"
+    | "note"
+    | "setColumn"
+    | "focus"
+    | "promoteInbox";
   itemId: string;
   decision?: DecisionStamp;
   note?: string;
@@ -354,8 +447,74 @@ export function applyBoardAction(opts: {
   checklistNote?: string;
   direction?: "up" | "down";
   cycleId?: string | null;
+  column?: import("@/lib/pilotage/validationBoardTypes").KanbanColumnId;
+  label?: string;
+  description?: string;
+  inboxKind?: "feedback" | "error";
+  sourceRef?: string;
 }): BoardActionResult {
   const board = loadValidationBoardFile();
+
+  if (opts.type === "promoteInbox") {
+    const sourceRef = (opts.sourceRef || opts.itemId).slice(0, 120);
+    const existing =
+      board.tasks[opts.itemId] ||
+      Object.values(board.tasks).find((t) => t.sourceRef === sourceRef);
+    const targetCol =
+      opts.column && opts.column !== "inbox_feedback" && opts.column !== "inbox_errors"
+        ? opts.column
+        : "backlog";
+    if (existing) {
+      return applyBoardAction({
+        type: "setColumn",
+        itemId: existing.id,
+        column: targetCol,
+        note: opts.note || "re-promo inbox",
+      });
+    }
+    const kind = opts.inboxKind === "error" ? "error" : "feedback";
+    const id = opts.itemId.slice(0, 80);
+    const maxOrder = Math.max(
+      0,
+      ...Object.values(board.tasks).map((t) => t.order || 0),
+    );
+    board.tasks[id] = {
+      id,
+      kind,
+      column: targetCol,
+      section: kind === "error" ? "Inbox erreurs" : "Inbox retours",
+      label: (opts.label || opts.note || id).slice(0, 200),
+      description: (opts.description || "").slice(0, 2000),
+      expected: "Traiter puis OK/KO depuis la fiche",
+      status: "open",
+      order: maxOrder + 1,
+      checklist: [
+        {
+          id: "repro",
+          label: "Reproduire / confirmer le signalement",
+          done: false,
+        },
+        {
+          id: "fix-or-wontfix",
+          label: "Corriger ou documenter le refus",
+          done: false,
+        },
+      ],
+      porteurNote: opts.note?.slice(0, 2000) || "",
+      history: [{ at: nowIso(), action: "promoteInbox", note: sourceRef }],
+      sourceRef,
+    };
+    pushHistory(board.tasks[id], `column:${targetCol}`, "créé depuis inbox");
+    updatePointExactFromBoard(board);
+    const saved = saveValidationBoardFile(board);
+    if (!saved.ok) return saved;
+    return {
+      ok: true,
+      message: `${id} promu → ${targetCol}`,
+      board,
+    };
+  }
+
   const task = board.tasks[opts.itemId];
   if (!task) {
     return { ok: false, error: `Tâche « ${opts.itemId} » introuvable` };
@@ -373,6 +532,19 @@ export function applyBoardAction(opts: {
       }
     }
     task.status = statusFromDecision(decision);
+    // Colonnes Kanban alignées sur la décision
+    if (decision === "OK") {
+      task.column = "done";
+      if (board.focusTaskId === opts.itemId) board.focusTaskId = null;
+    } else if (decision === "KO" || decision === "REWORK") {
+      task.column = "rework";
+      if (board.focusTaskId === opts.itemId) board.focusTaskId = null;
+    } else if (decision === "PLUS_TARD") {
+      task.column = "later";
+      if (board.focusTaskId === opts.itemId) board.focusTaskId = null;
+    } else if (decision === "PARTIEL") {
+      task.column = "a_tester";
+    }
     if (opts.note?.trim()) task.porteurNote = opts.note.trim();
     pushHistory(task, decision, opts.note);
     const sync = syncDecisionToValiderMd(
@@ -388,6 +560,14 @@ export function applyBoardAction(opts: {
         label: task.label,
         decision,
       });
+    }
+    if (
+      decision === "OK" ||
+      decision === "KO" ||
+      decision === "PLUS_TARD" ||
+      decision === "REWORK"
+    ) {
+      updatePointExactFromBoard(board);
     }
   } else if (opts.type === "checklist") {
     const cid = opts.checklistItemId;
@@ -484,6 +664,62 @@ export function applyBoardAction(opts: {
       siblings[swap].order = a;
     }
     pushHistory(task, `reorder:${dir}`);
+  } else if (opts.type === "setColumn") {
+    const col = opts.column;
+    if (!col) return { ok: false, error: "column requise" };
+    const valid = [
+      "inbox_feedback",
+      "inbox_errors",
+      "backlog",
+      "doing",
+      "a_tester",
+      "a_valider",
+      "rework",
+      "later",
+      "done",
+    ];
+    if (!valid.includes(col)) {
+      return { ok: false, error: `colonne invalide: ${col}` };
+    }
+    // WIP=1 : déplacer l’ancien focus hors doing
+    if (col === "doing") {
+      if (board.focusTaskId && board.focusTaskId !== opts.itemId) {
+        const prev = board.tasks[board.focusTaskId];
+        if (prev) {
+          prev.column = "backlog";
+          pushHistory(prev, "auto:demote-from-doing");
+        }
+      }
+      board.focusTaskId = opts.itemId;
+      task.column = "doing";
+      if (task.status === "ok" || task.status === "deferred") {
+        task.status = "open";
+      }
+    } else {
+      task.column = col;
+      if (board.focusTaskId === opts.itemId) board.focusTaskId = null;
+      if (col === "later") task.status = "deferred";
+      if (col === "rework") task.status = "rework";
+      if (col === "done") task.status = "ok";
+      if (col === "a_tester" && task.status === "open") {
+        task.status = "partial";
+      }
+      if (col === "backlog" || col === "a_valider") {
+        if (task.status === "deferred" || task.status === "ok") {
+          task.status = "open";
+        }
+      }
+    }
+    pushHistory(task, `column:${col}`, opts.note);
+    updatePointExactFromBoard(board);
+  } else if (opts.type === "focus") {
+    // Alias ADHD : mettre en « En cours » (WIP 1)
+    return applyBoardAction({
+      type: "setColumn",
+      itemId: opts.itemId,
+      column: "doing",
+      note: opts.note,
+    });
   }
 
   const saved = saveValidationBoardFile(board);

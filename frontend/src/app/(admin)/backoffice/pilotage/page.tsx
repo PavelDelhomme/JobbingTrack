@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdminLayout } from "@/components/features";
 import { PilotageBoardView } from "@/components/pilotage/PilotageBoardView";
+import { PilotageKanbanView } from "@/components/pilotage/PilotageKanbanView";
 import type { BoardActionPayload } from "@/components/pilotage/pilotageUi";
 import { useAuth } from "@/lib/hooks/auth";
 import suivi from "@/lib/pilotage/suiviActif.json";
-import { PILOTAGE_FILES } from "@/lib/pilotage/allowedFiles";
+import { PILOTAGE_FILES, displayDocsPath } from "@/lib/pilotage/allowedFiles";
 import type { PilotageBoard } from "@/lib/pilotage/board";
 
 type QueueItem = { id: string; status: string; label: string };
@@ -20,6 +21,7 @@ type FileListItem = {
   writable: boolean;
   contentType: string;
   path: string;
+  sensitive?: boolean;
 };
 
 type FilePayload = {
@@ -29,10 +31,31 @@ type FilePayload = {
   path: string;
   contentType: string;
   writable: boolean;
+  sensitive?: boolean;
   content: string;
   redactedCount: number;
   mtime?: string;
 };
+
+const FILE_GROUPS: { title: string; ids: string[] }[] = [
+  {
+    title: "Pilotage (phase)",
+    ids: [
+      "PILOTAGE",
+      "TODOS",
+      "TODOS_A_TESTER",
+      "TODOS_A_VALIDER",
+      "TODOS_DONE",
+      "GUIDE_VALIDATION_PORTEUR",
+      "SUIVI_ACTIF",
+      "VALIDATION_BOARD",
+    ],
+  },
+  {
+    title: "Docs projet",
+    ids: ["STATUS", "PLAN", "BACKLOG", "ERRORS", "RESOLUTIONS"],
+  },
+];
 
 type BoardResponse = {
   success: boolean;
@@ -43,7 +66,7 @@ type BoardResponse = {
   error?: string;
 };
 
-type Tab = "board" | "overview" | "files";
+type Tab = "kanban" | "board" | "overview" | "files";
 
 export default function PilotagePage() {
   const { user, token } = useAuth();
@@ -62,7 +85,7 @@ export default function PilotagePage() {
     [queue],
   );
 
-  const [tab, setTab] = useState<Tab>("board");
+  const [tab, setTab] = useState<Tab>("kanban");
   const [fileId, setFileId] = useState<string>("TODOS_A_VALIDER");
   const [files, setFiles] = useState<FileListItem[]>([]);
   const [fileData, setFileData] = useState<FilePayload | null>(null);
@@ -220,8 +243,11 @@ export default function PilotagePage() {
         description: f.description,
         writable: f.writable && canWriteRole,
         contentType: f.contentType,
-        path: `docs/pilotage/${f.relativePath}`,
+        path: displayDocsPath(f),
+        sensitive: !!f.sensitive,
       }));
+
+  const fileById = new Map(fileTabs.map((f) => [f.id, f]));
 
   return (
     <AdminLayout>
@@ -257,7 +283,8 @@ export default function PilotagePage() {
         <div className="flex flex-wrap gap-2">
           {(
             [
-              ["board", "Tableau de suivi"],
+              ["kanban", "Kanban"],
+              ["board", "Liste détaillée"],
               ["overview", "Vue synthèse"],
               ["files", "Fichiers bruts"],
             ] as const
@@ -285,6 +312,30 @@ export default function PilotagePage() {
         {msg && (
           <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">
             {msg}
+          </div>
+        )}
+
+        {tab === "kanban" && (
+          <div className="space-y-3">
+            {!interactive && (
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                Lecture seule : environnement production.
+              </p>
+            )}
+            {loadingBoard && !board ? (
+              <p className="text-sm text-gray-500">Chargement…</p>
+            ) : board ? (
+              <PilotageKanbanView
+                board={board}
+                canWrite={canWriteBoard}
+                loading={loadingBoard}
+                token={token}
+                onRefresh={() => void loadBoard()}
+                onAction={runBoardAction}
+              />
+            ) : (
+              <p className="text-sm text-gray-500">Kanban indisponible.</p>
+            )}
           </div>
         )}
 
@@ -433,29 +484,50 @@ export default function PilotagePage() {
 
         {tab === "files" && (
           <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {fileTabs.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setFileId(f.id)}
-                  className={`rounded-lg border px-3 py-1.5 text-left text-xs sm:text-sm ${
-                    fileId === f.id
-                      ? "border-indigo-500 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-100"
-                      : "border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                  }`}
-                  title={f.description}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
+            {FILE_GROUPS.map((group) => (
+              <div key={group.title} className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  {group.title}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {group.ids.map((id) => {
+                    const f = fileById.get(id);
+                    if (!f) return null;
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setFileId(f.id)}
+                        className={`rounded-lg border px-3 py-1.5 text-left text-xs sm:text-sm ${
+                          fileId === f.id
+                            ? "border-indigo-500 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-100"
+                            : "border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                        }`}
+                        title={f.description}
+                      >
+                        {f.label}
+                        {f.sensitive ? (
+                          <span className="ml-1 text-[10px] font-semibold text-rose-700 dark:text-rose-300">
+                            · privé
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 {fileData ? (
                   <>
                     <code className="text-xs">{fileData.path}</code>
+                    {fileData.sensitive && (
+                      <span className="ml-2 text-xs font-semibold text-rose-700 dark:text-rose-300">
+                        · API ADMIN only (pas de static public)
+                      </span>
+                    )}
                     {fileData.mtime && (
                       <span className="ml-2 text-xs">
                         · {new Date(fileData.mtime).toLocaleString("fr-FR")}

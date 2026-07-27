@@ -1,13 +1,15 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-22T16:48:12.510Z",
+  "updatedAt": "2026-07-27T10:10:36.582952Z",
   "cycles": [
     {
       "id": "correctifs-2207",
-      "label": "Correctifs session 22/07",
+      "label": "Correctifs + rebuild",
       "description": "Re-valider avant / avec B2",
       "itemIds": [
+        "APK-BUILD-01",
         "MOB-ENT-01",
+        "MOB-SNACK-01",
         "WEB-LOGIN-01",
         "EMU-LIVE-01",
         "PILOTAGE-UI-04",
@@ -16,7 +18,7 @@
     },
     {
       "id": "fab-mobile",
-      "label": "FAB mobile",
+      "label": "FAB mobile (B2 D.6→D.9)",
       "description": "Créations depuis candidature via FAB",
       "itemIds": [
         "D.6",
@@ -27,7 +29,7 @@
     },
     {
       "id": "shell-b2",
-      "label": "Shell B2 (nav / admin / relances / shell)",
+      "label": "Shell B2 (nav / admin / shell)",
       "description": "Navigation, admin, relances, re-tap, double retour",
       "itemIds": [
         "A.1–A.2c",
@@ -90,7 +92,9 @@
           "label": "Contacts liés visibles / cohérents",
           "done": false
         }
-      ]
+      ],
+      "column": "rework",
+      "kind": "task"
     },
     "WEB-LOGIN-01": {
       "porteurNote": "Ne doit plus afficher « Invalid email or password » en Console Error",
@@ -101,7 +105,7 @@
       "label": "Login backoffice : bandeau rouge FR sans overlay Next.js",
       "description": "Sur /login (ou backoffice), saisir un mauvais mot de passe avec un email connu.",
       "expected": "Bandeau d’erreur en français ; pas d’overlay Next.js rouge ; pas de « Invalid email or password » en Console Error.",
-      "status": "open",
+      "status": "ok",
       "order": 20,
       "checklist": [
         {
@@ -119,7 +123,9 @@
           "label": "Console : pas d’Error « Invalid email or password »",
           "done": false
         }
-      ]
+      ],
+      "column": "done",
+      "kind": "task"
     },
     "EMU-LIVE-01": {
       "porteurNote": "scrcpy PC reste le plus fluide",
@@ -136,7 +142,7 @@
       "label": "Aperçu live ADB dans /backoffice/mobile-emulator",
       "description": "Connecter le Samsung (ou AVD), ouvrir mobile-emulator, activer Aperçu live.",
       "expected": "Flux live visible (MJPEG) ; scrcpy PC reste le plus fluide mais l’aperçu backoffice fonctionne.",
-      "status": "partial",
+      "status": "ok",
       "order": 30,
       "checklist": [
         {
@@ -149,7 +155,9 @@
           "label": "Case Aperçu live → écran téléphone en direct",
           "done": false
         }
-      ]
+      ],
+      "column": "done",
+      "kind": "task"
     },
     "PILOTAGE-UI-04": {
       "porteurNote": "SUPER_ADMIN · fix nginx `/api/pilotage` 22/07 — hard refresh HTTPS 5443",
@@ -178,7 +186,9 @@
           "label": "Une action écrit bien TODOS_A_VALIDER (dev)",
           "done": false
         }
-      ]
+      ],
+      "column": "a_valider",
+      "kind": "task"
     },
     "PILOTAGE-UI-05": {
       "porteurNote": "Validation réelle dans l’UI",
@@ -207,7 +217,9 @@
           "label": "Vue Cycles → FAB mobile affiche la progression",
           "done": false
         }
-      ]
+      ],
+      "column": "a_valider",
+      "kind": "task"
     },
     "A.1–A.2c": {
       "porteurNote": "déjà fait",
@@ -226,7 +238,9 @@
           "label": "Retour navigation OK",
           "done": true
         }
-      ]
+      ],
+      "column": "done",
+      "kind": "task"
     },
     "B.3": {
       "porteurNote": "",
@@ -245,7 +259,9 @@
           "label": "Drawer USER sans Administration",
           "done": true
         }
-      ]
+      ],
+      "column": "done",
+      "kind": "task"
     },
     "B.4": {
       "porteurNote": "",
@@ -264,7 +280,9 @@
           "label": "Impersonnaliser → Désimpersonnaliser → hub",
           "done": true
         }
-      ]
+      ],
+      "column": "done",
+      "kind": "task"
     },
     "C.5": {
       "porteurNote": "crash setState corrigé APK 1.0.31",
@@ -283,7 +301,9 @@
           "label": "Liste Relances stable",
           "done": true
         }
-      ]
+      ],
+      "column": "done",
+      "kind": "task"
     },
     "D.6": {
       "porteurNote": "◀ à remplir",
@@ -311,8 +331,77 @@
           "id": "create-ok",
           "label": "Créer → snackbar + Voir détail",
           "done": false
+        },
+        {
+          "id": "apk-134",
+          "label": "APK ≥ 1.0.34 installé (rebuild si besoin)",
+          "done": false
+        },
+        {
+          "id": "create-snack",
+          "label": "Créer → snack auto-dismiss (pas collée)",
+          "done": false
+        },
+        {
+          "id": "edit-trash",
+          "label": "Modifier + corbeille → snack OK, liste rafraîchie",
+          "done": false
         }
-      ]
+      ],
+      "column": "backlog",
+      "kind": "task"
+    },
+    "APK-BUILD-01": {
+      "porteurNote": "clean-flutter-apk-build.sh livré 27/07",
+      "history": [],
+      "id": "APK-BUILD-01",
+      "cycleId": "correctifs-2207",
+      "section": "Correctifs session 22/07",
+      "label": "Rebuild APK debug sans Zip kernel_blob",
+      "description": "Backoffice Mobile → Rebuild APK. Le script clean-flutter-apk-build.sh doit éviter compressDebugAssets / kernel_blob.bin.jar.",
+      "expected": "Build vert ; APK sur disque ; téléphone réinstallé avec version = pubspec.",
+      "status": "open",
+      "order": 5,
+      "checklist": [
+        {
+          "id": "rebuild-ok",
+          "label": "Rebuild APK réussit (pas d’erreur Zip)",
+          "done": false
+        },
+        {
+          "id": "version-match",
+          "label": "Version téléphone = APK compilé après install",
+          "done": false
+        }
+      ],
+      "column": "doing",
+      "kind": "task"
+    },
+    "MOB-SNACK-01": {
+      "porteurNote": "APK ≥ 1.0.34",
+      "history": [],
+      "id": "MOB-SNACK-01",
+      "cycleId": "correctifs-2207",
+      "section": "Correctifs session 22/07",
+      "label": "Snackbars relance auto-dismiss (AppSnack)",
+      "description": "Après create/edit/trash relance, la barre disparaît seule ; les messages suivants s’affichent.",
+      "expected": "Plus de barre collée bloquant « Relance créée / supprimée ».",
+      "status": "open",
+      "order": 22,
+      "checklist": [
+        {
+          "id": "create-dismiss",
+          "label": "Création → snack disparaît ~2–3 s",
+          "done": false
+        },
+        {
+          "id": "trash-dismiss",
+          "label": "Corbeille → snack visible puis dismiss",
+          "done": false
+        }
+      ],
+      "column": "backlog",
+      "kind": "task"
     },
     "D.7": {
       "porteurNote": "",
@@ -323,7 +412,7 @@
       "label": "FAB → Appel",
       "description": "Depuis une candidature : FAB → Appel → créer.",
       "expected": "Appel créé sans crash ; feedback UI clair.",
-      "status": "open",
+      "status": "deferred",
       "order": 210,
       "checklist": [
         {
@@ -336,7 +425,9 @@
           "label": "Feedback / détail OK",
           "done": false
         }
-      ]
+      ],
+      "column": "later",
+      "kind": "task"
     },
     "D.8": {
       "porteurNote": "",
@@ -347,7 +438,7 @@
       "label": "FAB → Entretien",
       "description": "Depuis une candidature : FAB → Entretien → créer.",
       "expected": "Entretien créé ; feedback UI clair.",
-      "status": "open",
+      "status": "deferred",
       "order": 220,
       "checklist": [
         {
@@ -360,7 +451,9 @@
           "label": "Feedback / détail OK",
           "done": false
         }
-      ]
+      ],
+      "column": "later",
+      "kind": "task"
     },
     "D.9": {
       "porteurNote": "",
@@ -371,7 +464,7 @@
       "label": "FAB → Contact",
       "description": "Depuis une candidature : FAB → Contact → créer.",
       "expected": "Contact créé ; feedback UI clair.",
-      "status": "open",
+      "status": "deferred",
       "order": 230,
       "checklist": [
         {
@@ -384,7 +477,9 @@
           "label": "Feedback / détail OK",
           "done": false
         }
-      ]
+      ],
+      "column": "later",
+      "kind": "task"
     },
     "E.10": {
       "porteurNote": "",
@@ -395,7 +490,7 @@
       "label": "Re-tap Candidatures",
       "description": "Re-taper l’onglet Candidatures depuis Candidatures.",
       "expected": "Comportement shell attendu sans crash.",
-      "status": "open",
+      "status": "deferred",
       "order": 300,
       "checklist": [
         {
@@ -403,7 +498,9 @@
           "label": "Re-tap Candidatures OK",
           "done": false
         }
-      ]
+      ],
+      "column": "later",
+      "kind": "task"
     },
     "E.11": {
       "porteurNote": "",
@@ -414,7 +511,7 @@
       "label": "Contacts → FAB +",
       "description": "Depuis l’onglet Contacts, utiliser FAB +.",
       "expected": "FAB accessible et création possible.",
-      "status": "open",
+      "status": "deferred",
       "order": 310,
       "checklist": [
         {
@@ -422,7 +519,9 @@
           "label": "Contacts → FAB + fonctionne",
           "done": false
         }
-      ]
+      ],
+      "column": "later",
+      "kind": "task"
     },
     "F.12": {
       "porteurNote": "",
@@ -433,7 +532,7 @@
       "label": "Accueil double retour",
       "description": "Depuis Accueil, double retour système.",
       "expected": "Comportement double retour conforme (pas de crash / sortie contrôlée).",
-      "status": "open",
+      "status": "deferred",
       "order": 320,
       "checklist": [
         {
@@ -441,7 +540,10 @@
           "label": "Double retour Accueil OK",
           "done": false
         }
-      ]
+      ],
+      "column": "later",
+      "kind": "task"
     }
-  }
+  },
+  "focusTaskId": "APK-BUILD-01"
 }

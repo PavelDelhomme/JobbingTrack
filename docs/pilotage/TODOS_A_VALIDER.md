@@ -5,20 +5,39 @@
 > **UI** : `/backoffice/pilotage` → onglet **Tableau de suivi** (OK/KO écrit ici automatiquement en dev/préprod).
 
 **Phase active** : **B — Gate pré-prod mobile**  
-**Point exact** : **MOB-ENT-01** contacts liés entreprise (REWORK) puis **B2-D.6** FAB Relance  
-**APK** : `1.0.34+34` · Samsung
+**Point exact** : **APK-BUILD-01** (seul **En cours** Kanban)  
+**APK** : cible `1.0.35+35` · Samsung
+
+> **Kanban** : `/backoffice/pilotage` → onglet **Kanban**.  
+> « À faire » ≠ « En cours ». Une seule carte En cours (bouton **En cours**).
 
 ---
 
-## Correctifs session 22/07 (re-valider avant / avec B2)
+## Suite logique (files — pas toutes en cours)
+
+| # | ID | Colonne | À faire | Décision | Notes |
+|---|----|---------|---------|----------|-------|
+| 1 | **APK-BUILD-01** | ▶ En cours | Rebuild APK sans Zip kernel_blob | | focus unique |
+| 2 | **MOB-ENT-01** | À reprendre | Capgemini contacts Marie/Luc | **REWORK** | après APK |
+| 3 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | APK frais |
+| 4 | **D.6** | À faire | FAB Relance | | après snacks |
+| 5 | D.7→F.12 | Plus tard | FAB / shell | | après D.6 |
+| — | WEB-LOGIN / EMU | Terminées | | **OK** | |
+
+---
+
+## Correctifs session (état)
 
 | ID | À faire | Décision | Notes |
 |----|---------|----------|-------|
-| **MOB-ENT-01** | Onglet **Entreprises** : voir OVHcloud, Capgemini, etc. ; détail candidatures + **contacts liés** | **REWORK 22/07** → re-test | Fix liens ContactCompany + API ; Capgemini doit montrer Marie/Luc |
-| **WEB-LOGIN-01** | Login backoffice : mauvais mdp → bandeau rouge FR, **sans** overlay Next.js rouge | **OK 22/07** | Bandeau FR OK ; plus d’overlay Next ; `console.warn` login retiré — reste ligne réseau 401 navigateur (normale) |
-| **EMU-LIVE-01** | `/backoffice/mobile-emulator` : device ADB + **Aperçu live** → écran téléphone en direct | **OK 22/07** | Samsung + flux live visible |
-| **PILOTAGE-UI-04** | `/backoffice/pilotage` → **Tableau de suivi** : items à valider, boutons OK/KO, écriture dans les `.md` (dev/préprod) | | SUPER_ADMIN · fix nginx `/api/pilotage` 22/07 — hard refresh HTTPS 5443 |
-| **PILOTAGE-UI-05** | Fiche détail + sous-critères + PARTIEL / Plus tard / cycles (ex. FAB) ; section **Terminées** chrono | | Validation réelle dans l’UI |
+| **MOB-ENT-01** | Entreprises + **contacts liés** | **REWORK 22/07** → re-test | Capgemini Marie/Luc |
+| **WEB-LOGIN-01** | Login bandeau FR sans overlay Next | **OK 22/07** | |
+| **EMU-LIVE-01** | Aperçu live ADB | **OK 22/07** | |
+| **APK-BUILD-01** | Rebuild sans Zip kernel_blob | | ◀ **maintenant** |
+| **MOB-SNACK-01** | AppSnack auto-dismiss | | après APK |
+| **PILOTAGE-UI-04** | Tableau suite logique + écriture md | | |
+| **PILOTAGE-UI-05** | Fiche détail / PARTIEL / Plus tard / Terminées | | |
+| **PILOTAGE-KANBAN** | Contraste colonnes + promo inbox → carte + onglets STATUS/PLAN/ERRORS | | Re-test UI |
 
 ---
 

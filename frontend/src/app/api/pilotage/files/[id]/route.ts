@@ -6,7 +6,7 @@ import {
   isPilotageInteractiveAllowed,
   pilotageEnvDenialMessage,
 } from "@/lib/pilotage/envGate";
-import { resolvePilotageById } from "@/lib/pilotage/paths";
+import { displayDocsPath, resolvePilotageById } from "@/lib/pilotage/paths";
 import {
   detectRawSecrets,
   redactPilotageSecrets,
@@ -48,9 +48,10 @@ export async function GET(request: NextRequest, context: Ctx) {
       id: resolved.meta.id,
       label: resolved.meta.label,
       description: resolved.meta.description,
-      path: `docs/pilotage/${resolved.meta.relativePath}`,
+      path: displayDocsPath(resolved.meta),
       contentType: resolved.meta.contentType,
       writable: resolved.meta.writable && auth.role === "SUPER_ADMIN",
+      sensitive: !!resolved.meta.sensitive,
       content,
       redactedCount,
       bytes: Buffer.byteLength(raw, "utf8"),
@@ -141,8 +142,9 @@ export async function PUT(request: NextRequest, context: Ctx) {
 
   fs.writeFileSync(resolved.absPath, body.content, "utf8");
 
-  // Miroir frontend pour l’UI bundlée (suivi-actif)
-  if (resolved.meta.id === "SUIVI_ACTIF") {
+  // Miroir frontend UNIQUEMENT pour suivi-actif.
+  // validation-board (sensitive) : jamais de copie public/ — API ADMIN only.
+  if (resolved.meta.id === "SUIVI_ACTIF" && !resolved.meta.sensitive) {
     const mirrors = [
       `${resolved.root}/frontend/src/lib/pilotage/suiviActif.json`,
       `${resolved.root}/frontend/public/pilotage/suivi-actif.json`,
@@ -162,7 +164,7 @@ export async function PUT(request: NextRequest, context: Ctx) {
     message: "Fichier enregistré",
     file: {
       id: resolved.meta.id,
-      path: `docs/pilotage/${resolved.meta.relativePath}`,
+      path: displayDocsPath(resolved.meta),
       mtime: new Date().toISOString(),
       writtenBy: auth.email || auth.userId,
     },

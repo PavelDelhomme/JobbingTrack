@@ -2,8 +2,11 @@ import fs from "fs";
 import path from "path";
 import {
   getPilotageFileMeta,
+  displayDocsPath,
   type PilotageFileMeta,
 } from "@/lib/pilotage/allowedFiles";
+
+export { displayDocsPath };
 
 /** Racines possibles (dev host, conteneur frontend, workspace monté). */
 export function resolveProjectRoot(): string {
@@ -18,7 +21,6 @@ export function resolveProjectRoot(): string {
     const probe = path.join(root, "docs", "pilotage", "TODOS.md");
     if (fs.existsSync(probe)) withPilotage.push(root);
   }
-  // Préférer une racine où docs/pilotage est writable (ex. bind-mount rw).
   for (const root of withPilotage) {
     const dir = path.join(root, "docs", "pilotage");
     try {
@@ -36,10 +38,18 @@ export function resolvePilotageAbsolutePath(
   meta: PilotageFileMeta,
 ): { ok: true; absPath: string; root: string } | { ok: false; error: string } {
   const root = resolveProjectRoot();
-  const pilotageDir = path.resolve(root, "docs", "pilotage");
-  const absPath = path.resolve(pilotageDir, meta.relativePath);
-  if (!absPath.startsWith(pilotageDir + path.sep) && absPath !== pilotageDir) {
-    return { ok: false, error: "Chemin hors sandbox pilotage" };
+  const docsDir = path.resolve(root, "docs");
+  const sandbox =
+    meta.docsRoot === "docs"
+      ? docsDir
+      : path.resolve(docsDir, "pilotage");
+  const absPath = path.resolve(sandbox, meta.relativePath);
+  if (!absPath.startsWith(sandbox + path.sep) && absPath !== sandbox) {
+    return { ok: false, error: "Chemin hors sandbox docs" };
+  }
+  // Interdire toute sortie hors docs/
+  if (!absPath.startsWith(docsDir + path.sep) && absPath !== docsDir) {
+    return { ok: false, error: "Chemin hors docs/" };
   }
   return { ok: true, absPath, root };
 }

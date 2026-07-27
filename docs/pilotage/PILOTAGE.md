@@ -1,59 +1,62 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **22 juillet 2026**
+Dernière mise à jour : **27 juillet 2026**
 
 ## ▶ Où on en est
 
-**Phase B · MOB-ENT-01 contacts entreprise (REWORK) · puis B2-D.6** · APK `1.0.34+34`  
-Correctifs session : **WEB-LOGIN-01 OK** · **EMU-LIVE-01 OK** · **MOB-ENT-01 REWORK** (liste OK, contacts détail à reprendre) · **PILOTAGE-UI-05** (+ section Terminées)  
-UI : **[`https://jobbingtrack.localhost:5443/backoffice/pilotage`](https://jobbingtrack.localhost:5443/backoffice/pilotage)** (HTTPS obligatoire — pas `localhost:5003`)  
-App prod Samsung : dossier **`mobile/`** · proto : **`flutter-mobile-app/`** (`lib/main.dart` → `lib/core/app.dart`)
+**Focus (1 seule) : APK-BUILD-01** — Rebuild APK sans Zip `kernel_blob`  
+Ensuite (pas « en cours ») : MOB-ENT-01 → MOB-SNACK-01 → D.6 → …
 
-Guide décisions OK/KO/PARTIEL : [`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md).
+UI Kanban : **[`https://jobbingtrack.localhost:5443/backoffice/pilotage`](https://jobbingtrack.localhost:5443/backoffice/pilotage)** → onglet **Kanban**
 
-## Process (fichiers)
+## Kanban ADHD (règle d’or)
+
+| Colonne | Sens | WIP |
+|---------|------|-----|
+| Inbox retours | Bugs/suggestions utilisateurs (app) | ∞ |
+| Inbox erreurs | Crashes / erreurs auto | ∞ |
+| **À faire** | Prêt, **pas démarré** | ∞ |
+| **▶ En cours** | **UNE** carte focus | **1** |
+| À tester | Preuves `TODOS_A_TESTER` | ∞ |
+| À valider | Gate porteur `TODOS_A_VALIDER` | ∞ |
+| À reprendre | KO / REWORK | ∞ |
+| Plus tard | Reporté | ∞ |
+| Terminées | OK / DONE | ∞ |
+
+Ne mets **jamais** toute la file en « En cours ». Clique **En cours** sur **une** carte seulement.
+
+## Fichiers sync live
 
 | Fichier | Rôle |
 |---------|------|
-| [`TODOS.md`](TODOS.md) | **Source de vérité** — à faire + récemment fait |
-| [`TODOS_A_TESTER.md`](TODOS_A_TESTER.md) | Tests & résultats (ex-`TODOS_A_VERIFIER`) |
-| [`TODOS_A_VALIDER.md`](TODOS_A_VALIDER.md) | **Uniquement** validations porteur de la phase active |
-| [`TODOS_DONE.md`](TODOS_DONE.md) | Archivage OK concluants |
-| [`GUIDE_VALIDATION_PORTEUR.md`](GUIDE_VALIDATION_PORTEUR.md) | Checklist Samsung courte |
-| [`../STATUS.md`](../STATUS.md) | État projet + ce process |
+| `TODOS.md` | À faire / backlog |
+| `TODOS_A_TESTER.md` | Preuves tests |
+| `TODOS_A_VALIDER.md` | Validations + Point exact |
+| `TODOS_DONE.md` | Archive OK |
+| `validation-board.json` | Colonnes, focus, checklists — **ADMIN API only** (jamais `/public`) |
+| `PILOTAGE.md` | Ce fichier |
+| Docs liés (UI Fichiers) | `STATUS.md`, `BACKLOG.md`, `PLAN.md`, `ERRORS.md`, `RESOLUTIONS.md` |
 
-Flux : `TODOS` → tests dans `A_TESTER` → **OK** → `DONE` · **KO** → retour `TODOS`.
+Sécurité : `validation-board.json` et l’édition md passent uniquement par `/api/pilotage/*` (ADMIN+). Pas de static public pour le board.
 
-### Backoffice — Tableau de suivi
+Décisions UI (OK/KO/PARTIEL/Plus tard/REWORK) + **déplacement de colonne** → écriture md + JSON.
 
-Page **Pilotage / Suivi des tâches** (`/backoffice/pilotage`) :
+## Onglets UI
 
-1. Onglet **Tableau de suivi** — validation riche : cycles (ex. FAB mobile), fiches détail avec sous-critères, **OK / PARTIEL / KO / REWORK / Plus tard**, réordonner ▲▼. État dans `validation-board.json` + sync `TODOS_A_VALIDER.md` + preuve `TODOS_A_TESTER.md`. Section **Terminées** : fusion chronologique de « Récemment terminé » (`TODOS.md`), décisions OK/KO (`A_VALIDER` + board), archive `TODOS_DONE.md` — mise à jour auto à chaque OK/KO (prepend dans `TODOS.md`).
-2. Onglet **Vue synthèse** — snapshot `suivi-actif.json`.
-3. Onglet **Fichiers bruts** — édition markdown/json (SUPER_ADMIN).
-
-**Écriture** (actions + PUT fichiers) : uniquement si `JT_RUNTIME_ENV` ∈ `development|dev|local|preprod|staging|test|ci` (pas `production` / `prod`). Auth : lecture ADMIN+, actions SUPER_ADMIN.
-
-**Sync UI ↔ fichiers** :
-- Fichiers → UI : à chaque chargement / rafraîchir.
-- UI → fichiers : actions board écrivent `validation-board.json` + décision résumée dans `TODOS_A_VALIDER.md`.
-- Layout responsive : panneau détail desktop · bottom sheet mobile.
-
-## Branches / commits
-
-Suivre [`../development/BRANCHES.md`](../development/BRANCHES.md) :  
-`feat/…`, `fix/…`, `docs/…` — jamais commit direct sur `main`/`dev`.
+1. **Kanban** — colonnes + focus TDAH + inbox retours/erreurs  
+2. **Liste détaillée** — suites / cycles / catalogues md  
+3. **Vue synthèse** — snapshot  
+4. **Fichiers bruts** — édition SUPER_ADMIN  
 
 ## Phases
 
-| Phase | Contenu | Statut |
-|-------|---------|--------|
-| A | Mobile Lot D (code/smokes) | via B |
-| **B** | Gate validation porteur B1→B5 | **B2-D.6** |
-| C | Déploiement VPS/OTA | parallèle |
-| D | Backoffice P1 / hygiène / pilotage UI | après B (sauf correctifs demandés) |
+| Phase | Statut |
+|-------|--------|
+| **B** gate mobile | Focus APK-BUILD → MOB-ENT → D.6… |
+| C déploiement | parallèle |
+| D backoffice | board Kanban |
 
 ## Règle agent
 
-Avant toute tâche : lire ce fichier → `TODOS.md` (section **En cours**) → `TODOS_A_TESTER.md`.  
-Ne pas élargir hors item ouvert sauf demande explicite porteur.
+Lire ce fichier → **focus** Kanban / Point exact → `TODOS_A_TESTER`.  
+Une tâche à la fois.

@@ -18,6 +18,11 @@ type ActionBody = {
   checklistNote?: string;
   direction?: string;
   cycleId?: string | null;
+  column?: string;
+  label?: string;
+  description?: string;
+  inboxKind?: string;
+  sourceRef?: string;
 };
 
 export async function POST(request: NextRequest) {
@@ -77,12 +82,16 @@ export async function POST(request: NextRequest) {
     type !== "checklist" &&
     type !== "reorder" &&
     type !== "move" &&
-    type !== "note"
+    type !== "note" &&
+    type !== "setcolumn" &&
+    type !== "focus" &&
+    type !== "promoteinbox"
   ) {
     return securePilotageJson(
       {
         success: false,
-        error: "type doit être decide|checklist|reorder|move|note",
+        error:
+          "type doit être decide|checklist|reorder|move|note|setColumn|focus|promoteInbox",
       },
       { status: 400 },
     );
@@ -120,8 +129,29 @@ export async function POST(request: NextRequest) {
       ? body.direction
       : undefined;
 
+  const actionType =
+    type === "setcolumn"
+      ? "setColumn"
+      : type === "promoteinbox"
+        ? "promoteInbox"
+        : (type as
+            | "decide"
+            | "checklist"
+            | "reorder"
+            | "move"
+            | "note"
+            | "focus");
+
+  const inboxKindRaw = body.inboxKind
+    ? String(body.inboxKind).toLowerCase()
+    : undefined;
+  const inboxKind =
+    inboxKindRaw === "error" || inboxKindRaw === "feedback"
+      ? inboxKindRaw
+      : undefined;
+
   const result = applyBoardAction({
-    type: type as "decide" | "checklist" | "reorder" | "move" | "note",
+    type: actionType,
     itemId,
     decision,
     note,
@@ -139,6 +169,17 @@ export async function POST(request: NextRequest) {
         : body.cycleId !== undefined
           ? String(body.cycleId)
           : undefined,
+    column: body.column
+      ? (String(body.column) as import("@/lib/pilotage/validationBoardTypes").KanbanColumnId)
+      : undefined,
+    label: body.label ? String(body.label).slice(0, 200) : undefined,
+    description: body.description
+      ? String(body.description).slice(0, 2000)
+      : undefined,
+    inboxKind,
+    sourceRef: body.sourceRef
+      ? String(body.sourceRef).slice(0, 120)
+      : undefined,
   });
 
   if (!result.ok) {

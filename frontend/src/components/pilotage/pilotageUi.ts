@@ -59,7 +59,15 @@ export function cycleStatusClass(status: CycleView["status"]): string {
 }
 
 export type BoardActionPayload = {
-  type: "decide" | "checklist" | "reorder" | "move" | "note";
+  type:
+    | "decide"
+    | "checklist"
+    | "reorder"
+    | "move"
+    | "note"
+    | "setColumn"
+    | "focus"
+    | "promoteInbox";
   itemId: string;
   decision?: DecisionStamp;
   note?: string;
@@ -67,4 +75,10 @@ export type BoardActionPayload = {
   done?: boolean;
   direction?: "up" | "down";
   cycleId?: string | null;
+  column?: import("@/lib/pilotage/validationBoardTypes").KanbanColumnId;
+  /** Promo inbox → carte board */
+  label?: string;
+  description?: string;
+  inboxKind?: "feedback" | "error";
+  sourceRef?: string;
 };

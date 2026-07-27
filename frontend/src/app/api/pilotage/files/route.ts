@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { PILOTAGE_FILES } from "@/lib/pilotage/allowedFiles";
+import { displayDocsPath } from "@/lib/pilotage/paths";
 import {
   requirePilotageAdmin,
   securePilotageJson,
@@ -24,7 +25,8 @@ export async function GET(request: NextRequest) {
       description: f.description,
       writable: f.writable && auth.role === "SUPER_ADMIN",
       contentType: f.contentType,
-      path: `docs/pilotage/${f.relativePath}`,
+      path: displayDocsPath(f),
+      sensitive: !!f.sensitive,
     })),
   });
 }
