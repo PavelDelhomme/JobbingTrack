@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-27T15:51:55.393Z",
+  "updatedAt": "2026-07-27T17:50:59.206Z",
   "cycles": [
     {
       "id": "correctifs-2207",
@@ -50,7 +50,8 @@
         "DEPLOY-C1",
         "DEPLOY-C2",
         "DEPLOY-C3",
-        "DEPLOY-MAKE"
+        "DEPLOY-MAKE",
+        "BL-26-28"
       ]
     },
     {
@@ -68,6 +69,26 @@
       "description": "Migration progressive uiSurfaces / Flutter",
       "itemIds": [
         "BL-26-33"
+      ]
+    },
+    {
+      "id": "gate-mobile-extra",
+      "label": "Gate mobile — extras",
+      "description": "Matrice API, RGPD, OTA wizard, impersonation",
+      "itemIds": [
+        "BL-26-14",
+        "B5-RGPD",
+        "BL-26-32",
+        "BL-26-17"
+      ]
+    },
+    {
+      "id": "gate-prod",
+      "label": "Gate prod",
+      "description": "Logs pipeline + biométrie release",
+      "itemIds": [
+        "BL-26-27",
+        "BL-26-26"
       ]
     }
   ],
@@ -122,7 +143,7 @@
           "done": false
         }
       ],
-      "column": "rework",
+      "column": "doing",
       "kind": "task"
     },
     "WEB-LOGIN-01": {
@@ -381,29 +402,35 @@
       "kind": "task"
     },
     "APK-BUILD-01": {
-      "porteurNote": "clean-flutter-apk-build.sh livré 27/07",
-      "history": [],
+      "porteurNote": "Agent 27/07 : build OK 1.0.36+36 sans Zip ; install ADB Samsung OK — confirmer ouverture app",
+      "history": [
+        {
+          "at": "2026-07-27T17:50:59.206Z",
+          "action": "PARTIEL",
+          "note": "Build+install agent OK ; validation porteur ouverture"
+        }
+      ],
       "id": "APK-BUILD-01",
       "cycleId": "correctifs-2207",
       "section": "Correctifs session 22/07",
       "label": "Rebuild APK debug sans Zip kernel_blob",
       "description": "Backoffice Mobile → Rebuild APK. Le script clean-flutter-apk-build.sh doit éviter compressDebugAssets / kernel_blob.bin.jar.",
       "expected": "Build vert ; APK sur disque ; téléphone réinstallé avec version = pubspec.",
-      "status": "open",
+      "status": "partial",
       "order": 5,
       "checklist": [
         {
           "id": "rebuild-ok",
           "label": "Rebuild APK réussit (pas d’erreur Zip)",
-          "done": false
+          "done": true
         },
         {
           "id": "version-match",
           "label": "Version téléphone = APK compilé après install",
-          "done": false
+          "done": true
         }
       ],
-      "column": "doing",
+      "column": "a_valider",
       "kind": "task"
     },
     "MOB-SNACK-01": {
@@ -815,7 +842,164 @@
       ],
       "column": "a_valider",
       "kind": "task"
+    },
+    "BL-26-14": {
+      "porteurNote": "",
+      "history": [],
+      "id": "BL-26-14",
+      "cycleId": "gate-mobile-extra",
+      "section": "Gate mobile — suite",
+      "label": "Matrice Android multi-API",
+      "description": "Parc API 21–36 : AVD + Samsung ; audit-android-api-matrix.",
+      "expected": "Matrice documentée avant bêta / prod complète.",
+      "status": "deferred",
+      "order": 600,
+      "checklist": [
+        {
+          "id": "matrix",
+          "label": "Script / doc matrice",
+          "done": false
+        },
+        {
+          "id": "devices",
+          "label": "Au moins 2 paliers testés",
+          "done": false
+        }
+      ],
+      "column": "later",
+      "kind": "task"
+    },
+    "B5-RGPD": {
+      "porteurNote": "",
+      "history": [],
+      "id": "B5-RGPD",
+      "cycleId": "gate-mobile-extra",
+      "section": "Gate mobile — suite",
+      "label": "B5 — Consentements RGPD mobile",
+      "description": "Étape gate mobile consentements / privacy.",
+      "expected": "Parcours conforme avant ouverture publique.",
+      "status": "deferred",
+      "order": 610,
+      "checklist": [
+        {
+          "id": "screens",
+          "label": "Écrans consentement OK",
+          "done": false
+        }
+      ],
+      "column": "later",
+      "kind": "task"
+    },
+    "BL-26-28": {
+      "porteurNote": "",
+      "history": [],
+      "id": "BL-26-28",
+      "cycleId": "deploy-vps",
+      "section": "Phase C — VPS",
+      "label": "OTA promote → GitHub / politique branche prod",
+      "description": "Après DEPLOY-C3 : documenter promote + tag GitHub optionnel.",
+      "expected": "Workflow Git explicite depuis backoffice.",
+      "status": "open",
+      "order": 440,
+      "checklist": [
+        {
+          "id": "doc",
+          "label": "Doc workflow",
+          "done": false
+        },
+        {
+          "id": "ui",
+          "label": "Bouton / message backoffice clair",
+          "done": false
+        }
+      ],
+      "column": "later",
+      "kind": "task"
+    },
+    "BL-26-32": {
+      "porteurNote": "",
+      "history": [],
+      "id": "BL-26-32",
+      "cycleId": "gate-mobile-extra",
+      "section": "Gate mobile — suite",
+      "label": "OTA wizard UX — validation porteur",
+      "description": "Contraste + étapes session OTA — re-test porteur.",
+      "expected": "Wizard utilisable clair/sombre.",
+      "status": "open",
+      "order": 620,
+      "checklist": [
+        {
+          "id": "wizard",
+          "label": "Parcours OTA OK",
+          "done": false
+        }
+      ],
+      "column": "a_valider",
+      "kind": "task"
+    },
+    "BL-26-17": {
+      "porteurNote": "",
+      "history": [],
+      "id": "BL-26-17",
+      "cycleId": "gate-mobile-extra",
+      "section": "Gate mobile — suite",
+      "label": "Impersonnalisation — sortie visible",
+      "description": "Bannière admin + sortie claire (étape 2).",
+      "expected": "Toujours visible pendant impersonation.",
+      "status": "open",
+      "order": 630,
+      "checklist": [
+        {
+          "id": "banner",
+          "label": "Bannière + sortie OK",
+          "done": false
+        }
+      ],
+      "column": "a_valider",
+      "kind": "task"
+    },
+    "BL-26-27": {
+      "porteurNote": "",
+      "history": [],
+      "id": "BL-26-27",
+      "cycleId": "gate-prod",
+      "section": "Gate prod",
+      "label": "Services & Logs — pipeline opérationnel",
+      "description": "Page Services & Logs exploitable avant MEP.",
+      "expected": "Lignes de logs utiles, pas page vide.",
+      "status": "deferred",
+      "order": 700,
+      "checklist": [
+        {
+          "id": "logs-visible",
+          "label": "Logs visibles en backoffice",
+          "done": false
+        }
+      ],
+      "column": "later",
+      "kind": "task"
+    },
+    "BL-26-26": {
+      "porteurNote": "",
+      "history": [],
+      "id": "BL-26-26",
+      "cycleId": "gate-prod",
+      "section": "Gate prod",
+      "label": "Biométrie — re-validation APK release",
+      "description": "OK debug ; re-test release sans bypass smokes.",
+      "expected": "Biométrie OK sur APK release.",
+      "status": "deferred",
+      "order": 710,
+      "checklist": [
+        {
+          "id": "release-bio",
+          "label": "Test release OK",
+          "done": false
+        }
+      ],
+      "column": "later",
+      "kind": "task"
     }
   },
-  "focusTaskId": "APK-BUILD-01"
+  "focusTaskId": "MOB-ENT-01"
 }

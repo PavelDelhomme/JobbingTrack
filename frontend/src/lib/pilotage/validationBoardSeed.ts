@@ -638,8 +638,8 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
     if (status) map[id].status = status;
     map[id].kind = map[id].kind || "task";
   };
-  setCol("APK-BUILD-01", "doing", "open");
-  setCol("MOB-ENT-01", "rework", "rework");
+  setCol("APK-BUILD-01", "a_valider", "partial");
+  setCol("MOB-ENT-01", "doing", "rework");
   setCol("MOB-SNACK-01", "backlog", "open");
   setCol("D.6", "backlog", "open");
   setCol("WEB-LOGIN-01", "done", "ok");
@@ -671,7 +671,7 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
   return {
     version: 1,
     updatedAt: new Date().toISOString(),
-    focusTaskId: "APK-BUILD-01",
+    focusTaskId: "MOB-ENT-01",
     cycles: [
       {
         id: "correctifs-2207",

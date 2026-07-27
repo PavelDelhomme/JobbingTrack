@@ -5,8 +5,8 @@
 > **UI** : `/backoffice/pilotage` → onglet **Tableau de suivi** (OK/KO écrit ici automatiquement en dev/préprod).
 
 **Phase active** : **B — Gate pré-prod mobile**  
-**Point exact** : **APK-BUILD-01** (seul **En cours** Kanban)  
-**APK** : cible `1.0.35+35` · Samsung
+**Point exact** : **MOB-ENT-01** (seul **En cours** Kanban)  
+**APK** : **1.0.36+36** · Samsung (installé ADB 27/07)
 
 > **Kanban** : `/backoffice/pilotage` → onglet **Kanban**.  
 > « À faire » ≠ « En cours ». Une seule carte En cours (bouton **En cours**).
@@ -17,9 +17,9 @@
 
 | # | ID | Colonne | À faire | Décision | Notes |
 |---|----|---------|---------|----------|-------|
-| 1 | **APK-BUILD-01** | ▶ En cours | Rebuild APK sans Zip kernel_blob | | focus unique |
-| 2 | **MOB-ENT-01** | À reprendre | Capgemini contacts Marie/Luc | **REWORK** | après APK |
-| 3 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | APK frais |
+| 1 | **MOB-ENT-01** | ▶ En cours | Capgemini contacts Marie/Luc | **REWORK** | focus · APK frais |
+| 2 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **PARTIEL agent** | build+install OK — ouvrir app |
+| 3 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | après MOB-ENT |
 | 4 | **D.6** | À faire | FAB Relance | | après snacks |
 | 5 | D.7→F.12 | Plus tard | FAB / shell | | après D.6 |
 | 6 | **DEPLOY-C1→C3** | À faire | Portainer + NPM + OTA préprod | | parallèle C |
@@ -33,11 +33,11 @@
 
 | ID | À faire | Décision | Notes |
 |----|---------|----------|-------|
-| **MOB-ENT-01** | Entreprises + **contacts liés** | **REWORK 22/07** → re-test | Capgemini Marie/Luc |
+| **MOB-ENT-01** | Entreprises + **contacts liés** | **REWORK 22/07** → re-test | ◀ **maintenant** · Capgemini |
+| **APK-BUILD-01** | Rebuild sans Zip kernel_blob | **PARTIEL 27/07** | 1.0.36+36 ADB OK — valider ouverture |
 | **WEB-LOGIN-01** | Login bandeau FR sans overlay Next | **OK 22/07** | |
 | **EMU-LIVE-01** | Aperçu live ADB | **OK 22/07** | |
-| **APK-BUILD-01** | Rebuild sans Zip kernel_blob | | ◀ **maintenant** |
-| **MOB-SNACK-01** | AppSnack auto-dismiss | | après APK |
+| **MOB-SNACK-01** | AppSnack auto-dismiss | | après MOB-ENT |
 | **PILOTAGE-UI-04** | Tableau suite logique + écriture md | | |
 | **PILOTAGE-UI-05** | Fiche détail / PARTIEL / Plus tard / Terminées | | |
 | **PILOTAGE-KANBAN** | Contraste colonnes **clair+sombre** + promo inbox + onglets STATUS/PLAN/ERRORS | | Re-test UI (moteur `jtKanban`) |

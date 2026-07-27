@@ -43,9 +43,11 @@
 | Test | Attendu | Résultat | Suite |
 |------|---------|----------|-------|
 | Cause | `compressDebugAssets` / `kernel_blob.bin.jar already contains entry` | **Confirmé** log porteur 27/07 | build-apk-debug **sans** clean avant |
-| `clean-flutter-apk-build.sh` | flutter clean + purge compressed_assets / outputs | **Livré** | |
-| `build-apk-debug.sh` | clean systématique + retry si Zip | **Livré** | Rebuild backoffice |
-| Porteur | Rebuild vert → install 1.0.35 | **À valider** | |
+| `clean-flutter-apk-build.sh` | flutter clean + purge compressed_assets / outputs | **Livré** | + sudo root `.plugin_symlinks` |
+| `build-apk-debug.sh` | clean systématique + retry si Zip | **Livré** | |
+| Build agent | APK debug sans Zip | **OK 27/07** `1.0.36+36` | |
+| Install ADB Samsung | `com.example.jobbingtrack_mobile` versionName 1.0.36 | **OK 27/07** | |
+| Porteur | Ouvrir app + smoke login | **À valider** | Kanban → À valider |
 
 ### PILOTAGE-KANBAN — contraste + promo inbox + docs (27/07)
 

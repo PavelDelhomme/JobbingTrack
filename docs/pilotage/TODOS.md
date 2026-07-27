@@ -33,17 +33,17 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ## ▶ En cours maintenant
 
-> **Kanban** : une seule carte **En cours** (aujourd’hui **APK-BUILD-01**).  
-> Le reste = **À faire** / **À reprendre** / **Plus tard** — pas « en cours ».
+> **Kanban** : une seule carte **En cours** (aujourd’hui **MOB-ENT-01**).  
+> Le reste = **À faire** / **À valider** / **Plus tard** — pas « en cours ».
 
 | ID | Phase | Colonne | Item | Action immédiate | Preuve / test |
 |----|-------|---------|------|------------------|---------------|
-| **APK-BUILD-01** | B/D | ▶ En cours | Rebuild APK sans Zip kernel_blob | Rebuild backoffice | ANDROID_TOOLCHAIN |
-| **MOB-ENT-01** | B | À reprendre | Contacts liés entreprise | Re-test Capgemini | A_TESTER § MOB-ENT |
-| **MOB-SNACK-01** | B | À faire | Snacks auto-dismiss | Après APK | |
+| **MOB-ENT-01** | B | ▶ En cours | Contacts liés entreprise | Re-test Capgemini Marie/Luc | A_TESTER § MOB-ENT · APK 1.0.36 |
+| **APK-BUILD-01** | B/D | À valider | Rebuild APK sans Zip | Confirmer ouverture app | **PARTIEL** build+ADB OK |
+| **MOB-SNACK-01** | B | À faire | Snacks auto-dismiss | Après MOB-ENT | |
 | **B2-D.6** | B | À faire | FAB Relance | Après snacks | |
 | B2-D.7→F.12 | B | Plus tard | FAB / shell suite | Après D.6 | |
-| PILOTAGE-UI-04/05 | D | À valider | Board / Kanban | Valider UI | |
+| PILOTAGE-UI-04/05/KANBAN | D | À valider | Board / Kanban | Valider UI | |
 
 ---
 

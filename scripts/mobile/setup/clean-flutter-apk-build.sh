@@ -39,4 +39,13 @@ if [[ -d "$COMP" ]]; then
   rm -rf "$COMP" 2>/dev/null || true
 fi
 
+# Symlinks Linux créés en root (souvent via Docker) bloquent flutter clean
+PLUGIN_LINKS="$MOBILE_DIR/linux/flutter/ephemeral/.plugin_symlinks"
+if [[ -e "$PLUGIN_LINKS" ]] && [[ ! -w "$PLUGIN_LINKS" || "$(stat -c '%u' "$PLUGIN_LINKS" 2>/dev/null)" == "0" ]]; then
+  echo "[clean-flutter-apk-build] WARN — $PLUGIN_LINKS root-owned ; tente sudo rm…"
+  if command -v sudo >/dev/null 2>&1; then
+    sudo rm -rf "$PLUGIN_LINKS" 2>/dev/null || true
+  fi
+fi
+
 echo "[clean-flutter-apk-build] OK"
