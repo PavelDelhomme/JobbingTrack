@@ -5,9 +5,13 @@ Dernière mise à jour : **27 juillet 2026**
 ## ▶ Où on en est
 
 **Focus (1 seule) : APK-BUILD-01** — Rebuild APK sans Zip `kernel_blob`  
-Ensuite (pas « en cours ») : MOB-ENT-01 → MOB-SNACK-01 → D.6 → …
+Ensuite (pas « en cours ») : MOB-ENT-01 → MOB-SNACK-01 → D.6 → …  
+Parallèle : **DEPLOY-C1→C3** (Portainer/NPM/OTA) · Make `env-help`
 
-UI Kanban : **[`https://jobbingtrack.localhost:5443/backoffice/pilotage`](https://jobbingtrack.localhost:5443/backoffice/pilotage)** → onglet **Kanban**
+Branche : lot pilotage **mergé dans `dev`** (PR #24) · miroir `test/pilotage-fichiers-backoffice` · archive `archive/accompli-pilotage-fichiers-backoffice`
+
+UI Kanban : **[`https://jobbingtrack.localhost:5443/backoffice/pilotage`](https://jobbingtrack.localhost:5443/backoffice/pilotage)** → onglet **Kanban**  
+(Rafraîchir pour charger le seed enrichi DEPLOY / SMTP / triage.)
 
 ## Kanban ADHD (règle d’or)
 
