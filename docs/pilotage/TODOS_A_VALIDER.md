@@ -37,7 +37,7 @@
 | **MOB-SNACK-01** | AppSnack auto-dismiss | | après APK |
 | **PILOTAGE-UI-04** | Tableau suite logique + écriture md | | |
 | **PILOTAGE-UI-05** | Fiche détail / PARTIEL / Plus tard / Terminées | | |
-| **PILOTAGE-KANBAN** | Contraste colonnes + promo inbox → carte + onglets STATUS/PLAN/ERRORS | | Re-test UI |
+| **PILOTAGE-KANBAN** | Contraste colonnes **clair+sombre** + promo inbox + onglets STATUS/PLAN/ERRORS | | Re-test UI (moteur `jtKanban`) |
 
 ---
 

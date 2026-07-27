@@ -18,6 +18,9 @@ import {
   isMonitoringTestOrSmokeCrash,
   isUserFeedbackCrash,
 } from "@/lib/analytics/mobileFeedback";
+import { jtKanban, uiChip } from "@/lib/ui/kanban";
+import { uiSurfaces, uiText } from "@/lib/ui/surfaces";
+import { cn } from "@/lib/utils";
 
 const MOVE_TARGETS: { id: KanbanColumnId; label: string }[] = [
   { id: "backlog", label: "→ À faire" },
@@ -140,29 +143,21 @@ export function PilotageKanbanView({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-xl border-2 border-amber-400 bg-amber-50 p-4 dark:border-amber-600 dark:bg-amber-950/40">
+      <section className={jtKanban.focus}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-amber-900 dark:text-amber-200">
-              Focus TDAH — une seule chose
-            </p>
+            <p className={jtKanban.focusEyebrow}>Focus TDAH — une seule chose</p>
             {focus ? (
               <>
-                <p className="mt-1 font-mono text-xs text-amber-800 dark:text-amber-300">
-                  {focus.id}
-                </p>
-                <p className="mt-0.5 text-xl font-bold text-gray-900 dark:text-gray-50">
-                  {focus.label}
-                </p>
-                <p className="mt-1 max-w-2xl text-sm text-gray-700 dark:text-gray-300">
-                  {focus.description}
-                </p>
+                <p className={jtKanban.focusId}>{focus.id}</p>
+                <p className={jtKanban.focusTitle}>{focus.label}</p>
+                <p className={jtKanban.focusBody}>{focus.description}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
                     disabled={!canWrite || acting}
                     onClick={() => setSelectedId(focus.id)}
-                    className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-semibold text-white"
+                    className={uiChip.solid}
                   >
                     Ouvrir la fiche
                   </button>
@@ -177,7 +172,7 @@ export function PilotageKanbanView({
                           column: "a_tester",
                         })
                       }
-                      className="rounded-lg border border-amber-700 px-3 py-1.5 text-sm text-amber-950 dark:text-amber-100"
+                      className={uiChip.ghost}
                     >
                       → À tester
                     </button>
@@ -185,7 +180,7 @@ export function PilotageKanbanView({
                 </div>
               </>
             ) : (
-              <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+              <p className={jtKanban.focusBody}>
                 Rien en cours. Choisis <strong>une</strong> carte dans « À faire »
                 → bouton <strong>En cours</strong>.
               </p>
@@ -196,11 +191,11 @@ export function PilotageKanbanView({
               type="button"
               onClick={onRefresh}
               disabled={loading}
-              className="rounded-lg bg-white/90 px-3 py-1.5 text-sm text-gray-900 dark:bg-gray-900 dark:text-gray-100"
+              className={uiChip.soft}
             >
               {loading ? "…" : "Rafraîchir"}
             </button>
-            <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+            <label className={cn("flex items-center gap-2 text-xs", uiText.subtle)}>
               <input
                 type="checkbox"
                 checked={showQuiet}
@@ -210,7 +205,7 @@ export function PilotageKanbanView({
             </label>
           </div>
         </div>
-        <p className="mt-3 text-xs text-amber-950 dark:text-amber-100">
+        <p className={jtKanban.focusFoot}>
           {board.where} · WIP En cours = 1 · Les autres cartes restent en À faire /
           À tester / À valider — pas « en cours ».
         </p>
@@ -222,39 +217,34 @@ export function PilotageKanbanView({
           return (
             <section
               key={col.id}
-              className={`flex w-72 shrink-0 flex-col rounded-xl border ${col.tone} ${
-                col.overWip ? "ring-2 ring-red-500" : ""
-              }`}
+              data-jt-kanban={col.id}
+              className={cn(jtKanban.col, col.overWip && jtKanban.overWip)}
             >
               <button
                 type="button"
                 onClick={() =>
                   setCollapsed((s) => ({ ...s, [col.id]: !s[col.id] }))
                 }
-                className={`flex items-start justify-between gap-2 px-3 py-2 text-left ${col.headerClass}`}
+                className={jtKanban.header}
               >
                 <div>
-                  <p className={`text-sm font-bold ${col.headerClass}`}>
+                  <p className={jtKanban.title}>
                     {col.short}
-                    <span className="ml-1 font-normal opacity-70">
+                    <span className={jtKanban.count}>
                       ({col.cards.length}
                       {col.wip != null ? `/${col.wip}` : ""})
                     </span>
                   </p>
-                  <p className={`text-[11px] leading-snug opacity-80 ${col.headerClass}`}>
-                    {col.hint}
-                  </p>
+                  <p className={jtKanban.hint}>{col.hint}</p>
                 </div>
-                <span className="opacity-60">{isCollapsed ? "▸" : "▾"}</span>
+                <span className={jtKanban.chevron}>
+                  {isCollapsed ? "▸" : "▾"}
+                </span>
               </button>
               {!isCollapsed ? (
                 <ul className="max-h-[70vh] space-y-2 overflow-y-auto px-2 pb-3">
                   {col.cards.length === 0 ? (
-                    <li
-                      className={`px-2 py-4 text-center text-xs opacity-60 ${col.headerClass}`}
-                    >
-                      Vide
-                    </li>
+                    <li className={jtKanban.empty}>Vide</li>
                   ) : (
                     col.cards.map((card) => {
                       const isBoardTask = !!board.validation.tasks[card.id];
@@ -262,9 +252,10 @@ export function PilotageKanbanView({
                       return (
                         <li
                           key={card.id}
-                          className={`rounded-lg border p-2 shadow-sm ${col.cardClass} ${
-                            selectedId === card.id ? "ring-2 ring-indigo-500" : ""
-                          }`}
+                          className={cn(
+                            jtKanban.card,
+                            selectedId === card.id && "ring-2 ring-indigo-500",
+                          )}
                           style={{ marginLeft: pad }}
                         >
                           <button
@@ -274,16 +265,14 @@ export function PilotageKanbanView({
                               if (isBoardTask) setSelectedId(card.id);
                             }}
                           >
-                            <p className="font-mono text-[10px] opacity-70">
+                            <p className={jtKanban.cardMeta}>
                               {card.kind === "feedback"
                                 ? "retour"
                                 : card.kind === "error"
                                   ? "erreur"
                                   : card.id}
                             </p>
-                            <p className="text-sm font-semibold">
-                              {card.label}
-                            </p>
+                            <p className={jtKanban.cardLabel}>{card.label}</p>
                             {card.kind === "task" || card.kind === "block" ? (
                               <span
                                 className={`mt-1 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${taskStatusClass(card.status)}`}
@@ -298,7 +287,7 @@ export function PilotageKanbanView({
                                 <button
                                   type="button"
                                   disabled={acting}
-                                  className="rounded bg-amber-700 px-1.5 py-0.5 text-[10px] font-bold text-white"
+                                  className={uiChip.primary}
                                   onClick={() =>
                                     run({ type: "focus", itemId: card.id })
                                   }
@@ -313,7 +302,7 @@ export function PilotageKanbanView({
                                     key={t.id}
                                     type="button"
                                     disabled={acting}
-                                    className="rounded bg-black/10 px-1.5 py-0.5 text-[10px] font-medium dark:bg-white/15"
+                                    className={uiChip.muted}
                                     onClick={() =>
                                       run({
                                         type: "setColumn",
@@ -332,7 +321,7 @@ export function PilotageKanbanView({
                               <button
                                 type="button"
                                 disabled={acting}
-                                className="rounded bg-violet-700 px-1.5 py-0.5 text-[10px] font-bold text-white"
+                                className={uiChip.accent}
                                 onClick={() =>
                                   run({
                                     type: "promoteInbox",
@@ -353,7 +342,7 @@ export function PilotageKanbanView({
                               <button
                                 type="button"
                                 disabled={acting}
-                                className="rounded bg-amber-700 px-1.5 py-0.5 text-[10px] font-bold text-white"
+                                className={uiChip.primary}
                                 onClick={() =>
                                   run({
                                     type: "promoteInbox",
@@ -385,7 +374,7 @@ export function PilotageKanbanView({
       </div>
 
       {selected ? (
-        <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 lg:max-w-xl">
+        <div className={cn(uiSurfaces.panel, "lg:max-w-xl")}>
           <PilotageTaskDetail
             task={selected}
             cycle={selectedCycle}

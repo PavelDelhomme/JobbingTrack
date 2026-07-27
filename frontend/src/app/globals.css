@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @import "../styles/semantic-feedback.css";
+@import "../styles/semantic-kanban.css";
 
 @layer base {
   :root {
@@ -221,7 +222,7 @@
       [class*=" bg-orange-50"],
       [class^="bg-orange-100"],
       [class*=" bg-orange-100"]
-    ):not(.jt-status-alert) {
+    ):not(.jt-status-alert):not(.jt-kanban-col):not(.jt-kanban-card):not(.jt-kanban-focus) {
     background-color: rgb(254 243 199);
     color: rgb(146 64 14);
     box-shadow: inset 0 0 0 1px rgb(245 158 11 / 0.7);
@@ -235,7 +236,7 @@
     [class*="bg-yellow-100"],
     [class*="bg-orange-50"],
     [class*="bg-orange-100"]
-  ):not(.jt-status-alert) {
+  ):not(.jt-status-alert):not(.jt-kanban-col):not(.jt-kanban-card):not(.jt-kanban-focus) {
     background-color: rgb(69 26 3 / 0.92) !important;
     color: rgb(254 243 199) !important;
     box-shadow: inset 0 0 0 1px rgb(217 119 6 / 0.8);
@@ -246,7 +247,7 @@
     [class*="bg-sky-100"],
     [class*="bg-blue-50"],
     [class*="bg-blue-100"]
-  ):not(.jt-status-alert) {
+  ):not(.jt-status-alert):not(.jt-kanban-col):not(.jt-kanban-card):not(.jt-kanban-focus) {
     background-color: rgb(12 74 110 / 0.55) !important;
     color: rgb(224 242 254) !important;
     box-shadow: inset 0 0 0 1px rgb(56 189 248 / 0.65);
@@ -257,7 +258,7 @@
     [class*="bg-emerald-100"],
     [class*="bg-green-50"],
     [class*="bg-green-100"]
-  ):not(.jt-status-alert) {
+  ):not(.jt-status-alert):not(.jt-kanban-col):not(.jt-kanban-card):not(.jt-kanban-focus) {
     background-color: rgb(6 78 59 / 0.55) !important;
     color: rgb(209 250 229) !important;
     box-shadow: inset 0 0 0 1px rgb(52 211 153 / 0.7);
@@ -268,7 +269,7 @@
     [class*="bg-red-100"],
     [class*="bg-rose-50"],
     [class*="bg-rose-100"]
-  ):not(.jt-status-alert) {
+  ):not(.jt-status-alert):not(.jt-kanban-col):not(.jt-kanban-card):not(.jt-kanban-focus) {
     background-color: rgb(69 10 10 / 0.85) !important;
     color: rgb(254 226 226) !important;
     box-shadow: inset 0 0 0 1px rgb(248 113 113 / 0.75);
@@ -285,7 +286,7 @@
       [class*=" bg-rose-50"],
       [class^="bg-rose-100"],
       [class*=" bg-rose-100"]
-    ):not(.jt-status-alert) {
+    ):not(.jt-status-alert):not(.jt-kanban-col):not(.jt-kanban-card):not(.jt-kanban-focus) {
     background-color: rgb(254 226 226);
     color: rgb(153 27 27);
     box-shadow: inset 0 0 0 1px rgb(248 113 113 / 0.7);

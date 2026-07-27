@@ -51,11 +51,13 @@
 
 | Test | Attendu | Résultat | Suite |
 |------|---------|----------|-------|
-| Contraste colonnes | `headerClass` / `cardClass` textes lisibles (pas blanc sur pastel) | **Livré** | Re-test UI |
+| Contraste colonnes | `headerClass` / `cardClass` textes lisibles (pas blanc sur pastel) | **Supersédé** | → moteur UI |
 | Promo inbox | `promoteInbox` → carte board À faire / En cours ; dédoublonne sourceRef | **Livré** | |
 | Fichiers UI | Groupes Pilotage + Docs (STATUS/PLAN/BACKLOG/ERRORS/RESOLUTIONS) | **Livré** | |
 | `validation-board.json` | `sensitive` · pas de miroir `public/` · API ADMIN only | **Livré** | |
 | Whitelist | `docsRoot` pilotage\|docs + sandbox `docs/` | **Livré** | |
+| Dark mode Kanban | `jt-kanban-*` + `semantic-kanban.css` (hors filet globals `!important`) | **Livré** 27/07 | Re-test porteur clair+sombre |
+| Surfaces page | `StatusAlert` + `uiSurfaces` / `uiText` sur `/backoffice/pilotage` | **Livré** | |
 
 ### PILOTAGE-UI-04 — Tableau de suivi interactif (22/07)
 

@@ -1,0 +1,302 @@
+/**
+ * Surfaces Kanban sémantiques — contraste clair/sombre centralisé.
+ * Classe `.jt-kanban-col` / `.jt-kanban-card` : hors filet `globals.css` bg-*-100.
+ * Préférer `data-jt-kanban` plutôt que Tailwind pastel dans .backoffice-content.
+ */
+
+.jt-kanban-col {
+  --jt-kanban-bg: rgb(241 245 249);
+  --jt-kanban-fg: rgb(15 23 42);
+  --jt-kanban-fg-muted: rgb(51 65 85);
+  --jt-kanban-border: rgb(148 163 184);
+  --jt-kanban-card-bg: rgb(255 255 255);
+  --jt-kanban-card-fg: rgb(15 23 42);
+  --jt-kanban-card-border: rgb(226 232 240);
+
+  display: flex;
+  flex-direction: column;
+  width: 18rem;
+  flex-shrink: 0;
+  border-radius: 0.75rem;
+  border: 1px solid var(--jt-kanban-border);
+  background-color: var(--jt-kanban-bg);
+  color: var(--jt-kanban-fg);
+}
+
+.jt-kanban-col__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  color: var(--jt-kanban-fg);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  width: 100%;
+}
+
+.jt-kanban-col__title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--jt-kanban-fg);
+}
+
+.jt-kanban-col__count {
+  margin-left: 0.25rem;
+  font-weight: 400;
+  opacity: 0.75;
+}
+
+.jt-kanban-col__hint {
+  margin: 0.125rem 0 0;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--jt-kanban-fg-muted);
+}
+
+.jt-kanban-col__chevron {
+  opacity: 0.6;
+  color: var(--jt-kanban-fg-muted);
+}
+
+.jt-kanban-col__empty {
+  padding: 1rem 0.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--jt-kanban-fg-muted);
+}
+
+.jt-kanban-card {
+  border-radius: 0.5rem;
+  border: 1px solid var(--jt-kanban-card-border);
+  background-color: var(--jt-kanban-card-bg);
+  color: var(--jt-kanban-card-fg);
+  padding: 0.5rem;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+}
+
+.jt-kanban-card__meta {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.625rem;
+  opacity: 0.7;
+  color: var(--jt-kanban-card-fg);
+}
+
+.jt-kanban-card__label {
+  margin: 0.125rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--jt-kanban-card-fg);
+}
+
+.jt-kanban-focus {
+  --jt-kanban-bg: rgb(254 243 199);
+  --jt-kanban-fg: rgb(120 53 15);
+  --jt-kanban-fg-muted: rgb(146 64 14);
+  --jt-kanban-border: rgb(245 158 11);
+
+  border-radius: 0.75rem;
+  border: 2px solid var(--jt-kanban-border);
+  background-color: var(--jt-kanban-bg);
+  color: var(--jt-kanban-fg);
+  padding: 1rem;
+}
+
+.jt-kanban-focus__eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--jt-kanban-fg);
+}
+
+.jt-kanban-focus__id {
+  margin: 0.25rem 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  color: var(--jt-kanban-fg-muted);
+}
+
+.jt-kanban-focus__title {
+  margin: 0.125rem 0 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--jt-kanban-fg);
+}
+
+.jt-kanban-focus__body {
+  margin: 0.25rem 0 0;
+  max-width: 42rem;
+  font-size: 0.875rem;
+  color: var(--jt-kanban-fg-muted);
+}
+
+.jt-kanban-focus__foot {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--jt-kanban-fg-muted);
+}
+
+/* ——— Tons colonnes (clair) ——— */
+.jt-kanban-col[data-jt-kanban="inbox_feedback"] {
+  --jt-kanban-bg: rgb(237 233 254);
+  --jt-kanban-fg: rgb(46 16 101);
+  --jt-kanban-fg-muted: rgb(91 33 182);
+  --jt-kanban-border: rgb(167 139 250);
+  --jt-kanban-card-border: rgb(221 214 254);
+}
+
+.jt-kanban-col[data-jt-kanban="inbox_errors"] {
+  --jt-kanban-bg: rgb(255 228 230);
+  --jt-kanban-fg: rgb(136 19 55);
+  --jt-kanban-fg-muted: rgb(190 18 60);
+  --jt-kanban-border: rgb(251 113 133);
+  --jt-kanban-card-border: rgb(254 205 211);
+}
+
+.jt-kanban-col[data-jt-kanban="backlog"] {
+  --jt-kanban-bg: rgb(226 232 240);
+  --jt-kanban-fg: rgb(15 23 42);
+  --jt-kanban-fg-muted: rgb(51 65 85);
+  --jt-kanban-border: rgb(100 116 139);
+  --jt-kanban-card-border: rgb(203 213 225);
+}
+
+.jt-kanban-col[data-jt-kanban="doing"] {
+  --jt-kanban-bg: rgb(253 230 138);
+  --jt-kanban-fg: rgb(69 26 3);
+  --jt-kanban-fg-muted: rgb(120 53 15);
+  --jt-kanban-border: rgb(245 158 11);
+  --jt-kanban-card-border: rgb(252 211 77);
+}
+
+.jt-kanban-col[data-jt-kanban="a_tester"] {
+  --jt-kanban-bg: rgb(224 242 254);
+  --jt-kanban-fg: rgb(12 74 110);
+  --jt-kanban-fg-muted: rgb(3 105 161);
+  --jt-kanban-border: rgb(56 189 248);
+  --jt-kanban-card-border: rgb(186 230 253);
+}
+
+.jt-kanban-col[data-jt-kanban="a_valider"] {
+  --jt-kanban-bg: rgb(224 231 255);
+  --jt-kanban-fg: rgb(49 46 129);
+  --jt-kanban-fg-muted: rgb(67 56 202);
+  --jt-kanban-border: rgb(129 140 248);
+  --jt-kanban-card-border: rgb(199 210 254);
+}
+
+.jt-kanban-col[data-jt-kanban="rework"] {
+  --jt-kanban-bg: rgb(254 226 226);
+  --jt-kanban-fg: rgb(127 29 29);
+  --jt-kanban-fg-muted: rgb(185 28 28);
+  --jt-kanban-border: rgb(248 113 113);
+  --jt-kanban-card-border: rgb(254 202 202);
+}
+
+.jt-kanban-col[data-jt-kanban="later"] {
+  --jt-kanban-bg: rgb(228 228 231);
+  --jt-kanban-fg: rgb(24 24 27);
+  --jt-kanban-fg-muted: rgb(63 63 70);
+  --jt-kanban-border: rgb(113 113 122);
+  --jt-kanban-card-border: rgb(212 212 216);
+}
+
+.jt-kanban-col[data-jt-kanban="done"] {
+  --jt-kanban-bg: rgb(209 250 229);
+  --jt-kanban-fg: rgb(6 78 59);
+  --jt-kanban-fg-muted: rgb(4 120 87);
+  --jt-kanban-border: rgb(52 211 153);
+  --jt-kanban-card-border: rgb(167 243 208);
+}
+
+.jt-kanban-col.is-over-wip {
+  box-shadow: 0 0 0 2px rgb(239 68 68);
+}
+
+/* ——— Mode sombre ——— */
+html.dark .jt-kanban-col {
+  --jt-kanban-card-bg: rgb(17 24 39);
+  --jt-kanban-card-fg: rgb(243 244 246);
+  --jt-kanban-card-border: rgb(55 65 81);
+}
+
+html.dark .jt-kanban-col[data-jt-kanban="inbox_feedback"] {
+  --jt-kanban-bg: rgb(46 16 101 / 0.55);
+  --jt-kanban-fg: rgb(237 233 254);
+  --jt-kanban-fg-muted: rgb(196 181 253);
+  --jt-kanban-border: rgb(139 92 246);
+}
+
+html.dark .jt-kanban-col[data-jt-kanban="inbox_errors"] {
+  --jt-kanban-bg: rgb(136 19 55 / 0.55);
+  --jt-kanban-fg: rgb(255 228 230);
+  --jt-kanban-fg-muted: rgb(254 205 211);
+  --jt-kanban-border: rgb(244 63 94);
+}
+
+html.dark .jt-kanban-col[data-jt-kanban="backlog"] {
+  --jt-kanban-bg: rgb(30 41 59);
+  --jt-kanban-fg: rgb(241 245 249);
+  --jt-kanban-fg-muted: rgb(203 213 225);
+  --jt-kanban-border: rgb(100 116 139);
+}
+
+html.dark .jt-kanban-col[data-jt-kanban="doing"] {
+  --jt-kanban-bg: rgb(69 26 3 / 0.92);
+  --jt-kanban-fg: rgb(254 243 199);
+  --jt-kanban-fg-muted: rgb(253 230 138);
+  --jt-kanban-border: rgb(245 158 11);
+}
+
+html.dark .jt-kanban-col[data-jt-kanban="a_tester"] {
+  --jt-kanban-bg: rgb(12 74 110 / 0.55);
+  --jt-kanban-fg: rgb(224 242 254);
+  --jt-kanban-fg-muted: rgb(186 230 253);
+  --jt-kanban-border: rgb(56 189 248);
+}
+
+html.dark .jt-kanban-col[data-jt-kanban="a_valider"] {
+  --jt-kanban-bg: rgb(49 46 129 / 0.55);
+  --jt-kanban-fg: rgb(224 231 255);
+  --jt-kanban-fg-muted: rgb(199 210 254);
+  --jt-kanban-border: rgb(129 140 248);
+}
+
+html.dark .jt-kanban-col[data-jt-kanban="rework"] {
+  --jt-kanban-bg: rgb(69 10 10 / 0.85);
+  --jt-kanban-fg: rgb(254 226 226);
+  --jt-kanban-fg-muted: rgb(254 202 202);
+  --jt-kanban-border: rgb(248 113 113);
+}
+
+html.dark .jt-kanban-col[data-jt-kanban="later"] {
+  --jt-kanban-bg: rgb(39 39 42);
+  --jt-kanban-fg: rgb(244 244 245);
+  --jt-kanban-fg-muted: rgb(212 212 216);
+  --jt-kanban-border: rgb(113 113 122);
+}
+
+html.dark .jt-kanban-col[data-jt-kanban="done"] {
+  --jt-kanban-bg: rgb(6 78 59 / 0.55);
+  --jt-kanban-fg: rgb(209 250 229);
+  --jt-kanban-fg-muted: rgb(167 243 208);
+  --jt-kanban-border: rgb(52 211 153);
+}
+
+html.dark .jt-kanban-focus {
+  --jt-kanban-bg: rgb(69 26 3 / 0.92);
+  --jt-kanban-fg: rgb(254 243 199);
+  --jt-kanban-fg-muted: rgb(253 230 138);
+  --jt-kanban-border: rgb(217 119 6);
+}
+
+html.high-contrast .jt-kanban-col,
+html.high-contrast .jt-kanban-focus {
+  border-width: 2px;
+}

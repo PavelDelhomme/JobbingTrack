@@ -10,6 +10,9 @@ import { useAuth } from "@/lib/hooks/auth";
 import suivi from "@/lib/pilotage/suiviActif.json";
 import { PILOTAGE_FILES, displayDocsPath } from "@/lib/pilotage/allowedFiles";
 import type { PilotageBoard } from "@/lib/pilotage/board";
+import { uiSurfaces, uiText } from "@/lib/ui/surfaces";
+import { StatusAlert } from "@/lib/ui/feedback/StatusAlert";
+import { cn } from "@/lib/utils";
 
 type QueueItem = { id: string; status: string; label: string };
 type FixItem = { id: string; label: string; status: string };
@@ -260,10 +263,10 @@ export default function PilotagePage() {
             <span aria-hidden>←</span>
             Retour vue d&apos;ensemble
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className={uiText.heading}>
             Pilotage — suivi des tâches
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className={cn("text-sm", uiText.subtle)}>
             Validation porteur en{" "}
             <strong>HTTPS</strong> :{" "}
             <a
@@ -293,11 +296,7 @@ export default function PilotagePage() {
               key={id}
               type="button"
               onClick={() => setTab(id)}
-              className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                tab === id
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
-              }`}
+              className={tab === id ? uiSurfaces.tabActive : uiSurfaces.tabIdle}
             >
               {label}
             </button>
@@ -305,25 +304,25 @@ export default function PilotagePage() {
         </div>
 
         {err && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+          <StatusAlert tone="critical" title="Erreur">
             {err}
-          </div>
+          </StatusAlert>
         )}
         {msg && (
-          <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/40 dark:text-green-200">
+          <StatusAlert tone="success" title="OK">
             {msg}
-          </div>
+          </StatusAlert>
         )}
 
         {tab === "kanban" && (
           <div className="space-y-3">
             {!interactive && (
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                Lecture seule : environnement production.
-              </p>
+              <StatusAlert tone="warning" title="Lecture seule">
+                Environnement production — actions désactivées.
+              </StatusAlert>
             )}
             {loadingBoard && !board ? (
-              <p className="text-sm text-gray-500">Chargement…</p>
+              <p className={cn("text-sm", uiText.subtle)}>Chargement…</p>
             ) : board ? (
               <PilotageKanbanView
                 board={board}
@@ -334,7 +333,7 @@ export default function PilotagePage() {
                 onAction={runBoardAction}
               />
             ) : (
-              <p className="text-sm text-gray-500">Kanban indisponible.</p>
+              <p className={cn("text-sm", uiText.subtle)}>Kanban indisponible.</p>
             )}
           </div>
         )}
@@ -342,18 +341,18 @@ export default function PilotagePage() {
         {tab === "board" && (
           <div className="space-y-3">
             {!interactive && (
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                Lecture seule : environnement production. Actions réservées à
-                dev / préprod / staging.
-              </p>
+              <StatusAlert tone="warning" title="Lecture seule">
+                Environnement production. Actions réservées à dev / préprod /
+                staging.
+              </StatusAlert>
             )}
             {interactive && !canWriteBoard && (
-              <p className="text-sm text-amber-800 dark:text-amber-200">
+              <StatusAlert tone="warning" title="Droits limités">
                 Compte ADMIN : lecture. SUPER_ADMIN pour valider.
-              </p>
+              </StatusAlert>
             )}
             {loadingBoard && !board ? (
-              <p className="text-sm text-gray-500">Chargement…</p>
+              <p className={cn("text-sm", uiText.subtle)}>Chargement…</p>
             ) : board ? (
               <PilotageBoardView
                 board={board}
@@ -363,36 +362,26 @@ export default function PilotagePage() {
                 onAction={runBoardAction}
               />
             ) : (
-              <p className="text-sm text-gray-500">Tableau indisponible.</p>
+              <p className={cn("text-sm", uiText.subtle)}>Tableau indisponible.</p>
             )}
           </div>
         )}
 
         {tab === "overview" && (
           <div className="space-y-8">
-            <section className="rounded-xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900/50 dark:bg-amber-950/30">
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-200">
-                Snapshot bundlé
-              </p>
-              <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100">
-                Phase {suivi.phase.id} · {suivi.phase.step} ·{" "}
-                {suivi.phase.subStep} · {active?.id ?? suivi.phase.point}
-              </p>
-              <p className="mt-1 text-gray-700 dark:text-gray-300">
-                {active?.label ?? suivi.phase.title}
-              </p>
-              <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                APK {suivi.apk} · mis à jour {suivi.updatedAt}
-              </p>
-            </section>
+            <StatusAlert
+              tone="warning"
+              title={`Phase ${suivi.phase.id} · ${suivi.phase.step} · ${suivi.phase.subStep} · ${active?.id ?? suivi.phase.point}`}
+              footer={`APK ${suivi.apk} · mis à jour ${suivi.updatedAt}`}
+            >
+              {active?.label ?? suivi.phase.title}
+            </StatusAlert>
 
             <section className="space-y-3">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Process
-              </h2>
-              <ol className="list-decimal space-y-1 pl-5 text-sm text-gray-700 dark:text-gray-300">
+              <h2 className={uiText.subheading}>Process</h2>
+              <ol className={cn("list-decimal space-y-1 pl-5 text-sm", uiText.muted)}>
                 <li>
-                  Valider dans l&apos;onglet <strong>Tableau de suivi</strong>{" "}
+                  Valider dans l&apos;onglet <strong>Kanban / Liste</strong>{" "}
                   (fiche détail + checklist).
                 </li>
                 <li>
@@ -407,34 +396,33 @@ export default function PilotagePage() {
               <button
                 type="button"
                 onClick={() => setTab("board")}
-                className="text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+                className={uiText.linkAccent}
               >
                 Ouvrir le tableau de suivi →
               </button>
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                File B2
-              </h2>
-              <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200 dark:divide-gray-700 dark:border-gray-700">
+              <h2 className={uiText.subheading}>File B2</h2>
+              <ul className={cn(uiSurfaces.tableWrap, "divide-y divide-gray-200 dark:divide-gray-700")}>
                 {queue.map((item) => (
                   <li
                     key={item.id}
-                    className={`flex items-center justify-between px-4 py-3 text-sm ${
+                    className={cn(
+                      "flex items-center justify-between px-4 py-3 text-sm",
                       item.status === "active"
-                        ? "bg-amber-50 dark:bg-amber-950/40"
-                        : "bg-white dark:bg-gray-900"
-                    }`}
+                        ? "bg-amber-950/10 dark:bg-amber-950/40"
+                        : "bg-white dark:bg-gray-900",
+                    )}
                   >
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                    <span className={cn("font-medium", uiText.body)}>
                       {item.id} — {item.label}
                     </span>
                     <span
                       className={
                         item.status === "active"
-                          ? "rounded-full bg-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:bg-amber-800 dark:text-amber-100"
-                          : "text-xs text-gray-500"
+                          ? "rounded-full bg-amber-700 px-2 py-0.5 text-xs font-semibold text-white"
+                          : cn("text-xs", uiText.subtle)
                       }
                     >
                       {item.status === "active" ? "▶ en cours" : "en attente"}
@@ -445,36 +433,30 @@ export default function PilotagePage() {
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Récemment terminé
-              </h2>
-              <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700 dark:text-gray-300">
+              <h2 className={uiText.subheading}>Récemment terminé</h2>
+              <ul className={cn("list-disc space-y-1 pl-5 text-sm", uiText.muted)}>
                 {recent.map((r) => (
                   <li key={r.id}>
-                    <span className="font-mono text-xs">{r.id}</span> —{" "}
-                    {r.label}
+                    <span className={uiText.mono}>{r.id}</span> — {r.label}
                   </li>
                 ))}
               </ul>
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <h2 className={uiText.subheading}>
                 Correctifs / diagnostics ouverts
               </h2>
-              <ul className="divide-y divide-gray-200 rounded-lg border border-gray-200 dark:divide-gray-700 dark:border-gray-700">
+              <ul className={cn(uiSurfaces.tableWrap, "divide-y divide-gray-200 dark:divide-gray-700")}>
                 {fixes.map((f) => (
                   <li
                     key={f.id}
                     className="flex items-center justify-between bg-white px-4 py-3 text-sm dark:bg-gray-900"
                   >
                     <span>
-                      <span className="font-mono text-xs text-gray-500">
-                        {f.id}
-                      </span>{" "}
-                      {f.label}
+                      <span className={uiText.mono}>{f.id}</span> {f.label}
                     </span>
-                    <span className="text-xs text-gray-500">{f.status}</span>
+                    <span className={cn("text-xs", uiText.subtle)}>{f.status}</span>
                   </li>
                 ))}
               </ul>
@@ -486,7 +468,7 @@ export default function PilotagePage() {
           <div className="space-y-4">
             {FILE_GROUPS.map((group) => (
               <div key={group.title} className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                <p className={cn("text-xs font-semibold uppercase tracking-wide", uiText.subtle)}>
                   {group.title}
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -498,11 +480,11 @@ export default function PilotagePage() {
                         key={f.id}
                         type="button"
                         onClick={() => setFileId(f.id)}
-                        className={`rounded-lg border px-3 py-1.5 text-left text-xs sm:text-sm ${
+                        className={
                           fileId === f.id
-                            ? "border-indigo-500 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-100"
-                            : "border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                        }`}
+                            ? uiSurfaces.chipActive
+                            : uiSurfaces.chipIdle
+                        }
                         title={f.description}
                       >
                         {f.label}
@@ -519,7 +501,7 @@ export default function PilotagePage() {
             ))}
 
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className={cn("text-sm", uiText.subtle)}>
                 {fileData ? (
                   <>
                     <code className="text-xs">{fileData.path}</code>
@@ -548,7 +530,7 @@ export default function PilotagePage() {
                   type="button"
                   onClick={() => loadFile(fileId)}
                   disabled={loadingFile}
-                  className="rounded-lg bg-gray-200 px-3 py-1.5 text-sm dark:bg-gray-800"
+                  className={uiSurfaces.btnSecondary}
                 >
                   Recharger
                 </button>
@@ -563,7 +545,7 @@ export default function PilotagePage() {
                     loadingFile ||
                     draft === fileData?.content
                   }
-                  className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
+                  className={uiSurfaces.btnPrimary}
                 >
                   {saving ? "Enregistrement…" : "Enregistrer"}
                 </button>
@@ -571,18 +553,18 @@ export default function PilotagePage() {
             </div>
 
             {!canWriteRole && (
-              <p className="text-xs text-amber-700 dark:text-amber-300">
-                Compte ADMIN : lecture seule. Passez SUPER_ADMIN pour éditer.
-              </p>
+              <StatusAlert tone="warning" title="Lecture seule">
+                Compte ADMIN : passez SUPER_ADMIN pour éditer.
+              </StatusAlert>
             )}
             {canWriteRole && !interactive && (
-              <p className="text-xs text-amber-700 dark:text-amber-300">
-                Écriture fichiers désactivée hors dev/préprod ({runtimeEnv}).
-              </p>
+              <StatusAlert tone="warning" title="Écriture désactivée">
+                Hors dev/préprod ({runtimeEnv}).
+              </StatusAlert>
             )}
 
             {loadingFile ? (
-              <p className="text-sm text-gray-500">Chargement…</p>
+              <p className={cn("text-sm", uiText.subtle)}>Chargement…</p>
             ) : (
               <textarea
                 value={draft}
@@ -591,7 +573,7 @@ export default function PilotagePage() {
                   !canWriteRole || !interactive || !fileData?.writable
                 }
                 spellCheck={false}
-                className="h-[min(70vh,720px)] w-full resize-y rounded-xl border border-gray-300 bg-white p-4 font-mono text-xs leading-relaxed text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                className={uiSurfaces.input}
               />
             )}
           </div>

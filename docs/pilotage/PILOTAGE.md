@@ -60,3 +60,5 @@ Décisions UI (OK/KO/PARTIEL/Plus tard/REWORK) + **déplacement de colonne** →
 
 Lire ce fichier → **focus** Kanban / Point exact → `TODOS_A_TESTER`.  
 Une tâche à la fois.
+
+UI Kanban : classes sémantiques `@/lib/ui` (`jtKanban`) — pas de pastels Tailwind dans le board.
