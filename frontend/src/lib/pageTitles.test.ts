@@ -62,6 +62,9 @@ describe("pageTitles", () => {
     expect(resolvePageTitle("/backoffice/security/network")).toBe(
       "Sécurité / Réseau",
     );
+    expect(resolvePageTitle("/backoffice/pilotage")).toBe(
+      "Pilotage / Suivi des tâches",
+    );
   });
 
   it("résout les routes dynamiques backoffice", () => {

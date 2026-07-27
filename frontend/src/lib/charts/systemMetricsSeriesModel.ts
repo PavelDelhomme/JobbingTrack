@@ -9,6 +9,47 @@ export type SystemPercentSeriesRow = {
   memory: number | null;
 };
 
+/** Plafond raisonnable pour un % hôte (évite Mo/octets stockés par erreur comme %). */
+export const SYSTEM_PERCENT_HARD_MAX = 100;
+
+/**
+ * Convertit une valeur candidate en % affichable, ou `null` si absurde
+ * (ex. usage mémoire en Mo/octets écrit dans `*UsagePercent`).
+ */
+export function sanitizeSystemPercent(
+  value: unknown,
+  opts?: { hardMax?: number },
+): number | null {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n) || n < 0) return null;
+  const hardMax = opts?.hardMax ?? SYSTEM_PERCENT_HARD_MAX;
+  if (n > hardMax) return null;
+  return n;
+}
+
+/**
+ * % mémoire depuis octets si le champ percent est absent ou absurde.
+ */
+export function resolveMemoryUsagePercent(input: {
+  percent?: unknown;
+  usedBytes?: unknown;
+  totalBytes?: unknown;
+}): number | null {
+  const fromField = sanitizeSystemPercent(input.percent);
+  if (fromField != null) return fromField;
+  const used = Number(input.usedBytes);
+  const total = Number(input.totalBytes);
+  if (
+    Number.isFinite(used) &&
+    Number.isFinite(total) &&
+    total > 0 &&
+    used >= 0
+  ) {
+    return sanitizeSystemPercent((used / total) * 100);
+  }
+  return null;
+}
+
 export function systemCpuAxisMax(rows: SystemPercentSeriesRow[]): number {
   if (!rows.length) return 1;
   const m = Math.max(
@@ -17,7 +58,7 @@ export function systemCpuAxisMax(rows: SystemPercentSeriesRow[]): number {
       typeof r.cpu === "number" && !Number.isNaN(r.cpu) ? r.cpu : 0,
     ),
   );
-  return Math.min(100, m * 1.2 + 0.05);
+  return Math.min(SYSTEM_PERCENT_HARD_MAX, m * 1.2 + 0.05);
 }
 
 export function systemMemoryAxisMax(rows: SystemPercentSeriesRow[]): number {
@@ -28,14 +69,20 @@ export function systemMemoryAxisMax(rows: SystemPercentSeriesRow[]): number {
       typeof r.memory === "number" && !Number.isNaN(r.memory) ? r.memory : 0,
     ),
   );
-  return Math.min(100, m * 1.15 + 0.5);
+  return Math.min(SYSTEM_PERCENT_HARD_MAX, m * 1.15 + 0.5);
 }
 
-/** Lignes utilisables par Recharts (timeMs fini). */
+/** Lignes utilisables par Recharts (timeMs fini + % sanitisés). */
 export function filterSystemPercentRows(
   rows: SystemPercentSeriesRow[],
 ): SystemPercentSeriesRow[] {
-  return rows.filter((r) => Number.isFinite(r.timeMs));
+  return rows
+    .filter((r) => Number.isFinite(r.timeMs))
+    .map((r) => ({
+      ...r,
+      cpu: sanitizeSystemPercent(r.cpu),
+      memory: sanitizeSystemPercent(r.memory),
+    }));
 }
 
 /** Série réseau telle qu’affichée sur la page Performances (Mo cumulés côté API / agrégateur). */

@@ -15,6 +15,8 @@ export {
   type CustomizationSettings,
 } from "./preferences/customization";
 export { uiSurfaces, uiText, uiEmpty } from "./surfaces";
+export { jtKanban, uiChip } from "./kanban";
+export type { KanbanSurfaceTone } from "./kanban";
 export {
   dashboardLayoutRegistry,
   resolveDashboardLayout,

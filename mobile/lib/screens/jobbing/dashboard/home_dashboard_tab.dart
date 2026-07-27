@@ -43,14 +43,15 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
   Future<void> _loadData() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final token = auth.token;
+    final userId = auth.user?.id;
     final appProvider = Provider.of<ApplicationProvider>(context, listen: false);
     final interviewProvider = Provider.of<InterviewProvider>(context, listen: false);
     final followUpProvider = Provider.of<FollowUpProvider>(context, listen: false);
     final notifProvider = Provider.of<NotificationProvider>(context, listen: false);
     await Future.wait([
-      appProvider.loadApplications(token: token),
-      interviewProvider.loadInterviews(token: token),
-      followUpProvider.loadFollowUps(token: token),
+      appProvider.loadApplications(token: token, userId: userId),
+      interviewProvider.loadInterviews(token: token, userId: userId),
+      followUpProvider.loadFollowUps(token: token, userId: userId),
       notifProvider.loadNotifications(token: token, auth: auth).catchError((_) {}),
     ]);
   }

@@ -58,4 +58,19 @@ class Call {
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'].toString()) : DateTime.now(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'applicationId': applicationId,
+        if (contactId != null) 'contactId': contactId,
+        if (companyId != null) 'companyId': companyId,
+        'callDate': callDate.toIso8601String(),
+        'subject': subject,
+        if (notes != null) 'notes': notes,
+        if (status != null) 'status': status,
+        if (contactFirstName != null) 'contactFirstName': contactFirstName,
+        if (contactLastName != null) 'contactLastName': contactLastName,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt.toIso8601String(),
+      };
 }

@@ -413,11 +413,28 @@ const getContactsByCompany = async (req, res, next) => {
         userId: req.user.id,
         deletedAt: null,
         isArchived: false,
-        companies: {
-          some: {
-            companyId: companyId
+        OR: [
+          {
+            companies: {
+              some: {
+                companyId: companyId
+              }
+            }
+          },
+          // Fallback : contact lié à une candidature de cette entreprise
+          // (après backfill ownership, ContactCompany peut encore pointer ailleurs).
+          {
+            applications: {
+              some: {
+                application: {
+                  companyId: companyId,
+                  userId: req.user.id,
+                  deletedAt: null
+                }
+              }
+            }
           }
-        }
+        ]
       },
       include: {
         companies: {
@@ -431,7 +448,22 @@ const getContactsByCompany = async (req, res, next) => {
         where: { companyId },
         select: { contactId: true }
       });
-      const contactIds = links.map((l) => l.contactId);
+      let contactIds = links.map((l) => l.contactId);
+      try {
+        const viaApps = await prisma.contactApplication.findMany({
+          where: {
+            application: {
+              companyId,
+              userId: req.user.id,
+              deletedAt: null
+            }
+          },
+          select: { contactId: true }
+        });
+        contactIds = [...new Set([...contactIds, ...viaApps.map((l) => l.contactId)])];
+      } catch (appLinkErr) {
+        logger.warn('Fallback ContactApplication indisponible:', appLinkErr.message);
+      }
       if (contactIds.length === 0) return [];
       return prisma.contact.findMany({
         where: {

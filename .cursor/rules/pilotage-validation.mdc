@@ -5,15 +5,17 @@ alwaysApply: true
 
 # Pilotage Et Validation Porteur
 
-Avant toute action sur ce projet, lire `docs/pilotage/PILOTAGE.md`, puis vérifier `docs/pilotage/TODOS_A_VALIDER.md` et `docs/pilotage/TODOS_A_VERIFIER.md`.
+Avant toute action : lire `docs/pilotage/PILOTAGE.md`, puis la section **En cours** de `docs/pilotage/TODOS.md`.
 
-Si `docs/pilotage/TODOS_A_VALIDER.md` contient une validation porteur bloquante ouverte, ne pas démarrer une nouvelle feature. Traiter uniquement la première ligne ouverte. Exceptions : corriger le problème remonté sur cette ligne, préparer une preuve nécessaire à cette validation précise, ou mettre à jour les fichiers de pilotage. Ne pas lancer les validations suivantes en parallèle.
+Process :
 
-Après chaque travail :
+1. `TODOS.md` — travail ouvert
+2. `TODOS_A_TESTER.md` — noter tests / résultats
+3. OK → `TODOS_DONE.md` ; KO → remettre dans `TODOS.md`
+4. `TODOS_A_VALIDER.md` — uniquement validations porteur de la **phase active** (ne pas y mettre le mode d’emploi)
 
-- mettre à jour `docs/pilotage/TODOS_A_VERIFIER.md` avec les preuves techniques agent ;
-- ajouter une ligne dans `docs/pilotage/TODOS_A_VALIDER.md` si le porteur doit vérifier le rendu/comportement ;
-- déplacer vers `docs/pilotage/TODOS_DONE.md` uniquement après validation explicite du porteur ;
-- utiliser `docs/production/A_VALIDER_AVANT_PRODUCTION.md`, `docs/production/DEPLOIEMENT_PRODUCTION.md` et `docs/production/VALIDATION_PRODUCTION.md` seulement pour préprod/prod.
+Ne pas démarrer une nouvelle feature hors item ouvert sauf demande explicite du porteur.
 
-`docs/pilotage/TODOS.md` reste le backlog technique ; il ne vaut pas validation produit. Les stubs `docs/TODOS.md` (racine) redirigent vers ce fichier.
+Mettre à jour `suivi-actif.json` (+ copie `frontend/src/lib/pilotage/suiviActif.json`) quand le point actif change.
+
+Préprod/prod : `docs/production/A_VALIDER_AVANT_PRODUCTION.md`, etc.

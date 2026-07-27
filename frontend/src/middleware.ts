@@ -36,7 +36,46 @@ function normalizeBackofficePath(pathname: string): string {
   return path;
 }
 
+/** URL canonique HTTPS dev (proxy 5443). */
+function canonicalHttpsOrigin(): string {
+  return (
+    process.env.DEV_HTTPS_FRONTEND_URL ||
+    process.env.NEXT_PUBLIC_FRONTEND_URL ||
+    process.env.FRONTEND_PUBLIC_URL ||
+    "https://jobbingtrack.localhost:5443"
+  ).replace(/\/$/, "");
+}
+
+/**
+ * Interdit l’usage navigateur en clair sur :5003 / :5002.
+ * ERR_SSL_PROTOCOL_ERROR = souvent `https://localhost:5003` (TLS sur un port HTTP).
+ */
+function redirectPlainHttpDevPorts(request: NextRequest): NextResponse | null {
+  const host = (request.headers.get("host") || "").toLowerCase();
+  const xfProto = (
+    request.headers.get("x-forwarded-proto") || ""
+  ).toLowerCase();
+
+  const isDevHttpPort =
+    /^(localhost|127\.0\.0\.1):(5003|5002)$/.test(host) ||
+    /^\[::1\]:(5003|5002)$/.test(host);
+
+  // Accès direct Next/gateway sans proxy TLS
+  if (isDevHttpPort && xfProto !== "https") {
+    const target = new URL(
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+      canonicalHttpsOrigin(),
+    );
+    return NextResponse.redirect(target, 308);
+  }
+
+  return null;
+}
+
 export function middleware(request: NextRequest) {
+  const httpsRedirect = redirectPlainHttpDevPorts(request);
+  if (httpsRedirect) return httpsRedirect;
+
   const { pathname } = request.nextUrl;
 
   // Ancien alias → chemin canonique /backoffice (auth identique).
@@ -80,5 +119,12 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/backoffice/:path*", "/b4ck0ff1ce/:path*"],
+  // Inclure la racine et pages publiques pour forcer la redirection HTTPS.
+  matcher: [
+    "/",
+    "/login",
+    "/backoffice/:path*",
+    "/b4ck0ff1ce/:path*",
+    "/((?!_next/static|_next/image|favicon.ico|health|api/).*)",
+  ],
 };

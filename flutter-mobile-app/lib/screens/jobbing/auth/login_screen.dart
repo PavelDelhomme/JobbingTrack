@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:jobbingtrack_flutter/screens/jobbing/dashboard/home_screen.dart';
+import 'package:jobbingtrack_flutter/core/navigation/app_routes.dart';
+import 'package:jobbingtrack_flutter/core/theme/app_colors.dart';
+import 'package:jobbingtrack_flutter/core/theme/app_spacing.dart';
+import 'package:jobbingtrack_flutter/core/widgets/widgets.dart';
+import 'package:jobbingtrack_flutter/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -9,15 +14,10 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _passwordController.text = 'password123';
-  }
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscure = true;
+  bool _busy = false;
 
   @override
   void dispose() {
@@ -26,228 +26,133 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
-    if (_emailController.text.isEmpty) {
-      _showSnackBar('Veuillez saisir votre email');
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      AppSnackbar.show(context, 'Veuillez saisir votre email');
+      return;
+    }
+    if (_passwordController.text.isEmpty) {
+      AppSnackbar.show(context, 'Veuillez saisir votre mot de passe');
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Simulation de connexion
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        _showSnackBar('Connexion réussie !');
-        // Navigation vers l'écran d'accueil
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      }
-    });
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: message.contains('réussie') ? Colors.green : Colors.red,
-      ),
-    );
+    setState(() => _busy = true);
+    try {
+      await context.read<AuthProvider>().login(email, _passwordController.text);
+      if (!mounted) return;
+      AppSnackbar.show(context, 'Connexion réussie !', success: true);
+      Navigator.of(context).pushReplacementNamed(AppRoutes.shell);
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.show(context, e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
       body: SafeArea(
         child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 60),
-
-                // Logo
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.blue[600],
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.track_changes,
-                    color: Colors.white,
-                    size: 40,
-                  ),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+          child: Column(
+            children: [
+              const SizedBox(height: 60),
+              Container(
+                width: 80,
+                height: 80,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
                 ),
-
-                const SizedBox(height: 24),
-
-                // Titre
-                Text(
-                  'JobbingTrack',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue[800],
-                  ),
+                child: const Icon(
+                  Icons.track_changes,
+                  color: Colors.white,
+                  size: 40,
                 ),
-
-                const SizedBox(height: 8),
-
-                Text(
-                  'Suivez vos candidatures facilement',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              const Text(
+                'JobbingTrack',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryDark,
                 ),
-
-                const SizedBox(height: 48),
-
-                // Formulaire de connexion
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      // Champ email
-                      TextField(
-                        controller: _emailController,
-                        decoration: InputDecoration(
-                          labelText: 'Email',
-                          hintText: 'redacted@example.invalid',
-                          prefixIcon: const Icon(Icons.email),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Champ mot de passe
-                      TextField(
-                        controller: _passwordController,
-                        decoration: InputDecoration(
-                          labelText: 'Mot de passe',
-                          hintText: '••••••••',
-                          prefixIcon: const Icon(Icons.lock),
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.visibility_off),
-                            onPressed: () {},
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                        ),
-                        obscureText: true,
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => _login(),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Bouton de connexion
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _login,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[600],
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text(
-                                  'Se connecter',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ],
-                  ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              const Text(
+                'Suivez vos candidatures facilement',
+                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 48),
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.xxl),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-
-                const SizedBox(height: 32),
-
-                // Comptes de test
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Comptes de test :',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
+                child: Column(
+                  children: [
+                    AppTextField(
+                      controller: _emailController,
+                      label: 'Email',
+                      hint: 'vous@exemple.com',
+                      prefixIcon: Icons.email,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    AppTextField(
+                      controller: _passwordController,
+                      label: 'Mot de passe',
+                      hint: '••••••••',
+                      prefixIcon: Icons.lock,
+                      obscureText: _obscure,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _login(),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscure ? Icons.visibility_off : Icons.visibility,
                         ),
+                        onPressed: () => setState(() => _obscure = !_obscure),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'user1@jobbingtrack.test • user2@jobbingtrack.test • user3@jobbingtrack.test',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Mot de passe : password123',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    AppPrimaryButton(
+                      label: 'Se connecter',
+                      loading: _busy,
+                      onPressed: _login,
+                    ),
+                  ],
                 ),
-
-                const SizedBox(height: 40),
-              ],
-            ),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: AppColors.border.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                ),
+                child: const Text(
+                  'Astuce : utilisez un compte existant de l’API locale '
+                  '(gateway :5002) une fois le proto branché en réel.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
           ),
         ),
       ),

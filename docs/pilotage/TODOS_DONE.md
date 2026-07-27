@@ -1,15 +1,21 @@
 # TODOs validés par le porteur
 
-Dernière mise à jour : 7 juillet 2026
+Dernière mise à jour : 22 juillet 2026
 
 ## Rôle
 
-Ce fichier archive ce que le porteur a réellement validé. Les validations techniques automatiques restent dans `docs/STATUS.md`; les tâches techniques terminées restent dans `docs/TODOS.md` ou l’historique Git.
+Ce fichier archive ce que le porteur a réellement validé. Les validations techniques automatiques restent dans `docs/STATUS.md` ; le backlog technique dans `docs/pilotage/TODOS.md`.
 
 ## Validé localement
 
 | Date | Élément validé | Environnement | Preuve / remarque |
 |------|----------------|---------------|-------------------|
+| 22/07/2026 | Process pilotage refondu (TODOS → A_TESTER → DONE) + UI `/backoffice/pilotage` | docs + local | Livré agent ; porteur suit B2-D.6 |
+| 22/07/2026 | Popup crashs mobile/logs — fermeture backdrop/Escape | local | Fix `AnalyticsRecordDetailDialog` — re-test porteur |
+| 22/07/2026 | Mobile B2 — **B.3** USER drawer sans Administration | Samsung + APK 1.0.31 | OK porteur explicite |
+| 22/07/2026 | Mobile B2 — **B.4** ADMIN impersonnaliser → Désimpersonnaliser → hub | Samsung | OK porteur explicite |
+| 22/07/2026 | Mobile B2 — **C.5** Candidatures → Relances (liste sans crash) | Samsung | OK porteur ; crash setState pendant build corrigé agent (APK 1.0.31) |
+| 22/07/2026 | P1C — Mode sombre / Popup paramètres / couleurs conteneurs distinctes | backoffice local | OK porteur partiel ; reste moteur couleurs stables, tooltips, budget mémoire 101 Go, downsampling |
 | 07/07/2026 | Baseline plateforme **JT-1.0.0** (Phase C — C6) | local + manifeste `dev` | **OK baseline JT-1.0.0 avec réserve** — re-vérifier avant prod complète (VPS, OTA prod, gate). Mobile build **+12** ; drawer legacy `1.0.0` + Build 12 → rebuild APK pour affichage `1.0.12`. |
 | 27/06/2026 | Backoffice — temps de réponse hub + panneau P1B (fix light=1) | local après rebuild + up-full | Validation porteur : temps de réponse affichés ms où il faut. Correctif `03ffcddb` — sondes HTTP conservées en mode `light=1` ; signaux sécurité alignés Analyse 30 j. |
 | 25/06/2026 | Mobile — étape 1 inscription + télémétrie + vérif email (ligne 319) | Samsung R5CT7263YJL + stack locale | **OK Mobile — Inscription + télémétrie obligatoire + vérif email**. Smoke agent `smoke-etape1-inscription-adb.js` A→E ; porteur : mail reçu + page « Email vérifié » OK. Fix validateur alias `+`. |
@@ -61,4 +67,4 @@ Quand une ligne est déplacée depuis `TODOS_A_VALIDER.md`, conserver :
 - la date ;
 - l’environnement ;
 - la preuve observée ;
-- le problème restant éventuel, transformé en tâche dans `docs/TODOS.md`.
+- le problème restant éventuel, transformé en tâche dans `docs/pilotage/TODOS.md`.

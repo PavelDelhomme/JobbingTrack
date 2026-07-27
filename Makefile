@@ -25,6 +25,7 @@ include makefiles/shared/common.mk
 
 # 2. Makefiles par catégorie (ordre logique)
 include makefiles/services/Makefile      # up, down, restart, profiles
+include makefiles/deploy/Makefile        # init, up-preprod, upgrade-to-*, status-preprod…
 include makefiles/diagnostic/Makefile    # health, diagnostics, corrections
 include makefiles/database/Makefile      # db-*, environnements DB
 include makefiles/compilation/Makefile   # build, rebuild, clean

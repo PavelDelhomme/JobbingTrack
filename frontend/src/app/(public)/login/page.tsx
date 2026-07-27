@@ -41,9 +41,29 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError("Saisissez votre adresse e-mail.");
+      setLoading(false);
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError("Format d’e-mail invalide.");
+      setLoading(false);
+      return;
+    }
+    if (!password) {
+      setError("Saisissez votre mot de passe.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      // ✅ UTILISER LA FONCTION login() du contexte d'authentification
-      await login(email, password);
+      const result = await login(trimmedEmail, password);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
 
       // Attendre un court instant pour que le cookie soit bien défini
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -51,9 +71,11 @@ export default function LoginPage() {
       // Forcer la redirection immédiatement
       router.push("/backoffice");
       router.refresh(); // Forcer le rafraîchissement pour que le middleware se déclenche
-    } catch (err: any) {
-      console.error("❌ Login error:", err);
-      setError(err.message || "Erreur de connexion");
+    } catch (err: unknown) {
+      // Filet de sécurité : ne pas logger d’Error (overlay Next.js en dev)
+      const message =
+        err instanceof Error ? err.message : "Erreur de connexion";
+      setError(message);
     } finally {
       setLoading(false);
     }

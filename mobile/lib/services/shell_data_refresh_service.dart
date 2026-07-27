@@ -42,6 +42,7 @@ class ShellDataRefreshService {
 
     final token = auth.token;
     if (token == null || token.isEmpty) return;
+    final userId = auth.user?.id;
 
     final appProvider = ctx.read<ApplicationProvider>();
     final companyProvider = ctx.read<CompanyProvider>();
@@ -52,11 +53,11 @@ class ShellDataRefreshService {
 
     try {
       await Future.wait([
-        appProvider.loadApplications(token: token),
-        companyProvider.loadCompanies(token: token).catchError((_) {}),
-        contactProvider.loadContacts(token: token).catchError((_) {}),
-        interviewProvider.loadInterviews(token: token).catchError((_) {}),
-        followUpProvider.loadFollowUps(token: token).catchError((_) {}),
+        appProvider.loadApplications(token: token, userId: userId),
+        companyProvider.loadCompanies(token: token, userId: userId).catchError((_) {}),
+        contactProvider.loadContacts(token: token, userId: userId).catchError((_) {}),
+        interviewProvider.loadInterviews(token: token, userId: userId).catchError((_) {}),
+        followUpProvider.loadFollowUps(token: token, userId: userId).catchError((_) {}),
         notificationProvider.loadNotifications(token: token, auth: auth).catchError((_) {}),
       ]);
 

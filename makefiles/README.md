@@ -16,8 +16,10 @@ Tous les Makefiles sont organisés de manière modulaire dans ce dossier. Le `Ma
 └── makefiles/
     ├── shared/
     │   └── common.mk                 # Fonctions réutilisables
-    ├── services/
-    │   └── Makefile                  # Démarrage/arrêt services
+├── services/
+│   └── Makefile                  # up, down, restart, profiles
+├── deploy/
+│   └── Makefile                  # init, up-preprod, upgrade-to-*, status-preprod…
     ├── diagnostic/
     │   └── Makefile                  # Diagnostics et corrections
     ├── database/

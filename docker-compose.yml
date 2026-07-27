@@ -142,6 +142,9 @@ services:
       - MOBILE_PROJECT_PATH=/workspace/mobile
       - EMULATOR_CONTROLLER_HOST=0.0.0.0
       - FLUTTER_BIN=/opt/flutter/bin/flutter
+      - EMULATOR_LIVE_CAPTURE_MS=50
+      - EMULATOR_LIVE_MAX_WIDTH=720
+      - EMULATOR_LIVE_JPEG_QUALITY=55
     restart: unless-stopped
 
   
@@ -188,6 +191,8 @@ services:
       - NEXT_PUBLIC_METRICS_VIA_FRONTEND=true
       - NEXT_PUBLIC_TZ=${TZ:-Europe/Paris}
       - NODE_ENV=development
+      # Gate écriture Pilotage (OK/KO) — explicite hors production.
+      - JT_RUNTIME_ENV=${JT_RUNTIME_ENV:-development}
       # Polling désactivé par défaut (Linux + bind mount) pour réduire fortement la charge CPU du dev server Next.
       - NODE_OPTIONS=${FRONTEND_NODE_OPTIONS:---max-old-space-size=1536}
       - PORT=3000
@@ -200,7 +205,9 @@ services:
       - WATCHPACK_POLLING=${WATCHPACK_POLLING:-false}
     volumes:
       - ./frontend:/app
+      # Repo en lecture seule ; pilotage RW pour OK/KO + édition md depuis le backoffice (dev/préprod).
       - ./:/workspace:ro
+      - ./docs/pilotage:/workspace/docs/pilotage
       - ./scripts:/app/scripts:ro
       - ./tests:/app/tests:ro
       - ./tests/results:/tmp/tests/results

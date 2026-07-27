@@ -35,4 +35,16 @@ class Interview {
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'].toString()) : DateTime.now(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'applicationId': applicationId,
+        'interviewDate': interviewDate.toIso8601String(),
+        if (location != null) 'location': location,
+        if (videoLink != null) 'videoLink': videoLink,
+        if (notes != null) 'notes': notes,
+        if (estimatedDuration != null) 'estimatedDuration': estimatedDuration,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt.toIso8601String(),
+      };
 }

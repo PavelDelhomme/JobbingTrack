@@ -24,10 +24,40 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
   logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
+}
+
+/** Messages login UI — ne pas exposer « email inconnu » vs « mauvais mot de passe » (anti-énumération). */
+function mapLoginErrorMessage(raw: string, code?: string): string {
+  if (code === "EMAIL_NOT_VERIFIED") {
+    return (
+      raw ||
+      "Veuillez vérifier votre e-mail avant de vous connecter. Consultez votre boîte de réception."
+    );
+  }
+  const normalized = String(raw || "")
+    .trim()
+    .toLowerCase();
+  if (
+    normalized.includes("invalid email or password") ||
+    normalized.includes("invalid credentials") ||
+    normalized === "unauthorized"
+  ) {
+    return "E-mail ou mot de passe incorrect. Vérifiez vos identifiants.";
+  }
+  if (normalized.includes("verify") || normalized.includes("vérifi")) {
+    return raw;
+  }
+  if (!raw || normalized === "connection error" || normalized === "server error") {
+    return "Erreur de connexion. Réessayez.";
+  }
+  return raw;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -312,7 +342,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (
+    email: string,
+    password: string,
+  ): Promise<{ ok: true } | { ok: false; error: string }> => {
     let retryCount = 0;
     const maxRetries = 2;
     setLoading(true);
@@ -342,9 +375,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ) &&
             !validateJwtToken(newToken)
           ) {
-            console.error("Token reçu du serveur invalide");
+            console.warn("Token reçu du serveur invalide");
             clearInvalidTokens();
-            throw new Error("Connection error: Invalid token");
+            setLoading(false);
+            return {
+              ok: false,
+              error: "Connexion impossible : jeton invalide.",
+            };
           }
 
           setToken(newToken);
@@ -378,55 +415,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           setLoading(false);
-          return; // Succès
+          return { ok: true };
         } else {
           const errorMsg =
             response.data?.error || "Réponse inattendue du serveur";
-          console.error("Réponse de connexion invalide:", errorMsg);
+          console.warn("Réponse de connexion invalide:", errorMsg);
           clearInvalidTokens();
-          throw new Error(errorMsg);
+          setLoading(false);
+          return { ok: false, error: mapLoginErrorMessage(errorMsg) };
         }
       } catch (error: any) {
         // Clear potentially corrupted tokens
         clearInvalidTokens();
 
         // Extract error message
-        let errorMessage = "Connection error";
+        let errorMessage = "Erreur de connexion";
 
         if (error.response) {
           // API error
           errorMessage =
             error.response.data?.error ||
+            error.response.data?.message ||
             error.response.statusText ||
-            "Server error";
+            "Erreur serveur";
 
-          // Authentication errors - no retry, use API message (e.g. "Invalid email or password")
+          // Authentication errors - no retry (attendu : bandeau UI, pas de bruit console)
           if (error.response.status === 401 || error.response.status === 403) {
-            console.warn(
-              `⚠️ Login refusé (${error.response.status}):`,
-              errorMessage,
-            );
+            const code = error.response.data?.code;
             setLoading(false);
-            throw new Error(errorMessage || "Invalid credentials");
+            return {
+              ok: false,
+              error: mapLoginErrorMessage(errorMessage, code),
+            };
           }
 
-          console.error(
-            `❌ API error (attempt ${retryCount + 1}/${maxRetries}):`,
-            error,
+          console.warn(
+            `⚠️ API login (tentative ${retryCount + 1}/${maxRetries}):`,
+            errorMessage,
           );
 
           // Validation errors
           if (error.response.status === 400) {
             setLoading(false);
-            throw new Error(errorMessage || "Invalid connection data");
+            return {
+              ok: false,
+              error: mapLoginErrorMessage(errorMessage),
+            };
           }
         } else if (error.request) {
           // Request was made but no response received
           errorMessage =
-            "Server not responding. Check your Internet connection.";
+            "Serveur injoignable. Vérifiez votre connexion Internet ou que l’API tourne.";
         } else {
           // Error configuring the request
-          errorMessage = error.message || "Connection error";
+          errorMessage = error.message || "Erreur de connexion";
         }
 
         // Network errors - retry with exponential backoff
@@ -439,12 +481,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // If we get here, all attempts have failed
         setLoading(false);
-        throw new Error(
-          errorMessage ||
-            "Unable to connect to server. Please try again later.",
-        );
+        return {
+          ok: false,
+          error: mapLoginErrorMessage(
+            errorMessage ||
+              "Impossible de joindre le serveur. Réessayez plus tard.",
+          ),
+        };
       }
     }
+
+    setLoading(false);
+    return {
+      ok: false,
+      error: "Impossible de joindre le serveur. Réessayez plus tard.",
+    };
   };
 
   const logout = async (redirectToLogin = true) => {

@@ -3,8 +3,13 @@
  *
  * Règle produit : version affichée MAJOR.MINOR.BUILD (ex. 1.0.12) + numéro de build Android (+12).
  * Le 3e segment semver = numéro de build (évolution visible en dev).
+ *
+ * Incrément auto : uniquement si le code mobile a changé depuis le dernier APK
+ * (empreinte sources), ou si FORCE_VERSION_BUMP=1 / --bump.
  */
+const crypto = require('crypto');
 const fs = require('fs');
+const path = require('path');
 
 function parseSemver(version) {
   const raw = String(version || '1.0.0').trim();
@@ -133,6 +138,92 @@ function computeSuggestedVersion(androidReleases, activeDev, pubspec) {
   return { suggestedVersion, suggestedBuild, latestBuild, major, minor };
 }
 
+const SOURCE_FINGERPRINT_REL = path.join('build', '.apk-source-fingerprint');
+
+function listSourceFilesForFingerprint(mobileDir) {
+  const roots = [
+    path.join(mobileDir, 'lib'),
+    path.join(mobileDir, 'android', 'app', 'src'),
+  ];
+  const files = [];
+  const walk = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === '.' || entry.name === '..') continue;
+        walk(full);
+      } else if (/\.(dart|kt|kts|xml|gradle)$/i.test(entry.name)) {
+        files.push(full);
+      }
+    }
+  };
+  for (const root of roots) walk(root);
+  const pubspec = path.join(mobileDir, 'pubspec.yaml');
+  if (fs.existsSync(pubspec)) files.push(pubspec);
+  files.sort();
+  return files;
+}
+
+/** Empreinte du code mobile (pubspec hors ligne version:). */
+function computeMobileSourceFingerprint(mobileDir) {
+  const hash = crypto.createHash('sha256');
+  for (const file of listSourceFilesForFingerprint(mobileDir)) {
+    const rel = path.relative(mobileDir, file).replace(/\\/g, '/');
+    hash.update(rel);
+    hash.update('\0');
+    let content = fs.readFileSync(file);
+    if (rel === 'pubspec.yaml') {
+      content = Buffer.from(
+        content.toString('utf8').replace(/^version:\s*.+$/m, 'version: <ignored>'),
+        'utf8',
+      );
+    }
+    hash.update(content);
+    hash.update('\0');
+  }
+  return hash.digest('hex');
+}
+
+function readStoredSourceFingerprint(mobileDir) {
+  const file = path.join(mobileDir, SOURCE_FINGERPRINT_REL);
+  if (!fs.existsSync(file)) return null;
+  try {
+    return fs.readFileSync(file, 'utf8').trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredSourceFingerprint(mobileDir, fingerprint) {
+  const file = path.join(mobileDir, SOURCE_FINGERPRINT_REL);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, `${fingerprint}\n`, 'utf8');
+  return file;
+}
+
+/**
+ * Décide si un build doit incrémenter la version.
+ * - force=true (FORCE_VERSION_BUMP / --bump) → oui
+ * - pas d'empreinte précédente → non (garde la version courante)
+ * - empreinte inchangée → non (rebuild/réinstall sans changement mobile)
+ * - empreinte différente → oui (vrai changement de code)
+ */
+function shouldBumpVersionForBuild(mobileDir, opts = {}) {
+  if (opts.force) {
+    return { bump: true, reason: 'force', fingerprint: computeMobileSourceFingerprint(mobileDir) };
+  }
+  const current = computeMobileSourceFingerprint(mobileDir);
+  const previous = readStoredSourceFingerprint(mobileDir);
+  if (!previous) {
+    return { bump: false, reason: 'no-previous-fingerprint', fingerprint: current };
+  }
+  if (previous === current) {
+    return { bump: false, reason: 'unchanged', fingerprint: current };
+  }
+  return { bump: true, reason: 'sources-changed', fingerprint: current };
+}
+
 module.exports = {
   parseSemver,
   formatJobbingTrackVersion,
@@ -144,4 +235,9 @@ module.exports = {
   alignLegacyPubspec,
   bumpPubspecForNextBuild,
   computeSuggestedVersion,
+  computeMobileSourceFingerprint,
+  readStoredSourceFingerprint,
+  writeStoredSourceFingerprint,
+  shouldBumpVersionForBuild,
+  SOURCE_FINGERPRINT_REL,
 };

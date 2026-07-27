@@ -1,6 +1,34 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : 17 juin 2026 — **triage repo/scripts (phase D)** ; validation mobile **en pause**.
+**Dernière mise à jour** : **22 juillet 2026**
+
+## ▶ Où on en est
+
+| | |
+|---|---|
+| **Phase** | **B** — Gate pré-prod mobile |
+| **Point** | **B2-D.6 FAB Relance** |
+| **APK** | `1.0.31+31` |
+| **UI suivi** | `/backoffice/pilotage` |
+
+## Process de suivi (depuis 22/07)
+
+1. **`pilotage/TODOS.md`** — liste à faire + récemment fait  
+2. **`pilotage/TODOS_A_TESTER.md`** — tests & résultats (ex-`TODOS_A_VERIFIER`)  
+3. **OK** → `pilotage/TODOS_DONE.md` · **KO** → retour `TODOS.md`  
+4. Porteur : phase active seule dans `pilotage/TODOS_A_VALIDER.md`  
+5. Règles : `pilotage/PILOTAGE.md` · branches : `development/BRANCHES.md`
+
+## Correctifs du jour (22/07)
+
+- Popup crashs mobile/logs : fermeture clic extérieur + Escape  
+- Process pilotage clarifié + page backoffice Pilotage  
+- Crash Flutter setState shell : corrigé (APK 1.0.31) — re-test D.6  
+- **À diagnostiquer** : mémoire multi-onglets backoffice (`PERF-TAB-01`)
+
+---
+
+## Historique (ne pas suivre à la place de TODOS « En cours »)
 
 ## Priorité immédiate — chantier en cours
 
@@ -1271,7 +1299,7 @@ Dernier run : **tests/results/20260318-235348/** (98,7 %). Voir **ERRORS.md** po
 
 - ~~**Postgres — rôles / DB**~~ : **Résolu** — `make db-fix-role` utilise un SQL idempotent (EXCEPTION WHEN duplicate_object / duplicate_database). Voir RESOLUTIONS.md et ERRORS.md.
 - **Postgres — table `deployments`** : le deployment-service envoie des requêtes vers `public.deployments` alors que la table n’existe pas (relation "public.deployments" does not exist). À faire : appliquer le schéma Prisma du deployment-service sur la BDD partagée (`make db-push-all` ou push ciblé deployment-service) pour créer la table `deployments`.
-- ~~**Build APK (interface backoffice)**~~ : **En place** — avant `flutter build apk`, le contrôleur émulateur supprime `build/app/outputs` et lance `flutter clean`. Si l’erreur Zip réapparaît : `cd mobile && flutter clean && rm -rf build/app/outputs` puis relancer le build. **Pendant le build** : overlay plein écran qui bloque la navigation (seul « Annuler le build » est utilisable).
+- ~~**Build APK (interface backoffice)**~~ : **En place** — `build-apk-debug.sh` appelle toujours `clean-flutter-apk-build.sh` (flutter clean + purge `compressed_assets` / outputs) et **retente une fois** si le log contient `kernel_blob` / `compressDebugAssets`. Manual de secours : `bash scripts/mobile/setup/clean-flutter-apk-build.sh` puis Rebuild. Doc : `docs/mobile/ANDROID_TOOLCHAIN.md`. **Pendant le build** : overlay plein écran (seul « Annuler le build »).
 - **make logs** : démarre sur les logs **récents** (`LOGS_SINCE=24h`, `LOGS_TAIL=500` par défaut) puis suivi continu ; Ctrl+C pour quitter. Historique complet : `make logs-history`. Dernières lignes sans suivi : `make logs-tail` ou `make logs-tail LINES=500`.
 - **Email inscription mobile** : plus de 6 en fin d'email (chiffre en dernière position supprimé avant saisie pour champs email).
 - **Parcours mobile** : étapes du parcours affichées à côté du rendu en direct pendant l'exécution.

@@ -145,27 +145,21 @@ const createApplication = async (req, res, next) => {
       });
     }
 
-    // ✅ LOGIQUE INTELLIGENTE : Gérer automatiquement l'entreprise
-    let finalCompanyId = companyId;
-
-    // Si un nom d'entreprise est fourni au lieu d'un ID
-    if (companyName && !companyId) {
-      logger.info(`🏢 Gestion automatique entreprise: ${companyName}`);
-      
-      finalCompanyId = await companyService.getOrCreateCompany(
+    // Entreprise toujours scoped au user du token (évite liste Entreprises vide).
+    let finalCompanyId;
+    try {
+      finalCompanyId = await companyService.ensureOwnedCompanyId({
+        companyId,
         companyName,
-        companyData || {},
-        req.token
-      );
-
+        companyData: companyData || {},
+        authToken: req.token,
+        userId: req.user.id,
+      });
       logger.info(`✅ Entreprise traitée - ID: ${finalCompanyId}`);
-    }
-
-    // Vérifier qu'on a bien un companyId
-    if (!finalCompanyId) {
+    } catch (companyErr) {
       return res.status(400).json({
         success: false,
-        error: 'companyId ou companyName requis'
+        error: companyErr.message || 'companyId ou companyName requis',
       });
     }
 
@@ -677,12 +671,18 @@ const updateApplication = async (req, res, next) => {
 
     if (companyName && companyName !== '') {
       logger.info(`🏢 Mise à jour automatique entreprise: ${companyName}`);
-      const finalCompanyId = await companyService.getOrCreateCompany(
+      body.companyId = await companyService.ensureOwnedCompanyId({
         companyName,
-        companyData || {},
-        req.token
-      );
-      body.companyId = finalCompanyId;
+        companyData: companyData || {},
+        authToken: req.token,
+        userId: req.user.id,
+      });
+    } else if (body.companyId) {
+      body.companyId = await companyService.ensureOwnedCompanyId({
+        companyId: body.companyId,
+        authToken: req.token,
+        userId: req.user.id,
+      });
     }
 
     const allowed = [

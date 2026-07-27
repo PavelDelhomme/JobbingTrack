@@ -86,6 +86,34 @@ function countForGroupBy(row) {
   return 0;
 }
 
+const ANALYTICS_SESSION_STALE_MINUTES = Math.max(
+  5,
+  parseInt(process.env.ANALYTICS_SESSION_STALE_MINUTES || '30', 10) || 30,
+);
+
+/**
+ * Sessions laissées isActive sans fin explicite (kill app mobile, crash).
+ */
+async function reconcileStaleAnalyticsSessions({ userId } = {}) {
+  if (!prisma.userSession || typeof prisma.userSession.updateMany !== 'function') {
+    return 0;
+  }
+  const cutoff = new Date(Date.now() - ANALYTICS_SESSION_STALE_MINUTES * 60 * 1000);
+  const where = {
+    isActive: true,
+    startTime: { lt: cutoff },
+  };
+  if (userId) where.userId = userId;
+  const result = await prisma.userSession.updateMany({
+    where,
+    data: {
+      isActive: false,
+      endTime: new Date(),
+    },
+  });
+  return result.count || 0;
+}
+
 /** Upsert idempotent d'une session analytics (mobile réutilise le même sessionId). */
 async function upsertAnalyticsSession(payload = {}) {
   const {
@@ -794,6 +822,8 @@ class AnalyticsController {
       const { startDate, endDate } = tw;
       const timeWhere = { gte: startDate, lte: endDate };
 
+      await reconcileStaleAnalyticsSessions({ userId }).catch(() => 0);
+
       // ✅ CORRECTION : Gérer le cas où les tables n'existent pas
       try {
         const [
@@ -1399,6 +1429,35 @@ class AnalyticsController {
         success: false,
         error: 'Erreur lors de la mise à jour du statut',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  /**
+   * Fermer les sessions « actives » obsolètes (admin).
+   * POST /api/v1/analytics/sessions/reconcile-stale
+   */
+  async reconcileStaleSessions(req, res) {
+    try {
+      if (!isAnalyticsAdmin(req.user?.role)) {
+        return res.status(403).json({ success: false, error: 'Accès admin requis' });
+      }
+      const userId = req.query.userId ? String(req.query.userId) : undefined;
+      const closed = await reconcileStaleAnalyticsSessions({ userId });
+      res.json({
+        success: true,
+        data: {
+          closed,
+          staleMinutes: ANALYTICS_SESSION_STALE_MINUTES,
+          userId: userId || null,
+        },
+      });
+    } catch (error) {
+      console.error('[ANALYTICS] Erreur reconcile sessions:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erreur lors de la réconciliation des sessions',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
       });
     }
   }

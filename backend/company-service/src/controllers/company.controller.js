@@ -229,30 +229,40 @@ const getCompany = async (req, res, next) => {
   }
 };
 
-// ✅ NOUVEAU - Récupérer une entreprise par nom
+// Récupérer une entreprise par nom — strictement scoped au user du token
+// (évite de lier une candidature à l'entreprise d'un autre compte → liste Entreprises vide).
 const getCompanyByName = async (req, res, next) => {
   try {
     const { name } = req.params;
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Utilisateur non identifié',
+      });
+    }
 
     const company = await prisma.company.findFirst({
-      where: { 
+      where: {
+        userId: req.user.id,
+        deletedAt: null,
+        isArchived: false,
         name: {
           equals: name,
-          mode: 'insensitive'
-        }
-      }
+          mode: 'insensitive',
+        },
+      },
     });
 
     if (!company) {
       return res.status(404).json({
         success: false,
-        error: 'Entreprise non trouvée'
+        error: 'Entreprise non trouvée',
       });
     }
 
     res.json({
       success: true,
-      company
+      company,
     });
   } catch (error) {
     logger.error('Erreur récupération entreprise par nom:', error);
