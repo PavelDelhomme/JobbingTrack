@@ -59,6 +59,15 @@
 | Dark mode Kanban | `jt-kanban-*` + `semantic-kanban.css` (hors filet globals `!important`) | **Livré** 27/07 | Re-test porteur clair+sombre |
 | Surfaces page | `StatusAlert` + `uiSurfaces` / `uiText` sur `/backoffice/pilotage` | **Livré** | |
 
+### DEPLOY-MAKE + Kanban enrichi (27/07)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| `scripts/deploy/stack-env.sh` | local/preprod/prod init\|check\|up\|status\|logs | **Livré** | |
+| Make `up-preprod` / `upgrade-to-*` | Wrappers + garde-fou prod VPS | **Livré** | Re-test porteur `make env-help` |
+| Seed board | DEPLOY-C1..C3, SMTP-B3, EMAIL-TRIAGE, BL-26-33, PILOTAGE-KANBAN | **Livré** | Rafraîchir Kanban |
+| Focus | Toujours APK-BUILD-01 seul En cours | **OK** | |
+
 ### PILOTAGE-UI-04 — Tableau de suivi interactif (22/07)
 
 | Test | Attendu | Résultat | Suite |

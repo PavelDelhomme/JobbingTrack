@@ -389,6 +389,146 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
         { id: "double-back", label: "Double retour Accueil OK", done: false },
       ],
     }),
+    task({
+      id: "DEPLOY-C1",
+      cycleId: "deploy-vps",
+      section: "Phase C — VPS",
+      label: "Stack Portainer préprod (Git + compose)",
+      description:
+        "Créer stack jobbingtrack-preprod depuis Git : deploy/production/docker-compose.yml + secrets.",
+      expected:
+        "Conteneurs healthy ; checklist PORTEUR_ACTIONS_DEPLOIEMENT étape 1.",
+      status: "open",
+      order: 400,
+      checklist: [
+        { id: "stack-git", label: "Stack Portainer Git créée", done: false },
+        {
+          id: "env-secrets",
+          label: "Env secrets remplis (pas .env.example brut)",
+          done: false,
+        },
+        { id: "healthy", label: "docker ps healthy", done: false },
+      ],
+    }),
+    task({
+      id: "DEPLOY-C2",
+      cycleId: "deploy-vps",
+      section: "Phase C — VPS",
+      label: "NPM HTTPS api + web préprod",
+      description: "Proxy hosts Let’s Encrypt Force SSL (réseau web Docker).",
+      expected: "HTTPS login backoffice + curl /health API OK.",
+      status: "open",
+      order: 410,
+      checklist: [
+        { id: "npm-api", label: "Host API HTTPS", done: false },
+        { id: "npm-web", label: "Host Web HTTPS", done: false },
+        { id: "smoke-login", label: "Login backoffice OK", done: false },
+      ],
+    }),
+    task({
+      id: "DEPLOY-C3",
+      cycleId: "deploy-vps",
+      section: "Phase C — VPS",
+      label: "OTA : 1er APK publié canal dev",
+      description:
+        "Build APK → /backoffice/administration/mobile-releases → canal dev → test Samsung.",
+      expected: "Proposition MAJ sur device ; promote prod plus tard.",
+      status: "open",
+      order: 420,
+      checklist: [
+        { id: "upload-dev", label: "APK uploadé canal dev", done: false },
+        { id: "device-ota", label: "Device propose la MAJ", done: false },
+      ],
+    }),
+    task({
+      id: "DEPLOY-MAKE",
+      cycleId: "deploy-vps",
+      section: "Phase C — outillage",
+      label: "Make multi-env (up-preprod / upgrade-to-*)",
+      description:
+        "Cibles Make + scripts/deploy/stack-env.sh pour local/préprod/prod compose.",
+      expected:
+        "make env-help documente le flux ; check-preprod OK sur .env.preprod.",
+      status: "partial",
+      order: 430,
+      checklist: [
+        { id: "script", label: "stack-env.sh présent", done: true },
+        { id: "make-targets", label: "Makefile deploy inclus", done: true },
+        {
+          id: "porteur-try",
+          label: "Porteur a testé make check-preprod",
+          done: false,
+        },
+      ],
+    }),
+    task({
+      id: "SMTP-B3",
+      cycleId: "emails-ops",
+      section: "Emails / SMTP",
+      label: "B3 — SMTP @jobbingtrack.com (MX + noreply)",
+      description:
+        "Upgrade MX Plan OVH, boîtes noreply/security, DKIM/DMARC, .env préprod/prod.",
+      expected: "Reset password + validation compte reçus (hors spam).",
+      status: "deferred",
+      order: 500,
+      checklist: [
+        { id: "mx-upgrade", label: "MX Plan avec boîtes", done: false },
+        { id: "dkim", label: "DKIM/DMARC OK", done: false },
+        { id: "smoke-reset", label: "Smoke reset password", done: false },
+      ],
+    }),
+    task({
+      id: "EMAIL-TRIAGE-01",
+      cycleId: "emails-ops",
+      section: "Emails / agent",
+      label: "Agent triage emails recherche d’emploi",
+      description:
+        "Interface privée / + Gmail/IMAP → candidatures/relances/digest (socle amorcé tests/email-triage).",
+      expected:
+        "Cadrage porteur + API permissions + worker digest — post gate mobile.",
+      status: "deferred",
+      order: 510,
+      checklist: [
+        { id: "scope", label: "Scope produit cadré", done: false },
+        { id: "api", label: "API permissions réelles", done: false },
+        { id: "ui", label: "UI / triage utilisable", done: false },
+      ],
+    }),
+    task({
+      id: "BL-26-33",
+      cycleId: "design-system",
+      section: "Design system",
+      label: "BL-26-33 — migration pages backoffice + Flutter",
+      description:
+        "Après Kanban : migrer autres pages pastels → StatusAlert/uiSurfaces ; tokens mobile/.",
+      expected: "Plus de conflits dark sur pages admin critiques.",
+      status: "open",
+      order: 520,
+      checklist: [
+        { id: "pilotage", label: "Pilotage Kanban sémantique", done: true },
+        {
+          id: "backoffice-pages",
+          label: "Pages backoffice restantes",
+          done: false,
+        },
+        { id: "flutter-prod", label: "Tokens mobile/ prod", done: false },
+      ],
+    }),
+    task({
+      id: "PILOTAGE-KANBAN",
+      cycleId: "correctifs-2207",
+      section: "Correctifs session 22/07",
+      label: "Kanban clair+sombre + promo inbox + docs STATUS/PLAN",
+      description: "Re-test porteur UI après migration jtKanban.",
+      expected: "Colonnes/cartes lisibles en dark ; promo inbox → carte board.",
+      status: "open",
+      order: 55,
+      checklist: [
+        { id: "dark", label: "Mode sombre lisible", done: false },
+        { id: "light", label: "Mode clair lisible", done: false },
+        { id: "promote", label: "Promo inbox OK", done: false },
+      ],
+    }),
   ];
 
   const map: Record<string, ValidationTask> = {};
@@ -413,6 +553,14 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
   setCol("EMU-LIVE-01", "done", "ok");
   setCol("PILOTAGE-UI-04", "a_valider", "open");
   setCol("PILOTAGE-UI-05", "a_valider", "open");
+  setCol("PILOTAGE-KANBAN", "a_valider", "open");
+  setCol("DEPLOY-C1", "backlog", "open");
+  setCol("DEPLOY-C2", "backlog", "open");
+  setCol("DEPLOY-C3", "backlog", "open");
+  setCol("DEPLOY-MAKE", "a_tester", "partial");
+  setCol("SMTP-B3", "later", "deferred");
+  setCol("EMAIL-TRIAGE-01", "later", "deferred");
+  setCol("BL-26-33", "later", "open");
   for (const id of ["D.7", "D.8", "D.9", "E.10", "E.11", "F.12"]) {
     setCol(id, "later", "deferred");
   }
@@ -437,6 +585,7 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
           "EMU-LIVE-01",
           "PILOTAGE-UI-04",
           "PILOTAGE-UI-05",
+          "PILOTAGE-KANBAN",
         ],
       },
       {
@@ -458,6 +607,24 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
           "E.11",
           "F.12",
         ],
+      },
+      {
+        id: "deploy-vps",
+        label: "Phase C — Déploiement VPS",
+        description: "Portainer + NPM + OTA — parallèle au focus mobile",
+        itemIds: ["DEPLOY-C1", "DEPLOY-C2", "DEPLOY-C3", "DEPLOY-MAKE"],
+      },
+      {
+        id: "emails-ops",
+        label: "Emails — SMTP + triage",
+        description: "B3 SMTP puis agent triage (post gate)",
+        itemIds: ["SMTP-B3", "EMAIL-TRIAGE-01"],
+      },
+      {
+        id: "design-system",
+        label: "Design system (BL-26-33)",
+        description: "Migration progressive uiSurfaces / Flutter",
+        itemIds: ["BL-26-33"],
       },
     ],
     tasks: map,

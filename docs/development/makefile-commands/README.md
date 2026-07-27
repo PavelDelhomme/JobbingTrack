@@ -16,7 +16,20 @@ make status
 
 # Voir les logs
 make logs
+
+# Environnements (compose préprod/prod + aide)
+make env-help
+make init                  # .env local
+make init-preprod          # deploy/production/.env.preprod
+make up-preprod            # stack préprod compose
+make upgrade-to-dev        # revient au local up-full
+make upgrade-to-preprod    # init+check+up préprod
+make upgrade-to-prod       # garde-fou (checklist VPS, pas d’auto-deploy)
 ```
+
+> Les cibles `up` / `up-full` / `logs` / `status` / `status-watch` / `up-dev` restent le flux **local**.  
+> Préprod/prod VPS = Portainer + NPM (`docs/production/PORTEUR_ACTIONS_DEPLOIEMENT.md`).  
+> Script sous-jacent : `scripts/deploy/stack-env.sh` (préférer le script pour valider hors Make).
 
 ## 💾 Gestion de la Base de Données
 

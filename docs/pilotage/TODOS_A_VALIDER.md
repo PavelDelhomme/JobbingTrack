@@ -22,6 +22,9 @@
 | 3 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | APK frais |
 | 4 | **D.6** | À faire | FAB Relance | | après snacks |
 | 5 | D.7→F.12 | Plus tard | FAB / shell | | après D.6 |
+| 6 | **DEPLOY-C1→C3** | À faire | Portainer + NPM + OTA préprod | | parallèle C |
+| 7 | **DEPLOY-MAKE** | À tester | Make up-preprod / upgrade-to-* | | script livré |
+| 8 | SMTP-B3 / EMAIL-TRIAGE | Plus tard | SMTP domaine + agent mails | | post gate |
 | — | WEB-LOGIN / EMU | Terminées | | **OK** | |
 
 ---
