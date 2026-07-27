@@ -29,6 +29,14 @@ UI Kanban : **[`https://jobbingtrack.localhost:5443/backoffice/pilotage`](https:
 
 Ne mets **jamais** toute la file en « En cours ». Clique **En cours** sur **une** carte seulement.
 
+**UI** : clic carte → **fiche à droite** (desktop ≥1024px) ou **popup** (mobile). Déplacement = sélecteur / recherche de colonne (une carte = une colonne).
+
+### Ce que le Kanban n’est pas
+
+Le board est une **file phase active** (curated), **pas** un dump de tous les `.md` de `docs/`.  
+`docs/pilotage/TODOS.md` + backlog BL-26 / PLAN restent la source large ; seules les cartes seedées apparaissent.  
+Coche « Afficher colonnes calmes » pour voir **Plus tard** / **OK**. Après APK-BUILD → **MOB-ENT** (Rework) ou **MOB-SNACK** / **D.6** / **DEPLOY-C*** (À faire).
+
 ## Fichiers sync live
 
 | Fichier | Rôle |

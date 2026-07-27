@@ -58,6 +58,8 @@
 | Whitelist | `docsRoot` pilotage\|docs + sandbox `docs/` | **Livré** | |
 | Dark mode Kanban | `jt-kanban-*` + `semantic-kanban.css` (hors filet globals `!important`) | **Livré** 27/07 | Re-test porteur clair+sombre |
 | Surfaces page | `StatusAlert` + `uiSurfaces` / `uiText` sur `/backoffice/pilotage` | **Livré** | |
+| Fiche droite + popup | Desktop sticky right ; mobile modal ; move colonne recherche | **Livré** 27/07 | Re-test UI |
+| Seed élargi | BL-26-14/17/26/27/28/32, B5-RGPD (later / a_valider) | **Livré** | Rafraîchir board |
 
 ### DEPLOY-MAKE + Kanban enrichi (27/07)
 

@@ -6,13 +6,13 @@ import {
   buildKanbanColumns,
   type FeedbackInboxItem,
 } from "@/lib/pilotage/kanbanBoard";
-import type { KanbanColumnId } from "@/lib/pilotage/validationBoardTypes";
 import {
   taskStatusClass,
   taskStatusLabel,
   type BoardActionPayload,
 } from "@/components/pilotage/pilotageUi";
 import { PilotageTaskDetail } from "@/components/pilotage/PilotageTaskDetail";
+import { ColumnMoveControl } from "@/components/pilotage/ColumnMoveControl";
 import { fetchCrashReports } from "@/lib/services/applicationAnalyticsService";
 import {
   isMonitoringTestOrSmokeCrash,
@@ -21,16 +21,6 @@ import {
 import { jtKanban, uiChip } from "@/lib/ui/kanban";
 import { uiSurfaces, uiText } from "@/lib/ui/surfaces";
 import { cn } from "@/lib/utils";
-
-const MOVE_TARGETS: { id: KanbanColumnId; label: string }[] = [
-  { id: "backlog", label: "→ À faire" },
-  { id: "doing", label: "→ En cours" },
-  { id: "a_tester", label: "→ À tester" },
-  { id: "a_valider", label: "→ À valider" },
-  { id: "rework", label: "→ Rework" },
-  { id: "later", label: "→ Plus tard" },
-  { id: "done", label: "→ Terminé" },
-];
 
 export function PilotageKanbanView({
   board,
@@ -52,6 +42,15 @@ export function PilotageKanbanView({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [acting, setActing] = useState(false);
   const [showQuiet, setShowQuiet] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const apply = () => setIsDesktop(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,6 +118,14 @@ export function PilotageKanbanView({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init once per column defs
   }, [columns.map((c) => c.id).join(",")]);
 
+  // Ouvre le focus En cours à droite au chargement (desktop)
+  useEffect(() => {
+    if (focus?.id && !selectedId && isDesktop) {
+      setSelectedId(focus.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on focus/desktop ready
+  }, [focus?.id, isDesktop]);
+
   const run = async (payload: BoardActionPayload) => {
     setActing(true);
     try {
@@ -141,6 +148,8 @@ export function PilotageKanbanView({
     return true;
   });
 
+  const openCard = (id: string) => setSelectedId(id);
+
   return (
     <div className="space-y-4">
       <section className={jtKanban.focus}>
@@ -156,7 +165,7 @@ export function PilotageKanbanView({
                   <button
                     type="button"
                     disabled={!canWrite || acting}
-                    onClick={() => setSelectedId(focus.id)}
+                    onClick={() => openCard(focus.id)}
                     className={uiChip.solid}
                   >
                     Ouvrir la fiche
@@ -182,7 +191,7 @@ export function PilotageKanbanView({
             ) : (
               <p className={jtKanban.focusBody}>
                 Rien en cours. Choisis <strong>une</strong> carte dans « À faire »
-                → bouton <strong>En cours</strong>.
+                → bouton <strong>En cours</strong> (ou sélecteur de colonne).
               </p>
             )}
           </div>
@@ -206,185 +215,209 @@ export function PilotageKanbanView({
           </div>
         </div>
         <p className={jtKanban.focusFoot}>
-          {board.where} · WIP En cours = 1 · Les autres cartes restent en À faire /
-          À tester / À valider — pas « en cours ».
+          {board.where} · WIP En cours = 1 · Clique une carte → fiche à droite
+          (desktop) ou popup (mobile). Une carte = une seule colonne.
         </p>
       </section>
 
-      <div className="flex gap-3 overflow-x-auto pb-4">
-        {visibleColumns.map((col) => {
-          const isCollapsed = !!collapsed[col.id];
-          return (
-            <section
-              key={col.id}
-              data-jt-kanban={col.id}
-              className={cn(jtKanban.col, col.overWip && jtKanban.overWip)}
-            >
-              <button
-                type="button"
-                onClick={() =>
-                  setCollapsed((s) => ({ ...s, [col.id]: !s[col.id] }))
-                }
-                className={jtKanban.header}
-              >
-                <div>
-                  <p className={jtKanban.title}>
-                    {col.short}
-                    <span className={jtKanban.count}>
-                      ({col.cards.length}
-                      {col.wip != null ? `/${col.wip}` : ""})
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]">
+        <div className="min-w-0">
+          <div className="flex gap-3 overflow-x-auto pb-4">
+            {visibleColumns.map((col) => {
+              const isCollapsed = !!collapsed[col.id];
+              return (
+                <section
+                  key={col.id}
+                  data-jt-kanban={col.id}
+                  className={cn(jtKanban.col, col.overWip && jtKanban.overWip)}
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCollapsed((s) => ({ ...s, [col.id]: !s[col.id] }))
+                    }
+                    className={jtKanban.header}
+                  >
+                    <div>
+                      <p className={jtKanban.title}>
+                        {col.short}
+                        <span className={jtKanban.count}>
+                          ({col.cards.length}
+                          {col.wip != null ? `/${col.wip}` : ""})
+                        </span>
+                      </p>
+                      <p className={jtKanban.hint}>{col.hint}</p>
+                    </div>
+                    <span className={jtKanban.chevron}>
+                      {isCollapsed ? "▸" : "▾"}
                     </span>
-                  </p>
-                  <p className={jtKanban.hint}>{col.hint}</p>
-                </div>
-                <span className={jtKanban.chevron}>
-                  {isCollapsed ? "▸" : "▾"}
-                </span>
-              </button>
-              {!isCollapsed ? (
-                <ul className="max-h-[70vh] space-y-2 overflow-y-auto px-2 pb-3">
-                  {col.cards.length === 0 ? (
-                    <li className={jtKanban.empty}>Vide</li>
-                  ) : (
-                    col.cards.map((card) => {
-                      const isBoardTask = !!board.validation.tasks[card.id];
-                      const pad = Math.min(card.depth, 3) * 8;
-                      return (
-                        <li
-                          key={card.id}
-                          className={cn(
-                            jtKanban.card,
-                            selectedId === card.id && "ring-2 ring-indigo-500",
-                          )}
-                          style={{ marginLeft: pad }}
-                        >
-                          <button
-                            type="button"
-                            className="w-full text-left"
-                            onClick={() => {
-                              if (isBoardTask) setSelectedId(card.id);
-                            }}
-                          >
-                            <p className={jtKanban.cardMeta}>
-                              {card.kind === "feedback"
-                                ? "retour"
-                                : card.kind === "error"
-                                  ? "erreur"
-                                  : card.id}
-                            </p>
-                            <p className={jtKanban.cardLabel}>{card.label}</p>
-                            {card.kind === "task" || card.kind === "block" ? (
-                              <span
-                                className={`mt-1 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${taskStatusClass(card.status)}`}
+                  </button>
+                  {!isCollapsed ? (
+                    <ul className="max-h-[70vh] space-y-2 overflow-y-auto px-2 pb-3">
+                      {col.cards.length === 0 ? (
+                        <li className={jtKanban.empty}>Vide</li>
+                      ) : (
+                        col.cards.map((card) => {
+                          const isBoardTask =
+                            !!board.validation.tasks[card.id];
+                          const pad = Math.min(card.depth, 3) * 8;
+                          return (
+                            <li
+                              key={card.id}
+                              className={cn(
+                                jtKanban.card,
+                                selectedId === card.id &&
+                                  "ring-2 ring-indigo-500",
+                              )}
+                              style={{ marginLeft: pad }}
+                            >
+                              <button
+                                type="button"
+                                className="w-full text-left"
+                                onClick={() => {
+                                  if (isBoardTask) openCard(card.id);
+                                }}
                               >
-                                {taskStatusLabel(card.status)}
-                              </span>
-                            ) : null}
-                          </button>
-                          {canWrite && isBoardTask ? (
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {col.id !== "doing" ? (
-                                <button
-                                  type="button"
-                                  disabled={acting}
-                                  className={uiChip.primary}
-                                  onClick={() =>
-                                    run({ type: "focus", itemId: card.id })
-                                  }
-                                >
-                                  En cours
-                                </button>
+                                <p className={jtKanban.cardMeta}>
+                                  {card.kind === "feedback"
+                                    ? "retour"
+                                    : card.kind === "error"
+                                      ? "erreur"
+                                      : card.id}
+                                </p>
+                                <p className={jtKanban.cardLabel}>
+                                  {card.label}
+                                </p>
+                                {card.kind === "task" ||
+                                card.kind === "block" ? (
+                                  <span
+                                    className={`mt-1 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${taskStatusClass(card.status)}`}
+                                  >
+                                    {taskStatusLabel(card.status)}
+                                  </span>
+                                ) : null}
+                              </button>
+                              {canWrite && isBoardTask ? (
+                                <div className="mt-1 space-y-1">
+                                  {col.id !== "doing" ? (
+                                    <button
+                                      type="button"
+                                      disabled={acting}
+                                      className={uiChip.primary}
+                                      onClick={() =>
+                                        run({
+                                          type: "focus",
+                                          itemId: card.id,
+                                        })
+                                      }
+                                    >
+                                      En cours
+                                    </button>
+                                  ) : null}
+                                  <ColumnMoveControl
+                                    taskId={card.id}
+                                    currentColumn={col.id}
+                                    canWrite={canWrite}
+                                    acting={acting}
+                                    onAction={run}
+                                    compact
+                                  />
+                                </div>
                               ) : null}
-                              {MOVE_TARGETS.filter((t) => t.id !== col.id)
-                                .slice(0, 4)
-                                .map((t) => (
+                              {canWrite && !isBoardTask ? (
+                                <div className="mt-2 flex flex-wrap gap-1">
                                   <button
-                                    key={t.id}
                                     type="button"
                                     disabled={acting}
-                                    className={uiChip.muted}
+                                    className={uiChip.accent}
                                     onClick={() =>
                                       run({
-                                        type: "setColumn",
+                                        type: "promoteInbox",
                                         itemId: card.id,
-                                        column: t.id,
+                                        label: card.label,
+                                        description: card.description,
+                                        inboxKind:
+                                          card.kind === "error"
+                                            ? "error"
+                                            : "feedback",
+                                        sourceRef: card.sourceRef,
+                                        column: "backlog",
                                       })
                                     }
                                   >
-                                    {t.label}
+                                    → Carte board
                                   </button>
-                                ))}
-                            </div>
-                          ) : null}
-                          {canWrite && !isBoardTask ? (
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              <button
-                                type="button"
-                                disabled={acting}
-                                className={uiChip.accent}
-                                onClick={() =>
-                                  run({
-                                    type: "promoteInbox",
-                                    itemId: card.id,
-                                    label: card.label,
-                                    description: card.description,
-                                    inboxKind:
-                                      card.kind === "error"
-                                        ? "error"
-                                        : "feedback",
-                                    sourceRef: card.sourceRef,
-                                    column: "backlog",
-                                  })
-                                }
-                              >
-                                → Carte board
-                              </button>
-                              <button
-                                type="button"
-                                disabled={acting}
-                                className={uiChip.primary}
-                                onClick={() =>
-                                  run({
-                                    type: "promoteInbox",
-                                    itemId: card.id,
-                                    label: card.label,
-                                    description: card.description,
-                                    inboxKind:
-                                      card.kind === "error"
-                                        ? "error"
-                                        : "feedback",
-                                    sourceRef: card.sourceRef,
-                                    column: "doing",
-                                  })
-                                }
-                              >
-                                → En cours
-                              </button>
-                            </div>
-                          ) : null}
-                        </li>
-                      );
-                    })
-                  )}
-                </ul>
-              ) : null}
-            </section>
-          );
-        })}
+                                  <button
+                                    type="button"
+                                    disabled={acting}
+                                    className={uiChip.primary}
+                                    onClick={() =>
+                                      run({
+                                        type: "promoteInbox",
+                                        itemId: card.id,
+                                        label: card.label,
+                                        description: card.description,
+                                        inboxKind:
+                                          card.kind === "error"
+                                            ? "error"
+                                            : "feedback",
+                                        sourceRef: card.sourceRef,
+                                        column: "doing",
+                                      })
+                                    }
+                                  >
+                                    → En cours
+                                  </button>
+                                </div>
+                              ) : null}
+                            </li>
+                          );
+                        })
+                      )}
+                    </ul>
+                  ) : null}
+                </section>
+              );
+            })}
+          </div>
+        </div>
+
+        {isDesktop ? (
+          <aside
+            className={cn(
+              uiSurfaces.panel,
+              "hidden min-h-[420px] self-start overflow-hidden lg:sticky lg:top-4 lg:block",
+            )}
+          >
+            {selected ? (
+              <PilotageTaskDetail
+                task={selected}
+                cycle={selectedCycle}
+                canWrite={canWrite}
+                acting={acting}
+                onClose={() => setSelectedId(null)}
+                onAction={run}
+                embedded
+              />
+            ) : (
+              <p className={cn("p-6 text-sm", uiText.subtle)}>
+                Clique une carte pour le détail à droite (sous-critères, colonne,
+                OK/KO).
+              </p>
+            )}
+          </aside>
+        ) : null}
       </div>
 
-      {selected ? (
-        <div className={cn(uiSurfaces.panel, "lg:max-w-xl")}>
-          <PilotageTaskDetail
-            task={selected}
-            cycle={selectedCycle}
-            canWrite={canWrite}
-            acting={acting}
-            onClose={() => setSelectedId(null)}
-            onAction={run}
-            embedded
-          />
-        </div>
+      {!isDesktop && selected ? (
+        <PilotageTaskDetail
+          task={selected}
+          cycle={selectedCycle}
+          canWrite={canWrite}
+          acting={acting}
+          onClose={() => setSelectedId(null)}
+          onAction={run}
+        />
       ) : null}
     </div>
   );

@@ -529,6 +529,99 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
         { id: "promote", label: "Promo inbox OK", done: false },
       ],
     }),
+    task({
+      id: "BL-26-14",
+      cycleId: "gate-mobile-extra",
+      section: "Gate mobile — suite",
+      label: "Matrice Android multi-API",
+      description: "Parc API 21–36 : AVD + Samsung ; audit-android-api-matrix.",
+      expected: "Matrice documentée avant bêta / prod complète.",
+      status: "deferred",
+      order: 600,
+      checklist: [
+        { id: "matrix", label: "Script / doc matrice", done: false },
+        { id: "devices", label: "Au moins 2 paliers testés", done: false },
+      ],
+    }),
+    task({
+      id: "B5-RGPD",
+      cycleId: "gate-mobile-extra",
+      section: "Gate mobile — suite",
+      label: "B5 — Consentements RGPD mobile",
+      description: "Étape gate mobile consentements / privacy.",
+      expected: "Parcours conforme avant ouverture publique.",
+      status: "deferred",
+      order: 610,
+      checklist: [
+        { id: "screens", label: "Écrans consentement OK", done: false },
+      ],
+    }),
+    task({
+      id: "BL-26-28",
+      cycleId: "deploy-vps",
+      section: "Phase C — VPS",
+      label: "OTA promote → GitHub / politique branche prod",
+      description: "Après DEPLOY-C3 : documenter promote + tag GitHub optionnel.",
+      expected: "Workflow Git explicite depuis backoffice.",
+      status: "open",
+      order: 440,
+      checklist: [
+        { id: "doc", label: "Doc workflow", done: false },
+        { id: "ui", label: "Bouton / message backoffice clair", done: false },
+      ],
+    }),
+    task({
+      id: "BL-26-32",
+      cycleId: "gate-mobile-extra",
+      section: "Gate mobile — suite",
+      label: "OTA wizard UX — validation porteur",
+      description: "Contraste + étapes session OTA — re-test porteur.",
+      expected: "Wizard utilisable clair/sombre.",
+      status: "open",
+      order: 620,
+      checklist: [
+        { id: "wizard", label: "Parcours OTA OK", done: false },
+      ],
+    }),
+    task({
+      id: "BL-26-17",
+      cycleId: "gate-mobile-extra",
+      section: "Gate mobile — suite",
+      label: "Impersonnalisation — sortie visible",
+      description: "Bannière admin + sortie claire (étape 2).",
+      expected: "Toujours visible pendant impersonation.",
+      status: "open",
+      order: 630,
+      checklist: [
+        { id: "banner", label: "Bannière + sortie OK", done: false },
+      ],
+    }),
+    task({
+      id: "BL-26-27",
+      cycleId: "gate-prod",
+      section: "Gate prod",
+      label: "Services & Logs — pipeline opérationnel",
+      description: "Page Services & Logs exploitable avant MEP.",
+      expected: "Lignes de logs utiles, pas page vide.",
+      status: "deferred",
+      order: 700,
+      checklist: [
+        { id: "logs-visible", label: "Logs visibles en backoffice", done: false },
+      ],
+    }),
+    task({
+      id: "BL-26-26",
+      cycleId: "gate-prod",
+      section: "Gate prod",
+      label: "Biométrie — re-validation APK release",
+      description: "OK debug ; re-test release sans bypass smokes.",
+      expected: "Biométrie OK sur APK release.",
+      status: "deferred",
+      order: 710,
+      checklist: [
+        { id: "release-bio", label: "Test release OK", done: false },
+      ],
+    }),
   ];
 
   const map: Record<string, ValidationTask> = {};
@@ -558,9 +651,16 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
   setCol("DEPLOY-C2", "backlog", "open");
   setCol("DEPLOY-C3", "backlog", "open");
   setCol("DEPLOY-MAKE", "a_tester", "partial");
+  setCol("BL-26-28", "later", "open");
   setCol("SMTP-B3", "later", "deferred");
   setCol("EMAIL-TRIAGE-01", "later", "deferred");
   setCol("BL-26-33", "later", "open");
+  setCol("BL-26-14", "later", "deferred");
+  setCol("B5-RGPD", "later", "deferred");
+  setCol("BL-26-32", "a_valider", "open");
+  setCol("BL-26-17", "a_valider", "open");
+  setCol("BL-26-27", "later", "deferred");
+  setCol("BL-26-26", "later", "deferred");
   for (const id of ["D.7", "D.8", "D.9", "E.10", "E.11", "F.12"]) {
     setCol(id, "later", "deferred");
   }
@@ -612,7 +712,13 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
         id: "deploy-vps",
         label: "Phase C — Déploiement VPS",
         description: "Portainer + NPM + OTA — parallèle au focus mobile",
-        itemIds: ["DEPLOY-C1", "DEPLOY-C2", "DEPLOY-C3", "DEPLOY-MAKE"],
+        itemIds: [
+          "DEPLOY-C1",
+          "DEPLOY-C2",
+          "DEPLOY-C3",
+          "DEPLOY-MAKE",
+          "BL-26-28",
+        ],
       },
       {
         id: "emails-ops",
@@ -625,6 +731,18 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
         label: "Design system (BL-26-33)",
         description: "Migration progressive uiSurfaces / Flutter",
         itemIds: ["BL-26-33"],
+      },
+      {
+        id: "gate-mobile-extra",
+        label: "Gate mobile — extras",
+        description: "Matrice API, RGPD, OTA wizard, impersonation",
+        itemIds: ["BL-26-14", "B5-RGPD", "BL-26-32", "BL-26-17"],
+      },
+      {
+        id: "gate-prod",
+        label: "Gate prod",
+        description: "Logs pipeline + biométrie release",
+        itemIds: ["BL-26-27", "BL-26-26"],
       },
     ],
     tasks: map,

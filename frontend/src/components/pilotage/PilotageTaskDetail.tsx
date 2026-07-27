@@ -11,6 +11,7 @@ import {
   taskStatusLabel,
   type BoardActionPayload,
 } from "@/components/pilotage/pilotageUi";
+import { ColumnMoveControl } from "@/components/pilotage/ColumnMoveControl";
 
 export function PilotageTaskDetail({
   task,
@@ -157,6 +158,19 @@ export function PilotageTaskDetail({
         >
           Enregistrer la note
         </button>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          Colonne Kanban (une seule)
+        </h3>
+        <ColumnMoveControl
+          taskId={task.id}
+          currentColumn={task.column}
+          canWrite={canWrite}
+          acting={acting}
+          onAction={onAction}
+        />
       </section>
 
       <section className="space-y-2">
