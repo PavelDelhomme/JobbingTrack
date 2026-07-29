@@ -33,14 +33,17 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ## ▶ En cours maintenant
 
-> **Kanban** : une seule carte **En cours** (aujourd’hui **MOB-ENT-01**).  
+> **Kanban** : une seule carte **En cours** (aujourd’hui **MOB-LIST-01**).  
 > Le reste = **À faire** / **À valider** / **Plus tard** — pas « en cours ».
 
 | ID | Phase | Colonne | Item | Action immédiate | Preuve / test |
 |----|-------|---------|------|------------------|---------------|
-| **MOB-ENT-01** | B | ▶ En cours | Hub fiche entreprise (apps/contacts/relances/entretiens/appels) | Re-test Capgemini APK 1.0.39 | A_TESTER § MOB-ENT |
+| **MOB-LIST-01** | B | ▶ En cours | Cartes listes tous onglets | Infos list item utiles | A_TESTER § MOB-LIST |
+| **MOB-HUB-01** | B | À faire | Hubs détail + liens croisés | Après LIST | |
+| **MOB-NAV-01** | B | À faire | Retours système détails | Après HUB | |
+| **MOB-ENT-01** | B | Terminées | Hub fiche entreprise | **OK 29/07** | DONE |
 | **APK-BUILD-01** | B/D | À valider | Rebuild APK sans Zip | Confirmer ouverture app | **PARTIEL** build+ADB OK |
-| **MOB-SNACK-01** | B | À faire | Snacks auto-dismiss | Après MOB-ENT | |
+| **MOB-SNACK-01** | B | À faire | Snacks auto-dismiss | Après NAV | |
 | **B2-D.6** | B | À faire | FAB Relance | Après snacks | |
 | B2-D.7→F.12 | B | Plus tard | FAB / shell suite | Après D.6 | |
 | PILOTAGE-UI-04/05/KANBAN | D | À valider | Board / Kanban | Valider UI | |

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-29T12:02:45.589Z",
+  "updatedAt": "2026-07-29T12:46:11.739Z",
   "cycles": [
     {
       "id": "correctifs-2207",
@@ -15,6 +15,16 @@
         "PILOTAGE-UI-04",
         "PILOTAGE-UI-05",
         "PILOTAGE-KANBAN"
+      ]
+    },
+    {
+      "id": "gate-mobile-entities",
+      "label": "Gate mobile — listes / hubs / retours",
+      "description": "Après MOB-ENT : listes → hubs liens → retours → snacks/FAB",
+      "itemIds": [
+        "MOB-LIST-01",
+        "MOB-HUB-01",
+        "MOB-NAV-01"
       ]
     },
     {
@@ -94,8 +104,13 @@
   ],
   "tasks": {
     "MOB-ENT-01": {
-      "porteurNote": "En cours 29/07 : hub fiche entreprise (apps/contacts/relances/entretiens/appels) + retirer CTA liste ; APK 1.0.39",
+      "porteurNote": "OK porteur 29/07 — contacts + hub entreprise Capgemini ; suite = listes/hubs autres onglets",
       "history": [
+        {
+          "at": "2026-07-29T12:46:11.739Z",
+          "action": "OK",
+          "note": "Porteur : contacts liés OK ; hub entreprise validé"
+        },
         {
           "at": "2026-07-29T12:14:14.848Z",
           "action": "note",
@@ -139,7 +154,7 @@
       "label": "Onglet Entreprises : voir OVHcloud, Capgemini, etc. ; ouvrir détail",
       "description": "Sur Samsung (app mobile/), onglet Entreprises doit lister les mêmes noms d’entreprises que les candidatures (ex. OVHcloud, Capgemini). Fiche détail = hub de tout le lié.",
       "expected": "Liste sans CTA factice ; détail Capgemini = candidatures + contacts + relances + entretiens + appels liés (via candidature / contact / entreprise).",
-      "status": "open",
+      "status": "ok",
       "order": 10,
       "checklist": [
         {
@@ -150,7 +165,7 @@
         {
           "id": "list-no-cta",
           "label": "Cartes liste : pas de texte « Voir candidatures & contacts » (métadonnées ou vide)",
-          "done": false
+          "done": true
         },
         {
           "id": "detail-apps",
@@ -160,22 +175,22 @@
         {
           "id": "detail-contacts",
           "label": "Contacts liés visibles / cohérents",
-          "done": false
+          "done": true
         },
         {
           "id": "detail-followups",
           "label": "Relances liées visibles (via candidatures de l’entreprise)",
-          "done": false
+          "done": true
         },
         {
           "id": "detail-interviews",
           "label": "Entretiens liés visibles (via candidatures)",
-          "done": false
+          "done": true
         },
         {
           "id": "detail-calls",
           "label": "Appels liés visibles (entreprise directe, candidature ou contact)",
-          "done": false
+          "done": true
         },
         {
           "id": "api-contacts",
@@ -190,7 +205,7 @@
           "note": "APK 1.0.37"
         }
       ],
-      "column": "doing",
+      "column": "done",
       "kind": "task"
     },
     "WEB-LOGIN-01": {
@@ -1046,7 +1061,136 @@
       ],
       "column": "later",
       "kind": "task"
+    },
+    "MOB-LIST-01": {
+      "id": "MOB-LIST-01",
+      "cycleId": "gate-mobile-entities",
+      "section": "Gate mobile — entités",
+      "label": "Listes onglets : cartes candidatures / entreprises / contacts / relances / entretiens / appels",
+      "description": "Sur chaque onglet (ou sous-onglet) mobile, vérifier que les items de liste affichent les infos utiles (titre, statut/date/métadonnées) — pas de CTA factice, pas de carte vide.",
+      "expected": "Chaque liste lisible ; ouverture d’un item → détail ; données cohérentes avec les autres onglets.",
+      "status": "open",
+      "order": 11,
+      "column": "doing",
+      "kind": "task",
+      "porteurNote": "Focus après MOB-ENT OK",
+      "history": [
+        {
+          "at": "2026-07-29T12:46:11.739Z",
+          "action": "focus",
+          "note": "En cours après validation MOB-ENT"
+        }
+      ],
+      "checklist": [
+        {
+          "id": "list-apps",
+          "label": "Liste Candidatures : infos carte utiles (poste, entreprise, statut)",
+          "done": false
+        },
+        {
+          "id": "list-companies",
+          "label": "Liste Entreprises : nom + métadonnées (pas de faux CTA)",
+          "done": false
+        },
+        {
+          "id": "list-contacts",
+          "label": "Liste Contacts : nom + entreprise/coordonnées",
+          "done": false
+        },
+        {
+          "id": "list-followups",
+          "label": "Liste Relances : date + statut + lien candidature/contact",
+          "done": false
+        },
+        {
+          "id": "list-interviews",
+          "label": "Liste Entretiens : date + candidature/lieu",
+          "done": false
+        },
+        {
+          "id": "list-calls",
+          "label": "Liste Appels : sujet + date + contact/entreprise",
+          "done": false
+        }
+      ]
+    },
+    "MOB-HUB-01": {
+      "id": "MOB-HUB-01",
+      "cycleId": "gate-mobile-entities",
+      "section": "Gate mobile — entités",
+      "label": "Hubs détail + liens croisés (candidature, contact, relance, entretien, appel)",
+      "description": "Après MOB-ENT (entreprise OK) : chaque fiche détail doit montrer les entités liées et permettre d’ouvrir le lié. Ajout via formulaire / FAB là où c’est valable.",
+      "expected": "Depuis n’importe quelle fiche, les liens utiles sont visibles et navigables.",
+      "status": "open",
+      "order": 12,
+      "column": "backlog",
+      "kind": "task",
+      "porteurNote": "Après MOB-LIST",
+      "history": [],
+      "checklist": [
+        {
+          "id": "hub-app",
+          "label": "Détail candidature : entreprise, contacts, relances, entretiens, appels",
+          "done": false
+        },
+        {
+          "id": "hub-contact",
+          "label": "Détail contact : entreprises, candidatures, relances, appels",
+          "done": false
+        },
+        {
+          "id": "hub-followup",
+          "label": "Détail relance : candidature + contact (+ entreprise si dispo)",
+          "done": false
+        },
+        {
+          "id": "hub-interview",
+          "label": "Détail entretien : candidature + contacts (+ entreprise)",
+          "done": false
+        },
+        {
+          "id": "hub-call",
+          "label": "Détail appel : candidature / contact / entreprise cohérents",
+          "done": false
+        },
+        {
+          "id": "hub-add",
+          "label": "Ajout lié (formulaire/FAB) au bon endroit quand pertinent",
+          "done": false
+        }
+      ]
+    },
+    "MOB-NAV-01": {
+      "id": "MOB-NAV-01",
+      "cycleId": "gate-mobile-entities",
+      "section": "Gate mobile — entités",
+      "label": "Navigation retour système depuis chaque détail",
+      "description": "Depuis les fiches détail, le bouton retour Android doit ramener au bon endroit sans crash.",
+      "expected": "Chaîne liste → détail → détail lié → retours successifs stables.",
+      "status": "open",
+      "order": 13,
+      "column": "backlog",
+      "kind": "task",
+      "porteurNote": "Après MOB-HUB ; complète A.1–A.2c",
+      "history": [],
+      "checklist": [
+        {
+          "id": "back-list-detail",
+          "label": "Liste → détail → retour = même liste",
+          "done": false
+        },
+        {
+          "id": "back-nested",
+          "label": "Détail → entité liée → retour = fiche précédente",
+          "done": false
+        },
+        {
+          "id": "back-no-crash",
+          "label": "Pas de crash / écran blanc sur retours enchaînés",
+          "done": false
+        }
+      ]
     }
   },
-  "focusTaskId": "MOB-ENT-01"
+  "focusTaskId": "MOB-LIST-01"
 }

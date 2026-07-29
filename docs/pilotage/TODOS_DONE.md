@@ -1,6 +1,6 @@
 # TODOs validés par le porteur
 
-Dernière mise à jour : 22 juillet 2026
+Dernière mise à jour : 29 juillet 2026
 
 ## Rôle
 
@@ -10,6 +10,7 @@ Ce fichier archive ce que le porteur a réellement validé. Les validations tech
 
 | Date | Élément validé | Environnement | Preuve / remarque |
 |------|----------------|---------------|-------------------|
+| 29/07/2026 | Mobile **MOB-ENT-01** — onglet Entreprises + hub détail Capgemini | Samsung + APK 1.0.39 | OK porteur : contacts liés cohérents ; candidatures/relances/entretiens/appels visibles sur fiche entreprise. Suite : MOB-LIST → MOB-HUB → MOB-NAV → snacks/FAB. |
 | 22/07/2026 | Process pilotage refondu (TODOS → A_TESTER → DONE) + UI `/backoffice/pilotage` | docs + local | Livré agent ; porteur suit B2-D.6 |
 | 22/07/2026 | Popup crashs mobile/logs — fermeture backdrop/Escape | local | Fix `AnalyticsRecordDetailDialog` — re-test porteur |
 | 22/07/2026 | Mobile B2 — **B.3** USER drawer sans Administration | Samsung + APK 1.0.31 | OK porteur explicite |

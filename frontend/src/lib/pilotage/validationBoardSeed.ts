@@ -27,45 +27,164 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
         "Sur Samsung (app mobile/), onglet Entreprises doit lister les mêmes noms d’entreprises que les candidatures (ex. OVHcloud, Capgemini). Fiche détail = hub de tout le lié.",
       expected:
         "Liste sans CTA factice ; détail Capgemini = candidatures + contacts + relances + entretiens + appels liés (via candidature / contact / entreprise).",
-      status: "open",
+      status: "ok",
       order: 10,
       checklist: [
         {
           id: "list-names",
           label:
             "Liste affiche OVHcloud, Capgemini, etc. (mêmes noms que candidatures)",
-          done: false,
+          done: true,
         },
         {
           id: "list-no-cta",
           label:
             "Cartes liste : pas de texte « Voir candidatures & contacts » (métadonnées ou vide)",
-          done: false,
+          done: true,
         },
         {
           id: "detail-apps",
           label: "Ouvrir une entreprise → candidatures liées visibles",
-          done: false,
+          done: true,
         },
         {
           id: "detail-contacts",
           label: "Contacts liés visibles / cohérents",
-          done: false,
+          done: true,
         },
         {
           id: "detail-followups",
           label: "Relances liées visibles (via candidatures de l’entreprise)",
-          done: false,
+          done: true,
         },
         {
           id: "detail-interviews",
           label: "Entretiens liés visibles (via candidatures)",
-          done: false,
+          done: true,
         },
         {
           id: "detail-calls",
           label:
             "Appels liés visibles (entreprise directe, candidature ou contact)",
+          done: true,
+        },
+      ],
+    }),
+    task({
+      id: "MOB-LIST-01",
+      cycleId: "gate-mobile-entities",
+      section: "Gate mobile — entités",
+      label:
+        "Listes onglets : cartes candidatures / entreprises / contacts / relances / entretiens / appels",
+      description:
+        "Sur chaque onglet (ou sous-onglet) mobile, vérifier que les items de liste affichent les infos utiles (titre, statut/date/métadonnées) — pas de CTA factice, pas de carte vide.",
+      expected:
+        "Chaque liste lisible ; ouverture d’un item → détail ; données cohérentes avec les autres onglets.",
+      status: "open",
+      order: 11,
+      checklist: [
+        {
+          id: "list-apps",
+          label: "Liste Candidatures : infos carte utiles (poste, entreprise, statut)",
+          done: false,
+        },
+        {
+          id: "list-companies",
+          label: "Liste Entreprises : nom + métadonnées (pas de faux CTA)",
+          done: false,
+        },
+        {
+          id: "list-contacts",
+          label: "Liste Contacts : nom + entreprise/coordonnées",
+          done: false,
+        },
+        {
+          id: "list-followups",
+          label: "Liste Relances : date + statut + lien candidature/contact",
+          done: false,
+        },
+        {
+          id: "list-interviews",
+          label: "Liste Entretiens : date + candidature/lieu",
+          done: false,
+        },
+        {
+          id: "list-calls",
+          label: "Liste Appels : sujet + date + contact/entreprise",
+          done: false,
+        },
+      ],
+    }),
+    task({
+      id: "MOB-HUB-01",
+      cycleId: "gate-mobile-entities",
+      section: "Gate mobile — entités",
+      label:
+        "Hubs détail + liens croisés (candidature, contact, relance, entretien, appel)",
+      description:
+        "Après MOB-ENT (entreprise OK) : chaque fiche détail doit montrer les entités liées (apps ↔ contacts ↔ relances ↔ entretiens ↔ appels ↔ entreprise) et permettre d’ouvrir le lié. Ajout via formulaire / FAB là où c’est valable.",
+      expected:
+        "Depuis n’importe quelle fiche, les liens utiles sont visibles et navigables ; pas de section manquante par rapport au modèle métier.",
+      status: "open",
+      order: 12,
+      checklist: [
+        {
+          id: "hub-app",
+          label: "Détail candidature : entreprise, contacts, relances, entretiens, appels",
+          done: false,
+        },
+        {
+          id: "hub-contact",
+          label: "Détail contact : entreprises, candidatures, relances, appels",
+          done: false,
+        },
+        {
+          id: "hub-followup",
+          label: "Détail relance : candidature + contact (+ entreprise si dispo)",
+          done: false,
+        },
+        {
+          id: "hub-interview",
+          label: "Détail entretien : candidature + contacts (+ entreprise)",
+          done: false,
+        },
+        {
+          id: "hub-call",
+          label: "Détail appel : candidature / contact / entreprise cohérents",
+          done: false,
+        },
+        {
+          id: "hub-add",
+          label: "Ajout lié (formulaire/FAB) au bon endroit quand pertinent",
+          done: false,
+        },
+      ],
+    }),
+    task({
+      id: "MOB-NAV-01",
+      cycleId: "gate-mobile-entities",
+      section: "Gate mobile — entités",
+      label: "Navigation retour système depuis chaque détail",
+      description:
+        "Depuis les fiches détail (tous onglets), le bouton retour Android doit ramener au bon endroit (liste ou fiche parente), sans crash ni écran vide.",
+      expected:
+        "Chaîne liste → détail → détail lié → retours successifs stables.",
+      status: "open",
+      order: 13,
+      checklist: [
+        {
+          id: "back-list-detail",
+          label: "Liste → détail → retour = même liste",
+          done: false,
+        },
+        {
+          id: "back-nested",
+          label: "Détail → entité liée → retour = fiche précédente",
+          done: false,
+        },
+        {
+          id: "back-no-crash",
+          label: "Pas de crash / écran blanc sur retours enchaînés",
           done: false,
         },
       ],
@@ -661,7 +780,10 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
     map[id].kind = map[id].kind || "task";
   };
   setCol("APK-BUILD-01", "a_valider", "partial");
-  setCol("MOB-ENT-01", "doing", "open");
+  setCol("MOB-ENT-01", "done", "ok");
+  setCol("MOB-LIST-01", "doing", "open");
+  setCol("MOB-HUB-01", "backlog", "open");
+  setCol("MOB-NAV-01", "backlog", "open");
   setCol("MOB-SNACK-01", "backlog", "open");
   setCol("D.6", "backlog", "open");
   setCol("WEB-LOGIN-01", "done", "ok");
@@ -693,7 +815,7 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
   return {
     version: 1,
     updatedAt: new Date().toISOString(),
-    focusTaskId: "MOB-ENT-01",
+    focusTaskId: "MOB-LIST-01",
     cycles: [
       {
         id: "correctifs-2207",
@@ -709,6 +831,13 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
           "PILOTAGE-UI-05",
           "PILOTAGE-KANBAN",
         ],
+      },
+      {
+        id: "gate-mobile-entities",
+        label: "Gate mobile — listes / hubs / retours",
+        description:
+          "Après MOB-ENT : listes onglets → hubs liens croisés → retours système → snacks/FAB",
+        itemIds: ["MOB-LIST-01", "MOB-HUB-01", "MOB-NAV-01"],
       },
       {
         id: "fab-mobile",

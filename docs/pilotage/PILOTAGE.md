@@ -1,15 +1,15 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **27 juillet 2026**
+Dernière mise à jour : **29 juillet 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : MOB-ENT-01** — fiche entreprise = hub lié  
-Liste : plus de CTA « Voir candidatures & contacts ».  
-Détail Capgemini : candidatures + contacts + **relances** + **entretiens** + **appels**.  
-APK **1.0.39** · Ensuite : MOB-SNACK-01 → D.6 · Parallèle DEPLOY-C*
+**Focus (1 seule) : MOB-LIST-01** — cartes listes de chaque onglet  
+**MOB-ENT-01** → **OK** (hub entreprise Capgemini validé porteur)  
 
-UI Kanban : badges = **colonne**. Rafraîchir `/backoffice/pilotage`.
+Suite immédiate : **MOB-HUB-01** (liens croisés autres fiches) → **MOB-NAV-01** (retours) → **MOB-SNACK-01** → **D.6** FAB Relance → D.7→D.9 · Parallèle DEPLOY-C*
+
+APK **1.0.39** · Rafraîchir `/backoffice/pilotage`.
 
 `make run-mobile` : étapes **1/5…5/5**. Sans rebuild : `SKIP_BUILD=1 make run-mobile`
 
@@ -35,7 +35,7 @@ Ne mets **jamais** toute la file en « En cours ». Clique **En cours** sur **un
 
 Le board est une **file phase active** (curated), **pas** un dump de tous les `.md` de `docs/`.  
 `docs/pilotage/TODOS.md` + backlog BL-26 / PLAN restent la source large ; seules les cartes seedées apparaissent.  
-Coche « Afficher colonnes calmes » pour voir **Plus tard** / **OK**. Après APK-BUILD → **MOB-ENT** (Rework) ou **MOB-SNACK** / **D.6** / **DEPLOY-C*** (À faire).
+Coche « Afficher colonnes calmes » pour voir **Plus tard** / **OK**.
 
 ## Fichiers sync live
 
@@ -64,7 +64,7 @@ Décisions UI (OK/KO/PARTIEL/Plus tard/REWORK) + **déplacement de colonne** →
 
 | Phase | Statut |
 |-------|--------|
-| **B** gate mobile | Focus APK-BUILD → MOB-ENT → D.6… |
+| **B** gate mobile | MOB-ENT OK → MOB-LIST → MOB-HUB → MOB-NAV → snacks/FAB |
 | C déploiement | parallèle |
 | D backoffice | board Kanban |
 

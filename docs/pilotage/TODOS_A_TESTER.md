@@ -26,7 +26,7 @@
 | Section **Terminées** | Chrono : Récemment terminé + A_VALIDER OK/KO + TODOS_DONE ; sync OK → prepend TODOS.md | **Livré** 22/07 | Re-test porteur UI |
 | WEB-LOGIN-01 porteur | Bandeau FR, pas overlay Next | **OK 22/07** | `console.warn` 401 retiré ; ligne Network 401 reste normale |
 | EMU-LIVE-01 porteur | Samsung + MJPEG live | **OK 22/07** | |
-| MOB-ENT-01 porteur | Liste entreprises OK ; contacts détail KO | **REWORK** | Suite : contacts liés company |
+| MOB-ENT-01 porteur | Liste entreprises OK ; hub détail Capgemini | **OK 29/07** | Contacts + apps/relances/entretiens/appels |
 | AppSnack mobile | clear + durée forcée (relance créée/supprimée) | **Fix** APK 1.0.34 | Re-test D.6 |
 
 ### MOB-ENT-01 suite — hub fiche entreprise (22/07 → 29/07)
@@ -40,7 +40,26 @@
 | Liste entreprises | Pas de CTA « Voir candidatures & contacts » | **Fix** 29/07 | APK 1.0.39 |
 | Fiche détail | Candidatures + contacts + relances + entretiens + appels | **Livré** 29/07 | Re-test Capgemini |
 | Kanban sous-critères | list-no-cta + detail-followups/interviews/calls | **Livré** | |
-| Porteur | Capgemini hub complet cohérent | **À valider** | APK 1.0.39 |
+| Porteur | Capgemini hub complet cohérent | **OK 29/07** | Contacts liés + sections liées |
+
+### MOB-LIST-01 — cartes listes onglets (29/07)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| Candidatures | Carte : poste + entreprise + statut | **À tester** | Focus Kanban |
+| Entreprises | Nom + métadonnées (pas faux CTA) | **Partiel** | CTA retiré 1.0.39 |
+| Contacts | Nom + entreprise/coordonnées | **À tester** | |
+| Relances | Date + statut + lien | **À tester** | |
+| Entretiens | Date + candidature/lieu | **À tester** | |
+| Appels | Sujet + date + cible | **À tester** | |
+
+### MOB-HUB-01 / MOB-NAV-01 (file après LIST)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| Hubs hors entreprise | Liens croisés sur app/contact/relance/entretien/appel | **À faire** | Après LIST |
+| Retours Android | Liste↔détail↔lié stables | **À faire** | Après HUB |
+| FAB D.6→D.9 | Créations depuis candidature | **À faire** | Après snacks |
 
 ### APK-BUILD-01 — anti Zip kernel_blob (27/07)
 

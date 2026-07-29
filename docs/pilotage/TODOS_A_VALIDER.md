@@ -5,10 +5,10 @@
 > **UI** : `/backoffice/pilotage` → onglet **Tableau de suivi** (OK/KO écrit ici automatiquement en dev/préprod).
 
 **Phase active** : **B — Gate pré-prod mobile**  
-**Point exact** : **MOB-ENT-01** (seul **En cours** Kanban)  
-**APK** : **1.0.39+39** · Samsung (hub fiche entreprise)
+**Point exact** : **MOB-LIST-01** (seul **En cours** Kanban)  
+**APK** : **1.0.39+39** · Samsung  
 
-> **Kanban** : badge = **colonne** (carte En cours = « En cours », pas « À reprendre »).
+> **Kanban** : badge = **colonne**. **MOB-ENT-01** = Terminé (OK porteur 29/07).
 
 ---
 
@@ -16,14 +16,17 @@
 
 | # | ID | Colonne | À faire | Décision | Notes |
 |---|----|---------|---------|----------|-------|
-| 1 | **MOB-ENT-01** | ▶ En cours | Hub fiche : apps/contacts/relances/entretiens/appels + liste sans CTA | | APK 1.0.39 · sous-critères Kanban |
-| 2 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **PARTIEL agent** | 1.0.37 |
-| 3 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | après MOB-ENT |
-| 4 | **D.6** | À faire | FAB Relance | | après snacks |
-| 5 | D.7→F.12 | Plus tard | FAB / shell | | après D.6 |
-| 6 | **DEPLOY-C1→C3** | À faire | Portainer + NPM + OTA préprod | | parallèle C |
-| 7 | **DEPLOY-MAKE** | À tester | Make up-preprod / upgrade-to-* | | script livré |
-| 8 | SMTP-B3 / EMAIL-TRIAGE | Plus tard | SMTP domaine + agent mails | | post gate |
+| 1 | **MOB-LIST-01** | ▶ En cours | Cartes listes : apps / entreprises / contacts / relances / entretiens / appels | | ◀ **maintenant** |
+| 2 | **MOB-HUB-01** | À faire | Hubs détail + liens croisés (hors entreprise déjà OK) | | après LIST |
+| 3 | **MOB-NAV-01** | À faire | Retours système depuis chaque détail | | après HUB |
+| 4 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | après NAV |
+| 5 | **D.6** | À faire | FAB Relance | | après snacks |
+| 6 | D.7→D.9 | Plus tard | FAB Appel / Entretien / Contact | | après D.6 |
+| 7 | E.10→F.12 | Plus tard | Shell re-tap / FAB contacts / double retour | | après FAB |
+| 8 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **PARTIEL agent** | 1.0.39 |
+| 9 | **DEPLOY-C1→C3** | À faire | Portainer + NPM + OTA préprod | | parallèle C |
+| 10 | **DEPLOY-MAKE** | À tester | Make up-preprod / upgrade-to-* | | script livré |
+| — | **MOB-ENT-01** | Terminées | Hub entreprise Capgemini | **OK 29/07** | |
 | — | WEB-LOGIN / EMU | Terminées | | **OK** | |
 
 ---
@@ -32,11 +35,14 @@
 
 | ID | À faire | Décision | Notes |
 |----|---------|----------|-------|
-| **MOB-ENT-01** | Hub entreprise (apps/contacts/relances/entretiens/appels) | **REWORK** → re-test | ◀ **maintenant** · Capgemini APK 1.0.39 |
-| **APK-BUILD-01** | Rebuild sans Zip kernel_blob | **PARTIEL 27/07** | 1.0.36+36 ADB OK — valider ouverture |
+| **MOB-ENT-01** | Hub entreprise (apps/contacts/relances/entretiens/appels) | **OK 29/07** | Capgemini contacts + hub |
+| **MOB-LIST-01** | Infos cartes listes tous onglets | | ◀ **maintenant** |
+| **MOB-HUB-01** | Liens croisés fiches (app/contact/relance/entretien/appel) | | après LIST |
+| **MOB-NAV-01** | Bouton retour système | | après HUB |
+| **APK-BUILD-01** | Rebuild sans Zip kernel_blob | **PARTIEL 27/07** | 1.0.39 ADB OK |
 | **WEB-LOGIN-01** | Login bandeau FR sans overlay Next | **OK 22/07** | |
 | **EMU-LIVE-01** | Aperçu live ADB | **OK 22/07** | |
-| **MOB-SNACK-01** | AppSnack auto-dismiss | | après MOB-ENT |
+| **MOB-SNACK-01** | AppSnack auto-dismiss | | après NAV |
 | **PILOTAGE-UI-04** | Tableau suite logique + écriture md | | |
 | **PILOTAGE-UI-05** | Fiche détail / PARTIEL / Plus tard / Terminées | | |
 | **PILOTAGE-KANBAN** | Contraste colonnes **clair+sombre** + promo inbox + onglets STATUS/PLAN/ERRORS | | Re-test UI (moteur `jtKanban`) |
