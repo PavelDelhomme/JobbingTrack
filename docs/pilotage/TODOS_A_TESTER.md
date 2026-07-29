@@ -29,7 +29,7 @@
 | MOB-ENT-01 porteur | Liste entreprises OK ; contacts détail KO | **REWORK** | Suite : contacts liés company |
 | AppSnack mobile | clear + durée forcée (relance créée/supprimée) | **Fix** APK 1.0.34 | Re-test D.6 |
 
-### MOB-ENT-01 suite — contacts liés entreprise (22/07 → 29/07)
+### MOB-ENT-01 suite — hub fiche entreprise (22/07 → 29/07)
 
 | Test | Attendu | Résultat | Suite |
 |------|---------|----------|-------|
@@ -37,8 +37,10 @@
 | `backfill-contact-company-links.sql` | INSERT liens vers Company owned + via ContactApplication | **OK** Capgemini 2 | |
 | `GET /contacts/company/:id` | OR ContactCompany + ContactApplication | **OK 29/07** TEST_USER Marie+Luc | |
 | UI Flutter | Erreur API visible (plus catch silencieux) | **Fix** 29/07 APK 1.0.37 | |
-| Kanban badges | Colonne prioritaire (En cours ≠ À reprendre) | **Fix** 29/07 | |
-| Porteur | Détail Capgemini → Marie/Luc | **À valider** | APK 1.0.37 |
+| Liste entreprises | Pas de CTA « Voir candidatures & contacts » | **Fix** 29/07 | APK 1.0.39 |
+| Fiche détail | Candidatures + contacts + relances + entretiens + appels | **Livré** 29/07 | Re-test Capgemini |
+| Kanban sous-critères | list-no-cta + detail-followups/interviews/calls | **Livré** | |
+| Porteur | Capgemini hub complet cohérent | **À valider** | APK 1.0.39 |
 
 ### APK-BUILD-01 — anti Zip kernel_blob (27/07)
 

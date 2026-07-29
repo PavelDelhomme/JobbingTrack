@@ -24,9 +24,9 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
       label:
         "Onglet Entreprises : voir OVHcloud, Capgemini, etc. ; ouvrir détail",
       description:
-        "Sur Samsung (app mobile/), onglet Entreprises doit lister les mêmes noms d’entreprises que les candidatures (ex. OVHcloud, Capgemini).",
+        "Sur Samsung (app mobile/), onglet Entreprises doit lister les mêmes noms d’entreprises que les candidatures (ex. OVHcloud, Capgemini). Fiche détail = hub de tout le lié.",
       expected:
-        "Liste non vide alignée candidatures ; détail entreprise = candidatures + contacts liés.",
+        "Liste sans CTA factice ; détail Capgemini = candidatures + contacts + relances + entretiens + appels liés (via candidature / contact / entreprise).",
       status: "open",
       order: 10,
       checklist: [
@@ -37,6 +37,12 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
           done: false,
         },
         {
+          id: "list-no-cta",
+          label:
+            "Cartes liste : pas de texte « Voir candidatures & contacts » (métadonnées ou vide)",
+          done: false,
+        },
+        {
           id: "detail-apps",
           label: "Ouvrir une entreprise → candidatures liées visibles",
           done: false,
@@ -44,6 +50,22 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
         {
           id: "detail-contacts",
           label: "Contacts liés visibles / cohérents",
+          done: false,
+        },
+        {
+          id: "detail-followups",
+          label: "Relances liées visibles (via candidatures de l’entreprise)",
+          done: false,
+        },
+        {
+          id: "detail-interviews",
+          label: "Entretiens liés visibles (via candidatures)",
+          done: false,
+        },
+        {
+          id: "detail-calls",
+          label:
+            "Appels liés visibles (entreprise directe, candidature ou contact)",
           done: false,
         },
       ],

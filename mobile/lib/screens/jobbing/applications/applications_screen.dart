@@ -568,9 +568,15 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
           listTile: ListTile(
             leading: const Icon(Icons.business, color: Colors.purple),
             title: Text(c.name),
-            subtitle: (c.website.isNotEmpty)
-                ? Text(c.website)
-                : const Text('Voir candidatures & contacts'),
+            subtitle: () {
+              final parts = <String>[
+                if (c.industry.isNotEmpty) c.industry,
+                if (c.location.isNotEmpty) c.location,
+                if (c.website.isNotEmpty) c.website,
+              ];
+              if (parts.isEmpty) return null;
+              return Text(parts.join(' · '));
+            }(),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => CompanyDetailScreen(company: c)),

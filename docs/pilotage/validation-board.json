@@ -94,8 +94,13 @@
   ],
   "tasks": {
     "MOB-ENT-01": {
-      "porteurNote": "Backfill + fix ownership ; rafraîchir liste · focus 29/07 : statut open (colonne En cours) ; critère contacts",
+      "porteurNote": "En cours 29/07 : hub fiche entreprise (apps/contacts/relances/entretiens/appels) + retirer CTA liste ; APK 1.0.39",
       "history": [
+        {
+          "at": "2026-07-29T12:14:14.848Z",
+          "action": "note",
+          "note": "Sous-critères hub + CTA liste retirés ; APK 1.0.39"
+        },
         {
           "at": "2026-07-29T12:02:45.589Z",
           "action": "note",
@@ -132,8 +137,8 @@
       "cycleId": "correctifs-2207",
       "section": "Correctifs session 22/07",
       "label": "Onglet Entreprises : voir OVHcloud, Capgemini, etc. ; ouvrir détail",
-      "description": "Sur Samsung (app mobile/), onglet Entreprises doit lister les mêmes noms d’entreprises que les candidatures (ex. OVHcloud, Capgemini).",
-      "expected": "Liste non vide alignée candidatures ; détail entreprise = candidatures + contacts liés.",
+      "description": "Sur Samsung (app mobile/), onglet Entreprises doit lister les mêmes noms d’entreprises que les candidatures (ex. OVHcloud, Capgemini). Fiche détail = hub de tout le lié.",
+      "expected": "Liste sans CTA factice ; détail Capgemini = candidatures + contacts + relances + entretiens + appels liés (via candidature / contact / entreprise).",
       "status": "open",
       "order": 10,
       "checklist": [
@@ -143,6 +148,11 @@
           "done": true
         },
         {
+          "id": "list-no-cta",
+          "label": "Cartes liste : pas de texte « Voir candidatures & contacts » (métadonnées ou vide)",
+          "done": false
+        },
+        {
           "id": "detail-apps",
           "label": "Ouvrir une entreprise → candidatures liées visibles",
           "done": true
@@ -150,6 +160,21 @@
         {
           "id": "detail-contacts",
           "label": "Contacts liés visibles / cohérents",
+          "done": false
+        },
+        {
+          "id": "detail-followups",
+          "label": "Relances liées visibles (via candidatures de l’entreprise)",
+          "done": false
+        },
+        {
+          "id": "detail-interviews",
+          "label": "Entretiens liés visibles (via candidatures)",
+          "done": false
+        },
+        {
+          "id": "detail-calls",
+          "label": "Appels liés visibles (entreprise directe, candidature ou contact)",
           "done": false
         },
         {

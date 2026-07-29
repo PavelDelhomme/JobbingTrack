@@ -4,14 +4,14 @@ Dernière mise à jour : **27 juillet 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : MOB-ENT-01** — Capgemini → Contacts Marie/Luc  
-API OK (Marie+Luc) · APK : reconstruire après fix erreur contacts UI  
-Ensuite : MOB-SNACK-01 → D.6 · Parallèle DEPLOY-C*
+**Focus (1 seule) : MOB-ENT-01** — fiche entreprise = hub lié  
+Liste : plus de CTA « Voir candidatures & contacts ».  
+Détail Capgemini : candidatures + contacts + **relances** + **entretiens** + **appels**.  
+APK **1.0.39** · Ensuite : MOB-SNACK-01 → D.6 · Parallèle DEPLOY-C*
 
-UI Kanban : badges = **colonne** (En cours ≠ « À reprendre »). Rafraîchir `/backoffice/pilotage`.
+UI Kanban : badges = **colonne**. Rafraîchir `/backoffice/pilotage`.
 
-`make run-mobile` : étapes **1/5…5/5** visibles (adb → reverse → comptes → build → install/lance).  
-Sans rebuild : `SKIP_BUILD=1 make run-mobile`
+`make run-mobile` : étapes **1/5…5/5**. Sans rebuild : `SKIP_BUILD=1 make run-mobile`
 
 ## Kanban ADHD (règle d’or)
 

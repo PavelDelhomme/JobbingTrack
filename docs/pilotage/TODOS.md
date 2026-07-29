@@ -38,7 +38,7 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 | ID | Phase | Colonne | Item | Action immédiate | Preuve / test |
 |----|-------|---------|------|------------------|---------------|
-| **MOB-ENT-01** | B | ▶ En cours | Contacts liés entreprise | Re-test Capgemini Marie/Luc | A_TESTER § MOB-ENT · APK 1.0.36 |
+| **MOB-ENT-01** | B | ▶ En cours | Hub fiche entreprise (apps/contacts/relances/entretiens/appels) | Re-test Capgemini APK 1.0.39 | A_TESTER § MOB-ENT |
 | **APK-BUILD-01** | B/D | À valider | Rebuild APK sans Zip | Confirmer ouverture app | **PARTIEL** build+ADB OK |
 | **MOB-SNACK-01** | B | À faire | Snacks auto-dismiss | Après MOB-ENT | |
 | **B2-D.6** | B | À faire | FAB Relance | Après snacks | |

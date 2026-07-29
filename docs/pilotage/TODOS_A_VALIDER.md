@@ -6,7 +6,7 @@
 
 **Phase active** : **B — Gate pré-prod mobile**  
 **Point exact** : **MOB-ENT-01** (seul **En cours** Kanban)  
-**APK** : **1.0.37+37** · Samsung (contacts UI fix)
+**APK** : **1.0.39+39** · Samsung (hub fiche entreprise)
 
 > **Kanban** : badge = **colonne** (carte En cours = « En cours », pas « À reprendre »).
 
@@ -16,7 +16,7 @@
 
 | # | ID | Colonne | À faire | Décision | Notes |
 |---|----|---------|---------|----------|-------|
-| 1 | **MOB-ENT-01** | ▶ En cours | Capgemini contacts Marie/Luc | | API OK · re-test APK 1.0.37 |
+| 1 | **MOB-ENT-01** | ▶ En cours | Hub fiche : apps/contacts/relances/entretiens/appels + liste sans CTA | | APK 1.0.39 · sous-critères Kanban |
 | 2 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **PARTIEL agent** | 1.0.37 |
 | 3 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | après MOB-ENT |
 | 4 | **D.6** | À faire | FAB Relance | | après snacks |
@@ -32,7 +32,7 @@
 
 | ID | À faire | Décision | Notes |
 |----|---------|----------|-------|
-| **MOB-ENT-01** | Entreprises + **contacts liés** | **REWORK 22/07** → re-test | ◀ **maintenant** · Capgemini |
+| **MOB-ENT-01** | Hub entreprise (apps/contacts/relances/entretiens/appels) | **REWORK** → re-test | ◀ **maintenant** · Capgemini APK 1.0.39 |
 | **APK-BUILD-01** | Rebuild sans Zip kernel_blob | **PARTIEL 27/07** | 1.0.36+36 ADB OK — valider ouverture |
 | **WEB-LOGIN-01** | Login bandeau FR sans overlay Next | **OK 22/07** | |
 | **EMU-LIVE-01** | Aperçu live ADB | **OK 22/07** | |

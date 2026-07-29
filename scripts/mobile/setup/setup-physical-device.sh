@@ -138,6 +138,6 @@ else
 fi
 
 printf '\n\033[0;32m✅ run-mobile terminé\033[0m\n'
-log "Suite porteur : Connexion → Entreprises → Capgemini → Contacts (MOB-ENT-01)"
+log "Suite porteur : Connexion → Entreprises → Capgemini → candidatures/contacts/relances/entretiens/appels (MOB-ENT-01)"
 log "Sans rebuild : SKIP_BUILD=1 make run-mobile   |   make mobile-apk-install-only"
 log "Aide : make help-mobile-adb"
