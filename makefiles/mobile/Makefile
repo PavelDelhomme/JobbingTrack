@@ -77,13 +77,13 @@ test-emulator-controller: ## Vérifier que le contrôleur répond (GET /health, 
 	fi
 	@cd "$(ROOT_DIR)" && node "$(EMULATOR_CONTROLLER_DIR)/test-server.js"
 
-# Appareil physique : adb reverse + build/install APK
-mobile-device-ready: ## Préparer appareil USB (adb reverse 5002/5003, build APK, install)
-	@bash "$(ROOT_DIR)/scripts/mobile/setup/setup-physical-device.sh"
-
 # Alias porteur : build + install + lancement sur téléphone USB
-run-mobile: ## Build, installe et lance l'app Flutter sur appareil USB (adb reverse inclus)
-	@bash "$(ROOT_DIR)/scripts/mobile/setup/setup-physical-device.sh"
+run-mobile: ## Build (anti Zip), install -r, lance l'app — logs étape 1/5…5/5
+	@LAUNCH_APP=1 bash "$(ROOT_DIR)/scripts/mobile/setup/setup-physical-device.sh"
+
+# Préparer appareil (même script ; LAUNCH_APP=1 par défaut)
+mobile-device-ready: ## Préparer appareil USB (adb reverse + build anti Zip + install + lance)
+	@LAUNCH_APP=1 bash "$(ROOT_DIR)/scripts/mobile/setup/setup-physical-device.sh"
 
 # Réinstaller l'APK debug sur appareil déjà connecté (sans relancer toute la stack)
 mobile-apk-reinstall: ## Build APK debug + adb install -r sur appareil USB connecté (adb reverse 5002/5003)
@@ -124,7 +124,8 @@ help-mobile-adb: ## Aide courte : appareil USB ADB (build, réinstall APK, smoke
 	@printf '  \033[1;33mmake apk-reinstall\033[0m / \033[1;33mmake reinstall-apk\033[0m  Alias de mobile-apk-reinstall\n'
 	@printf '  \033[1;33mmake reinstall-app\033[0m           Build + install + lance l''app\n'
 	@printf '  \033[1;33mmake mobile-apk-install-only\033[0m  Install seule (SKIP_BUILD=1, ~10–60 s USB)\n'
-	@printf '  \033[1;33mmake run-mobile\033[0m           Build + install + lance l''app (première fois)\n'
+	@printf '  \033[1;33mmake run-mobile\033[0m           Build anti-Zip + install + lance (logs 1/5…5/5)\n'
+	@printf '  \033[1;33mSKIP_BUILD=1 make run-mobile\033[0m  Install + lance sans rebuild\n'
 	@printf '  \033[1;33mmake mobile-device-ready\033[0m  adb reverse + build + install\n'
 	@printf '  \033[1;33mmake mobile-login-user\033[0m   Connexion auto TEST_USER sur l''appareil\n'
 	@printf '  \033[1;33mmake mobile-login-admin\033[0m  Connexion auto TEST_ADMIN\n'

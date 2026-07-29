@@ -4,12 +4,14 @@ Dernière mise à jour : **27 juillet 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : MOB-ENT-01** — Entreprises + contacts Capgemini (REWORK)  
-APK **1.0.36+36** installé Samsung (APK-BUILD-01 → **À valider** porteur : ouvrir l’app).  
-Ensuite : MOB-SNACK-01 → D.6 → … · Parallèle DEPLOY-C1→C3
+**Focus (1 seule) : MOB-ENT-01** — Capgemini → Contacts Marie/Luc  
+API OK (Marie+Luc) · APK : reconstruire après fix erreur contacts UI  
+Ensuite : MOB-SNACK-01 → D.6 · Parallèle DEPLOY-C*
 
-UI Kanban : **[`https://jobbingtrack.localhost:5443/backoffice/pilotage`](https://jobbingtrack.localhost:5443/backoffice/pilotage)** → onglet **Kanban**  
-(Rafraîchir pour sync board.)
+UI Kanban : badges = **colonne** (En cours ≠ « À reprendre »). Rafraîchir `/backoffice/pilotage`.
+
+`make run-mobile` : étapes **1/5…5/5** visibles (adb → reverse → comptes → build → install/lance).  
+Sans rebuild : `SKIP_BUILD=1 make run-mobile`
 
 ## Kanban ADHD (règle d’or)
 

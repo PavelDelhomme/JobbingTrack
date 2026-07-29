@@ -6,10 +6,9 @@
 
 **Phase active** : **B — Gate pré-prod mobile**  
 **Point exact** : **MOB-ENT-01** (seul **En cours** Kanban)  
-**APK** : **1.0.36+36** · Samsung (installé ADB 27/07)
+**APK** : **1.0.37+37** · Samsung (contacts UI fix)
 
-> **Kanban** : `/backoffice/pilotage` → onglet **Kanban**.  
-> « À faire » ≠ « En cours ». Une seule carte En cours (bouton **En cours**).
+> **Kanban** : badge = **colonne** (carte En cours = « En cours », pas « À reprendre »).
 
 ---
 
@@ -17,8 +16,8 @@
 
 | # | ID | Colonne | À faire | Décision | Notes |
 |---|----|---------|---------|----------|-------|
-| 1 | **MOB-ENT-01** | ▶ En cours | Capgemini contacts Marie/Luc | **REWORK** | focus · APK frais |
-| 2 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **PARTIEL agent** | build+install OK — ouvrir app |
+| 1 | **MOB-ENT-01** | ▶ En cours | Capgemini contacts Marie/Luc | | API OK · re-test APK 1.0.37 |
+| 2 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **PARTIEL agent** | 1.0.37 |
 | 3 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | après MOB-ENT |
 | 4 | **D.6** | À faire | FAB Relance | | après snacks |
 | 5 | D.7→F.12 | Plus tard | FAB / shell | | après D.6 |

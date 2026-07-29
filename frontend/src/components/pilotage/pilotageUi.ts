@@ -37,9 +37,64 @@ export function taskStatusLabel(status: ValidationTask["status"]): string {
     case "rework":
       return "À reprendre";
     case "open":
-      return "À faire";
+      return "Ouvert";
     default:
       return status;
+  }
+}
+
+/**
+ * Badge carte Kanban : priorise la **colonne** (sinon confusion « À faire » dans À faire,
+ * ou « À reprendre » alors que la carte est En cours).
+ */
+export function kanbanCardBadge(
+  column: string | undefined,
+  status: ValidationTask["status"],
+): { label: string; className: string } | null {
+  switch (column) {
+    case "doing":
+      return {
+        label: "En cours",
+        className:
+          "bg-amber-600 text-white dark:bg-amber-500 dark:text-amber-950",
+      };
+    case "backlog":
+      // Pas de badge « À faire » redondant dans la colonne À faire
+      return null;
+    case "rework":
+      return {
+        label: "À reprendre",
+        className: taskStatusClass("rework"),
+      };
+    case "a_tester":
+      return {
+        label: "À tester",
+        className: taskStatusClass("partial"),
+      };
+    case "a_valider":
+      return {
+        label: status === "partial" ? "Partiel" : "À valider",
+        className: taskStatusClass(
+          status === "partial" ? "partial" : "open",
+        ),
+      };
+    case "later":
+      return {
+        label: "Plus tard",
+        className: taskStatusClass("deferred"),
+      };
+    case "done":
+      return { label: "OK", className: taskStatusClass("ok") };
+    case "inbox_feedback":
+    case "inbox_errors":
+      return null;
+    default:
+      // Hors colonne connue : retomber sur le statut métier
+      if (status === "open") return null;
+      return {
+        label: taskStatusLabel(status),
+        className: taskStatusClass(status),
+      };
   }
 }
 

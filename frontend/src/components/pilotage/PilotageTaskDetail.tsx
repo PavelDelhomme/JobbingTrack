@@ -56,8 +56,15 @@ export function PilotageTaskDetail({
           <span
             className={`rounded-full px-2 py-0.5 font-semibold ${taskStatusClass(task.status)}`}
           >
-            {taskStatusLabel(task.status)}
+            {task.column === "doing"
+              ? "En cours"
+              : taskStatusLabel(task.status)}
           </span>
+          {task.column === "doing" && task.status === "rework" ? (
+            <span className="text-amber-800 dark:text-amber-200">
+              (historique REWORK — focus actif)
+            </span>
+          ) : null}
           {cycle ? (
             <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
               Cycle · {cycle.label} ({cycle.progressLabel})

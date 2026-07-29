@@ -639,7 +639,7 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
     map[id].kind = map[id].kind || "task";
   };
   setCol("APK-BUILD-01", "a_valider", "partial");
-  setCol("MOB-ENT-01", "doing", "rework");
+  setCol("MOB-ENT-01", "doing", "open");
   setCol("MOB-SNACK-01", "backlog", "open");
   setCol("D.6", "backlog", "open");
   setCol("WEB-LOGIN-01", "done", "ok");

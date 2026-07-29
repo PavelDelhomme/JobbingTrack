@@ -692,7 +692,13 @@ export function applyBoardAction(opts: {
       }
       board.focusTaskId = opts.itemId;
       task.column = "doing";
-      if (task.status === "ok" || task.status === "deferred") {
+      // En cours = focus actif : ne pas afficher « À reprendre » / deferred
+      if (
+        task.status === "ok" ||
+        task.status === "deferred" ||
+        task.status === "rework" ||
+        task.status === "ko"
+      ) {
         task.status = "open";
       }
     } else {

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-27T17:50:59.206Z",
+  "updatedAt": "2026-07-29T12:02:45.589Z",
   "cycles": [
     {
       "id": "correctifs-2207",
@@ -94,8 +94,18 @@
   ],
   "tasks": {
     "MOB-ENT-01": {
-      "porteurNote": "Backfill + fix ownership ; rafraîchir liste",
+      "porteurNote": "Backfill + fix ownership ; rafraîchir liste · focus 29/07 : statut open (colonne En cours) ; critère contacts",
       "history": [
+        {
+          "at": "2026-07-29T12:02:45.589Z",
+          "action": "note",
+          "note": "API contacts OK ; fix UI erreur + rebuild APK"
+        },
+        {
+          "at": "2026-07-29T12:01:00.487Z",
+          "action": "focus",
+          "note": "statut→open pour badge En cours"
+        },
         {
           "at": "2026-07-22T16:44:24.374Z",
           "action": "REWORK",
@@ -124,7 +134,7 @@
       "label": "Onglet Entreprises : voir OVHcloud, Capgemini, etc. ; ouvrir détail",
       "description": "Sur Samsung (app mobile/), onglet Entreprises doit lister les mêmes noms d’entreprises que les candidatures (ex. OVHcloud, Capgemini).",
       "expected": "Liste non vide alignée candidatures ; détail entreprise = candidatures + contacts liés.",
-      "status": "rework",
+      "status": "open",
       "order": 10,
       "checklist": [
         {
@@ -141,6 +151,18 @@
           "id": "detail-contacts",
           "label": "Contacts liés visibles / cohérents",
           "done": false
+        },
+        {
+          "id": "api-contacts",
+          "label": "API GET /contacts/company/:id renvoie Marie+Luc",
+          "done": true,
+          "note": "API TEST_USER Capgemini → Marie+Luc 29/07"
+        },
+        {
+          "id": "error-ui",
+          "label": "Erreur API contacts visible (pas « Aucun contact » silencieux)",
+          "done": true,
+          "note": "APK 1.0.37"
         }
       ],
       "column": "doing",

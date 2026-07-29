@@ -25,6 +25,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
   Company? _company;
   List<Map<String, dynamic>> _contacts = [];
   bool _loading = true;
+  String? _contactsError;
 
   @override
   void initState() {
@@ -37,28 +38,39 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
       setState(() {
         _company = widget.company;
         _loading = false;
+        _contactsError = null;
       });
       return;
     }
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    await Provider.of<ApplicationProvider>(context, listen: false).loadApplications(token: auth.token);
+    await Provider.of<ApplicationProvider>(context, listen: false)
+        .loadApplications(token: auth.token);
     final token = auth.token;
     try {
       final fresh = await ApiService.getCompany(widget.company.id, token: token);
       var contacts = <Map<String, dynamic>>[];
+      String? contactsErr;
       try {
-        contacts = await ApiService.getContactsByCompany(widget.company.id, token: token);
-      } catch (_) {}
-      if (mounted) setState(() {
-        _company = fresh;
-        _contacts = contacts;
-        _loading = false;
-      });
+        contacts =
+            await ApiService.getContactsByCompany(widget.company.id, token: token);
+      } catch (e) {
+        contactsErr = e.toString();
+      }
+      if (mounted) {
+        setState(() {
+          _company = fresh;
+          _contacts = contacts;
+          _contactsError = contactsErr;
+          _loading = false;
+        });
+      }
     } catch (_) {
-      if (mounted) setState(() {
-        _company = widget.company;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _company = widget.company;
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -189,10 +201,21 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                     ),
                   ],
                 ),
-                if (_contacts.isEmpty)
+                if (_contactsError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      'Impossible de charger les contacts : $_contactsError',
+                      style: TextStyle(color: Colors.red.shade700, fontSize: 13),
+                    ),
+                  )
+                else if (_contacts.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text('Aucun contact', style: TextStyle(color: Colors.grey.shade600)),
+                    child: Text(
+                      'Aucun contact lié à cette entreprise',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
                   )
                 else
                   ..._contacts.map((contact) => ListTile(

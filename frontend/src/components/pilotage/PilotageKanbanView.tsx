@@ -7,8 +7,7 @@ import {
   type FeedbackInboxItem,
 } from "@/lib/pilotage/kanbanBoard";
 import {
-  taskStatusClass,
-  taskStatusLabel,
+  kanbanCardBadge,
   type BoardActionPayload,
 } from "@/components/pilotage/pilotageUi";
 import { PilotageTaskDetail } from "@/components/pilotage/PilotageTaskDetail";
@@ -285,18 +284,24 @@ export function PilotageKanbanView({
                                       ? "erreur"
                                       : card.id}
                                 </p>
-                                <p className={jtKanban.cardLabel}>
-                                  {card.label}
-                                </p>
-                                {card.kind === "task" ||
-                                card.kind === "block" ? (
-                                  <span
-                                    className={`mt-1 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${taskStatusClass(card.status)}`}
-                                  >
-                                    {taskStatusLabel(card.status)}
-                                  </span>
-                                ) : null}
-                              </button>
+                            <p className={jtKanban.cardLabel}>
+                              {card.label}
+                            </p>
+                            {(() => {
+                              const badge = kanbanCardBadge(
+                                col.id,
+                                card.status,
+                              );
+                              if (!badge) return null;
+                              return (
+                                <span
+                                  className={`mt-1 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${badge.className}`}
+                                >
+                                  {badge.label}
+                                </span>
+                              );
+                            })()}
+                          </button>
                               {canWrite && isBoardTask ? (
                                 <div className="mt-1 space-y-1">
                                   {col.id !== "doing" ? (
