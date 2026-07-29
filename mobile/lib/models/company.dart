@@ -15,6 +15,9 @@ class Company {
   final User createdBy;
   final DateTime createdAt;
   final DateTime updatedAt;
+  /// Compteurs API `_count` (liste) — null si absents.
+  final int? applicationsCount;
+  final int? contactsCount;
 
   const Company({
     required this.id,
@@ -31,9 +34,18 @@ class Company {
     required this.createdBy,
     required this.createdAt,
     required this.updatedAt,
+    this.applicationsCount,
+    this.contactsCount,
   });
 
   factory Company.fromJson(Map<String, dynamic> json) {
+    int? appsCount;
+    int? contactsCount;
+    final count = json['_count'];
+    if (count is Map) {
+      appsCount = int.tryParse(count['applications']?.toString() ?? '');
+      contactsCount = int.tryParse(count['contacts']?.toString() ?? '');
+    }
     return Company(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
@@ -46,9 +58,13 @@ class Company {
       companyType: json['companyType']?.toString() ?? 'EMPLOYER',
       isActive: json['isActive'] ?? true,
       isDeleted: json['isDeleted'] ?? false,
-      createdBy: json['createdBy'] != null ? User.fromJson(json['createdBy'] as Map<String, dynamic>) : User.fromJson({}),
+      createdBy: json['createdBy'] != null
+          ? User.fromJson(json['createdBy'] as Map<String, dynamic>)
+          : User.fromJson({}),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
+      applicationsCount: appsCount,
+      contactsCount: contactsCount,
     );
   }
 
@@ -68,7 +84,11 @@ class Company {
       'createdBy': createdBy.toJson(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      if (applicationsCount != null || contactsCount != null)
+        '_count': {
+          if (applicationsCount != null) 'applications': applicationsCount,
+          if (contactsCount != null) 'contacts': contactsCount,
+        },
     };
   }
 }
-

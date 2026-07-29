@@ -5,6 +5,7 @@ import 'package:jobbingtrack_mobile/providers/company_provider.dart';
 import 'package:jobbingtrack_mobile/providers/contact_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contact_detail_screen.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
+import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
 import 'package:jobbingtrack_mobile/widgets/contact_create_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 
@@ -116,8 +117,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                                 itemCount: contacts.length,
                                 itemBuilder: (_, i) {
                                   final c = contacts[i];
-                                  final email = c['email']?.toString() ?? '';
-                                  final company = contactPrimaryCompanyName(c);
+                                  final meta = contactListSubtitle(c);
                                   return ListTile(
                                     leading: CircleAvatar(
                                       child: Text(
@@ -127,9 +127,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
                                       ),
                                     ),
                                     title: Text(contactDisplayName(c)),
-                                    subtitle: company.isNotEmpty
-                                        ? Text(company)
-                                        : (email.isNotEmpty ? Text(email) : null),
+                                    subtitle: meta.isNotEmpty
+                                        ? Text(meta, maxLines: 2, overflow: TextOverflow.ellipsis)
+                                        : null,
                                     trailing: const Icon(Icons.chevron_right),
                                     onTap: () => Navigator.of(context).push(
                                       MaterialPageRoute(

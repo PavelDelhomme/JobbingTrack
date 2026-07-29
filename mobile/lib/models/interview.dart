@@ -1,3 +1,5 @@
+import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
+
 class Interview {
   final String id;
   final String applicationId;
@@ -6,6 +8,8 @@ class Interview {
   final String? videoLink;
   final String? notes;
   final int? estimatedDuration;
+  final String? applicationPosition;
+  final String? companyName;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -17,12 +21,15 @@ class Interview {
     this.videoLink,
     this.notes,
     this.estimatedDuration,
+    this.applicationPosition,
+    this.companyName,
     required this.createdAt,
     required this.updatedAt,
   });
 
   factory Interview.fromJson(Map<String, dynamic> json) {
     final dateStr = json['interviewDate'] ?? json['scheduledAt'];
+    final linked = parseLinkedAppCompany(json);
     return Interview(
       id: json['id'] ?? '',
       applicationId: json['applicationId'] ?? '',
@@ -30,9 +37,17 @@ class Interview {
       location: json['location'],
       videoLink: json['videoLink'],
       notes: json['notes'],
-      estimatedDuration: json['estimatedDuration'] != null ? int.tryParse(json['estimatedDuration'].toString()) : null,
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'].toString()) : DateTime.now(),
-      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'].toString()) : DateTime.now(),
+      estimatedDuration: json['estimatedDuration'] != null
+          ? int.tryParse(json['estimatedDuration'].toString())
+          : null,
+      applicationPosition: linked.position,
+      companyName: linked.companyName,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'].toString())
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'].toString())
+          : DateTime.now(),
     );
   }
 
@@ -46,5 +61,7 @@ class Interview {
         if (estimatedDuration != null) 'estimatedDuration': estimatedDuration,
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
+        if (applicationPosition != null) 'application': {'position': applicationPosition},
+        if (companyName != null) 'company': {'name': companyName},
       };
 }

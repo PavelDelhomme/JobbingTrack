@@ -6,7 +6,7 @@
 
 **Phase active** : **B — Gate pré-prod mobile**  
 **Point exact** : **MOB-LIST-01** (seul **En cours** Kanban)  
-**APK** : **1.0.39+39** · Samsung  
+**APK** : **1.0.40+40** · Samsung (métadonnées listes) 
 
 > **Kanban** : badge = **colonne**. **MOB-ENT-01** = Terminé (OK porteur 29/07).
 
@@ -16,7 +16,7 @@
 
 | # | ID | Colonne | À faire | Décision | Notes |
 |---|----|---------|---------|----------|-------|
-| 1 | **MOB-LIST-01** | ▶ En cours | Cartes listes : apps / entreprises / contacts / relances / entretiens / appels | | ◀ **maintenant** |
+| 1 | **MOB-LIST-01** | ▶ En cours | Cartes listes : apps / entreprises / contacts / relances / entretiens / appels | **PARTIEL 29/07** | Re-test APK **1.0.40** (métadonnées enrichies) |
 | 2 | **MOB-HUB-01** | À faire | Hubs détail + liens croisés (hors entreprise déjà OK) | | après LIST |
 | 3 | **MOB-NAV-01** | À faire | Retours système depuis chaque détail | | après HUB |
 | 4 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | après NAV |

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/providers/application_provider.dart';
 import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
 import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
@@ -9,7 +10,7 @@ import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
-import 'package:jobbingtrack_mobile/utils/shell_layout.dart';
+import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
 import 'package:jobbingtrack_mobile/widgets/interview_create_sheet.dart';
 
 class InterviewsScreen extends StatefulWidget {
@@ -29,6 +30,8 @@ class _InterviewsScreenState extends State<InterviewsScreen> with SingleTickerPr
     _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
+      Provider.of<ApplicationProvider>(context, listen: false)
+          .loadApplications(token: auth.token);
       Provider.of<InterviewProvider>(context, listen: false).loadInterviews(token: auth.token);
     });
   }
@@ -124,11 +127,23 @@ class _InterviewsScreenState extends State<InterviewsScreen> with SingleTickerPr
       itemCount: interviews.length,
       itemBuilder: (context, index) {
         final i = interviews[index];
+        final apps = Provider.of<ApplicationProvider>(context, listen: false).applications;
+        final offerLine = linkedOfferCompanyLine(
+          applicationId: i.applicationId,
+          position: i.applicationPosition,
+          companyName: i.companyName,
+          applications: apps,
+        );
+        final meta = joinListMeta([offerLine, i.location]);
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             title: Text(formatSmartEventDate(i.interviewDate)),
-            subtitle: Text(i.location ?? i.notes ?? 'Entretien'),
+            subtitle: Text(
+              meta.isNotEmpty ? meta : (i.notes ?? 'Entretien'),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             leading: Icon(
               Icons.calendar_today,
               color: upcoming ? Colors.orange : Colors.grey,

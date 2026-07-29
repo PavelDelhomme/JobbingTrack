@@ -9,7 +9,7 @@ Dernière mise à jour : **29 juillet 2026**
 
 Suite immédiate : **MOB-HUB-01** (liens croisés autres fiches) → **MOB-NAV-01** (retours) → **MOB-SNACK-01** → **D.6** FAB Relance → D.7→D.9 · Parallèle DEPLOY-C*
 
-APK **1.0.39** · Rafraîchir `/backoffice/pilotage`.
+APK **1.0.40** · Rafraîchir `/backoffice/pilotage`.
 
 `make run-mobile` : étapes **1/5…5/5**. Sans rebuild : `SKIP_BUILD=1 make run-mobile`
 

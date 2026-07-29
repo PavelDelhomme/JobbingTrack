@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/providers/application_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
@@ -9,6 +10,9 @@ import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/utils/app_snack.dart';
+import 'package:jobbingtrack_mobile/utils/application_labels.dart';
+import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_screen.dart';
 
 class FollowUpsScreen extends StatefulWidget {
   const FollowUpsScreen({super.key});
@@ -28,6 +32,8 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
     _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
+      Provider.of<ApplicationProvider>(context, listen: false)
+          .loadApplications(token: auth.token);
       Provider.of<FollowUpProvider>(context, listen: false).loadFollowUps(token: auth.token);
     });
   }
@@ -128,11 +134,31 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
 
   Widget _buildFollowUpCard(FollowUp followUp, bool isPending) {
     final isOverdue = isPending && followUp.scheduledDate.isBefore(DateTime.now());
+    final apps = Provider.of<ApplicationProvider>(context, listen: false).applications;
+    final offerLine = linkedOfferCompanyLine(
+      applicationId: followUp.applicationId,
+      position: followUp.applicationPosition,
+      companyName: followUp.companyName,
+      applications: apps,
+    );
+    final metaLine = joinListMeta([
+      offerLine,
+      followUp.contactDisplayName,
+      followUpStatusLabel(followUp.status),
+    ]);
 
     Color typeColor = _getTypeColor(followUp.type);
     IconData typeIcon = _getTypeIcon(followUp.type);
 
-    return Container(
+    return InkWell(
+      onTap: () async {
+        final changed = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: followUp)),
+        );
+        if (changed == true && mounted) _loadFollowUps();
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -215,6 +241,15 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
                           ],
                         ],
                       ),
+                      if (metaLine.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          metaLine,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -330,6 +365,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
           ],
         ),
       ),
+    ),
     );
   }
 

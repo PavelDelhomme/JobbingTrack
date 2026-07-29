@@ -6,6 +6,7 @@ import 'package:jobbingtrack_mobile/providers/company_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/companies/company_detail_screen.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/company_create_dialog.dart';
+import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
 
 class CompaniesScreen extends StatefulWidget {
   const CompaniesScreen({super.key});
@@ -123,6 +124,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                                 itemCount: companies.length,
                                 itemBuilder: (_, i) {
                                   final c = companies[i];
+                                  final meta = companyListSubtitle(c);
                                   return ListTile(
                                     leading: CircleAvatar(
                                       child: Text(
@@ -130,12 +132,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                                       ),
                                     ),
                                     title: Text(c.name.isNotEmpty ? c.name : 'Sans nom'),
-                                    subtitle: Text(
-                                      [
-                                        if (c.industry.isNotEmpty) c.industry,
-                                        if (c.location.isNotEmpty) c.location,
-                                      ].join(' · '),
-                                    ),
+                                    subtitle: meta.isNotEmpty ? Text(meta) : null,
                                     trailing: c.companyType != 'EMPLOYER'
                                         ? Chip(
                                             label: Text(

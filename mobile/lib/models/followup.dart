@@ -1,3 +1,5 @@
+import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
+
 class FollowUp {
   final String id;
   final String applicationId;
@@ -8,6 +10,8 @@ class FollowUp {
   final DateTime? completedAt;
   final String? response;
   final String? contactDisplayName;
+  final String? applicationPosition;
+  final String? companyName;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -21,6 +25,8 @@ class FollowUp {
     this.completedAt,
     this.response,
     this.contactDisplayName,
+    this.applicationPosition,
+    this.companyName,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -54,6 +60,7 @@ class FollowUp {
         }
       }
     }
+    final linked = parseLinkedAppCompany(json);
     return FollowUp(
       id: json['id']?.toString() ?? '',
       applicationId: json['applicationId']?.toString() ?? '',
@@ -66,6 +73,8 @@ class FollowUp {
           : null,
       response: json['response']?.toString(),
       contactDisplayName: contactName,
+      applicationPosition: linked.position,
+      companyName: linked.companyName,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
     );
@@ -90,7 +99,8 @@ class FollowUp {
       'response': response,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      if (applicationPosition != null) 'application': {'position': applicationPosition},
+      if (companyName != null) 'company': {'name': companyName},
     };
   }
 }
-

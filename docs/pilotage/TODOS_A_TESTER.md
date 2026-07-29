@@ -46,12 +46,12 @@
 
 | Test | Attendu | Résultat | Suite |
 |------|---------|----------|-------|
-| Candidatures | Carte : poste + entreprise + statut | **À tester** | Focus Kanban |
-| Entreprises | Nom + métadonnées (pas faux CTA) | **Partiel** | CTA retiré 1.0.39 |
-| Contacts | Nom + entreprise/coordonnées | **À tester** | |
-| Relances | Date + statut + lien | **À tester** | |
-| Entretiens | Date + candidature/lieu | **À tester** | |
-| Appels | Sujet + date + cible | **À tester** | |
+| Candidatures | Carte : poste + entreprise + statut | **OK porteur** (partiel) | |
+| Entreprises | Nom + métadonnées (secteur/lieu/site/compteurs) | **Fix** 29/07 APK 1.0.40 | Re-test |
+| Contacts | Nom + entreprise + email/tél | **Fix** 29/07 APK 1.0.40 | Re-test |
+| Relances | Date + statut + **poste · entreprise** | **Fix** 29/07 APK 1.0.40 | Re-test |
+| Entretiens | Date + lieu + **poste · entreprise** | **Fix** 29/07 APK 1.0.40 | Re-test |
+| Appels | Sujet + date + **contact / entreprise / offre** | **Fix** 29/07 APK 1.0.40 | Re-test |
 
 ### MOB-HUB-01 / MOB-NAV-01 (file après LIST)
 

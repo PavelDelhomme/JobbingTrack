@@ -30,6 +30,7 @@ import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_sc
 import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
+import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
 import 'package:jobbingtrack_mobile/utils/app_snack.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/widgets/application_card.dart';
@@ -569,13 +570,9 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
             leading: const Icon(Icons.business, color: Colors.purple),
             title: Text(c.name),
             subtitle: () {
-              final parts = <String>[
-                if (c.industry.isNotEmpty) c.industry,
-                if (c.location.isNotEmpty) c.location,
-                if (c.website.isNotEmpty) c.website,
-              ];
-              if (parts.isEmpty) return null;
-              return Text(parts.join(' · '));
+              final meta = companyListSubtitle(c);
+              if (meta.isEmpty) return null;
+              return Text(meta, maxLines: 2, overflow: TextOverflow.ellipsis);
             }(),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
@@ -623,8 +620,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
             ? raw
             : Map<String, dynamic>.from(raw as Map);
         final name = contactDisplayName(map);
-        final email = map['email']?.toString() ?? '';
-        final company = contactPrimaryCompanyName(map);
+        final meta = contactListSubtitle(map);
         final id = map['id']?.toString() ?? 'contact-$index';
         return _swipeListTile(
           id: 'contact-$id',
@@ -654,9 +650,9 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
           listTile: ListTile(
             leading: const Icon(Icons.person, color: Colors.green),
             title: Text(name),
-            subtitle: company.isNotEmpty
-                ? Text(company)
-                : (email.isNotEmpty ? Text(email) : null),
+            subtitle: meta.isNotEmpty
+                ? Text(meta, maxLines: 2, overflow: TextOverflow.ellipsis)
+                : null,
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => ContactDetailScreen(contact: map)),
@@ -691,6 +687,17 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
       itemBuilder: (context, index) {
         final i = interviews[index];
         final label = formatSmartEventDate(i.interviewDate);
+        final apps = Provider.of<ApplicationProvider>(context, listen: false).applications;
+        final offerLine = linkedOfferCompanyLine(
+          applicationId: i.applicationId,
+          position: i.applicationPosition,
+          companyName: i.companyName,
+          applications: apps,
+        );
+        final meta = joinListMeta([
+          offerLine,
+          i.location,
+        ]);
         return _swipeListTile(
           id: 'interview-${i.id}',
           label: label,
@@ -719,7 +726,11 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
           listTile: ListTile(
             leading: const Icon(Icons.calendar_today, color: Colors.orange),
             title: Text(label),
-            subtitle: Text(i.location ?? i.notes ?? 'Entretien'),
+            subtitle: Text(
+              meta.isNotEmpty ? meta : (i.notes ?? 'Entretien'),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => InterviewDetailScreen(interview: i)),
@@ -773,8 +784,18 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
 
   Widget _relanceTile(FollowUp f) {
     final title = followUpListTitle(f);
-    final contactLabel = f.contactDisplayName;
-    final notesBody = followUpNotesWithoutChannel(f.notes);
+    final apps = Provider.of<ApplicationProvider>(context, listen: false).applications;
+    final offerLine = linkedOfferCompanyLine(
+      applicationId: f.applicationId,
+      position: f.applicationPosition,
+      companyName: f.companyName,
+      applications: apps,
+    );
+    final subtitle = joinListMeta([
+      offerLine,
+      f.contactDisplayName,
+      followUpStatusLabel(f.status),
+    ]);
     Future<void> openDetail() async {
       final changed = await Navigator.of(context).push<bool>(
         MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),
@@ -810,9 +831,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
         leading: const Icon(Icons.schedule_send, color: Colors.teal),
         title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(
-          contactLabel?.isNotEmpty == true
-              ? contactLabel!
-              : (notesBody.isNotEmpty ? notesBody : followUpStatusLabel(f.status)),
+          subtitle.isNotEmpty ? subtitle : followUpNotesWithoutChannel(f.notes),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
@@ -847,6 +866,18 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
         itemBuilder: (context, index) {
           final c = _calls[index];
           final label = c.subject.trim().isNotEmpty ? c.subject : 'Appel téléphonique';
+          final apps = Provider.of<ApplicationProvider>(context, listen: false).applications;
+          final offerLine = linkedOfferCompanyLine(
+            applicationId: c.applicationId,
+            position: c.applicationPosition,
+            companyName: c.companyName,
+            applications: apps,
+          );
+          final meta = joinListMeta([
+            c.isCompanyOnly ? null : c.targetLabel,
+            offerLine.isNotEmpty ? offerLine : c.companyName,
+            formatSmartEventDate(c.callDate),
+          ]);
           return _swipeListTile(
             id: 'call-${c.id}',
             label: label,
@@ -875,7 +906,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
             listTile: ListTile(
               leading: const Icon(Icons.phone, color: Colors.green),
               title: Text(label),
-              subtitle: Text(formatSmartEventDate(c.callDate)),
+              subtitle: Text(meta, maxLines: 2, overflow: TextOverflow.ellipsis),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => CallDetailScreen(call: c)),
