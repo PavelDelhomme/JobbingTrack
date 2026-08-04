@@ -50,8 +50,8 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
-// Contourne compressDebugAssets / Zip « already contains entry … kernel_blob.bin »
-// (intermédiaires sales après clean partiel, Docker /workspace root-owned, rebuild parallèle).
+// Contourne compress*Assets / Zip « already contains entry … kernel_blob.bin »
+// (sortie compressée sale). Ne jamais supprimer le kernel_blob SOURCE (merge*Assets).
 tasks.configureEach {
     if (name.startsWith("compress") && name.contains("Assets", ignoreCase = true)) {
         doFirst {
@@ -60,10 +60,13 @@ tasks.configureEach {
             if (compressedRoot.exists()) {
                 compressedRoot.deleteRecursively()
             }
-            // Ancien jar résiduel hors arborescence compressée
-            layout.buildDirectory.get().asFile.walkTopDown()
-                .filter { it.isFile && it.name.contains("kernel_blob") }
-                .forEach { it.delete() }
+        }
+        // Flutter copie les assets hors du graphe de dépendances AGP classique.
+        val copyFlutter =
+            tasks.findByName("copyFlutterAssetsDebug")
+                ?: tasks.findByName("copyFlutterAssets${name.removePrefix("compress").removeSuffix("Assets")}")
+        if (copyFlutter != null) {
+            dependsOn(copyFlutter)
         }
     }
 }

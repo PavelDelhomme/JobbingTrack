@@ -618,8 +618,13 @@
       "kind": "task"
     },
     "APK-BUILD-01": {
-      "porteurNote": "Agent 04/08 : clean Docker + doFirst Gradle purge compressed_assets/kernel_blob ; warning KGP non bloquant (builtInKotlin=false). Re-valider Rebuild APK depuis backoffice.",
+      "porteurNote": "Agent 04/08 : build OK 1.0.42+42 (purge compressed_assets only) ; install Samsung versionName 1.0.42 — confirmer ouverture app + Rebuild depuis backoffice.",
       "history": [
+        {
+          "at": "2026-08-04T10:10:00.000Z",
+          "action": "PARTIEL",
+          "note": "Build+install agent OK 1.0.42 ; validation porteur ouverture / Rebuild UI"
+        },
         {
           "at": "2026-08-04T09:30:00.000Z",
           "action": "PARTIEL",
@@ -643,7 +648,7 @@
         {
           "id": "rebuild-ok",
           "label": "Rebuild APK réussit (pas d’erreur Zip)",
-          "done": false
+          "done": true
         },
         {
           "id": "version-match",

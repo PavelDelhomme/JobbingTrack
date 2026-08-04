@@ -6,7 +6,7 @@
 
 **Phase active** : **B — Gate pré-prod mobile**  
 **Point exact** : **MOB-HUB-01** (seul **En cours** Kanban)  
-**APK** : **1.0.41** · Samsung (hubs croisés)
+**APK** : **1.0.42** · Samsung (hubs croisés)
 
 > **Kanban** : badge = **colonne**. **MOB-ENT-01** = Terminé. **MOB-LIST-01** = À valider.
 
@@ -16,14 +16,14 @@
 
 | # | ID | Colonne | À faire | Décision | Notes |
 |---|----|---------|---------|----------|-------|
-| 1 | **MOB-HUB-01** | ▶ En cours | Hubs détail + liens croisés + ajout lié | | ◀ **maintenant** APK 1.0.41 — backoffice nouvel onglet fixé 04/08 |
+| 1 | **MOB-HUB-01** | ▶ En cours | Hubs détail + liens croisés + ajout lié | | ◀ **maintenant** APK **1.0.42** Samsung |
 | 2 | **MOB-LIST-01** | À valider | Cartes listes métadonnées | **PARTIEL agent** | Re-test porteur 1.0.40+ |
 | 3 | **MOB-NAV-01** | À faire | Retours système depuis chaque détail | | après HUB |
 | 4 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | après NAV |
 | 5 | **D.6** | À faire | FAB Relance | | après snacks |
 | 6 | D.7→D.9 | Plus tard | FAB Appel / Entretien / Contact | | après D.6 |
 | 7 | E.10→F.12 | Plus tard | Shell re-tap / FAB contacts / double retour | | après FAB |
-| 8 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **PARTIEL agent** | fix Gradle 04/08 + clean Docker |
+| 8 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **OK agent 04/08** | 1.0.42 install Samsung — confirmer porteur |
 | 9 | **DEPLOY-C1→C3** | À faire | Portainer + NPM + OTA préprod | | parallèle C |
 | 10 | **DEPLOY-MAKE** | À tester | Make up-preprod / upgrade-to-* | | script livré |
 | — | **MOB-ENT-01** | Terminées | Hub entreprise Capgemini | **OK 29/07** | |
@@ -39,7 +39,7 @@
 | **MOB-LIST-01** | Infos cartes listes tous onglets | **PARTIEL** → À valider | métadonnées 1.0.40 |
 | **MOB-HUB-01** | Liens croisés fiches (app/contact/relance/entretien/appel) | | ◀ **maintenant** |
 | **MOB-NAV-01** | Bouton retour système | | après HUB |
-| **APK-BUILD-01** | Rebuild sans Zip kernel_blob | **PARTIEL 04/08** | Gradle doFirst + clean `/workspace` ; KGP = warn |
+| **APK-BUILD-01** | Rebuild sans Zip kernel_blob | **OK agent 04/08** | build 1.0.42 + install Samsung ; KGP = warn |
 | **WEB-LOGIN-01** | Login bandeau FR sans overlay Next | **OK 22/07** | |
 | **EMU-LIVE-01** | Aperçu live ADB | **OK 22/07** | |
 | **MOB-SNACK-01** | AppSnack auto-dismiss | | après NAV |

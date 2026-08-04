@@ -69,13 +69,14 @@
 | Test | Attendu | Résultat | Suite |
 |------|---------|----------|-------|
 | Cause | `compressDebugAssets` / `kernel_blob.bin.jar already contains entry` | **Confirmé** log porteur 27/07 + **04/08** `/workspace` | build Docker |
+| Régression agent | purge trop agressive (supprimait SOURCE kernel_blob) → `NoSuchFileException` | **Confirmé** 04/08 | |
 | `clean-flutter-apk-build.sh` | flutter clean + purge compressed_assets / kernel_blob + sudo root | **Renforcé** 04/08 | Docker `/workspace` |
-| `app/build.gradle.kts` | `doFirst` purge `compressed_assets` avant compress*Assets | **Livré** 04/08 | |
+| `app/build.gradle.kts` | purge **uniquement** `compressed_assets` + `dependsOn copyFlutterAssets*` | **Fix** 04/08 | ne pas toucher merge*Assets |
 | `build-apk-debug.sh` | clean systématique + retry si Zip | **Livré** | |
-| Warning KGP | app + plugins (`device_info_plus`…) | **WARN non bloquant** | `android.builtInKotlin=false` ; migration plugins plus tard |
-| Build agent | APK debug sans Zip | **OK 27/07** `1.0.36+36` ; **re-test** 04/08 après fix Gradle | |
-| Install ADB Samsung | versionName courante | **OK 27/07** 1.0.36 | Re-build porteur |
-| Porteur | Rebuild backoffice → APK sans Zip | **À valider** | |
+| Warning KGP | app + plugins (`device_info_plus`…) | **WARN non bloquant** | `android.builtInKotlin=false` |
+| Build agent | APK debug sans Zip | **OK 04/08** `1.0.42+42` | |
+| Install ADB Samsung | versionName 1.0.42 / versionCode 42 | **OK 04/08** R5CT7263YJL | |
+| Porteur | Rebuild backoffice OK + ouverture app | **À valider** | |
 
 ### PILOTAGE-KANBAN — contraste + promo inbox + docs (27/07)
 
