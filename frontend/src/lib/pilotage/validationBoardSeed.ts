@@ -399,9 +399,9 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
       section: "Correctifs session 22/07",
       label: "Rebuild APK debug sans Zip kernel_blob",
       description:
-        "Backoffice Mobile → Rebuild APK. Le script clean-flutter-apk-build.sh doit éviter compressDebugAssets / kernel_blob.bin.jar.",
+        "Backoffice Mobile → Rebuild APK. clean-flutter-apk-build.sh + doFirst Gradle (purge compressed_assets/kernel_blob) doivent éviter Zip — surtout /workspace Docker.",
       expected:
-        "Build vert ; APK sur disque ; téléphone réinstallé avec version = pubspec.",
+        "Build vert ; APK sur disque ; téléphone réinstallé avec version = pubspec. Warning Kotlin/KGP acceptable (android.builtInKotlin=false).",
       status: "open",
       order: 5,
       checklist: [

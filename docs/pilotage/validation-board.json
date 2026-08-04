@@ -618,8 +618,13 @@
       "kind": "task"
     },
     "APK-BUILD-01": {
-      "porteurNote": "Agent 27/07 : build OK 1.0.36+36 sans Zip ; install ADB Samsung OK — confirmer ouverture app",
+      "porteurNote": "Agent 04/08 : clean Docker + doFirst Gradle purge compressed_assets/kernel_blob ; warning KGP non bloquant (builtInKotlin=false). Re-valider Rebuild APK depuis backoffice.",
       "history": [
+        {
+          "at": "2026-08-04T09:30:00.000Z",
+          "action": "PARTIEL",
+          "note": "Renfort anti-Zip (Gradle doFirst + clean sudo /workspace) ; KGP = warn"
+        },
         {
           "at": "2026-07-27T17:50:59.206Z",
           "action": "PARTIEL",
@@ -630,15 +635,15 @@
       "cycleId": "correctifs-2207",
       "section": "Correctifs session 22/07",
       "label": "Rebuild APK debug sans Zip kernel_blob",
-      "description": "Backoffice Mobile → Rebuild APK. Le script clean-flutter-apk-build.sh doit éviter compressDebugAssets / kernel_blob.bin.jar.",
-      "expected": "Build vert ; APK sur disque ; téléphone réinstallé avec version = pubspec.",
+      "description": "Backoffice Mobile → Rebuild APK. clean-flutter-apk-build.sh + doFirst Gradle doivent éviter compressDebugAssets / kernel_blob.bin.jar (surtout /workspace Docker).",
+      "expected": "Build vert ; APK sur disque ; téléphone réinstallé avec version = pubspec. Warning Kotlin/KGP acceptable tant que builtInKotlin=false.",
       "status": "partial",
       "order": 5,
       "checklist": [
         {
           "id": "rebuild-ok",
           "label": "Rebuild APK réussit (pas d’erreur Zip)",
-          "done": true
+          "done": false
         },
         {
           "id": "version-match",

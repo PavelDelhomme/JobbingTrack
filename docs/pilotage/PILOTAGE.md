@@ -12,6 +12,8 @@ Suite : **MOB-NAV-01** → **MOB-SNACK-01** → **D.6** FAB · Parallèle DEPLOY
 
 APK **1.0.41** (hubs) · Rafraîchir `/backoffice/pilotage`.
 
+Correctifs 04/08 (pour pouvoir valider HUB) : **nouvel onglet backoffice** sans refresh de la page source ; **build APK** anti-Zip `kernel_blob` (Gradle + clean Docker). Warning Kotlin/KGP = non bloquant (`builtInKotlin=false`).
+
 `make run-mobile` : étapes **1/5…5/5**. Sans rebuild : `SKIP_BUILD=1 make run-mobile`
 
 ## Kanban ADHD (règle d’or)

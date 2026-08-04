@@ -49,3 +49,21 @@ flutter {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
+
+// Contourne compressDebugAssets / Zip « already contains entry … kernel_blob.bin »
+// (intermédiaires sales après clean partiel, Docker /workspace root-owned, rebuild parallèle).
+tasks.configureEach {
+    if (name.startsWith("compress") && name.contains("Assets", ignoreCase = true)) {
+        doFirst {
+            val compressedRoot =
+                layout.buildDirectory.get().asFile.resolve("intermediates/compressed_assets")
+            if (compressedRoot.exists()) {
+                compressedRoot.deleteRecursively()
+            }
+            // Ancien jar résiduel hors arborescence compressée
+            layout.buildDirectory.get().asFile.walkTopDown()
+                .filter { it.isFile && it.name.contains("kernel_blob") }
+                .forEach { it.delete() }
+        }
+    }
+}

@@ -62,17 +62,20 @@
 | Relance | + appels ; candidature montre entreprise | **Livré** 04/08 | Re-test |
 | Appel / Candidature / Entreprise | Déjà hub OK | **OK agent** | Smoke porteur |
 | Ajout | FAB candidature + FAB contact « Ajouter lié » | **Livré** | hub-add |
+| Backoffice nouvel onglet | Ctrl/molette n’actualise **pas** la page source | **Fix** 04/08 `BackofficeLink` + layout auth sans PageLoader flash | Re-test porteur |
 
-### APK-BUILD-01 — anti Zip kernel_blob (27/07)
+### APK-BUILD-01 — anti Zip kernel_blob (27/07 → 04/08)
 
 | Test | Attendu | Résultat | Suite |
 |------|---------|----------|-------|
-| Cause | `compressDebugAssets` / `kernel_blob.bin.jar already contains entry` | **Confirmé** log porteur 27/07 | build-apk-debug **sans** clean avant |
-| `clean-flutter-apk-build.sh` | flutter clean + purge compressed_assets / outputs | **Livré** | + sudo root `.plugin_symlinks` |
+| Cause | `compressDebugAssets` / `kernel_blob.bin.jar already contains entry` | **Confirmé** log porteur 27/07 + **04/08** `/workspace` | build Docker |
+| `clean-flutter-apk-build.sh` | flutter clean + purge compressed_assets / kernel_blob + sudo root | **Renforcé** 04/08 | Docker `/workspace` |
+| `app/build.gradle.kts` | `doFirst` purge `compressed_assets` avant compress*Assets | **Livré** 04/08 | |
 | `build-apk-debug.sh` | clean systématique + retry si Zip | **Livré** | |
-| Build agent | APK debug sans Zip | **OK 27/07** `1.0.36+36` | |
-| Install ADB Samsung | `com.example.jobbingtrack_mobile` versionName 1.0.36 | **OK 27/07** | |
-| Porteur | Ouvrir app + smoke login | **À valider** | Kanban → À valider |
+| Warning KGP | app + plugins (`device_info_plus`…) | **WARN non bloquant** | `android.builtInKotlin=false` ; migration plugins plus tard |
+| Build agent | APK debug sans Zip | **OK 27/07** `1.0.36+36` ; **re-test** 04/08 après fix Gradle | |
+| Install ADB Samsung | versionName courante | **OK 27/07** 1.0.36 | Re-build porteur |
+| Porteur | Rebuild backoffice → APK sans Zip | **À valider** | |
 
 ### PILOTAGE-KANBAN — contraste + promo inbox + docs (27/07)
 

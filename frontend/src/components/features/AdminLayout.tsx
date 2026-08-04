@@ -1,7 +1,6 @@
 "use client";
 
 import { ReactNode, useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/auth";
@@ -15,6 +14,7 @@ import { FRONTEND_URLS } from "@/config/ports.config";
 // ✅ OPTIMISATION: Import depuis le baril pour permettre le tree-shaking
 import { TrendingUp, Database, Activity, Server } from "@/lib/icons";
 import { FlaskConical, Eraser } from "lucide-react";
+import { BackofficeLink } from "./BackofficeLink";
 import { BackofficeRefreshControls } from "./BackofficeRefreshControls";
 import { AdminActionToast } from "./AdminActionToast";
 import { showAdminActionFeedback } from "@/lib/adminActionFeedback";
@@ -701,7 +701,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         >
           {/* Logo avec bouton de fermeture sur mobile */}
           <div className="flex h-16 items-center justify-between px-4 bg-gray-100 dark:bg-gray-800 flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
-            <Link
+            <BackofficeLink
               href="/backoffice"
               prefetch={false}
               onMouseEnter={() => prefetchInternalRoute("/backoffice")}
@@ -717,7 +717,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 priority
               />
               <span className="truncate">JobbingTrack</span>
-            </Link>
+            </BackofficeLink>
             {/* Bouton fermer visible uniquement sur mobile */}
             <button
               onClick={() => setIsSidebarOpen(false)}
@@ -867,7 +867,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             ) : item.href ? (
                               <div>
                                 <div className="flex items-center">
-                                  <Link
+                                  <BackofficeLink
                                     href={item.href}
                                     prefetch={false}
                                     onMouseEnter={() =>
@@ -892,7 +892,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                   `}
                                   >
                                     {content}
-                                  </Link>
+                                  </BackofficeLink>
                                   {hasSubItems && (
                                     <button
                                       onClick={(e) => {
@@ -959,7 +959,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                             <span>{subItem.name}</span>
                                           </a>
                                         ) : (
-                                          <Link
+                                          <BackofficeLink
                                             key={subItem.name}
                                             href={subItem.href}
                                             prefetch={false}
@@ -984,7 +984,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                             {isSubActive && (
                                               <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full"></div>
                                             )}
-                                          </Link>
+                                          </BackofficeLink>
                                         )
                                       ) : null;
                                     })}
