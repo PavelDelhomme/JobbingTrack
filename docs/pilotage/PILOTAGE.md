@@ -1,15 +1,16 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **29 juillet 2026**
+Dernière mise à jour : **4 août 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : MOB-LIST-01** — cartes listes de chaque onglet  
-**MOB-ENT-01** → **OK** (hub entreprise Capgemini validé porteur)  
+**Focus (1 seule) : MOB-HUB-01** — hubs détail + liens croisés  
+**MOB-LIST-01** → **À valider** (métadonnées listes APK 1.0.40+)  
+**MOB-ENT-01** → **OK**
 
-Suite immédiate : **MOB-HUB-01** (liens croisés autres fiches) → **MOB-NAV-01** (retours) → **MOB-SNACK-01** → **D.6** FAB Relance → D.7→D.9 · Parallèle DEPLOY-C*
+Suite : **MOB-NAV-01** → **MOB-SNACK-01** → **D.6** FAB · Parallèle DEPLOY-C*
 
-APK **1.0.40** · Rafraîchir `/backoffice/pilotage`.
+APK **1.0.41** (hubs) · Rafraîchir `/backoffice/pilotage`.
 
 `make run-mobile` : étapes **1/5…5/5**. Sans rebuild : `SKIP_BUILD=1 make run-mobile`
 
@@ -64,7 +65,7 @@ Décisions UI (OK/KO/PARTIEL/Plus tard/REWORK) + **déplacement de colonne** →
 
 | Phase | Statut |
 |-------|--------|
-| **B** gate mobile | MOB-ENT OK → MOB-LIST → MOB-HUB → MOB-NAV → snacks/FAB |
+| **B** gate mobile | MOB-ENT OK → LIST à valider → **HUB en cours** → NAV → snacks/FAB |
 | C déploiement | parallèle |
 | D backoffice | board Kanban |
 

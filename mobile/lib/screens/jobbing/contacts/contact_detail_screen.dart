@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
+import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/companies/company_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contact_edit_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/utils/linked_entity_parsers.dart';
+import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_detail_field.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_link_tile.dart';
@@ -29,6 +32,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
   Map<String, dynamic>? _contact;
   List<Call> _calls = [];
   List<FollowUp> _followUps = [];
+  List<Interview> _interviews = [];
   bool _loading = true;
 
   @override
@@ -51,18 +55,33 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
       final fresh = await ApiService.getContact(id, token: token);
       final apps = parseNestedApplications(fresh['applications'] as List<dynamic>?);
       final followUps = <FollowUp>[];
+      final interviews = <Interview>[];
+      final seenFu = <String>{};
+      final seenIv = <String>{};
       for (final app in apps) {
         final appId = app['id']?.toString();
         if (appId == null || appId.isEmpty) continue;
-        final list = await ApiService.getFollowUps(applicationId: appId, token: token);
-        followUps.addAll(list);
+        try {
+          for (final f in await ApiService.getFollowUps(applicationId: appId, token: token)) {
+            if (seenFu.add(f.id)) followUps.add(f);
+          }
+        } catch (_) {}
+        try {
+          for (final i in await ApiService.getInterviews(applicationId: appId, token: token)) {
+            if (seenIv.add(i.id)) interviews.add(i);
+          }
+        } catch (_) {}
       }
+      followUps.sort((a, b) => b.scheduledDate.compareTo(a.scheduledDate));
+      interviews.sort((a, b) => b.interviewDate.compareTo(a.interviewDate));
       final allCalls = await ApiService.getCalls(token: token);
-      final linkedCalls = allCalls.where((c) => c.contactId == id).toList();
+      final linkedCalls = allCalls.where((c) => c.contactId == id).toList()
+        ..sort((a, b) => b.callDate.compareTo(a.callDate));
       if (mounted) {
         setState(() {
           _contact = fresh;
           _followUps = followUps;
+          _interviews = interviews;
           _calls = linkedCalls;
           _loading = false;
         });
@@ -123,6 +142,47 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
     }
   }
 
+  Future<void> _openLinkedApplicationForAdd() async {
+    final c = _contact ?? widget.contact;
+    final appMaps = parseNestedApplications(c['applications'] as List<dynamic>?);
+    if (appMaps.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Liez d’abord une candidature à ce contact')),
+      );
+      return;
+    }
+    Map<String, dynamic>? picked = appMaps.length == 1 ? appMaps.first : null;
+    if (picked == null) {
+      picked = await showModalBottomSheet<Map<String, dynamic>>(
+        context: context,
+        showDragHandle: true,
+        builder: (ctx) => SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              const ListTile(title: Text('Ajouter depuis quelle candidature ?')),
+              ...appMaps.map((raw) {
+                final title = raw['position']?.toString() ?? 'Candidature';
+                return ListTile(
+                  leading: const Icon(Icons.assignment_outlined),
+                  title: Text(title),
+                  onTap: () => Navigator.pop(ctx, raw),
+                );
+              }),
+            ],
+          ),
+        ),
+      );
+    }
+    if (picked == null || !mounted) return;
+    final app = applicationFromLinkedMap(picked);
+    if (app == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ApplicationDetailScreen(application: app)),
+    );
+    if (mounted) _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = _contact ?? widget.contact;
@@ -142,6 +202,12 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
             ],
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_contact_detail_add',
+        onPressed: _openLinkedApplicationForAdd,
+        icon: const Icon(Icons.add),
+        label: const Text('Ajouter lié'),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -199,7 +265,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                                 ),
                       );
                     }),
-                  const EntityLinkSectionHeader('Relances liées'),
+                  EntityLinkSectionHeader('Relances liées (${_followUps.length})'),
                   if (_followUps.isEmpty)
                     const EntityLinksEmptyHint('Aucune relance')
                   else
@@ -207,21 +273,56 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                       (f) => EntityLinkTile(
                         icon: Icons.schedule_send_outlined,
                         title: formatSmartEventDate(f.scheduledDate),
-                        subtitle: f.notes ?? followUpStatusLabel(f.status),
+                        subtitle: joinListMeta([
+                          linkedOfferCompanyLine(
+                            applicationId: f.applicationId,
+                            position: f.applicationPosition,
+                            companyName: f.companyName,
+                          ),
+                          followUpStatusLabel(f.status),
+                        ]),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),
                         ),
                       ),
                     ),
-                  const EntityLinkSectionHeader('Appels liés'),
+                  EntityLinkSectionHeader('Entretiens liés (${_interviews.length})'),
+                  if (_interviews.isEmpty)
+                    const EntityLinksEmptyHint('Aucun entretien')
+                  else
+                    ..._interviews.map(
+                      (i) => EntityLinkTile(
+                        icon: Icons.event_outlined,
+                        title: formatSmartEventDate(i.interviewDate),
+                        subtitle: joinListMeta([
+                          linkedOfferCompanyLine(
+                            applicationId: i.applicationId,
+                            position: i.applicationPosition,
+                            companyName: i.companyName,
+                          ),
+                          i.location,
+                        ]),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => InterviewDetailScreen(interview: i)),
+                        ),
+                      ),
+                    ),
+                  EntityLinkSectionHeader('Appels liés (${_calls.length})'),
                   if (_calls.isEmpty)
                     const EntityLinksEmptyHint('Aucun appel')
                   else
                     ..._calls.map(
                       (call) => EntityLinkTile(
                         icon: Icons.phone_outlined,
-                        title: call.subject,
-                        subtitle: formatSmartEventDate(call.callDate),
+                        title: call.subject.isNotEmpty ? call.subject : 'Appel',
+                        subtitle: joinListMeta([
+                          linkedOfferCompanyLine(
+                            applicationId: call.applicationId,
+                            position: call.applicationPosition,
+                            companyName: call.companyName,
+                          ),
+                          formatSmartEventDate(call.callDate),
+                        ]),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => CallDetailScreen(call: call)),
                         ),

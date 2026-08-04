@@ -47,19 +47,21 @@
 | Test | Attendu | Résultat | Suite |
 |------|---------|----------|-------|
 | Candidatures | Carte : poste + entreprise + statut | **OK porteur** (partiel) | |
-| Entreprises | Nom + métadonnées (secteur/lieu/site/compteurs) | **Fix** 29/07 APK 1.0.40 | Re-test |
-| Contacts | Nom + entreprise + email/tél | **Fix** 29/07 APK 1.0.40 | Re-test |
-| Relances | Date + statut + **poste · entreprise** | **Fix** 29/07 APK 1.0.40 | Re-test |
-| Entretiens | Date + lieu + **poste · entreprise** | **Fix** 29/07 APK 1.0.40 | Re-test |
-| Appels | Sujet + date + **contact / entreprise / offre** | **Fix** 29/07 APK 1.0.40 | Re-test |
+| Entreprises | Nom + métadonnées (secteur/lieu/site/compteurs) | **Fix** 29/07 APK 1.0.40 | **À valider** porteur |
+| Contacts | Nom + entreprise + email/tél | **Fix** 29/07 APK 1.0.40 | **À valider** porteur |
+| Relances | Date + statut + **poste · entreprise** | **Fix** 29/07 APK 1.0.40 | **À valider** porteur |
+| Entretiens | Date + lieu + **poste · entreprise** | **Fix** 29/07 APK 1.0.40 | **À valider** porteur |
+| Appels | Sujet + date + **contact / entreprise / offre** | **Fix** 29/07 APK 1.0.40 | **À valider** porteur |
 
-### MOB-HUB-01 / MOB-NAV-01 (file après LIST)
+### MOB-HUB-01 — hubs détail + liens croisés (04/08)
 
 | Test | Attendu | Résultat | Suite |
 |------|---------|----------|-------|
-| Hubs hors entreprise | Liens croisés sur app/contact/relance/entretien/appel | **À faire** | Après LIST |
-| Retours Android | Liste↔détail↔lié stables | **À faire** | Après HUB |
-| FAB D.6→D.9 | Créations depuis candidature | **À faire** | Après snacks |
+| Contact | + entretiens liés ; FAB « Ajouter lié » → candidature | **Livré** 04/08 | Re-test |
+| Entretien | + relances + appels (même candidature) | **Livré** 04/08 | Re-test |
+| Relance | + appels ; candidature montre entreprise | **Livré** 04/08 | Re-test |
+| Appel / Candidature / Entreprise | Déjà hub OK | **OK agent** | Smoke porteur |
+| Ajout | FAB candidature + FAB contact « Ajouter lié » | **Livré** | hub-add |
 
 ### APK-BUILD-01 — anti Zip kernel_blob (27/07)
 

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-29T17:31:18.522Z",
+  "updatedAt": "2026-08-04T08:32:39.131Z",
   "cycles": [
     {
       "id": "correctifs-2207",
@@ -217,10 +217,15 @@
       "expected": "Chaque liste lisible ; ouverture d’un item → détail ; données cohérentes avec les autres onglets.",
       "status": "partial",
       "order": 11,
-      "column": "doing",
+      "column": "a_valider",
       "kind": "task",
-      "porteurNote": "PARTIEL 29/07 — re-test métadonnées listes APK 1.0.40 (entreprise/contact/relance/entretien/appel)",
+      "porteurNote": "PARTIEL agent 04/08 — métadonnées APK 1.0.40+ ; porteur confirme sous-critères listes",
       "history": [
+        {
+          "at": "2026-08-04T08:29:16.193Z",
+          "action": "PARTIEL",
+          "note": "Passe À valider ; focus → MOB-HUB"
+        },
         {
           "at": "2026-07-29T17:31:18.522Z",
           "action": "note",
@@ -278,10 +283,21 @@
       "expected": "Depuis n’importe quelle fiche, les liens utiles sont visibles et navigables.",
       "status": "open",
       "order": 12,
-      "column": "backlog",
+      "column": "doing",
       "kind": "task",
-      "porteurNote": "Après MOB-LIST",
-      "history": [],
+      "porteurNote": "Focus 04/08 APK 1.0.41 — hubs contact/entretien/relance enrichis",
+      "history": [
+        {
+          "at": "2026-08-04T08:32:39.131Z",
+          "action": "note",
+          "note": "APK 1.0.41 installé"
+        },
+        {
+          "at": "2026-08-04T08:29:16.193Z",
+          "action": "focus",
+          "note": "En cours après MOB-LIST → a_valider"
+        }
+      ],
       "checklist": [
         {
           "id": "hub-app",
@@ -1201,5 +1217,5 @@
       "kind": "task"
     }
   },
-  "focusTaskId": "MOB-LIST-01"
+  "focusTaskId": "MOB-HUB-01"
 }

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
+import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/models/company.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/companies/company_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contact_detail_screen.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
@@ -13,6 +15,7 @@ import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/app_snack.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/utils/linked_entity_parsers.dart';
+import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_detail_field.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_link_tile.dart';
@@ -31,6 +34,7 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
   Application? _application;
   Company? _company;
   Map<String, dynamic>? _contact;
+  List<Call> _calls = [];
   bool _loading = true;
 
   @override
@@ -49,12 +53,20 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
           app = await ApiService.getApplication(raw['applicationId'].toString(), token: token);
         } catch (_) {}
       }
+      var calls = <Call>[];
+      final appId = app?.id ?? raw['applicationId']?.toString() ?? '';
+      if (appId.isNotEmpty) {
+        try {
+          calls = await ApiService.getCallsByApplication(appId, token: token);
+        } catch (_) {}
+      }
       if (mounted) {
         setState(() {
           _followUp = FollowUp.fromJson(raw);
           _application = app;
           _company = companyFromLinkedMap(nestedMap(raw, 'company')) ?? app?.company;
           _contact = firstContactFromEntityRaw(raw);
+          _calls = calls..sort((a, b) => b.callDate.compareTo(a.callDate));
           _loading = false;
         });
       }
@@ -205,7 +217,9 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
               padding: scrollSafePadding(context),
               children: [
                 EntityDetailField(label: 'Date prévue', value: formatSmartEventDate(f.scheduledDate)),
@@ -226,7 +240,10 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
                   EntityLinkTile(
                     icon: Icons.assignment_outlined,
                     title: _application!.position,
-                    subtitle: applicationStatusLabel(_application!.status),
+                    subtitle: joinListMeta([
+                      _application!.company.name,
+                      applicationStatusLabel(_application!.status),
+                    ]),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => ApplicationDetailScreen(application: _application!),
@@ -257,7 +274,22 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
                       MaterialPageRoute(builder: (_) => ContactDetailScreen(contact: _contact!)),
                     ),
                   ),
+                EntityLinkSectionHeader('Appels liés (${_calls.length})'),
+                if (_calls.isEmpty)
+                  const EntityLinksEmptyHint('Aucun appel sur cette candidature')
+                else
+                  ..._calls.map(
+                    (call) => EntityLinkTile(
+                      icon: Icons.phone_outlined,
+                      title: call.subject.isNotEmpty ? call.subject : 'Appel',
+                      subtitle: formatSmartEventDate(call.callDate),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => CallDetailScreen(call: call)),
+                      ),
+                    ),
+                  ),
               ],
+            ),
             ),
     );
   }

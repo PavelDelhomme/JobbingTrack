@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
+import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/models/company.dart';
+import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/companies/company_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contact_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_screen.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/utils/linked_entity_parsers.dart';
+import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_detail_field.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_link_tile.dart';
@@ -29,6 +34,8 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
   Application? _application;
   Company? _company;
   List<Map<String, dynamic>> _contacts = [];
+  List<FollowUp> _followUps = [];
+  List<Call> _calls = [];
   bool _loading = true;
 
   @override
@@ -49,8 +56,18 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
         } catch (_) {}
       }
       var contacts = <Map<String, dynamic>>[];
+      var followUps = <FollowUp>[];
+      var calls = <Call>[];
       if (appId.isNotEmpty) {
-        contacts = await ApiService.getContactsByApplication(appId, token: token);
+        try {
+          contacts = await ApiService.getContactsByApplication(appId, token: token);
+        } catch (_) {}
+        try {
+          followUps = await ApiService.getFollowUps(applicationId: appId, token: token);
+        } catch (_) {}
+        try {
+          calls = await ApiService.getCallsByApplication(appId, token: token);
+        } catch (_) {}
       }
       if (mounted) {
         setState(() {
@@ -58,6 +75,8 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
           _application = app;
           _company = companyFromLinkedMap(nestedMap(raw, 'company')) ?? app?.company;
           _contacts = contacts.where(isMeaningfulContactMap).toList();
+          _followUps = followUps..sort((a, b) => b.scheduledDate.compareTo(a.scheduledDate));
+          _calls = calls..sort((a, b) => b.callDate.compareTo(a.callDate));
           _loading = false;
         });
       }
@@ -205,7 +224,9 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
               padding: scrollSafePadding(context),
               children: [
                 EntityDetailField(label: 'Date', value: formatSmartEventDate(i.interviewDate)),
@@ -222,7 +243,10 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
                   EntityLinkTile(
                     icon: Icons.assignment_outlined,
                     title: _application!.position,
-                    subtitle: applicationStatusLabel(_application!.status),
+                    subtitle: joinListMeta([
+                      _application!.company.name,
+                      applicationStatusLabel(_application!.status),
+                    ]),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => ApplicationDetailScreen(application: _application!),
@@ -241,7 +265,7 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
                       MaterialPageRoute(builder: (_) => CompanyDetailScreen(company: _company!)),
                     ),
                   ),
-                const EntityLinkSectionHeader('Contacts liés'),
+                EntityLinkSectionHeader('Contacts liés (${_contacts.length})'),
                 if (_contacts.isEmpty)
                   const EntityLinksEmptyHint('Aucun contact sur cette candidature')
                 else
@@ -255,7 +279,36 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
                       ),
                     ),
                   ),
+                EntityLinkSectionHeader('Relances liées (${_followUps.length})'),
+                if (_followUps.isEmpty)
+                  const EntityLinksEmptyHint('Aucune relance sur cette candidature')
+                else
+                  ..._followUps.map(
+                    (f) => EntityLinkTile(
+                      icon: Icons.schedule_send_outlined,
+                      title: formatSmartEventDate(f.scheduledDate),
+                      subtitle: followUpStatusLabel(f.status),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: f)),
+                      ),
+                    ),
+                  ),
+                EntityLinkSectionHeader('Appels liés (${_calls.length})'),
+                if (_calls.isEmpty)
+                  const EntityLinksEmptyHint('Aucun appel sur cette candidature')
+                else
+                  ..._calls.map(
+                    (call) => EntityLinkTile(
+                      icon: Icons.phone_outlined,
+                      title: call.subject.isNotEmpty ? call.subject : 'Appel',
+                      subtitle: formatSmartEventDate(call.callDate),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => CallDetailScreen(call: call)),
+                      ),
+                    ),
+                  ),
               ],
+            ),
             ),
     );
   }

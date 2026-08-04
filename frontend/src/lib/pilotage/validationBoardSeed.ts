@@ -781,8 +781,8 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
   };
   setCol("APK-BUILD-01", "a_valider", "partial");
   setCol("MOB-ENT-01", "done", "ok");
-  setCol("MOB-LIST-01", "doing", "open");
-  setCol("MOB-HUB-01", "backlog", "open");
+  setCol("MOB-LIST-01", "a_valider", "partial");
+  setCol("MOB-HUB-01", "doing", "open");
   setCol("MOB-NAV-01", "backlog", "open");
   setCol("MOB-SNACK-01", "backlog", "open");
   setCol("D.6", "backlog", "open");
@@ -815,7 +815,7 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
   return {
     version: 1,
     updatedAt: new Date().toISOString(),
-    focusTaskId: "MOB-LIST-01",
+    focusTaskId: "MOB-HUB-01",
     cycles: [
       {
         id: "correctifs-2207",

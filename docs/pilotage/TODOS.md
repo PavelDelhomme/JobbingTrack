@@ -33,13 +33,13 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ## ▶ En cours maintenant
 
-> **Kanban** : une seule carte **En cours** (aujourd’hui **MOB-LIST-01**).  
+> **Kanban** : une seule carte **En cours** (aujourd’hui **MOB-HUB-01**).  
 > Le reste = **À faire** / **À valider** / **Plus tard** — pas « en cours ».
 
 | ID | Phase | Colonne | Item | Action immédiate | Preuve / test |
 |----|-------|---------|------|------------------|---------------|
-| **MOB-LIST-01** | B | ▶ En cours | Cartes listes tous onglets | Infos list item utiles | A_TESTER § MOB-LIST |
-| **MOB-HUB-01** | B | À faire | Hubs détail + liens croisés | Après LIST | |
+| **MOB-HUB-01** | B | ▶ En cours | Hubs détail + liens croisés | Re-test APK 1.0.41 | A_TESTER § MOB-HUB |
+| **MOB-LIST-01** | B | À valider | Cartes listes métadonnées | Confirmer sous-critères | PARTIEL 1.0.40 |
 | **MOB-NAV-01** | B | À faire | Retours système détails | Après HUB | |
 | **MOB-ENT-01** | B | Terminées | Hub fiche entreprise | **OK 29/07** | DONE |
 | **APK-BUILD-01** | B/D | À valider | Rebuild APK sans Zip | Confirmer ouverture app | **PARTIEL** build+ADB OK |

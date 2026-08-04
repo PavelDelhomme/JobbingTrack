@@ -5,10 +5,10 @@
 > **UI** : `/backoffice/pilotage` → onglet **Tableau de suivi** (OK/KO écrit ici automatiquement en dev/préprod).
 
 **Phase active** : **B — Gate pré-prod mobile**  
-**Point exact** : **MOB-LIST-01** (seul **En cours** Kanban)  
-**APK** : **1.0.40+40** · Samsung (métadonnées listes) 
+**Point exact** : **MOB-HUB-01** (seul **En cours** Kanban)  
+**APK** : **1.0.41** · Samsung (hubs croisés)
 
-> **Kanban** : badge = **colonne**. **MOB-ENT-01** = Terminé (OK porteur 29/07).
+> **Kanban** : badge = **colonne**. **MOB-ENT-01** = Terminé. **MOB-LIST-01** = À valider.
 
 ---
 
@@ -16,14 +16,14 @@
 
 | # | ID | Colonne | À faire | Décision | Notes |
 |---|----|---------|---------|----------|-------|
-| 1 | **MOB-LIST-01** | ▶ En cours | Cartes listes : apps / entreprises / contacts / relances / entretiens / appels | **PARTIEL 29/07** | Re-test APK **1.0.40** (métadonnées enrichies) |
-| 2 | **MOB-HUB-01** | À faire | Hubs détail + liens croisés (hors entreprise déjà OK) | | après LIST |
+| 1 | **MOB-HUB-01** | ▶ En cours | Hubs détail + liens croisés + ajout lié | | ◀ **maintenant** APK 1.0.41 |
+| 2 | **MOB-LIST-01** | À valider | Cartes listes métadonnées | **PARTIEL agent** | Re-test porteur 1.0.40+ |
 | 3 | **MOB-NAV-01** | À faire | Retours système depuis chaque détail | | après HUB |
 | 4 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | après NAV |
 | 5 | **D.6** | À faire | FAB Relance | | après snacks |
 | 6 | D.7→D.9 | Plus tard | FAB Appel / Entretien / Contact | | après D.6 |
 | 7 | E.10→F.12 | Plus tard | Shell re-tap / FAB contacts / double retour | | après FAB |
-| 8 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **PARTIEL agent** | 1.0.39 |
+| 8 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **PARTIEL agent** | |
 | 9 | **DEPLOY-C1→C3** | À faire | Portainer + NPM + OTA préprod | | parallèle C |
 | 10 | **DEPLOY-MAKE** | À tester | Make up-preprod / upgrade-to-* | | script livré |
 | — | **MOB-ENT-01** | Terminées | Hub entreprise Capgemini | **OK 29/07** | |
@@ -36,10 +36,10 @@
 | ID | À faire | Décision | Notes |
 |----|---------|----------|-------|
 | **MOB-ENT-01** | Hub entreprise (apps/contacts/relances/entretiens/appels) | **OK 29/07** | Capgemini contacts + hub |
-| **MOB-LIST-01** | Infos cartes listes tous onglets | | ◀ **maintenant** |
-| **MOB-HUB-01** | Liens croisés fiches (app/contact/relance/entretien/appel) | | après LIST |
+| **MOB-LIST-01** | Infos cartes listes tous onglets | **PARTIEL** → À valider | métadonnées 1.0.40 |
+| **MOB-HUB-01** | Liens croisés fiches (app/contact/relance/entretien/appel) | | ◀ **maintenant** |
 | **MOB-NAV-01** | Bouton retour système | | après HUB |
-| **APK-BUILD-01** | Rebuild sans Zip kernel_blob | **PARTIEL 27/07** | 1.0.39 ADB OK |
+| **APK-BUILD-01** | Rebuild sans Zip kernel_blob | **PARTIEL 27/07** | ADB OK |
 | **WEB-LOGIN-01** | Login bandeau FR sans overlay Next | **OK 22/07** | |
 | **EMU-LIVE-01** | Aperçu live ADB | **OK 22/07** | |
 | **MOB-SNACK-01** | AppSnack auto-dismiss | | après NAV |
