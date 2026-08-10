@@ -160,15 +160,17 @@ export async function fetchApplicationPerformance(
 export async function fetchCrashReports(
   token: string,
   limit = 100,
+  options?: { summary?: boolean },
 ): Promise<CrashReportSummary[]> {
   const base =
     typeof window !== "undefined"
       ? ""
       : FRONTEND_URLS.api.replace(/\/$/, "");
-  const res = await axios.get(
-    `${base}/api/v1/crashes?limit=${limit}`,
-    { headers: authHeaders(token) },
-  );
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (options?.summary) params.set("summary", "1");
+  const res = await axios.get(`${base}/api/v1/crashes?${params}`, {
+    headers: authHeaders(token),
+  });
   if (!res.data?.success) return [];
   return res.data.data ?? [];
 }

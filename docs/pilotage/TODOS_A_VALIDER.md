@@ -24,6 +24,8 @@
 | 6 | D.7→D.9 | Plus tard | FAB Appel / Entretien / Contact | | après D.6 |
 | 7 | E.10→F.12 | Plus tard | Shell re-tap / FAB contacts / double retour | | après FAB |
 | 8 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **OK agent 04/08** | 1.0.42 install Samsung — confirmer porteur |
+| 8b | **PILOTAGE-PERF** | À tester | Page pilotage trop lente | **PARTIEL 10/08** | summary crashes + defer + dynamic |
+| 8c | **AUDIT-QA-01** | Plus tard | Audit QA exhaustif DEV/PROD USER/ADMIN | | [`AUDIT_QA_EXHAUSTIF.md`](AUDIT_QA_EXHAUSTIF.md) — après gate B |
 | 9 | **DEPLOY-C1→C3** | À faire | Portainer + NPM + OTA préprod | | parallèle C |
 | 10 | **DEPLOY-MAKE** | À tester | Make up-preprod / upgrade-to-* | | script livré |
 | — | **MOB-ENT-01** | Terminées | Hub entreprise Capgemini | **OK 29/07** | |
@@ -46,6 +48,8 @@
 | **PILOTAGE-UI-04** | Tableau suite logique + écriture md | | |
 | **PILOTAGE-UI-05** | Fiche détail / PARTIEL / Plus tard / Terminées | | |
 | **PILOTAGE-KANBAN** | Contraste colonnes **clair+sombre** + promo inbox + onglets STATUS/PLAN/ERRORS | | Re-test UI (moteur `jtKanban`) |
+| **PILOTAGE-PERF** | Page `/backoffice/pilotage` trop lente | **PARTIEL agent 10/08** | À tester — quick-wins livrés |
+| **AUDIT-QA-01** | Audit boutons/pages/API/délais/erreurs (DEV+PROD, USER+ADMIN) | | Plus tard — détail `AUDIT_QA_EXHAUSTIF.md` |
 
 ---
 

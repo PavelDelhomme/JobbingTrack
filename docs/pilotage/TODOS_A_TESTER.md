@@ -13,6 +13,24 @@
 
 ## En cours — Phase B / B2
 
+### PILOTAGE-PERF — lenteur `/backoffice/pilotage` (10/08)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| Cause | Chunk webpack ~3,7 Mo + inbox `GET /crashes` ~1 Mo (stackTrace) | **Confirmé** | board API ~17 ms OK |
+| Gateway `?summary=1` | Pas de stackTrace / metadata brut | **Livré** 10/08 | restart api-gateway |
+| Inbox Kanban | Fetch summary + idle après paint | **Livré** | |
+| Page | `dynamic(PilotageBoardView)` + files on-demand + `loading.tsx` | **Livré** | |
+| Porteur | Hard refresh HTTPS :5443 — Kanban utilisable vite | **À tester** | reste cache board / chunk |
+
+### AUDIT-QA-01 — checklist exhaustive (10/08)
+
+| Test | Attendu | Résultat | Suite |
+|------|---------|----------|-------|
+| Doc | `docs/pilotage/AUDIT_QA_EXHAUSTIF.md` hiérarchique | **Livré** | visible onglet Fichiers |
+| Carte Kanban | `AUDIT-QA-01` colonne Plus tard | **Livré** | après gate B |
+| Campagnes | DEV/PREPROD/PROD × USER/ADMIN × web/mobile/API | **À faire** | ne pas démarrer maintenant |
+
 ### PILOTAGE-UI-05 — Validation riche backoffice (22/07)
 
 | Test | Attendu | Résultat | Suite |

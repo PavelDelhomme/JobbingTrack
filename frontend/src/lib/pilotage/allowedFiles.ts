@@ -11,6 +11,7 @@ export type PilotageFileId =
   | "TODOS_A_VERIFIER"
   | "TODOS_DONE"
   | "GUIDE_VALIDATION_PORTEUR"
+  | "AUDIT_QA_EXHAUSTIF"
   | "SUIVI_ACTIF"
   | "VALIDATION_BOARD"
   | "STATUS"
@@ -97,6 +98,15 @@ export const PILOTAGE_FILES: PilotageFileMeta[] = [
     docsRoot: "pilotage",
     label: "GUIDE_VALIDATION_PORTEUR.md",
     description: "Checklist Samsung courte",
+    writable: true,
+    contentType: "markdown",
+  },
+  {
+    id: "AUDIT_QA_EXHAUSTIF",
+    relativePath: "AUDIT_QA_EXHAUSTIF.md",
+    docsRoot: "pilotage",
+    label: "AUDIT_QA_EXHAUSTIF.md",
+    description: "Checklist QA exhaustive DEV/PROD · USER/ADMIN · web/mobile/API",
     writable: true,
     contentType: "markdown",
   },

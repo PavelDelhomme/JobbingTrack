@@ -671,6 +671,99 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
       ],
     }),
     task({
+      id: "PILOTAGE-PERF",
+      cycleId: "correctifs-2207",
+      section: "Correctifs session 22/07",
+      label: "Pilotage — chargement page trop lent",
+      description:
+        "`/backoffice/pilotage` trop long en dev (chunk webpack + inbox crashes ~1 Mo). Quick-wins 10/08 : summary crashes, inbox différée, dynamic BoardView, files on-demand. Reste : cache board mtime, ?view=kanban, budget chunk / prod.",
+      expected:
+        "Kanban visible en <2 s ressenti après login ; inbox sans freiner ; mesuré en HTTPS :5443.",
+      status: "partial",
+      order: 56,
+      checklist: [
+        {
+          id: "crashes-summary",
+          label: "GET /api/v1/crashes?summary=1 sans stack/metadata brut",
+          done: true,
+        },
+        {
+          id: "inbox-defer",
+          label: "Inbox Kanban après paint (idle)",
+          done: true,
+        },
+        {
+          id: "dynamic-board",
+          label: "PilotageBoardView en dynamic import",
+          done: true,
+        },
+        {
+          id: "board-lean",
+          label: "API board ?view=kanban + cache mtime",
+          done: false,
+        },
+        {
+          id: "chunk-budget",
+          label: "Budget chunk / mesure build prod",
+          done: false,
+        },
+      ],
+    }),
+    task({
+      id: "AUDIT-QA-01",
+      cycleId: "gate-mobile-extra",
+      section: "Gate fin de programme — QA",
+      label: "Audit QA exhaustif DEV/PROD · USER/ADMIN · web/mobile/API",
+      description:
+        "Checklist hiérarchique docs/pilotage/AUDIT_QA_EXHAUSTIF.md : chaque bouton, page, tableau, lien, chargement, API, frontend, délais, erreurs sans crash, solutions. Ne pas démarrer avant clôture gate mobile B (sauf demande porteur).",
+      expected:
+        "Campagne cochetée avec preuves ; GO/NO-GO DEV puis PREPROD puis PROD ; KO avec solutions.",
+      status: "deferred",
+      order: 700,
+      checklist: [
+        {
+          id: "doc-matrix",
+          label: "Doc AUDIT_QA_EXHAUSTIF.md + carte Kanban",
+          done: true,
+        },
+        {
+          id: "dev-user",
+          label: "Campagne DEV × USER (matrice §1 + parcours)",
+          done: false,
+        },
+        {
+          id: "dev-admin",
+          label: "Campagne DEV × ADMIN (backoffice pages critiques)",
+          done: false,
+        },
+        {
+          id: "mobile-real",
+          label: "Campagne mobile appareil réel (§4)",
+          done: false,
+        },
+        {
+          id: "backend-api",
+          label: "Campagne backend/API health + auth + CRUD (§5)",
+          done: false,
+        },
+        {
+          id: "errors-solutions",
+          label: "Chaque KO → erreur gérée + solution documentée",
+          done: false,
+        },
+        {
+          id: "preprod",
+          label: "Rejouer PREPROD",
+          done: false,
+        },
+        {
+          id: "prod-go",
+          label: "PROD uniquement après GO porteur",
+          done: false,
+        },
+      ],
+    }),
+    task({
       id: "BL-26-14",
       cycleId: "gate-mobile-extra",
       section: "Gate mobile — suite",
@@ -791,6 +884,8 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
   setCol("PILOTAGE-UI-04", "a_valider", "open");
   setCol("PILOTAGE-UI-05", "a_valider", "open");
   setCol("PILOTAGE-KANBAN", "a_valider", "open");
+  setCol("PILOTAGE-PERF", "a_tester", "partial");
+  setCol("AUDIT-QA-01", "later", "deferred");
   setCol("DEPLOY-C1", "backlog", "open");
   setCol("DEPLOY-C2", "backlog", "open");
   setCol("DEPLOY-C3", "backlog", "open");
@@ -830,6 +925,7 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
           "PILOTAGE-UI-04",
           "PILOTAGE-UI-05",
           "PILOTAGE-KANBAN",
+          "PILOTAGE-PERF",
         ],
       },
       {
@@ -887,7 +983,7 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
         id: "gate-mobile-extra",
         label: "Gate mobile — extras",
         description: "Matrice API, RGPD, OTA wizard, impersonation",
-        itemIds: ["BL-26-14", "B5-RGPD", "BL-26-32", "BL-26-17"],
+        itemIds: ["BL-26-14", "B5-RGPD", "BL-26-32", "BL-26-17", "AUDIT-QA-01"],
       },
       {
         id: "gate-prod",

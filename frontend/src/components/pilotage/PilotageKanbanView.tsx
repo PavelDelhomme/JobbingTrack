@@ -51,12 +51,14 @@ export function PilotageKanbanView({
     return () => mq.removeEventListener("change", apply);
   }, []);
 
+  // Inbox après paint — ne bloque pas le Kanban métier (payload summary côté gateway).
   useEffect(() => {
     let cancelled = false;
     if (!token) return;
-    (async () => {
+
+    const loadInbox = async () => {
       try {
-        const crashes = await fetchCrashReports(token, 80);
+        const crashes = await fetchCrashReports(token, 40, { summary: true });
         if (cancelled) return;
         const items: FeedbackInboxItem[] = [];
         for (const c of crashes) {
@@ -86,9 +88,27 @@ export function PilotageKanbanView({
       } catch {
         /* inbox optionnelle */
       }
-    })();
+    };
+
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const ric = window.requestIdleCallback?.bind(window);
+    if (ric) {
+      idleId = ric(() => {
+        void loadInbox();
+      }, { timeout: 2500 });
+    } else {
+      timeoutId = setTimeout(() => {
+        void loadInbox();
+      }, 400);
+    }
+
     return () => {
       cancelled = true;
+      if (idleId != null && window.cancelIdleCallback) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId != null) clearTimeout(timeoutId);
     };
   }, [board.updatedAt, token]);
 

@@ -572,6 +572,11 @@ app.get('/api/v1/crashes', (req, res) => {
     const limit = Math.max(1, Math.min(500, parseInt(req.query.limit || '100', 10) || 100));
     const sinceRaw = req.query.since ? String(req.query.since) : null;
     const sinceMs = sinceRaw ? Date.parse(sinceRaw) : NaN;
+    // summary=1 : inbox Kanban / listes légères — sans stackTrace ni metadata brut (~1 Mo → dizaines de Ko)
+    const summary =
+      req.query.summary === '1' ||
+      req.query.summary === 'true' ||
+      String(req.query.fields || '').toLowerCase() === 'summary';
     const dir = path.join(__dirname, '..', 'logs', 'crashes');
     if (!fs.existsSync(dir)) {
       return res.json({ success: true, data: [] });
@@ -594,23 +599,43 @@ app.get('/api/v1/crashes', (req, res) => {
       } catch {
         raw = {};
       }
-      return {
+      const nested =
+        raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : {};
+      const base = {
         id: f.name,
         timestamp: raw.timestamp || raw.createdAt || new Date(f.mtime).toISOString(),
         crashType: raw.crashType || 'UNKNOWN',
         message: raw.message || raw.error || 'Crash report',
+        source: raw.source || raw.app || 'mobile',
+      };
+      if (summary) {
+        return {
+          ...base,
+          // Forme compatible isUserFeedbackCrash / isMonitoringTestOrSmokeCrash
+          metadata: {
+            metadata: {
+              feedback: nested.feedback,
+              tag: nested.tag,
+              validation: nested.validation,
+              smoke: nested.smoke,
+              category: nested.category,
+            },
+          },
+        };
+      }
+      return {
+        ...base,
         stackTrace: raw.stackTrace || raw.stack || null,
         screenName: raw.screenName || raw.screen || null,
         userId: raw.userId || null,
-        userEmail: raw.metadata?.userEmail || raw.userEmail || null,
-        source: raw.source || raw.app || 'mobile',
+        userEmail: nested.userEmail || raw.userEmail || null,
         device: raw.deviceInfo || raw.device || null,
         appVersion: raw.appVersion || raw.version || null,
         osVersion: raw.osVersion || (raw.deviceInfo && raw.deviceInfo.osVersion) || null,
-        metadata: raw
+        metadata: raw,
       };
     });
-    return res.json({ success: true, data });
+    return res.json({ success: true, data, summary: !!summary });
   } catch (err) {
     logger.error('Crash report list error:', err.message);
     return res.status(500).json({ success: false, error: 'Erreur lecture rapports crash' });

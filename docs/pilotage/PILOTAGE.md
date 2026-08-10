@@ -1,6 +1,6 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **4 août 2026**
+Dernière mise à jour : **10 août 2026**
 
 ## ▶ Où on en est
 
@@ -13,6 +13,10 @@ Suite : **MOB-NAV-01** → **MOB-SNACK-01** → **D.6** FAB · Parallèle DEPLOY
 APK **1.0.42** (hubs + anti-Zip) · Samsung installé · Rafraîchir `/backoffice/pilotage`.
 
 Correctifs 04/08 (pour pouvoir valider HUB) : **nouvel onglet backoffice** sans refresh de la page source ; **build APK** anti-Zip `kernel_blob` (purge `compressed_assets` seulement + dependsOn copyFlutter). Warning Kotlin/KGP = non bloquant (`builtInKotlin=false`).
+
+**10/08** : lenteur `/backoffice/pilotage` → carte **PILOTAGE-PERF** (À tester) + quick-wins (crashes summary, inbox différée). Focus reste **MOB-HUB-01**.
+
+**10/08** : carte **AUDIT-QA-01** (Plus tard) + checklist [`AUDIT_QA_EXHAUSTIF.md`](AUDIT_QA_EXHAUSTIF.md) — audit boutons/pages/API/délais/erreurs USER+ADMIN · DEV+PROD · web+mobile. **Ne pas démarrer** avant fin gate B.
 
 `make run-mobile` : étapes **1/5…5/5**. Sans rebuild : `SKIP_BUILD=1 make run-mobile`
 

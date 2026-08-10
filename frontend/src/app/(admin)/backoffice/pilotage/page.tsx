@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdminLayout } from "@/components/features";
-import { PilotageBoardView } from "@/components/pilotage/PilotageBoardView";
 import { PilotageKanbanView } from "@/components/pilotage/PilotageKanbanView";
 import type { BoardActionPayload } from "@/components/pilotage/pilotageUi";
 import { useAuth } from "@/lib/hooks/auth";
@@ -13,6 +13,21 @@ import type { PilotageBoard } from "@/lib/pilotage/board";
 import { uiSurfaces, uiText } from "@/lib/ui/surfaces";
 import { StatusAlert } from "@/lib/ui/feedback/StatusAlert";
 import { cn } from "@/lib/utils";
+
+const PilotageBoardView = dynamic(
+  () =>
+    import("@/components/pilotage/PilotageBoardView").then((m) => ({
+      default: m.PilotageBoardView,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <p className="text-sm text-gray-500 dark:text-gray-400">
+        Chargement de la liste détaillée…
+      </p>
+    ),
+  },
+);
 
 type QueueItem = { id: string; status: string; label: string };
 type FixItem = { id: string; label: string; status: string };
@@ -50,6 +65,7 @@ const FILE_GROUPS: { title: string; ids: string[] }[] = [
       "TODOS_A_VALIDER",
       "TODOS_DONE",
       "GUIDE_VALIDATION_PORTEUR",
+      "AUDIT_QA_EXHAUSTIF",
       "SUIVI_ACTIF",
       "VALIDATION_BOARD",
     ],
@@ -171,15 +187,16 @@ export default function PilotagePage() {
   );
 
   useEffect(() => {
-    if (allowed && token) {
-      void loadFileList();
-      void loadBoard();
-    }
-  }, [allowed, token, loadFileList, loadBoard]);
+    if (allowed && token) void loadBoard();
+  }, [allowed, token, loadBoard]);
 
+  // Liste fichiers seulement quand l’onglet est ouvert (évite fetch inutile au boot Kanban).
   useEffect(() => {
-    if (tab === "files" && allowed && token) void loadFile(fileId);
-  }, [tab, fileId, allowed, token, loadFile]);
+    if (tab === "files" && allowed && token) {
+      void loadFileList();
+      void loadFile(fileId);
+    }
+  }, [tab, fileId, allowed, token, loadFileList, loadFile]);
 
   const runBoardAction = async (payload: BoardActionPayload) => {
     if (!canWriteBoard) return;
