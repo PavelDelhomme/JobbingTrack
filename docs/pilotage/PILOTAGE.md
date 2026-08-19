@@ -1,16 +1,18 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **10 août 2026**
+Dernière mise à jour : **19 août 2026**
 
 ## ▶ Où on en est
 
 **Focus (1 seule) : MOB-HUB-01** — hubs détail + liens croisés  
-**MOB-LIST-01** → **À valider** (métadonnées listes APK 1.0.40+)  
+**MOB-LIST-01** → **À valider** (métadonnées listes APK 1.0.40+) — **re-test en même temps que HUB**  
 **MOB-ENT-01** → **OK**
 
 Suite : **MOB-NAV-01** → **MOB-SNACK-01** → **D.6** FAB · Parallèle DEPLOY-C*
 
-APK **1.0.42** (hubs + anti-Zip) · Samsung installé · Rafraîchir `/backoffice/pilotage`.
+APK **1.0.42** · Rebuild/install Samsung si absent · Pilotage : https://jobbingtrack.localhost:5443/backoffice/pilotage
+
+**19/08** : tests agent relancés (front OK, stack OK, Samsung **non branché**) — **validation porteur MOB-HUB pas encore faite** (checklist Kanban 0/6).
 
 Correctifs 04/08 (pour pouvoir valider HUB) : **nouvel onglet backoffice** sans refresh de la page source ; **build APK** anti-Zip `kernel_blob` (purge `compressed_assets` seulement + dependsOn copyFlutter). Warning Kotlin/KGP = non bloquant (`builtInKotlin=false`).
 

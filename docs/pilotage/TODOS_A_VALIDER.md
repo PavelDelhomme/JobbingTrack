@@ -5,8 +5,8 @@
 > **UI** : `/backoffice/pilotage` → onglet **Tableau de suivi** (OK/KO écrit ici automatiquement en dev/préprod).
 
 **Phase active** : **B — Gate pré-prod mobile**  
-**Point exact** : **MOB-HUB-01** (seul **En cours** Kanban)  
-**APK** : **1.0.42** · Samsung (hubs croisés)
+**Point exact** : **MOB-HUB-01** (seul **En cours** Kanban) — **validation porteur pas encore faite (19/08)**  
+**APK** : **1.0.42** · Samsung à brancher + install si besoin
 
 > **Kanban** : badge = **colonne**. **MOB-ENT-01** = Terminé. **MOB-LIST-01** = À valider.
 

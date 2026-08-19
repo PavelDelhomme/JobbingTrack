@@ -13,6 +13,21 @@
 
 ## En cours — Phase B / B2
 
+### Session tests agent — 19/08/2026
+
+| Zone | Commande / check | Résultat | Suite |
+|------|------------------|----------|-------|
+| Frontend | `npm run type-check` | **OK** | |
+| Frontend | Jest `src/lib/pilotage` | **OK 21/21** | |
+| Frontend | `BackofficeLink.test` | **OK 2/2** | |
+| Stack | Gateway `/health` HTTPS :5443 | **OK 200** ~13 ms | |
+| Stack | `/login` | **OK 200** (~12 s 1er hit dev) | |
+| Stack | `/api/v1/crashes?summary=1` | **OK** ~3 Ko | PILOTAGE-PERF |
+| Mobile | `flutter test` | **52 OK / 5 KO** | KO = OTA URL + widget_test (préexistants, hors gate HUB) |
+| Mobile | `flutter analyze lib/screens/jobbing` | **92 infos/warn** | pas bloquant |
+| Device | ADB Samsung | **Aucun appareil** | brancher USB pour validation porteur |
+| Porteur | MOB-HUB checklist Kanban | **0/6 coché** | ◀ **à faire maintenant** |
+
 ### PILOTAGE-PERF — lenteur `/backoffice/pilotage` (10/08)
 
 | Test | Attendu | Résultat | Suite |
