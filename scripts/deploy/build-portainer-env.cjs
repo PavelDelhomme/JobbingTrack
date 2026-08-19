@@ -62,6 +62,11 @@ const EXCLUDE_KEYS = new Set([
   'NEXT_PUBLIC_MOBILE_TEST_USER_EMAIL',
   'DEV_AUTH_BYPASS_TOKEN',
   'DEV_TEST_BYPASS_TOKEN',
+  // PAT GitHub → Portainer UI « Authentication » uniquement, jamais dans les env stack
+  'GITHUB_PAT',
+  'GITHUB_TOKEN',
+  'GH_TOKEN',
+  'MOBILE_GITHUB_TOKEN',
   'JOBBINGTRACK_STACK_MEMORY_LIMIT_MB',
   'LOCAL_UID',
   'LOCAL_GID',
