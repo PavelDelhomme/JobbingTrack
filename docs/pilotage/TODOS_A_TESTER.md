@@ -26,7 +26,29 @@
 | Mobile | `flutter test` | **52 OK / 5 KO** | KO = OTA URL + widget_test (préexistants, hors gate HUB) |
 | Mobile | `flutter analyze lib/screens/jobbing` | **92 infos/warn** | pas bloquant |
 | Device | ADB Samsung | **Aucun appareil** | brancher USB pour validation porteur |
-| Porteur | MOB-HUB checklist Kanban | **0/6 coché** | ◀ **à faire maintenant** |
+| Porteur | MOB-HUB checklist Kanban | **0/6 — reporté** | reprise après DEPLOY-C1 |
+
+---
+
+## En cours — Phase C — Déploiement (19/08)
+
+### DEPLOY-GHA-01 — chaîne GH Actions + Portainer
+
+| Livrable | Fichier | Résultat |
+|----------|---------|----------|
+| Guide principal | `DEPLOY.md` | **Livré** |
+| Watchtower CE | `deploy/watchtower-compose.yml` | **Livré** |
+| Labels compose | `deploy/production/docker-compose.yml` | **Livré** |
+| Redeploy VPS | `scripts/deploy/redeploy-vps.sh` | **Livré** |
+| Deploy dev/prod | `scripts/deploy/admin-deploy-dev.sh`, `admin-deploy-prod.sh` | **Livré** |
+| APK distant | `scripts/deploy/publish-apk-remote.sh` | **Livré** |
+| Canaux mobile | `docs/deployment/CANAL_DISTRIBUTION_MOBILE.md` | **Livré** |
+| GHCR workflow | `.github/workflows/build-push-images.yml` (:prod + public hint) | **Livré** |
+| Porteur stack VPS | DEPLOY-C1 | **À faire** |
+| Porteur NPM HTTPS | DEPLOY-C2 | **À faire** |
+| Porteur OTA dev | DEPLOY-C3 | **À faire** |
+
+---
 
 ### PILOTAGE-PERF — lenteur `/backoffice/pilotage` (10/08)
 

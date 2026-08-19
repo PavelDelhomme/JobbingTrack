@@ -285,9 +285,9 @@
       "expected": "Depuis n’importe quelle fiche, les liens utiles sont visibles et navigables.",
       "status": "open",
       "order": 12,
-      "column": "doing",
+      "column": "backlog",
       "kind": "task",
-      "porteurNote": "Focus 04/08 APK 1.0.41 — hubs contact/entretien/relance enrichis",
+      "porteurNote": "Pause 19/08 — priorité DEPLOY-GHA-01 ; code APK 1.0.42 livré, validation Samsung reportée",
       "history": [
         {
           "at": "2026-08-04T08:32:39.131Z",
@@ -828,6 +828,34 @@
       "column": "later",
       "kind": "task"
     },
+    "DEPLOY-GHA-01": {
+      "id": "DEPLOY-GHA-01",
+      "cycleId": "deploy-vps",
+      "section": "Phase C — CI/CD",
+      "label": "Chaîne déploiement GH Actions + Portainer (style YTMusic)",
+      "description": "Scripts admin-deploy-dev/prod, redeploy-vps (Portainer CE / Watchtower), DEPLOY.md, labels Watchtower, GHCR public.",
+      "expected": "Push dev → GHCR :dev → préprod VPS ; merge main → :latest → prod.",
+      "status": "partial",
+      "order": 395,
+      "column": "doing",
+      "kind": "task",
+      "porteurNote": "Focus 19/08 — agent livré scripts + doc ; porteur : stack VPS DEPLOY-C1",
+      "history": [
+        {
+          "at": "2026-08-19T17:00:00.000Z",
+          "action": "focus",
+          "note": "Priorité porteur — avant MOB-HUB / MOB-LIST"
+        }
+      ],
+      "checklist": [
+        { "id": "scripts", "label": "Scripts deploy/ livrés", "done": true },
+        { "id": "watchtower", "label": "watchtower-compose + labels compose", "done": true },
+        { "id": "deploy-md", "label": "DEPLOY.md + canaux mobile", "done": true },
+        { "id": "ghcr-workflow", "label": "GHCR workflow :prod + public hint", "done": true },
+        { "id": "porteur-stack", "label": "Stack Portainer préprod (DEPLOY-C1)", "done": false },
+        { "id": "porteur-smoke", "label": "Smoke HTTPS + redeploy testé", "done": false }
+      ]
+    },
     "DEPLOY-C1": {
       "porteurNote": "",
       "history": [],
@@ -1338,5 +1366,5 @@
       "kind": "task"
     }
   },
-  "focusTaskId": "MOB-HUB-01"
+  "focusTaskId": "DEPLOY-GHA-01"
 }

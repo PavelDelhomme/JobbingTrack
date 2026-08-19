@@ -15,7 +15,7 @@ Dernière mise à jour : 2 juillet 2026
 | # | Action | Détail | Statut |
 |---|--------|--------|--------|
 | 0.1 | Merger ou déployer la branche | `feat/deploy-portainer-production` → `dev` (PR) **ou** Portainer sur `refs/heads/feat/deploy-portainer-production` pour test | [ ] |
-| 0.2 | Vérifier stack locale (optionnel) | `docker compose -f deploy/production/docker-compose.yml config` avec `.env.example` | [ ] |
+| 0.2 | Générer secrets | `bash scripts/deploy/generate-portainer-env.sh --admin-email admin@delhomme.ovh` | [ ] |
 
 **Fichiers livrés (agent)** : `deploy/production/`, `docs/production/PORTAINER_STACK.md`, backoffice `/backoffice/administration/mobile-releases`.
 

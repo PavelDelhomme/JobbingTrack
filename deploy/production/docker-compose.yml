@@ -10,12 +10,17 @@ x-logging: &default-logging
     max-size: "10m"
     max-file: "3"
 
+x-watchtower-labels: &watchtower-labels
+  labels:
+    - com.centurylinklabs.watchtower.enable=true
+
 x-backend-common: &backend-common
   restart: unless-stopped
   networks:
     - jobbingtrack-network
   logging: *default-logging
   pull_policy: ${IMAGE_PULL_POLICY:-build}
+  <<: *watchtower-labels
   depends_on:
     postgres:
       condition: service_healthy
@@ -28,7 +33,7 @@ x-database-url: &database-url
 services:
   postgres:
     image: postgres:15
-    container_name: jobbingtrack-postgres
+    container_name: ${STACK_SLUG:-jobbingtrack}-postgres
     restart: unless-stopped
     mem_limit: ${POSTGRES_MEMORY_LIMIT:-768m}
     command: ["postgres", "-c", "max_connections=${POSTGRES_MAX_CONNECTIONS:-200}"]
@@ -39,7 +44,7 @@ services:
       PGTZ: ${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
       TZ: ${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
     volumes:
-      - jobbingtrack_postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
       - ../../backend/init-db:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
@@ -52,7 +57,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: jobbingtrack-redis
+    container_name: ${STACK_SLUG:-jobbingtrack}-redis
     restart: unless-stopped
     mem_limit: ${REDIS_MEMORY_LIMIT:-192m}
     environment:
@@ -62,7 +67,7 @@ services:
       --appendonly yes
       --requirepass ${REDIS_PASSWORD}
     volumes:
-      - jobbingtrack_redis_data:/data
+      - redis_data:/data
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 10s
@@ -78,7 +83,7 @@ services:
     build:
       context: ../../backend/metrics-aggregator-service
       dockerfile: Dockerfile
-    container_name: jobbingtrack-metrics-aggregator
+    container_name: ${STACK_SLUG:-jobbingtrack}-metrics-aggregator
     mem_limit: ${METRICS_AGGREGATOR_MEMORY_LIMIT:-512m}
     environment:
       <<: *database-url
@@ -100,7 +105,7 @@ services:
     build:
       context: ../../backend/auth-service
       dockerfile: Dockerfile
-    container_name: jobbingtrack-auth-service
+    container_name: ${STACK_SLUG:-jobbingtrack}-auth-service
     mem_limit: ${AUTH_SERVICE_MEMORY_LIMIT:-384m}
     environment:
       <<: *database-url
@@ -134,7 +139,7 @@ services:
     build:
       context: ../../backend/security-service
       dockerfile: Dockerfile
-    container_name: jobbingtrack-security-service
+    container_name: ${STACK_SLUG:-jobbingtrack}-security-service
     mem_limit: ${SECURITY_SERVICE_MEMORY_LIMIT:-384m}
     environment:
       <<: *database-url
@@ -158,7 +163,7 @@ services:
     build:
       context: ../../backend/notification-service
       dockerfile: Dockerfile
-    container_name: jobbingtrack-notification-service
+    container_name: ${STACK_SLUG:-jobbingtrack}-notification-service
     mem_limit: ${NOTIFICATION_SERVICE_MEMORY_LIMIT:-256m}
     depends_on:
       postgres:
@@ -178,7 +183,7 @@ services:
     build:
       context: ../../backend/application-service
       dockerfile: Dockerfile
-    container_name: jobbingtrack-application-service
+    container_name: ${STACK_SLUG:-jobbingtrack}-application-service
     environment:
       <<: *database-url
       AUTH_SERVICE_URL: http://auth-service:3001
@@ -194,7 +199,7 @@ services:
     build:
       context: ../../backend/company-service
       dockerfile: Dockerfile
-    container_name: jobbingtrack-company-service
+    container_name: ${STACK_SLUG:-jobbingtrack}-company-service
     environment:
       <<: *database-url
       AUTH_SERVICE_URL: http://auth-service:3001
@@ -208,7 +213,7 @@ services:
     build:
       context: ../../backend/contact-service
       dockerfile: Dockerfile
-    container_name: jobbingtrack-contact-service
+    container_name: ${STACK_SLUG:-jobbingtrack}-contact-service
     environment:
       <<: *database-url
       AUTH_SERVICE_URL: http://auth-service:3001
@@ -222,7 +227,7 @@ services:
     build:
       context: ../../backend/interview-service
       dockerfile: Dockerfile
-    container_name: jobbingtrack-interview-service
+    container_name: ${STACK_SLUG:-jobbingtrack}-interview-service
     environment:
       <<: *database-url
       AUTH_SERVICE_URL: http://auth-service:3001
@@ -236,7 +241,7 @@ services:
     build:
       context: ../../backend/dashboard-service
       dockerfile: Dockerfile
-    container_name: jobbingtrack-dashboard-service
+    container_name: ${STACK_SLUG:-jobbingtrack}-dashboard-service
     environment:
       <<: *database-url
       AUTH_SERVICE_URL: http://auth-service:3001
@@ -250,7 +255,7 @@ services:
     build:
       context: ../../backend/call-service
       dockerfile: Dockerfile
-    container_name: jobbingtrack-call-service
+    container_name: ${STACK_SLUG:-jobbingtrack}-call-service
     environment:
       <<: *database-url
       AUTH_SERVICE_URL: http://auth-service:3001
@@ -264,7 +269,7 @@ services:
     build:
       context: ../../backend/profile-service
       dockerfile: Dockerfile
-    container_name: jobbingtrack-profile-service
+    container_name: ${STACK_SLUG:-jobbingtrack}-profile-service
     environment:
       <<: *database-url
       AUTH_SERVICE_URL: http://auth-service:3001
@@ -278,7 +283,7 @@ services:
     build:
       context: ../../backend/event-service
       dockerfile: Dockerfile
-    container_name: jobbingtrack-event-service
+    container_name: ${STACK_SLUG:-jobbingtrack}-event-service
     environment:
       <<: *database-url
       AUTH_SERVICE_URL: http://auth-service:3001
@@ -293,7 +298,7 @@ services:
     build:
       context: ../../backend/followup-service
       dockerfile: Dockerfile
-    container_name: jobbingtrack-followup-service
+    container_name: ${STACK_SLUG:-jobbingtrack}-followup-service
     depends_on:
       postgres:
         condition: service_healthy
@@ -315,7 +320,7 @@ services:
     build:
       context: ../../backend/workflow-service
       dockerfile: Dockerfile
-    container_name: jobbingtrack-workflow-service
+    container_name: ${STACK_SLUG:-jobbingtrack}-workflow-service
     environment:
       <<: *database-url
       AUTH_SERVICE_URL: http://auth-service:3001
@@ -329,7 +334,7 @@ services:
     build:
       context: ../../backend
       dockerfile: api-gateway/Dockerfile.backend-context
-    container_name: jobbingtrack-api-gateway
+    container_name: ${STACK_SLUG:-jobbingtrack}-api-gateway
     mem_limit: ${API_GATEWAY_MEMORY_LIMIT:-384m}
     ports:
       - "${API_PUBLISH_HOST:-127.0.0.1}:${API_PUBLISH_PORT:-3000}:3000"
@@ -394,7 +399,7 @@ services:
       MOBILE_IOS_FORCE_UPDATE: ${MOBILE_IOS_FORCE_UPDATE:-false}
       MOBILE_IOS_RELEASE_NOTES: ${MOBILE_IOS_RELEASE_NOTES:-}
     volumes:
-      - jobbingtrack_mobile_releases:/app/mobile-releases
+      - mobile_releases:/app/mobile-releases
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1"]
       interval: 30s
@@ -403,6 +408,7 @@ services:
       start_period: 60s
 
   frontend:
+    <<: *watchtower-labels
     pull_policy: ${IMAGE_PULL_POLICY:-build}
     image: ${IMAGE_REGISTRY:-ghcr.io/paveldelhomme}/jobbingtrack-frontend:${IMAGE_TAG:-dev}
     build:
@@ -420,7 +426,7 @@ services:
         NEXT_PUBLIC_METRICS_AGGREGATOR_URL: ${NEXT_PUBLIC_METRICS_AGGREGATOR_URL:-/api/metrics-aggregator}
         NEXT_PUBLIC_METRICS_VIA_FRONTEND: ${NEXT_PUBLIC_METRICS_VIA_FRONTEND:-true}
         NEXT_PUBLIC_TZ: ${NEXT_PUBLIC_TZ:-Europe/Paris}
-    container_name: jobbingtrack-frontend
+    container_name: ${STACK_SLUG:-jobbingtrack}-frontend
     restart: unless-stopped
     mem_limit: ${FRONTEND_MEMORY_LIMIT:-1024m}
     ports:
@@ -446,10 +452,13 @@ services:
       start_period: 90s
 
 volumes:
-  jobbingtrack_postgres_data:
-  jobbingtrack_redis_data:
-  jobbingtrack_mobile_releases:
+  postgres_data:
+    name: ${STACK_SLUG:-jobbingtrack}_postgres_data
+  redis_data:
+    name: ${STACK_SLUG:-jobbingtrack}_redis_data
+  mobile_releases:
+    name: ${STACK_SLUG:-jobbingtrack}_mobile_releases
 
 networks:
   jobbingtrack-network:
-    name: jobbingtrack-network
+    name: ${STACK_SLUG:-jobbingtrack}-network

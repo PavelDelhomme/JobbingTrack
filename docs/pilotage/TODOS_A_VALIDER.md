@@ -4,11 +4,11 @@
 > Tu remplis **uniquement** ce fichier pour la phase en cours. Pas d’autres phases ici.  
 > **UI** : `/backoffice/pilotage` → onglet **Tableau de suivi** (OK/KO écrit ici automatiquement en dev/préprod).
 
-**Phase active** : **B — Gate pré-prod mobile**  
-**Point exact** : **MOB-HUB-01** (seul **En cours** Kanban) — **validation porteur pas encore faite (19/08)**  
-**APK** : **1.0.42** · Samsung à brancher + install si besoin
+**Phase active** : **C — Déploiement VPS** (priorité porteur 19/08)  
+**Point exact** : **DEPLOY-GHA-01** (seul **En cours** Kanban) — scripts agent livrés ; **porteur : stack VPS**  
+**Mobile** : MOB-HUB / MOB-LIST en pause · APK **1.0.42**
 
-> **Kanban** : badge = **colonne**. **MOB-ENT-01** = Terminé. **MOB-LIST-01** = À valider.
+> **Kanban** : badge = **colonne**. Focus deploy avant reprise gate mobile B.
 
 ---
 
@@ -16,8 +16,11 @@
 
 | # | ID | Colonne | À faire | Décision | Notes |
 |---|----|---------|---------|----------|-------|
-| 1 | **MOB-HUB-01** | ▶ En cours | Hubs détail + liens croisés + ajout lié | | ◀ **maintenant** APK **1.0.42** Samsung |
-| 2 | **MOB-LIST-01** | À valider | Cartes listes métadonnées | **PARTIEL agent** | Re-test porteur 1.0.40+ |
+| 1 | **DEPLOY-GHA-01** | ▶ En cours | GH Actions + Portainer style YTMusic | **PARTIEL agent** | DEPLOY.md · scripts deploy/ |
+| 2 | **DEPLOY-C1→C3** | À faire | Stack + NPM + OTA préprod | | PORTEUR_ACTIONS_DEPLOIEMENT |
+| 3 | **DEPLOY-MAKE** | À tester | Make up-preprod / upgrade-to-* | | script livré |
+| 4 | **MOB-HUB-01** | À faire | Hubs détail + liens croisés | | pause — après deploy |
+| 5 | **MOB-LIST-01** | À valider | Cartes listes métadonnées | **PARTIEL agent** | après HUB |
 | 3 | **MOB-NAV-01** | À faire | Retours système depuis chaque détail | | après HUB |
 | 4 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | après NAV |
 | 5 | **D.6** | À faire | FAB Relance | | après snacks |

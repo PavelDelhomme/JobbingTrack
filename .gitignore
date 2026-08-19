@@ -22,6 +22,10 @@ lerna-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+deploy/production/.env.preprod.generated
+deploy/production/.env.prod.generated
+deploy/production/.env.preprod.local
+deploy/production/.env.prod.local
 .env.backup.*
 .env.append-from-example.txt
 

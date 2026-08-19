@@ -1,0 +1,35 @@
+# Watchtower — mise à jour auto des images JobbingTrack (Portainer CE, SANS webhook Pro)
+#
+# 1. Portainer → Stacks → Add stack → name: watchtower
+# 2. Colle ce fichier
+# 3. Deploy
+#
+# Seuls les conteneurs avec le label sont mis à jour :
+#   com.centurylinklabs.watchtower.enable=true
+# (déjà sur api-gateway, frontend et microservices dans deploy/production/docker-compose.yml)
+#
+# Après push dev/main + build GHCR, Watchtower pull le tag IMAGE_TAG sous ~5 min
+# et recrée les conteneurs (volumes postgres/redis/mobile conservés).
+
+version: "3.8"
+
+services:
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_POLL_INTERVAL: "300"
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_INCLUDE_STOPPED: "false"
+      # Si packages GHCR privés : monter config.json ou WATCHTOWER_REPO_USER/PASS
+    networks:
+      - shared
+
+networks:
+  shared:
+    external: true
+    name: shared-network-copy

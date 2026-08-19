@@ -1,58 +1,36 @@
 {
-  "updatedAt": "2026-07-22",
-  "apk": "1.0.33+33",
+  "updatedAt": "2026-08-19",
+  "apk": "1.0.42+42",
   "phase": {
-    "id": "B",
-    "label": "Gate pré-prod mobile",
-    "step": "B2",
-    "subStep": "D",
-    "point": "D.6",
-    "title": "FAB Relance"
+    "id": "C",
+    "label": "Déploiement VPS",
+    "step": "C1",
+    "subStep": "GHA",
+    "point": "DEPLOY-GHA-01",
+    "title": "GH Actions + Portainer"
   },
   "recentDone": [
+    { "id": "DEPLOY-GHA-scripts", "label": "Scripts deploy + DEPLOY.md (agent 19/08)" },
     { "id": "B2-B.3", "label": "USER drawer sans Administration" },
-    { "id": "B2-B.4", "label": "Impersonnaliser → hub admin" },
-    { "id": "B2-C.5", "label": "Relances + fix ShellTabRegistry (1.0.31)" }
+    { "id": "B2-B.4", "label": "Impersonnaliser → hub admin" }
   ],
   "queue": [
-    { "id": "B2-D.6", "status": "active", "label": "FAB Relance" },
-    { "id": "B2-D.7", "status": "pending", "label": "FAB Appel" },
-    { "id": "B2-D.8", "status": "pending", "label": "FAB Entretien" },
-    { "id": "B2-D.9", "status": "pending", "label": "FAB Contact" },
-    { "id": "B2-E.10", "status": "pending", "label": "Re-tap Candidatures" },
-    { "id": "B2-E.11", "status": "pending", "label": "FAB contact onglet" },
-    { "id": "B2-F.12", "status": "pending", "label": "Double retour Accueil" }
+    { "id": "DEPLOY-C1", "status": "active", "label": "Stack Portainer préprod" },
+    { "id": "DEPLOY-C2", "status": "pending", "label": "NPM HTTPS api + web" },
+    { "id": "DEPLOY-C3", "status": "pending", "label": "OTA 1er APK canal dev" },
+    { "id": "MOB-HUB-01", "status": "pending", "label": "Hubs mobile (après deploy)" },
+    { "id": "MOB-LIST-01", "status": "pending", "label": "Métadonnées listes" }
   ],
   "openFixes": [
     {
-      "id": "MOB-ENT-01",
-      "label": "Liste Entreprises sync ownership + backfill",
+      "id": "MOB-HUB-01",
+      "label": "Validation hubs Samsung",
+      "status": "paused_until_deploy"
+    },
+    {
+      "id": "PILOTAGE-PERF",
+      "label": "Re-test perf pilotage porteur",
       "status": "fixed_pending_retest"
-    },
-    {
-      "id": "WEB-LOGIN-01",
-      "label": "Login backoffice messages sans overlay Next.js",
-      "status": "fixed_pending_retest"
-    },
-    {
-      "id": "EMU-LIVE-01",
-      "label": "Aperçu live ADB MJPEG",
-      "status": "fixed_pending_retest"
-    },
-    {
-      "id": "PILOTAGE-UI-04",
-      "label": "Tableau de suivi interactif (parse md OK/KO)",
-      "status": "shipped_pending_retest"
-    },
-    {
-      "id": "PILOTAGE-UI-03",
-      "label": "UI fichiers pilotage sécurisée + titre page",
-      "status": "shipped"
-    },
-    {
-      "id": "PERF-TAB-01",
-      "label": "Diagnostic mémoire multi-onglets backoffice",
-      "status": "todo"
     }
   ],
   "files": {
@@ -61,6 +39,7 @@
     "tester": "docs/pilotage/TODOS_A_TESTER.md",
     "valider": "docs/pilotage/TODOS_A_VALIDER.md",
     "done": "docs/pilotage/TODOS_DONE.md",
-    "suivi": "docs/pilotage/suivi-actif.json"
+    "suivi": "docs/pilotage/suivi-actif.json",
+    "deploy": "DEPLOY.md"
   }
 }

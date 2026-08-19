@@ -1,6 +1,6 @@
 # TODOS — choses à faire (source de vérité)
 
-Dernière mise à jour : **22 juillet 2026**
+Dernière mise à jour : **19 août 2026**
 
 ## Process de suivi (obligatoire)
 
@@ -23,30 +23,256 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ## Récemment terminé (max 1 catégorie + 3 sous-items)
 
-### Mobile B2 — stabilisation shell / crash (22/07)
+### Déploiement — scripts & doc (19/08 agent)
 
-1. **OK** B2-B.3 USER drawer sans Administration  
-2. **OK** B2-B.4 Impersonnaliser → Désimpersonnaliser → hub  
-3. **OK** B2-C.5 Relances + correctif `ShellTabRegistry` setState (APK **1.0.31**)
+1. **Livré** scripts `admin-deploy-dev/prod`, `redeploy-vps`, `generate-portainer-env`, `publish-apk-remote`  
+2. **Livré** `DEPLOY.md`, Watchtower, labels compose, workflow GHCR  
+3. **À faire porteur** : exécuter la checklist ci-dessous sur VPS (Portainer + NPM)
 
 ---
 
-## ▶ En cours maintenant
+## ▶ En cours maintenant — DEPLOY VPS (guide pas à pas porteur)
 
-> **Kanban** : une seule carte **En cours** (aujourd’hui **MOB-HUB-01**).  
-> Le reste = **À faire** / **À valider** / **Plus tard** — pas « en cours ».
+> **Focus Kanban** : **DEPLOY-GHA-01** · MOB-HUB / MOB-LIST **en pause** jusqu’à préprod HTTPS OK.  
+> **Interfaces** : [Portainer](https://portainer.delhomme.ovh) · [Nginx Proxy Manager](https://nginx.delhomme.ovh)  
+> **VPS** : `95.111.227.204` · **Ordre** : préprod d’abord, prod ensuite.
 
-| ID | Phase | Colonne | Item | Action immédiate | Preuve / test |
-|----|-------|---------|------|------------------|---------------|
-| **MOB-HUB-01** | B | ▶ En cours | Hubs détail + liens croisés | Re-test APK 1.0.41 | A_TESTER § MOB-HUB |
-| **MOB-LIST-01** | B | À valider | Cartes listes métadonnées | Confirmer sous-critères | PARTIEL 1.0.40 |
-| **MOB-NAV-01** | B | À faire | Retours système détails | Après HUB | |
-| **MOB-ENT-01** | B | Terminées | Hub fiche entreprise | **OK 29/07** | DONE |
-| **APK-BUILD-01** | B/D | À valider | Rebuild APK sans Zip | Confirmer ouverture app | **PARTIEL** build+ADB OK |
-| **MOB-SNACK-01** | B | À faire | Snacks auto-dismiss | Après NAV | |
-| **B2-D.6** | B | À faire | FAB Relance | Après snacks | |
-| B2-D.7→F.12 | B | Plus tard | FAB / shell suite | Après D.6 | |
-| PILOTAGE-UI-04/05/KANBAN | D | À valider | Board / Kanban | Valider UI | |
+### Avant de commencer (5 min)
+
+| # | Action | Détail | [ ] |
+|---|--------|--------|-----|
+| A0.1 | Générer le `.env` Portainer depuis **ton** `.env` racine | `bash scripts/deploy/generate-portainer-env.sh` → `deploy/production/.env.preprod.generated` (~230 clés, **mêmes mots de passe**) | [ ] |
+| A0.2 | Ouvrir le fichier généré | `deploy/production/.env.preprod.generated` (gitignoré — **ne pas committer**) | [ ] |
+| A0.3 | Noter le mot de passe admin | Identique à `ADMIN_PASSWORD` dans ton `.env` (`admin@jobbingtrack.com`) | [ ] |
+| A0.4 | Compléter SMTP | Dans le fichier : `SMTP_PASS=` → mot de passe réel compte `noreply@maily.ovh` (ou autre SMTP OVH) | [ ] |
+| A0.5 | Token GitHub (repo privé) | GitHub → Settings → Developer settings → PAT **read** repo → pour Portainer Git | [ ] |
+
+---
+
+### Étape 1 — DNS OVH (4 enregistrements A)
+
+Zone **delhomme.ovh** → tous pointent vers **`95.111.227.204`** :
+
+| Sous-domaine | Usage | [ ] |
+|--------------|-------|-----|
+| `jobbingtrack-preprod` | Web préprod | [ ] |
+| `api-preprod.jobbingtrack` | API préprod | [ ] |
+| `jobbingtrack` | Web prod (plus tard) | [ ] |
+| `api.jobbingtrack` | API prod (plus tard) | [ ] |
+
+Vérifier (depuis ton PC, après propagation ~5–30 min) :
+
+```bash
+dig +short jobbingtrack-preprod.delhomme.ovh
+dig +short api-preprod.jobbingtrack.delhomme.ovh
+```
+
+---
+
+### Étape 2 — Stack Portainer **préprod** (jobbingtrack-preprod)
+
+[Portainer](https://portainer.delhomme.ovh) → **Environments** → **local** → **Stacks** → **Add stack**
+
+#### 2.1 — Onglet « Git repository »
+
+| Champ Portainer | Valeur exacte | [ ] |
+|-----------------|---------------|-----|
+| **Name** | `jobbingtrack-preprod` | [ ] |
+| **Repository URL** | `https://github.com/PavelDelhomme/JobbingTrack.git` | [ ] |
+| **Repository reference** | `refs/heads/dev` | [ ] |
+| **Compose path** | `deploy/production/docker-compose.yml` | [ ] |
+| **Authentication** | Username GitHub + **PAT** (si repo privé) | [ ] |
+| **Additional paths** | *(vide)* | [ ] |
+| **GitOps updates** | Désactivé pour l’instant (on fera Watchtower / redeploy après) | [ ] |
+
+#### 2.2 — Environment variables
+
+1. Section **Environment variables** → mode **Advanced**
+2. Bouton **Load variables from .env file** → choisir `deploy/production/.env.preprod.generated`
+3. Vérifier visuellement ces clés (valeurs déjà dans le fichier généré) :
+
+| Clé | Valeur attendue préprod |
+|-----|-------------------------|
+| `IMAGE_REGISTRY` | `ghcr.io/paveldelhomme` |
+| `IMAGE_TAG` | `dev` |
+| `IMAGE_PULL_POLICY` | `build` *(1er deploy — build sur VPS, long ~30–60 min)* |
+| `API_PUBLISH_PORT` | `3010` |
+| `FRONTEND_PUBLISH_PORT` | `3011` |
+| `NEXT_PUBLIC_API_URL` | `https://api-preprod.jobbingtrack.delhomme.ovh` |
+| `NEXT_PUBLIC_FRONTEND_URL` | `https://jobbingtrack-preprod.delhomme.ovh` |
+| `ALLOWED_ORIGINS` | les 2 URLs HTTPS préprod, séparées par une virgule |
+
+| [ ] Variables chargées sans erreur |
+| [ ] `SMTP_PASS` rempli (pas `REMPLIR_…`) |
+
+#### 2.3 — Deploy
+
+| # | Action | [ ] |
+|---|--------|-----|
+| 2.3.1 | Cliquer **Deploy the stack** | [ ] |
+| 2.3.2 | Attendre la fin (logs Portainer — pas d’erreur rouge bloquante) | [ ] |
+| 2.3.3 | **Containers** → filtrer `jobbingtrack` → statut **healthy** (postgres, redis, api-gateway, frontend) | [ ] |
+
+**Si échec « port already in use »** : un autre service utilise 3010/3011 — changer les ports dans les variables stack et refaire NPM (étape 3).
+
+**Si échec build GHCR** : normal au 1er deploy avec `IMAGE_PULL_POLICY=build` — le VPS compile les images localement.
+
+---
+
+### Étape 3 — Nginx Proxy Manager **préprod**
+
+[NPM](https://nginx.delhomme.ovh) → **Hosts** → **Proxy Hosts** → **Add Proxy Host**
+
+#### 3.1 — Host API préprod
+
+| Onglet | Champ | Valeur | [ ] |
+|--------|-------|--------|-----|
+| Details | Domain names | `api-preprod.jobbingtrack.delhomme.ovh` | [ ] |
+| Details | Scheme | `http` | [ ] |
+| Details | Forward hostname | `127.0.0.1` | [ ] |
+| Details | Forward port | `3010` | [ ] |
+| Details | Block common exploits | ✅ | [ ] |
+| Details | Websockets Support | ✅ | [ ] |
+| SSL | SSL Certificate | Request a new SSL Certificate (Let's Encrypt) | [ ] |
+| SSL | Force SSL | ✅ | [ ] |
+| SSL | HTTP/2 | ✅ | [ ] |
+| SSL | Email Let's Encrypt | ton email admin | [ ] |
+| SSL | I Agree to the Terms | ✅ | [ ] |
+
+#### 3.2 — Host Web préprod
+
+| Onglet | Champ | Valeur | [ ] |
+|--------|-------|--------|-----|
+| Details | Domain names | `jobbingtrack-preprod.delhomme.ovh` | [ ] |
+| Details | Forward hostname | `127.0.0.1` | [ ] |
+| Details | Forward port | `3011` | [ ] |
+| SSL | Idem Let's Encrypt + Force SSL | | [ ] |
+
+#### 3.3 — Tests smoke
+
+```bash
+curl -fsS https://api-preprod.jobbingtrack.delhomme.ovh/health
+curl -fsS -o /dev/null -w "%{http_code}\n" https://jobbingtrack-preprod.delhomme.ovh/
+```
+
+| Test | Attendu | [ ] |
+|------|---------|-----|
+| API `/health` | JSON OK / 200 | [ ] |
+| Web `/` | 200 ou 307 login | [ ] |
+| Navigateur | `https://jobbingtrack-preprod.delhomme.ovh` → page login backoffice | [ ] |
+| Login | `admin@jobbingtrack.com` + `ADMIN_PASSWORD` de ton `.env` local | [ ] |
+
+---
+
+### Étape 4 — Packages GHCR publics (pour MAJ auto plus tard)
+
+GitHub → **Packages** (ou après un push sur `dev` qui lance **Build and Push Container Images**) :
+
+| # | Action | [ ] |
+|---|--------|-----|
+| 4.1 | Push sur branche `dev` (ou attendre le prochain merge) → workflow CI build les 16 images | [ ] |
+| 4.2 | Pour chaque package `jobbingtrack-*` → **Package settings** → **Change visibility** → **Public** | [ ] |
+| 4.3 | Dans Portainer préprod : passer `IMAGE_PULL_POLICY=always` → **Update stack** (pull GHCR au lieu de rebuild VPS) | [ ] |
+
+Packages concernés : `jobbingtrack-api-gateway`, `jobbingtrack-frontend`, `jobbingtrack-auth-service`, … (16 au total).
+
+---
+
+### Étape 5 — Watchtower (MAJ auto sans webhook Portainer Pro)
+
+Portainer → **Stacks** → **Add stack** → Name : `watchtower`
+
+1. Coller le contenu de `deploy/watchtower-compose.yml`
+2. **Deploy**
+3. Vérifier conteneur `watchtower` running
+
+Après push `dev` + build GHCR → les conteneurs labellisés se mettent à jour sous ~5 min.
+
+---
+
+### Étape 6 — Stack **prod** (jobbingtrack-prod) — **après** préprod OK
+
+Même procédure que préprod, avec ces différences :
+
+| Champ | Préprod | Prod |
+|-------|---------|------|
+| Stack name | `jobbingtrack-preprod` | `jobbingtrack-prod` |
+| Branche Git | `refs/heads/dev` | `refs/heads/main` |
+| Fichier env | `.env.preprod.generated` | `.env.prod.generated` *(regénérer : même script)* |
+| `IMAGE_TAG` | `dev` | `latest` |
+| `IMAGE_PULL_POLICY` | `build` puis `always` | `always` |
+| Ports hôte | 3010 / 3011 | 3020 / 3021 |
+| Web | `jobbingtrack-preprod.delhomme.ovh` | `jobbingtrack.delhomme.ovh` |
+| API | `api-preprod.jobbingtrack.delhomme.ovh` | `api.jobbingtrack.delhomme.ovh` |
+
+NPM prod : 2 proxy hosts identiques avec domaines prod et ports **3020** (API) / **3021** (web).
+
+> **Important** : secrets prod **≠** préprod (fichier `.env.prod.generated` regénéré avec d’autres mots de passe).
+
+---
+
+### Étape 7 — APK / OTA (canal dev puis prod)
+
+#### 7.1 — Backoffice préprod
+
+1. Login `https://jobbingtrack-preprod.delhomme.ovh/backoffice/mobile/releases`
+2. **Publier en DEV** → upload APK debug ou release
+
+#### 7.2 — Depuis ton PC (alternative script)
+
+```bash
+DEPLOY_URL=https://api-preprod.jobbingtrack.delhomme.ovh \
+  MOBILE_RELEASE_CHANNEL=dev \
+  ADMIN_EMAIL=admin@delhomme.ovh \
+  ADMIN_PASSWORD='…' \
+  bash scripts/deploy/publish-apk-remote.sh
+```
+
+#### 7.3 — Samsung
+
+- APK debug → canal **dev** automatique
+- Au lancement → proposition MAJ si version distante > locale
+- Quand OK → **Promote → production** dans le backoffice
+
+---
+
+### Étape 8 — CI/CD automatique (optionnel, après 1er succès manuel)
+
+Dans `.env` local (PC) :
+
+```env
+PORTAINER_URL=https://portainer.delhomme.ovh
+PORTAINER_API_KEY=ptr_…   # Portainer → User → Access tokens
+PORTAINER_STACK_NAME_PREPROD=jobbingtrack-preprod
+PORTAINER_STACK_NAME_PROD=jobbingtrack-prod
+```
+
+| # | Action | [ ] |
+|---|--------|-----|
+| 8.1 | `bash scripts/deploy/admin-deploy-dev.sh` → push dev + redeploy préprod | [ ] |
+| 8.2 | (Prod) `bash scripts/deploy/admin-deploy-prod.sh web` → merge dev→main | [ ] |
+
+---
+
+### Synthèse — ordre strict
+
+```
+DNS → generate-portainer-env → Stack préprod Portainer → NPM préprod → smoke HTTPS
+  → GHCR public + IMAGE_PULL_POLICY=always → Watchtower
+  → (plus tard) Stack prod + NPM prod
+  → APK OTA → reprise MOB-HUB-01
+```
+
+### Tableau Kanban (rappel)
+
+| ID | Phase | Colonne | Item | Action immédiate |
+|----|-------|---------|------|------------------|
+| **DEPLOY-GHA-01** | C | ▶ En cours | GH Actions + Portainer | **Checklist ci-dessus** |
+| **DEPLOY-C1→C3** | C | À faire | Stack + NPM + OTA | Étapes 1–7 |
+| **MOB-HUB-01** | B | À faire | Hubs mobile | Après deploy |
+| **MOB-LIST-01** | B | À valider | Métadonnées listes | Après HUB |
+
+**Docs** : [`DEPLOY.md`](../../DEPLOY.md) · [`PORTEUR_ACTIONS_DEPLOIEMENT.md`](../production/PORTEUR_ACTIONS_DEPLOIEMENT.md) · [`VPS_95_INTEGRATION_PORTAINER.md`](../deployment/VPS_95_INTEGRATION_PORTAINER.md)
 
 ---
 

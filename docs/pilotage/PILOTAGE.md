@@ -4,21 +4,17 @@ Dernière mise à jour : **19 août 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : MOB-HUB-01** — hubs détail + liens croisés  
-**MOB-LIST-01** → **À valider** (métadonnées listes APK 1.0.40+) — **re-test en même temps que HUB**  
-**MOB-ENT-01** → **OK**
+**Focus (1 seule) : DEPLOY-GHA-01** — chaîne déploiement GH Actions + Portainer (style YTMusic)  
+**MOB-HUB-01** → **À faire** (pause — code APK 1.0.42 livré, validation Samsung reportée)  
+**MOB-LIST-01** → **À valider** — après déploiement VPS
 
-Suite : **MOB-NAV-01** → **MOB-SNACK-01** → **D.6** FAB · Parallèle DEPLOY-C*
+Suite mobile (après deploy) : **MOB-HUB-01** → **MOB-LIST-01** → **MOB-NAV-01** → **MOB-SNACK-01**
 
-APK **1.0.42** · Rebuild/install Samsung si absent · Pilotage : https://jobbingtrack.localhost:5443/backoffice/pilotage
+Guide deploy : [`DEPLOY.md`](../DEPLOY.md) · Kanban : https://jobbingtrack.localhost:5443/backoffice/pilotage
 
-**19/08** : tests agent relancés (front OK, stack OK, Samsung **non branché**) — **validation porteur MOB-HUB pas encore faite** (checklist Kanban 0/6).
+**19/08** : système deploy livré (scripts `admin-deploy-*`, `redeploy-vps`, Watchtower, DEPLOY.md, canaux mobile). **Porteur** : exécuter DEPLOY-C1→C3 sur VPS.
 
-Correctifs 04/08 (pour pouvoir valider HUB) : **nouvel onglet backoffice** sans refresh de la page source ; **build APK** anti-Zip `kernel_blob` (purge `compressed_assets` seulement + dependsOn copyFlutter). Warning Kotlin/KGP = non bloquant (`builtInKotlin=false`).
-
-**10/08** : lenteur `/backoffice/pilotage` → carte **PILOTAGE-PERF** (À tester) + quick-wins (crashes summary, inbox différée). Focus reste **MOB-HUB-01**.
-
-**10/08** : carte **AUDIT-QA-01** (Plus tard) + checklist [`AUDIT_QA_EXHAUSTIF.md`](AUDIT_QA_EXHAUSTIF.md) — audit boutons/pages/API/délais/erreurs USER+ADMIN · DEV+PROD · web+mobile. **Ne pas démarrer** avant fin gate B.
+APK **1.0.42** · Pilotage perf : carte **PILOTAGE-PERF** (À tester)
 
 `make run-mobile` : étapes **1/5…5/5**. Sans rebuild : `SKIP_BUILD=1 make run-mobile`
 
@@ -73,8 +69,8 @@ Décisions UI (OK/KO/PARTIEL/Plus tard/REWORK) + **déplacement de colonne** →
 
 | Phase | Statut |
 |-------|--------|
-| **B** gate mobile | MOB-ENT OK → LIST à valider → **HUB en cours** → NAV → snacks/FAB |
-| C déploiement | parallèle |
+| **B** gate mobile | MOB-ENT OK → HUB/LIST en pause → reprise après deploy VPS |
+| **C** déploiement | **DEPLOY-GHA-01 en cours** → DEPLOY-C1→C3 porteur |
 | D backoffice | board Kanban |
 
 ## Règle agent

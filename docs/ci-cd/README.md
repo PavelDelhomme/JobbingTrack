@@ -18,29 +18,29 @@ Les workflows sont dans `.github/workflows/` et se déclenchent sur push/PR selo
 |--------|-------------|------|
 | **ci-cd.yml** | Push sur `main`, `develop`, `feat/*`, `fix/*`, etc. ; PR vers `main`/`develop` | Sécurité, validation BDD, qualité de code, tests backend/frontend, intégration, performance |
 | **database-validation.yml** | Push/PR quand `backend/prisma/`, `scripts/database/` changent | Validation du schéma Prisma |
-| **deploy-dev.yml** | Push sur `develop` ou manuel | Déploiement environnement **dev** (placeholder : configurer `DEV_DEPLOY_URL`) |
-| **deploy-preprod.yml** | Push sur `main` ou manuel | Déploiement **preprod** (placeholder : configurer `PREPROD_DEPLOY_URL`) |
-| **deploy-prod.yml** | Publication d’une **release** ou manuel (avec confirmation « deploy ») | Déploiement **production** (placeholder : configurer `PROD_DEPLOY_URL`) |
+| **build-push-images.yml** | Push sur `dev`, `main` ; manuel | Build 16 images GHCR + webhook / hint redeploy — voir [`DEPLOY.md`](../../DEPLOY.md) |
+| **deploy-dev.yml** | Push sur `dev` ou manuel | Webhook préprod (`DEV_DEPLOY_URL`) ou no-op + hint |
+| **deploy-preprod.yml** | Push sur `preprod` ou manuel | Webhook préprod (`PREPROD_DEPLOY_URL` + token) |
+| **deploy-prod.yml** | Release publiée ou manuel (confirm `deploy`) | Webhook prod (`PROD_DEPLOY_URL`) |
 | **security-audit.yml** | Push/PR sur surfaces sécurité + planifié lundi 06:00 UTC + manuel | Gitleaks, CVE npm, Trivy filesystem/config, et scan manuel des images prod |
 
 ---
 
 ## Déploiement dev / preprod / prod
 
-Les workflows **deploy-*.yml** sont des squelettes :
+Les workflows **deploy-*.yml** et **build-push-images.yml** :
 
-- Ils font un **checkout** et un résumé dans le step summary.
-- L’étape « Déploiement » appelle une URL de webhook **si** le secret correspondant est défini :
-  - **Dev** : `DEV_DEPLOY_URL` (POST avec `ref` et `sha`)
-  - **Preprod** : `PREPROD_DEPLOY_URL`
-  - **Prod** : `PROD_DEPLOY_URL`
+- Build/push GHCR sur push `dev` (tag `:dev`) et `main` (tags `:latest`, `:prod`)
+- Webhook Portainer **si** secret défini ; sinon no-op documenté
+- Redeploy local : `bash scripts/deploy/redeploy-vps.sh` ou Watchtower (`deploy/watchtower-compose.yml`)
+
+Guide complet : **[`DEPLOY.md`](../../DEPLOY.md)** à la racine du dépôt.
 
 Pour activer un déploiement réel :
 
-1. **Secrets** (Settings → Secrets and variables → Actions) : créer `DEV_DEPLOY_URL`, `PREPROD_DEPLOY_URL`, `PROD_DEPLOY_URL` avec l’URL de votre service de déploiement (webhook, script distant, etc.).
-2. Ou remplacer l’étape « Déploiement (placeholder) » par vos propres steps (SSH, Docker push + pull sur le serveur, Cloud Run, etc.).
-
-Pour **production**, le job utilise l’**environment** `production` (à créer dans Settings → Environments) si vous voulez des rules d’approbation.
+1. **Secrets** GitHub (optionnels) : `DEV_DEPLOY_URL`, `PREPROD_DEPLOY_URL`, `PROD_DEPLOY_URL`
+2. **Portainer CE** : Access Token + `scripts/deploy/redeploy-vps.sh` ou stack **Watchtower**
+3. Checklist porteur : `docs/production/PORTEUR_ACTIONS_DEPLOIEMENT.md`
 
 ---
 

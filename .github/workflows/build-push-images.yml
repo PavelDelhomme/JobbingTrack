@@ -110,7 +110,7 @@ jobs:
           SHORT_SHA="${GITHUB_SHA:0:7}"
           TAGS="${PREFIX}-${{ matrix.image }}:${BRANCH},${PREFIX}-${{ matrix.image }}:sha-${SHORT_SHA}"
           if [ "${BRANCH}" = "main" ]; then
-            TAGS="${TAGS},${PREFIX}-${{ matrix.image }}:latest"
+            TAGS="${TAGS},${PREFIX}-${{ matrix.image }}:latest,${PREFIX}-${{ matrix.image }}:prod"
           fi
           if [ -n "${{ github.event.inputs.tag }}" ]; then
             TAGS="${TAGS},${PREFIX}-${{ matrix.image }}:${{ github.event.inputs.tag }}"
@@ -141,6 +141,32 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  ghcr-public-hint:
+    name: GHCR packages visibility
+    runs-on: ubuntu-latest
+    needs: build-push
+    if: success()
+    permissions:
+      packages: write
+    steps:
+      - name: Tenter rendre les packages publics (Portainer CE sans login)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OWNER="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          for pkg in api-gateway auth-service application-service company-service contact-service \
+            interview-service notification-service dashboard-service call-service profile-service \
+            event-service followup-service workflow-service security-service metrics-aggregator frontend; do
+            NAME="jobbingtrack-${pkg}"
+            if gh api --method PATCH "/users/${OWNER}/packages/container/${NAME}" -f visibility=public 2>/dev/null; then
+              echo "OK user package ${NAME}"
+            elif gh api --method PATCH "/orgs/${OWNER}/packages/container/${NAME}" -f visibility=public 2>/dev/null; then
+              echo "OK org package ${NAME}"
+            else
+              echo "::warning::Package ${NAME} — passer en Public manuellement si Portainer ne pull pas"
+            fi
+          done
+
   notify-portainer:
     name: Webhook Portainer
     runs-on: ubuntu-latest
@@ -153,7 +179,9 @@ jobs:
           WEBHOOK_URL: ${{ secrets.DEV_DEPLOY_URL }}
         run: |
           if [ -z "${WEBHOOK_URL}" ]; then
-            echo "DEV_DEPLOY_URL non defini — redeploy Portainer manuel ou GitOps."
+            echo "DEV_DEPLOY_URL non defini — redeploy via:"
+            echo "  bash scripts/deploy/redeploy-vps.sh preprod"
+            echo "  ou Watchtower (deploy/watchtower-compose.yml) sous ~5 min"
             exit 0
           fi
           curl -fsS -X POST "${WEBHOOK_URL}" \
@@ -166,7 +194,10 @@ jobs:
           WEBHOOK_URL: ${{ secrets.PROD_DEPLOY_URL }}
         run: |
           if [ -z "${WEBHOOK_URL}" ]; then
-            echo "PROD_DEPLOY_URL non defini — redeploy Portainer manuel ou GitOps."
+            echo "PROD_DEPLOY_URL non defini — redeploy via:"
+            echo "  bash scripts/deploy/admin-deploy-prod.sh web  (merge dev→main déjà fait si push direct main)"
+            echo "  bash scripts/deploy/redeploy-vps.sh prod"
+            echo "  ou Watchtower sous ~5 min"
             exit 0
           fi
           curl -fsS -X POST "${WEBHOOK_URL}" \

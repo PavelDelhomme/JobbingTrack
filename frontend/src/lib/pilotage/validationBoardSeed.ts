@@ -531,6 +531,26 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
       ],
     }),
     task({
+      id: "DEPLOY-GHA-01",
+      cycleId: "deploy-vps",
+      section: "Phase C — CI/CD",
+      label: "Chaîne déploiement GH Actions + Portainer (style YTMusic)",
+      description:
+        "Scripts admin-deploy-dev/prod, redeploy-vps (Portainer CE / Watchtower), DEPLOY.md, labels Watchtower, GHCR public.",
+      expected:
+        "Push dev → GHCR :dev → préprod VPS ; merge main → :latest → prod. MOB-HUB en pause.",
+      status: "partial",
+      order: 395,
+      checklist: [
+        { id: "scripts", label: "Scripts deploy/ livrés (redeploy, admin-deploy, publish-apk)", done: true },
+        { id: "watchtower", label: "watchtower-compose.yml + labels compose", done: true },
+        { id: "deploy-md", label: "DEPLOY.md + CANAL_DISTRIBUTION_MOBILE.md", done: true },
+        { id: "ghcr-workflow", label: "build-push-images :prod + hint GHCR public", done: true },
+        { id: "porteur-stack", label: "Porteur : stack Portainer préprod créée (DEPLOY-C1)", done: false },
+        { id: "porteur-smoke", label: "Porteur : smoke HTTPS + redeploy testé", done: false },
+      ],
+    }),
+    task({
       id: "DEPLOY-C1",
       cycleId: "deploy-vps",
       section: "Phase C — VPS",
@@ -875,9 +895,10 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
   setCol("APK-BUILD-01", "a_valider", "partial");
   setCol("MOB-ENT-01", "done", "ok");
   setCol("MOB-LIST-01", "a_valider", "partial");
-  setCol("MOB-HUB-01", "doing", "open");
+  setCol("MOB-HUB-01", "backlog", "open");
   setCol("MOB-NAV-01", "backlog", "open");
   setCol("MOB-SNACK-01", "backlog", "open");
+  setCol("DEPLOY-GHA-01", "doing", "partial");
   setCol("D.6", "backlog", "open");
   setCol("WEB-LOGIN-01", "done", "ok");
   setCol("EMU-LIVE-01", "done", "ok");
@@ -910,7 +931,7 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
   return {
     version: 1,
     updatedAt: new Date().toISOString(),
-    focusTaskId: "MOB-HUB-01",
+    focusTaskId: "DEPLOY-GHA-01",
     cycles: [
       {
         id: "correctifs-2207",
@@ -960,6 +981,7 @@ export function buildSeedValidationBoard(): ValidationBoardFile {
         label: "Phase C — Déploiement VPS",
         description: "Portainer + NPM + OTA — parallèle au focus mobile",
         itemIds: [
+          "DEPLOY-GHA-01",
           "DEPLOY-C1",
           "DEPLOY-C2",
           "DEPLOY-C3",
