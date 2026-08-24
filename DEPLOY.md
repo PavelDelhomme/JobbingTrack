@@ -15,9 +15,8 @@ Checklist porteur **copie opérationnelle** (sans rien perdre) aussi dans [`docs
 | `DEPLOY.md` + redirections canaux mobile | ✅ |
 | Domaines cibles `*.jobbingtrack.com` dans générateur env | ✅ |
 | MailHog local UI **8125** (évite Cloudity 8025) | ✅ |
-| DNS `@` + `www` → `95.111.227.204` | ✅ |
-| DNS `api` / `preprod` / `api-preprod` | ❌ porteur |
-| Portainer préprod + NPM + smoke + Watchtower + prod + OTA | ❌ porteur (étapes D→J) |
+| DNS `@` + `www` + `api` + `preprod` + `api-preprod` → `95.111.227.204` | ✅ porteur 24/08 |
+| Portainer préprod + NPM + smoke + Watchtower + prod + OTA | ❌ porteur (étapes C→J) |
 
 **Hors scope deploy** (à faire **après** préprod OK) : nettoyer / mutualiser `backend/auth-service` (email*, logger*, centralLogger) et les duplications entre microservices — carte **BACKEND-CLEAN-01** dans le pilotage.
 
@@ -255,9 +254,9 @@ Zone OVH **jobbingtrack.com** → IP **`95.111.227.204`**
 |--------|------|-------|-------|------|
 | `@` | A | 95.111.227.204 | Prod web | ✅ |
 | `www` | A | 95.111.227.204 | Prod web | ✅ |
-| **`api`** | A | 95.111.227.204 | Prod API | ❌ à créer |
-| **`preprod`** | A | 95.111.227.204 | Préprod web | ❌ à créer |
-| **`api-preprod`** | A | 95.111.227.204 | Préprod API | ❌ à créer |
+| **`api`** | A | 95.111.227.204 | Prod API | ✅ |
+| **`preprod`** | A | 95.111.227.204 | Préprod web | ✅ |
+| **`api-preprod`** | A | 95.111.227.204 | Préprod API | ✅ |
 
 ```bash
 dig +short api.jobbingtrack.com
@@ -593,8 +592,8 @@ Watchtower : `deploy/watchtower-compose.yml`
 
 ```
 [x] A  Stack locale OK (MailHog 8125) — doc + config livrées ; vérifier ton `up` local
-[ ] B  DNS : api + preprod + api-preprod sur jobbingtrack.com  (@/www déjà OK)
-[ ] C  generate-portainer-env.sh → vérifier URLs .com
+[x] B  DNS : api + preprod + api-preprod sur jobbingtrack.com  (✅ porteur 24/08 — dig OK)
+[ ] C  generate-portainer-env.sh → vérifier URLs .com  ◀ **prochaine session**
 [ ] D  Portainer stack jobbingtrack-preprod (Git dev + .env)
 [ ] E  NPM : 2 hosts préprod (forward noms conteneurs)
 [ ] F  Smoke HTTPS + login admin

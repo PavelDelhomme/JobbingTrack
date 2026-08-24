@@ -45,8 +45,8 @@
 | GHCR workflow | `.github/workflows/build-push-images.yml` | **Livré** |
 | MailHog local | port UI **8125** (`.env` + compose) | **OK 24/08** |
 | DNS `@` / `www` | `dig` → `95.111.227.204` | **OK** |
-| DNS `api` / `preprod` / `api-preprod` | `dig +short …` | **KO / absent 24/08** — porteur |
-| Générateur env | `bash scripts/deploy/generate-portainer-env.sh` | **À rejouer** avant Portainer |
+| DNS `api` / `preprod` / `api-preprod` | `dig +short …` → `95.111.227.204` | **OK porteur 24/08** |
+| Générateur env | `bash scripts/deploy/generate-portainer-env.sh` | **À faire demain** (étape C) |
 | Porteur D = stack préprod | Portainer `jobbingtrack-preprod` | **À faire** |
 | Porteur E = NPM | 2 hosts préprod (noms conteneurs) | **À faire** |
 | Porteur F = smoke | HTTPS + login admin | **À faire** |

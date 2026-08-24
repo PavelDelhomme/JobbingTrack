@@ -42,11 +42,11 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 > **Stub mobile** : [`CANAL_DISTRIBUTION_MOBILE.md`](../deployment/CANAL_DISTRIBUTION_MOBILE.md) → pointe vers `DEPLOY.md` §15 (contenu recopié en **Étape J** ci-dessous)
 
 ```
-État 24/08 :
+État 24/08 (soir) :
   ✅ Scripts + DEPLOY.md + compose réseaux NPM + domaines .com
   ✅ MailHog local 8125
-  ✅ DNS @ + www → 95.111.227.204
-  ❌ DNS api / preprod / api-preprod (à créer)
+  ✅ DNS zone complète → 95.111.227.204 (@, www, api, preprod, api-preprod)
+  ◀ Prochaine session : étape C (generate-env) → D Portainer → E NPM
   ❌ Portainer stack préprod / NPM / smoke / Watchtower / prod / OTA
 ```
 
@@ -79,9 +79,9 @@ Zone OVH → IP **`95.111.227.204`** (plus de `*.delhomme.ovh` pour JT).
 |--------|------|-------|-------|------|
 | `@` | A | 95.111.227.204 | Prod web | ✅ |
 | `www` | A | 95.111.227.204 | Prod web | ✅ |
-| **`api`** | A | 95.111.227.204 | Prod API | ❌ **à créer** |
-| **`preprod`** | A | 95.111.227.204 | Préprod web | ❌ **à créer** |
-| **`api-preprod`** | A | 95.111.227.204 | Préprod API | ❌ **à créer** |
+| **`api`** | A | 95.111.227.204 | Prod API | ✅ porteur 24/08 |
+| **`preprod`** | A | 95.111.227.204 | Préprod web | ✅ porteur 24/08 |
+| **`api-preprod`** | A | 95.111.227.204 | Préprod API | ✅ porteur 24/08 |
 
 ```bash
 dig +short api.jobbingtrack.com
@@ -89,11 +89,11 @@ dig +short preprod.jobbingtrack.com
 dig +short api-preprod.jobbingtrack.com
 ```
 
-Attendre propagation 5–30 min **avant** Let's Encrypt sur NPM.
+Attendre propagation 5–30 min **avant** Let's Encrypt sur NPM. **✅ Propagation confirmée 24/08** (`dig` → `95.111.227.204`).
 
 ---
 
-### Étape C — Générer les `.env` Portainer — [`DEPLOY.md` §8]
+### Étape C — Générer les `.env` Portainer — [`DEPLOY.md` §8] ◀ **PROCHAINE SESSION**
 
 ```bash
 git pull origin dev

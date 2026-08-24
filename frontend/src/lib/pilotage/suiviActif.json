@@ -4,18 +4,18 @@
   "phase": {
     "id": "C",
     "label": "Déploiement VPS",
-    "step": "B",
-    "subStep": "DNS",
+    "step": "C",
+    "subStep": "env",
     "point": "DEPLOY-GHA-01",
-    "title": "DNS + Portainer préprod jobbingtrack.com"
+    "title": "Générer .env Portainer puis stack préprod"
   },
   "recentDone": [
+    { "id": "DEPLOY-B-DNS", "label": "DNS api + preprod + api-preprod (OVH, dig OK)" },
     { "id": "DEPLOY-mailhog-8125", "label": "MailHog UI 8125 (conflit Cloudity)" },
-    { "id": "DEPLOY-domains-com", "label": "Domaines cibles jobbingtrack.com + generate-env" },
-    { "id": "DEPLOY-GHA-scripts", "label": "Scripts deploy + DEPLOY.md (agent)" }
+    { "id": "DEPLOY-domains-com", "label": "Domaines cibles jobbingtrack.com + generate-env" }
   ],
   "queue": [
-    { "id": "DEPLOY-B-DNS", "status": "active", "label": "DNS api + preprod + api-preprod" },
+    { "id": "DEPLOY-C-env", "status": "active", "label": "generate-portainer-env.sh + vérif .com" },
     { "id": "DEPLOY-C1", "status": "pending", "label": "Stack Portainer préprod" },
     { "id": "DEPLOY-C2", "status": "pending", "label": "NPM HTTPS api + web" },
     { "id": "DEPLOY-C3", "status": "pending", "label": "OTA 1er APK canal dev (Nothing)" },

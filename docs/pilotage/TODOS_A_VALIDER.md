@@ -18,8 +18,8 @@
 | # | ID / étape | À valider | Décision | Notes |
 |---|------------|-----------|----------|-------|
 | 1 | **A** local | Stack locale + MailHog **8125** | | config déjà livrée |
-| 2 | **B** DNS | `api` + `preprod` + `api-preprod` → `95.111.227.204` | | `@`/`www` déjà OK |
-| 3 | **C** env | `.env.preprod.generated` URLs `.com`, sans `GITHUB_PAT` | | `generate-portainer-env.sh` |
+| 2 | **B** DNS | `api` + `preprod` + `api-preprod` → `95.111.227.204` | **OK porteur 24/08** | `dig` confirme propagation |
+| 3 | **C** env | `.env.preprod.generated` URLs `.com`, sans `GITHUB_PAT` | | **◀ prochaine session** — `generate-portainer-env.sh` |
 | 4 | **D / DEPLOY-C1** | Stack Portainer `jobbingtrack-preprod` healthy | | Git `dev` + compose prod |
 | 5 | **E / DEPLOY-C2** | NPM 2 hosts préprod (noms conteneurs :3000) + LE | | comme ytmusic |
 | 6 | **F** smoke | HTTPS health + login `admin@jobbingtrack.com` | | |
