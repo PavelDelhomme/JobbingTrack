@@ -35,7 +35,8 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 > **Focus** : **DEPLOY-GHA-01** · Mobile hubs en pause · Tests mobile = **Nothing Phone**  
 > **UI** : [Portainer](https://portainer.delhomme.ovh) · [NPM](https://nginx.delhomme.ovh) · VPS `95.111.227.204`  
-> **Guide** : [`DEPLOY.md`](../../DEPLOY.md) (mis à jour 24/08)
+> **Guide** : **[`DEPLOY.md`](../../DEPLOY.md)** — **source unique** (local, préprod, prod, GHA, Portainer, NPM, OTA mobile).  
+> Cette section TODOS = checklist courte ; le détail pas-à-pas est dans `DEPLOY.md`.
 
 ### Correctif local (fait 24/08)
 

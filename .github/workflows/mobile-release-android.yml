@@ -6,7 +6,7 @@ on:
       api_base_url:
         description: 'URL API prod/preprod (dart-define API_BASE_URL)'
         required: true
-        default: 'https://api.jobbingtrack.delhomme.ovh'
+        default: 'https://api.jobbingtrack.com'
       version_name:
         description: 'Version affichée (ex. 1.0.1)'
         required: true

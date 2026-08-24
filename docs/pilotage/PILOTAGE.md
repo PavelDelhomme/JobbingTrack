@@ -9,7 +9,7 @@ Dernière mise à jour : **24 août 2026**
 **Domaines prod** : `jobbingtrack.com` + `api.jobbingtrack.com` · préprod : `preprod.` / `api-preprod.`  
 **Mobile** : OTA sur **Nothing Phone** après HTTPS préprod  
 
-Guide : [`DEPLOY.md`](../DEPLOY.md) · Checklist : [`TODOS.md`](TODOS.md) « En cours maintenant »
+Guide : **[`DEPLOY.md`](../DEPLOY.md)** (source unique déploiement web/API/mobile) · Checklist courte : [`TODOS.md`](TODOS.md)
 
 MOB-HUB / MOB-LIST en pause jusqu’à préprod OK.
 
