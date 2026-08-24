@@ -4,11 +4,41 @@
 > Tu remplis **uniquement** ce fichier pour la phase en cours. Pas d’autres phases ici.  
 > **UI** : `/backoffice/pilotage` → onglet **Tableau de suivi** (OK/KO écrit ici automatiquement en dev/préprod).
 
-**Phase active** : **C — Déploiement VPS** (priorité porteur 19/08)  
-**Point exact** : **DEPLOY-GHA-01** (seul **En cours** Kanban) — scripts agent livrés ; **porteur : stack VPS**  
-**Mobile** : MOB-HUB / MOB-LIST en pause · APK **1.0.42**
+**Phase active** : **C — Déploiement VPS** (**jobbingtrack.com**, style YTMusic)  
+**Point exact** : **DEPLOY-GHA-01** — seul **En cours** Kanban  
+**Guide** : [`DEPLOY.md`](../../DEPLOY.md) · checklist complète A→J dans [`TODOS.md`](TODOS.md)  
+**Mobile** : MOB-HUB / MOB-LIST en pause · validation OTA = **Nothing Phone** · APK **1.0.42**
 
-> **Kanban** : badge = **colonne**. Focus deploy avant reprise gate mobile B.
+> **Kanban** : badge = **colonne**. Focus deploy avant reprise gate mobile B / hubs.
+
+---
+
+## Point exact — à cocher par le porteur
+
+| # | ID / étape | À valider | Décision | Notes |
+|---|------------|-----------|----------|-------|
+| 1 | **A** local | Stack locale + MailHog **8125** | | config déjà livrée |
+| 2 | **B** DNS | `api` + `preprod` + `api-preprod` → `95.111.227.204` | | `@`/`www` déjà OK |
+| 3 | **C** env | `.env.preprod.generated` URLs `.com`, sans `GITHUB_PAT` | | `generate-portainer-env.sh` |
+| 4 | **D / DEPLOY-C1** | Stack Portainer `jobbingtrack-preprod` healthy | | Git `dev` + compose prod |
+| 5 | **E / DEPLOY-C2** | NPM 2 hosts préprod (noms conteneurs :3000) + LE | | comme ytmusic |
+| 6 | **F** smoke | HTTPS health + login `admin@jobbingtrack.com` | | |
+| 7 | **G** | GHCR public + Watchtower + `IMAGE_PULL_POLICY=always` | | |
+| 8 | **H** | `admin-deploy-dev.sh` OK une fois | | |
+| 9 | **I** | Stack + NPM **prod** (après F OK) | | ne pas anticiper |
+| 10 | **J / DEPLOY-C3** | OTA canal `dev` sur **Nothing** puis promote | | détail = `DEPLOY.md` §15 |
+
+**OK global phase C (préprod)** quand B→F cochés OK :
+
+```text
+OK Déploiement — préprod jobbingtrack.com (DNS + Portainer + NPM + login)
+```
+
+**OK global phase C (prod + mobile)** quand I + J OK :
+
+```text
+OK Déploiement — prod + OTA Nothing (dev → production)
+```
 
 ---
 
@@ -16,75 +46,61 @@
 
 | # | ID | Colonne | À faire | Décision | Notes |
 |---|----|---------|---------|----------|-------|
-| 1 | **DEPLOY-GHA-01** | ▶ En cours | GH Actions + Portainer style YTMusic | **PARTIEL agent** | DEPLOY.md · scripts deploy/ |
-| 2 | **DEPLOY-C1→C3** | À faire | Stack + NPM + OTA préprod | | PORTEUR_ACTIONS_DEPLOIEMENT |
-| 3 | **DEPLOY-MAKE** | À tester | Make up-preprod / upgrade-to-* | | script livré |
-| 4 | **MOB-HUB-01** | À faire | Hubs détail + liens croisés | | pause — après deploy |
+| 1 | **DEPLOY-GHA-01** | ▶ En cours | Checklist A→J (voir `TODOS.md`) | **PARTIEL agent** | scripts + doc OK ; ops porteur |
+| 2 | **DEPLOY-C1→C3** | dans GHA-01 | D Portainer · E NPM · J OTA | | pas de 2e carte En cours |
+| 3 | **DEPLOY-MAKE** | À tester | Cibles Make documentées (ne pas lancer make dans Cursor) | | scripts sous-jacents OK |
+| 4 | **MOB-HUB-01** | À faire | Hubs détail + liens croisés | | **pause** — après F |
 | 5 | **MOB-LIST-01** | À valider | Cartes listes métadonnées | **PARTIEL agent** | après HUB |
-| 3 | **MOB-NAV-01** | À faire | Retours système depuis chaque détail | | après HUB |
-| 4 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | après NAV |
-| 5 | **D.6** | À faire | FAB Relance | | après snacks |
-| 6 | D.7→D.9 | Plus tard | FAB Appel / Entretien / Contact | | après D.6 |
-| 7 | E.10→F.12 | Plus tard | Shell re-tap / FAB contacts / double retour | | après FAB |
-| 8 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **OK agent 04/08** | 1.0.42 install Samsung — confirmer porteur |
-| 8b | **PILOTAGE-PERF** | À tester | Page pilotage trop lente | **PARTIEL 10/08** | summary crashes + defer + dynamic |
-| 8c | **AUDIT-QA-01** | Plus tard | Audit QA exhaustif DEV/PROD USER/ADMIN | | [`AUDIT_QA_EXHAUSTIF.md`](AUDIT_QA_EXHAUSTIF.md) — après gate B |
-| 9 | **DEPLOY-C1→C3** | À faire | Portainer + NPM + OTA préprod | | parallèle C |
-| 10 | **DEPLOY-MAKE** | À tester | Make up-preprod / upgrade-to-* | | script livré |
-| — | **MOB-ENT-01** | Terminées | Hub entreprise Capgemini | **OK 29/07** | |
-| — | WEB-LOGIN / EMU | Terminées | | **OK** | |
+| 6 | **MOB-NAV-01** | À faire | Retours système depuis chaque détail | | après HUB |
+| 7 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | après NAV |
+| 8 | **D.6** | À faire | FAB Relance | | après snacks |
+| 9 | D.7→D.9 | Plus tard | FAB Appel / Entretien / Contact | | après D.6 |
+| 10 | E.10→F.12 | Plus tard | Shell re-tap / FAB contacts / double retour | | après FAB |
+| 11 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **OK agent 04/08** | confirmer Nothing |
+| 12 | **PILOTAGE-PERF** | À tester | Page pilotage trop lente | **PARTIEL 10/08** | après deploy |
+| 13 | **AUDIT-QA-01** | Plus tard | Audit QA exhaustif | | après gate B |
+| 14 | **BACKEND-CLEAN-01** | Plus tard | Mutualiser logger/email/utils microservices | | **après** deploy — voir note auth-service |
 
 ---
 
-## Correctifs session (état)
+## Correctifs session (référence — hors focus)
 
 | ID | À faire | Décision | Notes |
 |----|---------|----------|-------|
-| **MOB-ENT-01** | Hub entreprise (apps/contacts/relances/entretiens/appels) | **OK 29/07** | Capgemini contacts + hub |
-| **MOB-LIST-01** | Infos cartes listes tous onglets | **PARTIEL** → À valider | métadonnées 1.0.40 |
-| **MOB-HUB-01** | Liens croisés fiches (app/contact/relance/entretien/appel) | | ◀ **maintenant** |
-| **MOB-NAV-01** | Bouton retour système | | après HUB |
-| **APK-BUILD-01** | Rebuild sans Zip kernel_blob | **OK agent 04/08** | build 1.0.42 + install Samsung ; KGP = warn |
-| **WEB-LOGIN-01** | Login bandeau FR sans overlay Next | **OK 22/07** | |
-| **EMU-LIVE-01** | Aperçu live ADB | **OK 22/07** | |
-| **MOB-SNACK-01** | AppSnack auto-dismiss | | après NAV |
-| **PILOTAGE-UI-04** | Tableau suite logique + écriture md | | |
-| **PILOTAGE-UI-05** | Fiche détail / PARTIEL / Plus tard / Terminées | | |
-| **PILOTAGE-KANBAN** | Contraste colonnes **clair+sombre** + promo inbox + onglets STATUS/PLAN/ERRORS | | Re-test UI (moteur `jtKanban`) |
-| **PILOTAGE-PERF** | Page `/backoffice/pilotage` trop lente | **PARTIEL agent 10/08** | À tester — quick-wins livrés |
-| **AUDIT-QA-01** | Audit boutons/pages/API/délais/erreurs (DEV+PROD, USER+ADMIN) | | Plus tard — détail `AUDIT_QA_EXHAUSTIF.md` |
+| **MOB-ENT-01** | Hub entreprise Capgemini | **OK 29/07** | |
+| **MOB-HUB-01** | Liens croisés fiches | | pause jusqu’à préprod |
+| **APK-BUILD-01** | Rebuild APK 1.0.42 | **OK agent 04/08** | re-test Nothing |
+| **WEB-LOGIN-01** | Login bandeau FR | **OK 22/07** | |
+| **PILOTAGE-PERF** | Perf `/backoffice/pilotage` | **PARTIEL** | À tester après deploy |
 
 ---
 
-## B2 — Navigation + FAB + admin
+## B2 — Navigation + FAB (pause — reprise après deploy)
 
-| Point | À faire | Décision (OK / KO + détail) | Notes |
-|-------|---------|-----------------------------|-------|
-| A.1–A.2c | Navigation retour | **OK** | déjà fait |
+| Point | À faire | Décision | Notes |
+|-------|---------|----------|-------|
+| A.1–A.2c | Navigation retour | **OK** | |
 | B.3 | USER drawer sans Administration | **OK 22/07** | |
 | B.4 | ADMIN impersonnaliser → hub | **OK 22/07** | |
-| C.5 | Liste Relances sans crash | **OK 22/07** | crash setState corrigé APK 1.0.31 |
-| **D.6** | FAB → Relance | | ◀ **à remplir** |
-| D.7 | FAB → Appel | | |
-| D.8 | FAB → Entretien | | |
-| D.9 | FAB → Contact | | |
-| E.10 | Re-tap Candidatures | | |
-| E.11 | Contacts → FAB + | | |
-| F.12 | Accueil double retour | | |
-
-**OK global B2** (quand D→F OK) :
-
-```text
-OK Mobile — navigation retour, admin, relances, ajouts candidature
-```
+| C.5 | Liste Relances sans crash | **OK 22/07** | |
+| **D.6** | FAB → Relance | | reprise après MOB-HUB |
+| D.7–D.9 / E–F | FAB + shell | | après D.6 |
 
 ---
 
-## B3 — SMTP OVH `@jobbingtrack.com`
+## Note porteur — auth-service / backend (pas maintenant)
+
+`backend/auth-service` est plus gros que application/contact/… parce qu’il porte **auth + e-mail (SMTP/Resend/templates) + agent IMAP/OAuth + digests + logging sécurité/central** — pas un CRUD mince.  
+Les `logger.js` / `logger-filter.js` / `centralLogger.js` / `email*` sont liés à ce périmètre (et des copies depuis `backend/shared`).  
+**BACKEND-CLEAN-01** = après deploy : package partagé, supprimer les doublons entre services. **Ne pas démarrer pendant DEPLOY-GHA-01.**
+
+---
+
+## B3 — SMTP OVH `@jobbingtrack.com` (⏸ après deploy / B2)
 
 | # | Action | Décision | Notes |
 |---|--------|----------|-------|
-| 1 | Upgrade MX Plan OVH | | ⏸ après B2 |
+| 1 | Upgrade MX Plan OVH | | ⏸ |
 | 2 | Créer noreply@ + security@ | | |
 | 3 | DKIM + DMARC | | |
 | 4 | `.env` préprod/prod SMTP | | sans coller secrets |
@@ -94,21 +110,21 @@ Réponse : `OK Étape3 SMTP jobbingtrack.com` ou `KO …`
 
 ---
 
-## B4 — Agent email admin
+## B4 — Agent email admin (⏸ après B3)
 
 | # | Action | Décision | Notes |
 |---|--------|----------|-------|
-| 1 | Activer agent (admin) | | ⏸ après B3 |
+| 1 | Activer agent (admin) | | ⏸ |
 | 2 | Triage / boîte visible | | |
 
 Réponse : `OK Étape4 Agent email admin` ou `KO …`
 
 ---
 
-## B5 — Consentements RGPD `/agent`
+## B5 — Consentements RGPD `/agent` (⏸ après B4)
 
 | # | Action | Décision | Notes |
 |---|--------|----------|-------|
-| 1 | Sync mobile → web consentements | | ⏸ après B4 |
+| 1 | Sync mobile → web consentements | | ⏸ |
 
 Réponse : `OK Étape5 Consentements RGPD` ou `KO …`

@@ -30,23 +30,28 @@
 
 ---
 
-## En cours — Phase C — Déploiement (19/08)
+## En cours — Phase C — Déploiement (19–24/08)
 
-### DEPLOY-GHA-01 — chaîne GH Actions + Portainer
+### DEPLOY-GHA-01 — chaîne GH Actions + Portainer + jobbingtrack.com
 
-| Livrable | Fichier | Résultat |
-|----------|---------|----------|
-| Guide principal | `DEPLOY.md` | **Livré** |
+| Livrable / check | Fichier / commande | Résultat |
+|------------------|--------------------|----------|
+| Guide principal | `DEPLOY.md` (état + checklist §19) | **Livré / maj 24/08** |
+| Checklist ops A→J | `docs/pilotage/TODOS.md` ▶ En cours | **Livré / maj 24/08** |
+| Stub canaux mobile | `docs/deployment/CANAL_DISTRIBUTION_MOBILE.md` → `DEPLOY.md` §15 | **OK** |
 | Watchtower CE | `deploy/watchtower-compose.yml` | **Livré** |
-| Labels compose | `deploy/production/docker-compose.yml` | **Livré** |
-| Redeploy VPS | `scripts/deploy/redeploy-vps.sh` | **Livré** |
-| Deploy dev/prod | `scripts/deploy/admin-deploy-dev.sh`, `admin-deploy-prod.sh` | **Livré** |
-| APK distant | `scripts/deploy/publish-apk-remote.sh` | **Livré** |
-| Canaux mobile | `docs/deployment/CANAL_DISTRIBUTION_MOBILE.md` | **Livré** |
-| GHCR workflow | `.github/workflows/build-push-images.yml` (:prod + public hint) | **Livré** |
-| Porteur stack VPS | DEPLOY-C1 | **À faire** |
-| Porteur NPM HTTPS | DEPLOY-C2 | **À faire** |
-| Porteur OTA dev | DEPLOY-C3 | **À faire** |
+| Labels + réseaux NPM | `deploy/production/docker-compose.yml` | **Livré** |
+| Scripts deploy | `admin-deploy-*`, `redeploy-vps`, `generate-portainer-env`, `publish-apk-remote` | **Livré** |
+| GHCR workflow | `.github/workflows/build-push-images.yml` | **Livré** |
+| MailHog local | port UI **8125** (`.env` + compose) | **OK 24/08** |
+| DNS `@` / `www` | `dig` → `95.111.227.204` | **OK** |
+| DNS `api` / `preprod` / `api-preprod` | `dig +short …` | **KO / absent 24/08** — porteur |
+| Générateur env | `bash scripts/deploy/generate-portainer-env.sh` | **À rejouer** avant Portainer |
+| Porteur D = stack préprod | Portainer `jobbingtrack-preprod` | **À faire** |
+| Porteur E = NPM | 2 hosts préprod (noms conteneurs) | **À faire** |
+| Porteur F = smoke | HTTPS + login admin | **À faire** |
+| Porteur G–I | GHCR / Watchtower / prod | **À faire** |
+| Porteur J = OTA | Nothing Phone canal `dev` | **À faire** |
 
 ---
 

@@ -23,54 +23,65 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ## Récemment terminé (max 1 catégorie + 3 sous-items)
 
-### Déploiement — scripts & doc (19/08 agent)
+### Déploiement — scripts, domaines, MailHog (19–24/08)
 
-1. **Livré** scripts `admin-deploy-dev/prod`, `redeploy-vps`, `generate-portainer-env`, `publish-apk-remote`  
-2. **Livré** `DEPLOY.md`, Watchtower, labels compose, workflow GHCR  
-3. **À faire porteur** : exécuter la checklist ci-dessous sur VPS (Portainer + NPM)
+1. **Livré** scripts deploy + `DEPLOY.md` + Watchtower + labels NPM + `STACK_SLUG`  
+2. **Livré** domaines cibles **jobbingtrack.com** (+ génération `.env` Portainer)  
+3. **Livré** fix local MailHog UI **8125** (conflit Cloudity Mailpit 8025)  
+4. **À faire porteur** : checklist **A→J** ci-dessous (ops VPS + OTA)
 
 ---
 
 ## ▶ En cours maintenant — DEPLOY VPS (**jobbingtrack.com**, style YTMusic)
 
-> **Focus** : **DEPLOY-GHA-01** · Mobile hubs en pause · Tests mobile = **Nothing Phone**  
+> **Focus unique Kanban** : **DEPLOY-GHA-01** (ops porteur = C1→C3 + suite A–J)  
+> **Pause** : MOB-HUB / MOB-LIST / FAB gate B — reprise **après** préprod HTTPS OK  
+> **Appareil mobile** : **Nothing Phone** (pas Samsung pour la gate deploy)  
 > **UI** : [Portainer](https://portainer.delhomme.ovh) · [NPM](https://nginx.delhomme.ovh) · VPS `95.111.227.204`  
-> **Guide** : **[`DEPLOY.md`](../../DEPLOY.md)** — **source unique** (local, préprod, prod, GHA, Portainer, NPM, OTA mobile).  
-> Cette section TODOS = checklist courte ; le détail pas-à-pas est dans `DEPLOY.md`.
+> **Guide miroir** : [`DEPLOY.md`](../../DEPLOY.md) (ne rien perdre — cette section = **copie opérationnelle** A→J + canaux mobile §15)  
+> **Stub mobile** : [`CANAL_DISTRIBUTION_MOBILE.md`](../deployment/CANAL_DISTRIBUTION_MOBILE.md) → pointe vers `DEPLOY.md` §15 (contenu recopié en **Étape J** ci-dessous)
 
-### Correctif local (fait 24/08)
-
-| Problème | Cause | Fix |
-|----------|-------|-----|
-| `8025 already allocated` au `up-full` | Cloudity Mailpit sur 8025 | MailHog UI → **8125** (`.env` + compose) |
-
-```bash
-docker compose --profile full up -d mailhog   # http://127.0.0.1:8125
-# ou relancer le reste de la stack si besoin
+```
+État 24/08 :
+  ✅ Scripts + DEPLOY.md + compose réseaux NPM + domaines .com
+  ✅ MailHog local 8125
+  ✅ DNS @ + www → 95.111.227.204
+  ❌ DNS api / preprod / api-preprod (à créer)
+  ❌ Portainer stack préprod / NPM / smoke / Watchtower / prod / OTA
 ```
 
 ---
 
-### A0 — PC (avant Portainer)
+### Étape A — Dev local (PC) — [`DEPLOY.md` §6]
 
-| # | Action | [ ] |
-|---|--------|-----|
-| A0.1 | `git pull origin dev` (compose NPM networks + domaines .com) | [ ] |
-| A0.2 | `bash scripts/deploy/generate-portainer-env.sh` | [ ] |
-| A0.3 | Vérifier `.env.preprod.generated` : URLs `*.jobbingtrack.com`, **pas** de `GITHUB_PAT` | [ ] |
-| A0.4 | Admin = `admin@jobbingtrack.com` + `ADMIN_PASSWORD` du `.env` | [ ] |
-| A0.5 | PAT GitHub prêt (Portainer Authentication uniquement) | [ ] |
+| # | Action | État |
+|---|--------|------|
+| A.1 | `docker compose --profile full up -d` (éviter `make` dans Cursor) | [ ] |
+| A.2 | `docker ps --filter name=jobbingtrack-` | [ ] |
+| A.3 | `curl -fsS http://127.0.0.1:5002/health` (port api-gateway du `.env`) | [ ] |
+| A.4 | HTTPS local si certs : `https://jobbingtrack.localhost:5443` + API `:5443` | [ ] |
+| A.5 | MailHog UI : `http://127.0.0.1:8125` (pas 8025 — Cloudity) | ✅ doc + `.env` |
+| A.6 | Mobile local OTA : `bash scripts/mobile/publish-built-dev.sh` + `/backoffice/mobile/releases` | [ ] optionnel |
+
+**Correctif déjà appliqué (24/08)** : `8025 already allocated` → MailHog UI **8125**.
+
+```bash
+docker compose --profile full up -d mailhog
+```
 
 ---
 
-### 1 — DNS zone **jobbingtrack.com**
+### Étape B — DNS zone **jobbingtrack.com** — [`DEPLOY.md` §7]
 
-| Entrée A → `95.111.227.204` | Usage | État |
-|-----------------------------|-------|------|
-| `@` / `www` | Prod web | ✅ déjà |
-| `api` | Prod API | [ ] **à créer** |
-| `preprod` | Préprod web | [ ] **à créer** |
-| `api-preprod` | Préprod API | [ ] **à créer** |
+Zone OVH → IP **`95.111.227.204`** (plus de `*.delhomme.ovh` pour JT).
+
+| Entrée | Type | Cible | Usage | État |
+|--------|------|-------|-------|------|
+| `@` | A | 95.111.227.204 | Prod web | ✅ |
+| `www` | A | 95.111.227.204 | Prod web | ✅ |
+| **`api`** | A | 95.111.227.204 | Prod API | ❌ **à créer** |
+| **`preprod`** | A | 95.111.227.204 | Préprod web | ❌ **à créer** |
+| **`api-preprod`** | A | 95.111.227.204 | Préprod API | ❌ **à créer** |
 
 ```bash
 dig +short api.jobbingtrack.com
@@ -78,97 +89,240 @@ dig +short preprod.jobbingtrack.com
 dig +short api-preprod.jobbingtrack.com
 ```
 
+Attendre propagation 5–30 min **avant** Let's Encrypt sur NPM.
+
 ---
 
-### 2 — Portainer stack **jobbingtrack-preprod**
+### Étape C — Générer les `.env` Portainer — [`DEPLOY.md` §8]
+
+```bash
+git pull origin dev
+bash scripts/deploy/generate-portainer-env.sh
+```
+
+Fichiers (gitignorés) : `deploy/production/.env.preprod.generated` · `.env.prod.generated`
+
+| Clé à vérifier (préprod) | Doit contenir | [ ] |
+|--------------------------|---------------|-----|
+| `STACK_SLUG` | `jobbingtrack-preprod` | [ ] |
+| `NEXT_PUBLIC_FRONTEND_URL` | `https://preprod.jobbingtrack.com` | [ ] |
+| `NEXT_PUBLIC_API_URL` | `https://api-preprod.jobbingtrack.com` | [ ] |
+| `ADMIN_EMAIL` | `admin@jobbingtrack.com` | [ ] |
+| `SMTP_PASS` | vraie valeur (pas `REMPLIR_…`) | [ ] |
+| `GITHUB_PAT` | **absent** (PAT = Portainer Auth UI seulement) | [ ] |
+| `IMAGE_PULL_POLICY` | `build` au **1er** deploy | [ ] |
+
+Prod attendu : `https://jobbingtrack.com` + `https://api.jobbingtrack.com`.  
+PAT GitHub : fine-grained Contents Read, ou classic `repo`.
+
+---
+
+### Étape D — Stack Portainer **préprod** (= DEPLOY-C1) — [`DEPLOY.md` §9]
+
+1. https://portainer.delhomme.ovh → Environment **local** → **Stacks** → **Add stack**  
+2. Méthode **Repository** (Git)
 
 | Champ | Valeur | [ ] |
 |-------|--------|-----|
 | Name | `jobbingtrack-preprod` | [ ] |
-| Repo | `https://github.com/PavelDelhomme/JobbingTrack.git` | [ ] |
-| Ref | `refs/heads/dev` | [ ] |
-| Compose | `deploy/production/docker-compose.yml` | [ ] |
-| Auth | Username + PAT | [ ] |
-| Env file | `.env.preprod.generated` (Load from .env) | [ ] |
+| Repository URL | `https://github.com/PavelDelhomme/JobbingTrack.git` | [ ] |
+| Repository reference | `refs/heads/dev` | [ ] |
+| Compose path | `deploy/production/docker-compose.yml` | [ ] |
+| Authentication | ON → Username GitHub + PAT | [ ] |
+| GitOps updates | OFF | [ ] |
+| Skip TLS Verification | OFF | [ ] |
+| Env | Advanced → Load `.env.preprod.generated` | [ ] |
 
-Clés à vérifier : `STACK_SLUG=jobbingtrack-preprod` · `NEXT_PUBLIC_FRONTEND_URL=https://preprod.jobbingtrack.com` · `NEXT_PUBLIC_API_URL=https://api-preprod.jobbingtrack.com` · `IMAGE_PULL_POLICY=build`
-
-Deploy → conteneurs `jobbingtrack-preprod-*` healthy.  
-Réseaux VPS : `nginx-proxy-manager_npm-network` + `shared-network-copy` (comme YTMusic).
+**Deploy the stack** → conteneurs `jobbingtrack-preprod-*` healthy.  
+Réseaux : interne + **`nginx-proxy-manager_npm-network`** + **`shared-network-copy`** (comme YTMusic).  
+Si « network not found » : les réseaux externes existent déjà pour ytmusic/cooking.
 
 ---
 
-### 3 — NPM préprod (forward **par nom de conteneur**, comme ytmusic)
+### Étape E — NPM préprod (= DEPLOY-C2) — [`DEPLOY.md` §10]
 
-| Domain | Forward hostname | Port | SSL | [ ] |
-|--------|------------------|------|-----|-----|
-| `api-preprod.jobbingtrack.com` | `jobbingtrack-preprod-api-gateway` | 3000 | LE + Force + WS | [ ] |
-| `preprod.jobbingtrack.com` | `jobbingtrack-preprod-frontend` | 3000 | LE + Force + WS | [ ] |
+https://nginx.delhomme.ovh → **Proxy Hosts** → **Add Proxy Host**  
+Forward **par nom de conteneur** (pas l’IP), port **3000**.
+
+#### Host 1 — API
+
+| Champ | Valeur | [ ] |
+|-------|--------|-----|
+| Domain Names | `api-preprod.jobbingtrack.com` | [ ] |
+| Scheme | `http` | [ ] |
+| Forward Hostname | `jobbingtrack-preprod-api-gateway` | [ ] |
+| Forward Port | `3000` | [ ] |
+| Block Common Exploits | ✅ | [ ] |
+| Websockets Support | ✅ | [ ] |
+| SSL | LE + Force SSL + HTTP/2 | [ ] |
+
+#### Host 2 — Web
+
+| Champ | Valeur | [ ] |
+|-------|--------|-----|
+| Domain Names | `preprod.jobbingtrack.com` | [ ] |
+| Forward Hostname | `jobbingtrack-preprod-frontend` | [ ] |
+| Forward Port | `3000` | [ ] |
+| SSL | LE + Force SSL | [ ] |
+
+---
+
+### Étape F — Smoke tests préprod — [`DEPLOY.md` §11]
 
 ```bash
 curl -fsS https://api-preprod.jobbingtrack.com/health
+curl -fsS -o /dev/null -w "%{http_code}\n" https://preprod.jobbingtrack.com/
 ```
 
-Login : `https://preprod.jobbingtrack.com` → `admin@jobbingtrack.com`
+| # | Check navigateur | [ ] |
+|---|------------------|-----|
+| F.1 | `https://preprod.jobbingtrack.com` → page login | [ ] |
+| F.2 | Login `admin@jobbingtrack.com` + `ADMIN_PASSWORD` du `.env` | [ ] |
+| F.3 | Pas d’erreur CORS / Network Error (`ALLOWED_ORIGINS` = 2 URLs HTTPS) | [ ] |
 
 ---
 
-### 4 — Après préprod OK
+### Étape G — GHCR public + Watchtower — [`DEPLOY.md` §12]
 
 | # | Action | [ ] |
 |---|--------|-----|
-| 4.1 | GHCR packages `jobbingtrack-*` publics si besoin | [ ] |
-| 4.2 | `IMAGE_PULL_POLICY=always` → Update stack | [ ] |
-| 4.3 | Stack Watchtower (`deploy/watchtower-compose.yml`) | [ ] |
+| G.1 | Push `dev` → workflow **Build and Push Container Images** OK | [ ] |
+| G.2 | GitHub Packages `jobbingtrack-*` → Visibility **Public** | [ ] |
+| G.3 | Stack préprod : `IMAGE_PULL_POLICY=always` → **Update the stack** | [ ] |
+| G.4 | Stack Portainer `watchtower` depuis `deploy/watchtower-compose.yml` | [ ] |
+
+Après push + build GHCR : Watchtower recrée les conteneurs labellisés (~5 min, volumes conservés).
 
 ---
 
-### 5 — Prod (après préprod validée)
-
-| | Préprod | Prod |
-|--|---------|------|
-| Stack | `jobbingtrack-preprod` | `jobbingtrack-prod` |
-| Branche | `dev` | `main` |
-| Env | `.env.preprod.generated` | `.env.prod.generated` |
-| Web | `preprod.jobbingtrack.com` | `jobbingtrack.com` (+ www) |
-| API | `api-preprod.jobbingtrack.com` | `api.jobbingtrack.com` |
-| Conteneurs NPM | `…-preprod-frontend/api-gateway` | `…-prod-frontend/api-gateway` |
+### Étape H — Déploiements quotidiens — [`DEPLOY.md` §13]
 
 ```bash
+# Préprod
+bash scripts/deploy/admin-deploy-dev.sh
+
+# Prod (après I)
 bash scripts/deploy/admin-deploy-prod.sh web
+
+# Redeploy seul
+bash scripts/deploy/redeploy-vps.sh preprod
+bash scripts/deploy/redeploy-vps.sh prod
+
+# Bump plateforme
+bash scripts/deploy/bump-platform-version.sh patch
 ```
+
+| # | Action | [ ] |
+|---|--------|-----|
+| H.1 | Tester `admin-deploy-dev.sh` une fois préprod OK | [ ] |
+| H.2 | (Optionnel) `PORTAINER_URL` + `PORTAINER_API_KEY` dans `.env` | [ ] |
 
 ---
 
-### 6 — Mobile OTA (Nothing Phone)
+### Étape I — Stack + NPM **prod** — [`DEPLOY.md` §14]
 
-1. `https://preprod.jobbingtrack.com/backoffice/mobile/releases` → publish canal **dev**  
-2. Tester MAJ sur Nothing  
-3. Promote → **production**  
-4. Release APK : `API_BASE_URL=https://api.jobbingtrack.com`
+**Uniquement après préprod validée (F OK).**
+
+| Champ | Valeur | [ ] |
+|-------|--------|-----|
+| Name | `jobbingtrack-prod` | [ ] |
+| Reference | `refs/heads/main` | [ ] |
+| Compose | `deploy/production/docker-compose.yml` | [ ] |
+| Env | `.env.prod.generated` | [ ] |
+| `STACK_SLUG` | `jobbingtrack-prod` | [ ] |
+| `IMAGE_TAG` | `latest` | [ ] |
+| `IMAGE_PULL_POLICY` | `always` | [ ] |
+
+NPM prod :
+
+| Domain | Forward | [ ] |
+|--------|---------|-----|
+| `api.jobbingtrack.com` | `jobbingtrack-prod-api-gateway:3000` | [ ] |
+| `jobbingtrack.com` | `jobbingtrack-prod-frontend:3000` | [ ] |
+| `www.jobbingtrack.com` | même frontend **ou** redirect 301 → apex | [ ] |
 
 ```bash
-DEPLOY_URL=https://api-preprod.jobbingtrack.com MOBILE_RELEASE_CHANNEL=dev \
-  bash scripts/deploy/publish-apk-remote.sh
+curl -fsS https://api.jobbingtrack.com/health
+curl -fsS -o /dev/null -w "%{http_code}\n" https://jobbingtrack.com/
 ```
 
 ---
 
-### Synthèse
+### Étape J — Mobile OTA / canaux (= DEPLOY-C3 + contenu `CANAL_DISTRIBUTION_MOBILE.md` / `DEPLOY.md` §15)
+
+Appareil de validation : **Nothing Phone**.
+
+#### J.1 — Vue des canaux
+
+| Canal | Public | Mise à jour | État |
+|-------|--------|-------------|------|
+| **OTA interne** (API JT) | Équipe / bêta | In-app, `dev` → `production` | ✅ **Principal — à faire maintenant** |
+| **APK sideload** | Restreint | Backoffice / script | ✅ |
+| **GitHub Releases** | Repo | Tag `mobile-v*` + CI | ✅ CI ; copie VPS manuelle |
+| **Google Play Store** | Public | Play Console | 🔲 Plus tard |
+| **F-Droid** | Open source | Repo F-Droid | 🔲 Plus tard |
+| **App Store / TestFlight** | Public / bêta | Apple | 🔲 Futur |
+
+#### J.2 — Process OTA interne (ordre exact)
+
+| # | Action | [ ] |
+|---|--------|-----|
+| J.2.1 | Build debug : `bash scripts/mobile/setup/build-apk-debug.sh` | [ ] |
+| J.2.2 | Ou release préprod : `API_BASE_URL=https://api-preprod.jobbingtrack.com bash scripts/mobile/setup/build-apk-release.sh` | [ ] |
+| J.2.3 | Publier canal **dev** : backoffice `https://preprod.jobbingtrack.com/backoffice/mobile/releases` → **Publier en DEV** | [ ] |
+| J.2.4 | Ou script : `DEPLOY_URL=https://api-preprod.jobbingtrack.com MOBILE_RELEASE_CHANNEL=dev bash scripts/deploy/publish-apk-remote.sh` | [ ] |
+| J.2.5 | Installer APK sur **Nothing** ; dialog MAJ si version distante > locale | [ ] |
+| J.2.6 | Promote → **production** (one-click backoffice) quand OK | [ ] |
+| J.2.7 | Vérifier `GET /api/v1/mobile/releases/latest?platform=android&channel=dev\|production` | [ ] |
+
+Volume : `jobbingtrack_*_mobile_releases` sur api-gateway.  
+Vars Portainer utiles : `MOBILE_ANDROID_LATEST_*`, `MOBILE_ANDROID_MIN_*`, `MOBILE_ANDROID_FORCE_UPDATE`, `MOBILE_ANDROID_DOWNLOAD_URL`.
+
+#### J.3 — GitHub Releases (CI)
+
+Workflow : `.github/workflows/mobile-release-android.yml`  
+Trigger : `workflow_dispatch` ou tag `mobile-v1.0.42`  
+Secrets (avant store) : `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`
+
+#### J.4 — Play / F-Droid / iOS (roadmap — **pas maintenant**)
+
+- Play : compte dev + `flutter build appbundle` + upload futur  
+- F-Droid : build reproductible + metadata  
+- iOS : `MOBILE_IOS_APP_STORE_URL` ; pas d’install hors store  
+
+**Recommandation** : OTA interne pour itérations ; stores pour distribution publique plus tard.
+
+#### J.5 — Matrice de choix
+
+| Besoin | Canal |
+|--------|-------|
+| Test rapide Nothing | OTA `dev` (préprod) |
+| Prod utilisateurs | OTA `production` + promote |
+| Public Android | Play Store (futur) |
+| Sans Google | F-Droid (futur) |
+| iOS | App Store / TestFlight |
+
+---
+
+### Synthèse ordre (ne pas sauter)
 
 ```
-Local 8025 OK → DNS jobbingtrack.com (api/preprod/api-preprod)
-  → env généré → Portainer préprod → NPM (noms conteneurs)
-  → smoke HTTPS → Watchtower/GHCR → prod → OTA Nothing
+A local OK → B DNS (api/preprod/api-preprod)
+  → C generate-env → D Portainer préprod → E NPM
+  → F smoke HTTPS → G Watchtower/GHCR → H scripts quotidiens
+  → I prod → J OTA Nothing
 ```
 
 | ID | Colonne | Action |
 |----|---------|--------|
-| **DEPLOY-GHA-01** | ▶ En cours | Checklist ci-dessus |
-| **DEPLOY-C1→C3** | À faire | Stack + NPM + OTA |
-| **MOB-HUB-01** | À faire | Après deploy (Nothing) |
+| **DEPLOY-GHA-01** | ▶ En cours | Checklist A→J ci-dessus |
+| **DEPLOY-C1** | dans GHA-01 | Étape D Portainer |
+| **DEPLOY-C2** | dans GHA-01 | Étape E NPM |
+| **DEPLOY-C3** | dans GHA-01 | Étape J OTA |
+| **MOB-HUB-01** | À faire (pause) | Après F + J partiel |
+| **BACKEND-CLEAN-01** | Plus tard | Mutualiser logger/email entre microservices — **après** deploy |
 
-**Hors scope immédiat** (audit Copilot) : couverture 90 %, SonarQube, GraphQL — après deploy.
+**Hors scope immédiat** : couverture 90 %, SonarQube, GraphQL, audit Copilot — après deploy.
 
 ---
 

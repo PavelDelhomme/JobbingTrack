@@ -4,7 +4,22 @@
 > Pattern inspiré de **YTMusic** : GitHub Actions → GHCR → Portainer CE → Nginx Proxy Manager → Watchtower.  
 > Dernière mise à jour : **24 août 2026**
 
-Ce fichier remplace / absorbe l’ancien `docs/deployment/CANAL_DISTRIBUTION_MOBILE.md` (canaux mobile inclus ici).
+Ce fichier remplace / absorbe l’ancien `docs/deployment/CANAL_DISTRIBUTION_MOBILE.md` (canaux mobile inclus ici).  
+Checklist porteur **copie opérationnelle** (sans rien perdre) aussi dans [`docs/pilotage/TODOS.md`](docs/pilotage/TODOS.md) section **▶ En cours**.
+
+### État d’avancement (24/08)
+
+| Bloc | État |
+|------|------|
+| Scripts deploy + compose NPM + `STACK_SLUG` + Watchtower labels | ✅ livré (agent) |
+| `DEPLOY.md` + redirections canaux mobile | ✅ |
+| Domaines cibles `*.jobbingtrack.com` dans générateur env | ✅ |
+| MailHog local UI **8125** (évite Cloudity 8025) | ✅ |
+| DNS `@` + `www` → `95.111.227.204` | ✅ |
+| DNS `api` / `preprod` / `api-preprod` | ❌ porteur |
+| Portainer préprod + NPM + smoke + Watchtower + prod + OTA | ❌ porteur (étapes D→J) |
+
+**Hors scope deploy** (à faire **après** préprod OK) : nettoyer / mutualiser `backend/auth-service` (email*, logger*, centralLogger) et les duplications entre microservices — carte **BACKEND-CLEAN-01** dans le pilotage.
 
 ---
 
@@ -577,8 +592,8 @@ Watchtower : `deploy/watchtower-compose.yml`
 ## 19. Checklist porteur condensée
 
 ```
-[ ] A  Stack locale OK (MailHog 8125)
-[ ] B  DNS : api + preprod + api-preprod sur jobbingtrack.com
+[x] A  Stack locale OK (MailHog 8125) — doc + config livrées ; vérifier ton `up` local
+[ ] B  DNS : api + preprod + api-preprod sur jobbingtrack.com  (@/www déjà OK)
 [ ] C  generate-portainer-env.sh → vérifier URLs .com
 [ ] D  Portainer stack jobbingtrack-preprod (Git dev + .env)
 [ ] E  NPM : 2 hosts préprod (forward noms conteneurs)
@@ -589,7 +604,8 @@ Watchtower : `deploy/watchtower-compose.yml`
 [ ] J  OTA Nothing : publish dev → test → promote production
 ```
 
-Pilotage Kanban : carte **DEPLOY-GHA-01** · détail court aussi dans `docs/pilotage/TODOS.md`.
+Pilotage Kanban : carte **DEPLOY-GHA-01** · **détail exhaustif A→J** dans [`docs/pilotage/TODOS.md`](docs/pilotage/TODOS.md) (section En cours).  
+Mettre à jour **ce fichier en premier**, puis recopier / synchroniser la checklist En cours de `TODOS.md`.
 
 ---
 

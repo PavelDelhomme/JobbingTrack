@@ -4,12 +4,13 @@ Dernière mise à jour : **24 août 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : DEPLOY-GHA-01** — deploy Portainer + NPM sur **jobbingtrack.com** (style YTMusic)  
-**Local** : conflit MailHog/8025 → UI MailHog sur **8125** (Cloudity Mailpit garde 8025)  
-**Domaines prod** : `jobbingtrack.com` + `api.jobbingtrack.com` · préprod : `preprod.` / `api-preprod.`  
-**Mobile** : OTA sur **Nothing Phone** après HTTPS préprod  
+**Focus (1 seule) : DEPLOY-GHA-01** — DNS restant + Portainer + NPM sur **jobbingtrack.com** (style YTMusic)  
+**Local** : MailHog UI **8125** (Cloudity Mailpit garde 8025) — ✅  
+**DNS** : `@`/`www` ✅ · `api` / `preprod` / `api-preprod` ❌  
+**Mobile** : OTA sur **Nothing Phone** après HTTPS préprod (étape J)  
+**Après deploy** : **BACKEND-CLEAN-01** (mutualiser logger/email entre services) — pas maintenant  
 
-Guide : **[`DEPLOY.md`](../DEPLOY.md)** (source unique déploiement web/API/mobile) · Checklist courte : [`TODOS.md`](TODOS.md)
+Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist **complète A→J** : [`TODOS.md`](TODOS.md) ▶ En cours  
 
 MOB-HUB / MOB-LIST en pause jusqu’à préprod OK.
 
