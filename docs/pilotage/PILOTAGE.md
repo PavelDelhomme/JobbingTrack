@@ -1,22 +1,17 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **19 août 2026**
+Dernière mise à jour : **24 août 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : DEPLOY-GHA-01** — chaîne déploiement GH Actions + Portainer (style YTMusic)  
-**MOB-HUB-01** → **À faire** (pause — code APK 1.0.42 livré, validation Samsung reportée)  
-**MOB-LIST-01** → **À valider** — après déploiement VPS
+**Focus (1 seule) : DEPLOY-GHA-01** — deploy Portainer + NPM sur **jobbingtrack.com** (style YTMusic)  
+**Local** : conflit MailHog/8025 → UI MailHog sur **8125** (Cloudity Mailpit garde 8025)  
+**Domaines prod** : `jobbingtrack.com` + `api.jobbingtrack.com` · préprod : `preprod.` / `api-preprod.`  
+**Mobile** : OTA sur **Nothing Phone** après HTTPS préprod  
 
-Suite mobile (après deploy) : **MOB-HUB-01** → **MOB-LIST-01** → **MOB-NAV-01** → **MOB-SNACK-01**
+Guide : [`DEPLOY.md`](../DEPLOY.md) · Checklist : [`TODOS.md`](TODOS.md) « En cours maintenant »
 
-Guide deploy : [`DEPLOY.md`](../DEPLOY.md) · Kanban : https://jobbingtrack.localhost:5443/backoffice/pilotage
-
-**19/08** : système deploy livré (scripts `admin-deploy-*`, `redeploy-vps`, Watchtower, DEPLOY.md, canaux mobile). **Porteur** : exécuter DEPLOY-C1→C3 sur VPS.
-
-APK **1.0.42** · Pilotage perf : carte **PILOTAGE-PERF** (À tester)
-
-`make run-mobile` : étapes **1/5…5/5**. Sans rebuild : `SKIP_BUILD=1 make run-mobile`
+MOB-HUB / MOB-LIST en pause jusqu’à préprod OK.
 
 ## Kanban ADHD (règle d’or)
 

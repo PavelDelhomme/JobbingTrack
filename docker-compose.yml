@@ -1100,17 +1100,18 @@ services:
       retries: 3
       start_period: 40s
 
-  # MailHog : capture des emails en local/dev/test (SMTP 1025, Web UI 8025).
+  # MailHog : capture des emails en local/dev/test (SMTP 1025, Web UI 8125).
+  # Port web défaut 8125 (évite conflit Cloudity Mailpit sur 8025).
   # Ne pas exposer ni utiliser comme transport final en préprod/prod.
   # Pour utiliser : make up-full (profil full) ou COMPOSE_PROFILES=mail docker compose up -d
-  # Puis SMTP_HOST=mailhog SMTP_PORT=1025 pour auth-service ; interface http://localhost:8025
+  # Puis SMTP_HOST=mailhog SMTP_PORT=1025 pour auth-service ; interface http://localhost:8125
   mailhog:
     image: mailhog/mailhog:latest
     container_name: jobbingtrack-mailhog
     mem_limit: ${MAILHOG_MEMORY_LIMIT:-128m}
     ports:
       - "${MAILHOG_SMTP_PORT:-2525}:1025"
-      - "${MAILHOG_WEB_PORT:-8025}:8025"
+      - "${MAILHOG_WEB_PORT:-8125}:8025"
     networks:
       - jobbingtrack-network
     profiles:
