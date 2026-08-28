@@ -80,31 +80,27 @@ const bcrypt = require("bcryptjs");
     console.error("ADMIN_EMAIL ou ADMIN_PASSWORD manquant");
     process.exit(1);
   }
+  const crypto = require("crypto");
   const prisma = new PrismaClient();
   const hashedPassword = await bcrypt.hash(plain, 10);
-  await prisma.user.upsert({
-    where: { email },
-    update: {
-      password: hashedPassword,
-      firstName,
-      lastName,
-      role: "SUPER_ADMIN",
-      isActive: true,
-      emailVerified: true,
-      emailVerifiedAt: new Date(),
-    },
-    create: {
-      email,
-      password: hashedPassword,
-      firstName,
-      lastName,
-      role: "SUPER_ADMIN",
-      isActive: true,
-      emailVerified: true,
-      emailVerifiedAt: new Date(),
-    },
-  });
-  const user = await prisma.user.findUnique({ where: { email } });
+  const adminData = {
+    password: hashedPassword,
+    firstName,
+    lastName,
+    role: "SUPER_ADMIN",
+    isActive: true,
+    emailVerified: true,
+    emailVerifiedAt: new Date(),
+  };
+  const existing = await prisma.user.findFirst({ where: { email } });
+  if (existing) {
+    await prisma.user.update({ where: { id: existing.id }, data: adminData });
+  } else {
+    await prisma.user.create({
+      data: { id: crypto.randomUUID(), email, ...adminData },
+    });
+  }
+  const user = await prisma.user.findFirst({ where: { email } });
   const verify = await bcrypt.compare(plain, user.password);
   if (!verify) {
     console.error("VERIFY_FAILED");
@@ -126,7 +122,13 @@ if command -v docker &> /dev/null; then
     echo "🐳 Utilisation de Docker pour accéder à PostgreSQL..."
 
     # Récupérer l'ID du conteneur PostgreSQL
-    POSTGRES_CONTAINER=$(docker ps -q -f name=jobbingtrack-postgres)
+    POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-$(docker ps -q -f name=jobbingtrack-prod-postgres)}"
+    if [ -z "$POSTGRES_CONTAINER" ]; then
+        POSTGRES_CONTAINER=$(docker ps -q -f name=jobbingtrack-preprod-postgres)
+    fi
+    if [ -z "$POSTGRES_CONTAINER" ]; then
+        POSTGRES_CONTAINER=$(docker ps -q -f name=jobbingtrack-postgres)
+    fi
 
     if [ -z "$POSTGRES_CONTAINER" ]; then
         echo -e "${RED}❌ Aucun conteneur PostgreSQL trouvé${NC}"
@@ -155,7 +157,13 @@ if command -v docker &> /dev/null; then
         echo -e "${YELLOW}🔍 Tentative de création via le service auth-service...${NC}"
         
         # Essayer de créer l'utilisateur via le service auth-service
-        AUTH_CONTAINER=$(docker ps -q -f name=jobbingtrack-auth-service)
+        AUTH_CONTAINER="${AUTH_CONTAINER:-$(docker ps -q -f name=jobbingtrack-prod-auth-service)}"
+        if [ -z "$AUTH_CONTAINER" ]; then
+            AUTH_CONTAINER=$(docker ps -q -f name=jobbingtrack-preprod-auth-service)
+        fi
+        if [ -z "$AUTH_CONTAINER" ]; then
+            AUTH_CONTAINER=$(docker ps -q -f name=jobbingtrack-auth-service)
+        fi
         if [ -n "$AUTH_CONTAINER" ]; then
             echo "📦 Service auth-service trouvé: $AUTH_CONTAINER"
             

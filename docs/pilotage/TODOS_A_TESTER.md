@@ -55,6 +55,24 @@
 | Porteur login admin préprod/prod | navigateur | **À faire** |
 | Porteur J OTA | Nothing | **À faire** |
 
+### Smoke agent — 28/08/2026 (soir)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Admin prod API `POST /api/v1/auth/login` | **OK 200** | `SUPER_ADMIN` — user créé via auth-service |
+| Admin préprod API login | **OK 200** | `SUPER_ADMIN` — create (pas upsert, index email absent préprod) |
+| Vitrine `jobbingtrack.com` | **OK 200** | bouton admin (ancien lien `backoffice.*` avant redeploy) |
+| Vitrine `www.jobbingtrack.com` | **OK 200** | |
+| `/login` prod | **OK 200** | page backoffice admin |
+| Login navigateur → `/backoffice` | **OK** | API 200 ; token cookie → dashboard |
+| OTA prod `channel=production` | **OK 200** | v1.0.42 build 42, `downloadUrl: null` |
+| OTA prod/preprod `channel=dev` | **OK 200** | |
+| DNS `backoffice.jobbingtrack.com` | **KO** | pas d’enregistrement A — liens sous-domaine cassés |
+| DNS `backoffice-preprod.jobbingtrack.com` | **KO** | idem |
+| Fix vitrine fallback `/login` | **Poussé** `eff74956` | image `:dev` rebuild + recreate frontend VPS |
+| Script `create-admin-user.sh` | **Maj** | conteneurs prod/preprod + findFirst sans index email |
+| Redis gateway NOAUTH logs | **WARN** | `REDIS_URL` OK dans conteneur ; warnings résiduels rate-limit |
+
 ---
 
 ### PILOTAGE-PERF — lenteur `/backoffice/pilotage` (10/08)
