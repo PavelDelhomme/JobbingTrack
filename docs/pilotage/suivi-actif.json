@@ -4,33 +4,28 @@
   "phase": {
     "id": "C",
     "label": "Déploiement VPS",
-    "step": "D",
-    "subStep": "Portainer+NPM",
+    "step": "F",
+    "subStep": "login-preprod",
     "point": "DEPLOY-GHA-01",
-    "title": "Finir préprod : conteneurs healthy + NPM TLS"
+    "title": "Valider login préprod puis stack prod"
   },
   "recentDone": [
-    { "id": "DEPLOY-local-https", "label": "Proxy HTTPS :5443 + metrics-aggregator (28/08)" },
-    { "id": "DEPLOY-B-DNS", "label": "DNS api + preprod + api-preprod (OVH, dig OK)" },
-    { "id": "DEPLOY-mailhog-8125", "label": "MailHog UI 8125 (conflit Cloudity)" }
+    { "id": "DEPLOY-preprod-up", "label": "Stack + NPM + smoke préprod jobbingtrack.com" },
+    { "id": "DEPLOY-ghcr-buildx", "label": "CI GHCR Buildx + images :dev" },
+    { "id": "DEPLOY-local-https", "label": "Proxy HTTPS :5443 + metrics-aggregator" }
   ],
   "queue": [
-    { "id": "DEPLOY-C1-C2", "status": "active", "label": "Préprod : Portainer healthy + NPM TLS (SNI)" },
+    { "id": "DEPLOY-F-login", "status": "active", "label": "Login admin préprod + smoke métier" },
+    { "id": "DEPLOY-I-prod", "status": "pending", "label": "Stack + NPM production" },
     { "id": "DEPLOY-C3", "status": "pending", "label": "OTA 1er APK canal dev (Nothing)" },
     { "id": "BACKEND-CLEAN-01", "status": "later", "label": "Mutualiser logger/email microservices" },
-    { "id": "MOB-HUB-01", "status": "pending", "label": "Hubs mobile (après deploy)" },
-    { "id": "MOB-LIST-01", "status": "pending", "label": "Métadonnées listes" }
+    { "id": "MOB-HUB-01", "status": "pending", "label": "Hubs mobile (après deploy)" }
   ],
   "openFixes": [
     {
       "id": "MOB-HUB-01",
       "label": "Validation hubs (après préprod)",
       "status": "paused_until_deploy"
-    },
-    {
-      "id": "PILOTAGE-PERF",
-      "label": "Re-test perf pilotage porteur",
-      "status": "fixed_pending_retest"
     }
   ],
   "files": {

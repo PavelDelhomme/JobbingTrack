@@ -4,13 +4,11 @@ Dernière mise à jour : **28 août 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : DEPLOY-GHA-01** — **finir D+E** (Portainer services + NPM TLS)  
-**Local** : MailHog **8125** + proxy HTTPS **`:5443`** + metrics ✅ (remis 28/08)  
-**DNS** : zone **jobbingtrack.com** complète ✅  
-**VPS** : stack préprod démarrée ⚠️ services incomplets · NPM → `tlsv1 unrecognized name`  
-**Prochaine action** : Portainer (healthy tous conteneurs) → NPM 2 hosts + Let's Encrypt  
-**Mobile** : OTA Nothing après HTTPS préprod (étape J)  
-**Après deploy** : **BACKEND-CLEAN-01** — pas maintenant  
+**Focus (1 seule) : DEPLOY-GHA-01** — valider login admin préprod, puis **prod** (étape I)  
+**Préprod** : ✅ `https://preprod.jobbingtrack.com` + API healthy (28/08)  
+**Local** : HTTPS `:5443` ✅  
+**Prochaine action** : login admin préprod → stack **prod** + NPM apex/`api.`  
+**Mobile** : OTA Nothing (étape J) après prod web OK  
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist **A→J** : [`TODOS.md`](TODOS.md) ▶ En cours  
 

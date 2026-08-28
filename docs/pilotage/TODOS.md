@@ -42,15 +42,13 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 > **Stub mobile** : [`CANAL_DISTRIBUTION_MOBILE.md`](../deployment/CANAL_DISTRIBUTION_MOBILE.md) → pointe vers `DEPLOY.md` §15 (contenu recopié en **Étape J** ci-dessous)
 
 ```
-État 28/08 :
-  ✅ Scripts + DEPLOY.md + compose réseaux NPM + domaines .com
-  ✅ MailHog local 8125
-  ✅ DNS zone complète → 95.111.227.204
-  ✅ Local remis : metrics-aggregator + proxy HTTPS :5443 (login 200)
-  ✅ .env.preprod/.prod.generated présents sur le PC
-  ⚠️ VPS : stack préprod démarrée mais services incomplets / chargement KO
-  ❌ NPM préprod : TLS SNI fail (hosts LE à refaire) — étapes D/E
-  ❌ Smoke / Watchtower / prod / OTA
+État 28/08 (après-midi) :
+  ✅ CI GHCR Buildx + images :dev publiques
+  ✅ Stack VPS jobbingtrack-preprod-* (gateway/frontend healthy)
+  ✅ NPM preprod + api-preprod + Let's Encrypt
+  ✅ Smoke HTTPS health + /login 200
+  ✅ Watchtower labels + script vps-up-preprod.sh
+  ◀ Prochaine : login admin préprod → stack prod (I) → OTA (J)
 ```
 
 ---

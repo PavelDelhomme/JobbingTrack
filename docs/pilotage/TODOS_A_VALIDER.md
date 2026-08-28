@@ -20,9 +20,9 @@
 | 1 | **A** local | Stack + MailHog 8125 + HTTPS `:5443` | **OK agent 28/08** | proxy remis |
 | 2 | **B** DNS | `api` + `preprod` + `api-preprod` → `95.111.227.204` | **OK porteur 24/08** | dig OK |
 | 3 | **C** env | `.env.preprod.generated` URLs `.com` | **PARTIEL** | fichiers présents — re-check avant Update |
-| 4 | **D / DEPLOY-C1** | Stack Portainer `jobbingtrack-preprod` **tous** healthy | **PARTIEL** | démarrée ; services incomplets |
-| 5 | **E / DEPLOY-C2** | NPM 2 hosts + LE | **KO 28/08** | `tlsv1 unrecognized name` — refaire hosts |
-| 6 | **F** smoke | HTTPS health + login `admin@jobbingtrack.com` | | |
+| 4 | **D / DEPLOY-C1** | Stack préprod healthy | **OK 28/08** | compose VPS + GHCR |
+| 5 | **E / DEPLOY-C2** | NPM 2 hosts + LE | **OK 28/08** | |
+| 6 | **F** smoke | HTTPS health + `/login` | **OK 28/08** | **◀ login admin à valider** |
 | 7 | **G** | GHCR public + Watchtower + `IMAGE_PULL_POLICY=always` | | |
 | 8 | **H** | `admin-deploy-dev.sh` OK une fois | | |
 | 9 | **I** | Stack + NPM **prod** (après F OK) | | ne pas anticiper |

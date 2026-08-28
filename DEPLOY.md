@@ -7,20 +7,19 @@
 Ce fichier remplace / absorbe l’ancien `docs/deployment/CANAL_DISTRIBUTION_MOBILE.md` (canaux mobile inclus ici).  
 Checklist porteur **copie opérationnelle** (sans rien perdre) aussi dans [`docs/pilotage/TODOS.md`](docs/pilotage/TODOS.md) section **▶ En cours**.
 
-### État d’avancement (28/08)
+### État d’avancement (28/08 — après-midi)
 
 | Bloc | État |
 |------|------|
-| Scripts deploy + compose NPM + `STACK_SLUG` + Watchtower labels | ✅ livré (agent) |
-| `DEPLOY.md` + redirections canaux mobile | ✅ |
-| Domaines cibles `*.jobbingtrack.com` dans générateur env | ✅ |
-| MailHog local UI **8125** (évite Cloudity 8025) | ✅ |
-| DNS `@` + `www` + `api` + `preprod` + `api-preprod` → `95.111.227.204` | ✅ porteur 24/08 |
-| **Local** : stack + `metrics-aggregator` + **proxy HTTPS `:5443`** | ✅ remis 28/08 (agent) |
-| `.env.preprod.generated` / `.env.prod.generated` | ✅ présents (PC) — **re-vérifier** URLs avant Update Portainer |
-| Portainer préprod (stack démarrée côté VPS) | ⚠️ **partiel** porteur — services incomplets / chargement KO |
-| NPM préprod SSL (`preprod.` / `api-preprod.`) | ❌ **TLS SNI fail** 28/08 (`tlsv1 unrecognized name`) → hosts LE à refaire |
-| Smoke HTTPS + login préprod / Watchtower / prod / OTA | ❌ (étapes F→J) |
+| CI GHCR `Build and Push Container Images` | ✅ fixé (Buildx) — images `:dev` publiques |
+| Stack **préprod VPS** `jobbingtrack-preprod-*` | ✅ up (gateway + frontend healthy) |
+| NPM `preprod.` + `api-preprod.` + Let's Encrypt | ✅ |
+| Smoke `https://api-preprod.jobbingtrack.com/health` | ✅ 200 |
+| Smoke `https://preprod.jobbingtrack.com/login` | ✅ 200 |
+| Watchtower labels sur conteneurs JT | ✅ (auto-pull `:dev` ~5 min) |
+| Script PC → VPS | `bash scripts/deploy/vps-up-preprod.sh` |
+| Stack **prod** + NPM apex / api. | ❌ après validation préprod |
+| OTA Nothing | ❌ étape J |
 
 **Hors scope deploy** (à faire **après** préprod OK) : nettoyer / mutualiser `backend/auth-service` (email*, logger*, centralLogger) et les duplications entre microservices — carte **BACKEND-CLEAN-01** dans le pilotage.
 
@@ -426,10 +425,15 @@ Depuis le PC, avec `.env` local (optionnel : `PORTAINER_URL` + `PORTAINER_API_KE
 ### Publier en préprod
 
 ```bash
+# 1) depuis le PC — push code + CI GHCR :dev
 bash scripts/deploy/admin-deploy-dev.sh
+
+# 2) OU juste images déjà buildées → update VPS
+bash scripts/deploy/vps-up-preprod.sh
 ```
 
-Fait : push branche courante → merge dans `dev` si besoin → push `dev` → attend CI → redeploy stack préprod.
+Après push `dev` + workflow **Build and Push** OK : **Watchtower** recrée les conteneurs labellisés sous ~5 minutes (volumes conservés).  
+URLs : `https://preprod.jobbingtrack.com` · `https://api-preprod.jobbingtrack.com`
 
 ### Publier en production
 
@@ -618,13 +622,13 @@ Watchtower : `deploy/watchtower-compose.yml`
 ```
 [x] A  Stack locale OK — MailHog 8125 + proxy HTTPS 5443 + metrics (✅ 28/08)
 [x] B  DNS : api + preprod + api-preprod sur jobbingtrack.com  (✅ 24/08)
-[x] C  .env Portainer générés sur le PC — re-vérifier URLs .com avant Update stack
-[!] D  Portainer préprod démarré mais services incomplets / chargement KO  ◀ **finir**
-[!] E  NPM préprod : TLS SNI fail → refaire 2 Proxy Hosts + Let's Encrypt  ◀ **avec D**
-[ ] F  Smoke HTTPS + login admin préprod
-[ ] G  GHCR public + Watchtower + IMAGE_PULL_POLICY=always
-[ ] H  admin-deploy-dev.sh au quotidien
-[ ] I  Stack + NPM prod (après validation préprod)
+[x] C  .env Portainer générés — IMAGE_PULL_POLICY=always
+[x] D  Stack préprod VPS `jobbingtrack-preprod-*` healthy (✅ 28/08)
+[x] E  NPM préprod + Let's Encrypt (✅ 28/08)
+[x] F  Smoke HTTPS + health + login page (✅ 28/08)
+[x] G  GHCR :dev publics + Watchtower labels (✅)
+[ ] H  Flux quotidien : push `dev` → CI → Watchtower / `vps-up-preprod.sh`
+[ ] I  Stack + NPM **prod** (après validation login admin préprod)
 [ ] J  OTA Nothing : publish dev → test → promote production
 ```
 

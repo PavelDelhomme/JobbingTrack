@@ -43,10 +43,13 @@
 | Local HTTPS proxy | `dev-https-proxy` `:5443` | **OK agent 28/08** — login 200 |
 | Local metrics-aggregator | était **Created** → `docker start` | **OK healthy 28/08** |
 | `.env` Portainer générés | `deploy/production/.env.*.generated` | **Présents** — re-vérifier |
-| Porteur D = stack préprod | Portainer `jobbingtrack-preprod` | **PARTIEL** — services incomplets |
-| Porteur E = NPM | 2 hosts préprod + LE | **KO** — `tlsv1 unrecognized name` |
-| Porteur F = smoke | HTTPS + login admin | **À faire** après E |
-| Porteur G–I / J OTA | Watchtower / prod / Nothing | **À faire** |
+| Porteur D = stack préprod | Portainer / compose VPS | **OK 28/08** — conteneurs healthy |
+| Porteur E = NPM | 2 hosts + LE | **OK 28/08** |
+| Porteur F = smoke | HTTPS health + /login | **OK 28/08** |
+| CI GHCR Buildx | `.github/workflows/build-push-images.yml` | **OK** (cache GHA) |
+| Script VPS | `scripts/deploy/vps-up-preprod.sh` | **Livré** |
+| Porteur login admin préprod | navigateur | **À faire** |
+| Porteur G–I / J OTA | prod + Nothing | **À faire** |
 
 ---
 
