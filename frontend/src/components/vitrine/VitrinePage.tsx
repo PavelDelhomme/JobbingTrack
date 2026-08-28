@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { JobbingTrackLogo } from "@/components/brand/JobbingTrackLogo";
-import { backofficeLoginUrl } from "@/lib/site/hosts";
+import { backofficeLoginUrl, vitrineAdminLoginHref } from "@/lib/site/hosts";
 
 const FEATURES = [
   {
@@ -28,18 +28,28 @@ const FEATURES = [
 ] as const;
 
 export function VitrinePage() {
-  const adminHref = backofficeLoginUrl();
+  const adminHref = vitrineAdminLoginHref();
+  const backofficeCanonical = backofficeLoginUrl();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 text-slate-900 dark:from-gray-950 dark:via-gray-950 dark:to-slate-950 dark:text-slate-100">
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-8">
+      <header className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-8">
         <JobbingTrackLogo
           className="text-xl font-semibold tracking-tight"
           imgClassName="h-11 w-11"
         />
-        <span className="rounded-full border border-slate-200/80 bg-white/70 px-3 py-1 text-xs font-medium text-slate-600 backdrop-blur dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
-          Bêta privée
-        </span>
+        <div className="flex items-center gap-3">
+          <Link
+            href={adminHref}
+            prefetch={false}
+            className="rounded-lg border border-slate-300/90 bg-white/80 px-3 py-2 text-xs font-medium text-slate-600 shadow-sm transition hover:border-blue-500 hover:text-blue-700 dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:border-blue-400 dark:hover:text-blue-200 sm:text-sm"
+          >
+            Administration
+          </Link>
+          <span className="hidden rounded-full border border-slate-200/80 bg-white/70 px-3 py-1 text-xs font-medium text-slate-600 backdrop-blur dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 sm:inline">
+            Bêta privée
+          </span>
+        </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-6 pb-24 pt-4">
@@ -89,21 +99,39 @@ export function VitrinePage() {
             l&apos;inscription en ligne arriveront ici. En attendant, la
             plateforme tourne en préproduction pour les tests internes.
           </p>
+          <Link
+            href={adminHref}
+            prefetch={false}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-blue-600 hover:text-blue-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-blue-400"
+          >
+            Accéder au panel d&apos;administration
+            <span aria-hidden className="text-slate-400">→</span>
+          </Link>
+          <p className="mx-auto mt-3 max-w-md text-xs text-slate-500 dark:text-slate-500">
+            Réservé aux administrateurs — URL canonique{" "}
+            <a
+              href={backofficeCanonical}
+              className="font-mono text-blue-600 hover:underline dark:text-blue-400"
+            >
+              backoffice.jobbingtrack.com
+            </a>
+          </p>
         </section>
       </main>
 
-      <footer className="relative mx-auto max-w-5xl px-6 pb-10 pt-4">
-        <p className="text-center text-xs text-slate-500 dark:text-slate-500">
-          © {new Date().getFullYear()} JobbingTrack — Pavel Delhomme
-        </p>
-        {/* Accès admin discret — URL backoffice dédiée, pas de lien visible « Backoffice » */}
-        <Link
-          href={adminHref}
-          prefetch={false}
-          aria-label="Accès administration"
-          title="Administration"
-          className="absolute bottom-8 right-6 h-3 w-3 rounded-full opacity-[0.07] transition hover:opacity-40 focus:opacity-70 dark:opacity-[0.12] dark:hover:opacity-50"
-        />
+      <footer className="mx-auto max-w-5xl px-6 pb-10 pt-4">
+        <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200/80 pt-6 sm:flex-row dark:border-slate-800">
+          <p className="text-xs text-slate-500 dark:text-slate-500">
+            © {new Date().getFullYear()} JobbingTrack — Pavel Delhomme
+          </p>
+          <Link
+            href={adminHref}
+            prefetch={false}
+            className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-blue-600 hover:underline dark:text-slate-400 dark:hover:text-blue-400"
+          >
+            Panel administration
+          </Link>
+        </div>
       </footer>
     </div>
   );

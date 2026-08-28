@@ -63,3 +63,8 @@ export function resolveBackofficeOrigin(): string {
 export function backofficeLoginUrl(): string {
   return `${resolveBackofficeOrigin()}/login`;
 }
+
+/** Connexion admin utilisable depuis la vitrine (fonctionne sans DNS backoffice.*). */
+export function vitrineAdminLoginHref(): string {
+  return "/login";
+}
