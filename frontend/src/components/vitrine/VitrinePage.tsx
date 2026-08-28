@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { JobbingTrackLogo } from "@/components/brand/JobbingTrackLogo";
-import { backofficeLoginUrl, vitrineAdminLoginHref } from "@/lib/site/hosts";
+import { vitrineAdminLoginHref } from "@/lib/site/hosts";
 
 const FEATURES = [
   {
@@ -27,9 +27,15 @@ const FEATURES = [
   },
 ] as const;
 
-export function VitrinePage() {
+type VitrinePageProps = {
+  /** URL canonique backoffice (injectée côté serveur selon l'hôte). */
+  backofficeCanonical?: string;
+};
+
+export function VitrinePage({ backofficeCanonical }: VitrinePageProps) {
   const adminHref = vitrineAdminLoginHref();
-  const backofficeCanonical = backofficeLoginUrl();
+  const canonicalLogin =
+    backofficeCanonical ?? "https://backoffice.jobbingtrack.com/login";
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 text-slate-900 dark:from-gray-950 dark:via-gray-950 dark:to-slate-950 dark:text-slate-100">
@@ -110,10 +116,10 @@ export function VitrinePage() {
           <p className="mx-auto mt-3 max-w-md text-xs text-slate-500 dark:text-slate-500">
             Réservé aux administrateurs — URL canonique{" "}
             <a
-              href={backofficeCanonical}
+              href={canonicalLogin}
               className="font-mono text-blue-600 hover:underline dark:text-blue-400"
             >
-              backoffice.jobbingtrack.com
+              {new URL(canonicalLogin).host}
             </a>
           </p>
         </section>

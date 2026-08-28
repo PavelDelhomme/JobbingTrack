@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { VitrinePage } from "@/components/vitrine/VitrinePage";
-import { isBackofficeHost } from "@/lib/site/hosts";
+import {
+  isBackofficeHost,
+  resolveBackofficeOriginFromHost,
+} from "@/lib/site/hosts";
 import { BACKOFFICE_BASE_PATH } from "@/config/backoffice.config";
 
 export const metadata: Metadata = {
@@ -18,5 +21,7 @@ export default async function HomePage() {
     redirect(BACKOFFICE_BASE_PATH);
   }
 
-  return <VitrinePage />;
+  const backofficeCanonical = `${resolveBackofficeOriginFromHost(host)}/login`;
+
+  return <VitrinePage backofficeCanonical={backofficeCanonical} />;
 }

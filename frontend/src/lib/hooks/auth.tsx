@@ -390,27 +390,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Sauvegarder dans localStorage
           localStorage.setItem("token", newToken);
 
-          // Sauvegarder dans les cookies pour le middleware Next.js
+          // Cookie session pour le middleware Next.js (/backoffice).
+          // Pas de domain= explicite (évite les cookies mal formés sur mobile/tablette).
           if (typeof window !== "undefined") {
+            const maxAge = 7 * 24 * 60 * 60;
             const secureFlag =
               window.location.protocol === "https:" ? "; Secure" : "";
-            const domain =
-              process.env.NODE_ENV === "production"
-                ? `domain=${window.location.hostname}`
-                : "";
+            document.cookie = `token=${newToken}; path=/; max-age=${maxAge}; SameSite=Lax${secureFlag}`;
 
-            // Définir le cookie avec les bonnes options
-            const cookieValue = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}; ${domain} SameSite=Lax${secureFlag}`;
-            document.cookie = cookieValue;
-
-            // Vérifier que le cookie a bien été défini
-            const cookieSet = document.cookie.includes("token=");
-            if (!cookieSet) {
+            if (!document.cookie.includes("token=")) {
               console.warn(
-                "⚠️ Le cookie n'a pas pu être défini, tentative avec une méthode alternative...",
+                "⚠️ Cookie session non défini après login — le middleware /backoffice peut échouer.",
               );
-              // Méthode alternative : utiliser un cookie sans domain en développement
-              document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
             }
           }
 

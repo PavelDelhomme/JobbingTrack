@@ -36,6 +36,21 @@ export function isVitrineHost(host: string | null | undefined): boolean {
   );
 }
 
+/** Origine backoffice selon l'hôte courant (vitrine préprod vs prod vs dev). */
+export function resolveBackofficeOriginFromHost(
+  host: string | null | undefined,
+): string {
+  const h = normalizeHost(host);
+  if (h === "preprod.jobbingtrack.com") {
+    return "https://backoffice-preprod.jobbingtrack.com";
+  }
+  if (h.endsWith(".jobbingtrack.localhost") || h === "jobbingtrack.localhost") {
+    const port = process.env.DEV_HTTPS_PORT || "5443";
+    return `https://backoffice.jobbingtrack.localhost:${port}`;
+  }
+  return resolveBackofficeOrigin();
+}
+
 /** URL publique du backoffice (sous-domaine, sans chemin). */
 export function resolveBackofficeOrigin(): string {
   const fromEnv = (
