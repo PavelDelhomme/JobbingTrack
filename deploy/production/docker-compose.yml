@@ -45,7 +45,8 @@ x-database-url: &database-url
   ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS}
 
 x-config-volume: &config-volume
-  - ../../../config:/app/config:ro
+  # compose path = deploy/production → ../../config = racine du dépôt
+  - ../../config:/app/config:ro
 
 services:
   postgres:
@@ -423,7 +424,7 @@ services:
       MOBILE_IOS_RELEASE_NOTES: ${MOBILE_IOS_RELEASE_NOTES:-}
     volumes:
       - mobile_releases:/app/mobile-releases
-      - ../../../config:/app/config:ro
+      - ../../config:/app/config:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1"]
       interval: 30s
