@@ -1,25 +1,7 @@
-const Redis = require('ioredis');
 const logger = require('../utils/logger');
+const { createRedisClient } = require('../utils/redisClient');
 
-// Configuration Redis
-const redis = new Redis({
-  host: process.env.REDIS_HOST || 'redis',
-  port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD || undefined,
-  retryDelayOnFailover: 100,
-  enableReadyCheck: true,
-  maxRetriesPerRequest: 3,
-  lazyConnect: true
-});
-
-// Gestionnaire d'erreurs Redis
-redis.on('error', (err) => {
-  logger.error('Erreur de connexion Redis:', err);
-});
-
-redis.on('connect', () => {
-  logger.info('Connecté à Redis pour le rate limiting');
-});
+const redis = createRedisClient('rate limiting');
 
 // Configuration du rate limiting
 const RATE_LIMITS = {

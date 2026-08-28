@@ -394,6 +394,9 @@ services:
       NODE_ENV: production
       PORT: "3000"
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       SECURITY_INTERNAL_SECRET: ${SECURITY_INTERNAL_SECRET}
       SECURITY_SERVICE_URL: http://security-service:3017
       SERVICE_NAME: jobbingtrack-api-gateway

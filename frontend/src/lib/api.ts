@@ -248,7 +248,8 @@ export const authService = {
     // Une tentative de login est une action sensible et doit toujours atteindre
     // le serveur : aucun cache par email, sinon une erreur récente peut masquer
     // une tentative correcte avec le même identifiant.
-    criticalApiClient.post("/auth/login", { email, password }),
+    // Timeout allongé (tablette / réseau mobile) — le gateway peut être lent si Redis était KO.
+    criticalApiClient.post("/auth/login", { email, password }, { timeout: 20000 }),
 
   register: (data: {
     email: string;

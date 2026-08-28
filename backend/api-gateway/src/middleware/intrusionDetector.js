@@ -1,30 +1,10 @@
-const Redis = require('ioredis');
 const axios = require('axios');
 const logger = require('../utils/logger');
+const { createRedisClient } = require('../utils/redisClient');
 const { isDevTestBypassRequest } = require('../utils/devTestBypassRequest');
 const { forwardCorrelationHeaders } = require('./requestCorrelation');
 
-// Configuration Redis pour le stockage des données d'intrusion
-const redis = new Redis({
-  host: process.env.REDIS_HOST || 'redis',
-  port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD || undefined,
-  retryDelayOnFailover: 100,
-  enableReadyCheck: true,
-  maxRetriesPerRequest: 3,
-  lazyConnect: true
-});
-
-// Gestionnaire d'erreurs Redis (shutdown stack / Redis pas prêt : bruit réduit, le middleware continue)
-redis.on('error', (err) => {
-  const code = err && err.code;
-  const transient = code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'ECONNRESET' || code === 'ETIMEDOUT';
-  if (transient) {
-    logger.warn('Redis intrusion detector indisponible (reconnexion automatique ioredis):', err.message || err);
-  } else {
-    logger.error('Erreur de connexion Redis (intrusion detector):', err);
-  }
-});
+const redis = createRedisClient('intrusion detector');
 
 // Patterns d'intrusion avancés
 const INTRUSION_PATTERNS = {

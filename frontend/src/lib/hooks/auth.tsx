@@ -54,6 +54,14 @@ function mapLoginErrorMessage(raw: string, code?: string): string {
   if (normalized.includes("verify") || normalized.includes("vérifi")) {
     return raw;
   }
+  if (
+    normalized.includes("temporarily unavailable") ||
+    normalized.includes("temporairement indisponible") ||
+    normalized.includes("network error") ||
+    normalized.includes("timeout")
+  ) {
+    return "Service momentanément indisponible. Vérifiez votre connexion Internet et réessayez dans quelques secondes.";
+  }
   if (!raw || normalized === "connection error" || normalized === "server error") {
     return "Erreur de connexion. Réessayez.";
   }
