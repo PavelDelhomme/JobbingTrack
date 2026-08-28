@@ -1,9 +1,9 @@
+@import "../styles/semantic-feedback.css";
+@import "../styles/semantic-kanban.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import "../styles/semantic-feedback.css";
-@import "../styles/semantic-kanban.css";
 
 @layer base {
   :root {
