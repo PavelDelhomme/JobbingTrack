@@ -35,6 +35,9 @@ interface AuthContextType {
 
 /** Messages login UI — ne pas exposer « email inconnu » vs « mauvais mot de passe » (anti-énumération). */
 function mapLoginErrorMessage(raw: string, code?: string): string {
+  if (code === "RATE_LIMIT") {
+    return "Trop de tentatives de connexion. Attendez une minute puis réessayez.";
+  }
   if (code === "EMAIL_NOT_VERIFIED") {
     return (
       raw ||
@@ -459,6 +462,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return {
               ok: false,
               error: mapLoginErrorMessage(errorMessage),
+            };
+          }
+
+          if (error.response.status === 429) {
+            setLoading(false);
+            return {
+              ok: false,
+              error: mapLoginErrorMessage(errorMessage, "RATE_LIMIT"),
             };
           }
         } else if (error.request) {

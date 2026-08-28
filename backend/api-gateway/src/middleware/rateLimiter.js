@@ -17,7 +17,8 @@ const RATE_LIMITS = {
   // Limite stricte pour les endpoints sensibles (assouplie en dev local)
   auth: {
     windowMs: 60 * 1000, // 1 minute
-    maxRequests: process.env.NODE_ENV === 'production' ? 5 : 60,
+    maxRequests: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '', 10) ||
+      (process.env.NODE_ENV === 'production' ? 15 : 60),
     keyGenerator: (req) => `rate_limit:auth:${req.ip}`,
     skipSuccessfulRequests: false,
     skipFailedRequests: false

@@ -272,6 +272,12 @@ function mergeForTarget(baseEnv, overrides) {
     merged[k] = v;
   }
   Object.assign(merged, overrides);
+  if (!merged.ADMIN_EMAIL && merged.TEST_ADMIN_EMAIL) {
+    merged.ADMIN_EMAIL = merged.TEST_ADMIN_EMAIL;
+  }
+  if (!merged.ADMIN_PASSWORD && merged.TEST_ADMIN_PASSWORD) {
+    merged.ADMIN_PASSWORD = merged.TEST_ADMIN_PASSWORD;
+  }
   return applyMissingRequired(merged, overrides.STACK_SLUG);
 }
 
