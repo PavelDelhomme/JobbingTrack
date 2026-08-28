@@ -314,6 +314,15 @@ Prod : `https://jobbingtrack.com` + `https://api.jobbingtrack.com`.
 
 ## 9. Étape D — Stack Portainer préprod
 
+**Prérequis VPS (Portainer CE)** — les bind mounts relatifs Git (`../../config`) restent **vides** sous CE (feature Business). Avant le 1er deploy :
+
+```bash
+bash scripts/deploy/sync-vps-stack-files.sh
+# → /home/pavel/stacks/jobbingtrack-files/repo  (STACK_REPO_PATH)
+```
+
+Vérifie dans le `.env.preprod.generated` : `STACK_REPO_PATH=/home/pavel/stacks/jobbingtrack-files/repo`.
+
 1. Ouvre https://portainer.delhomme.ovh  
 2. Environment **local** → **Stacks** → **Add stack**  
 3. Choisis **Repository** (Git)
@@ -326,7 +335,7 @@ Prod : `https://jobbingtrack.com` + `https://api.jobbingtrack.com`.
 | **Repository URL** | `https://github.com/PavelDelhomme/JobbingTrack.git` |
 | **Repository reference** | `refs/heads/dev` |
 | **Compose path** | `deploy/production/docker-compose.yml` |
-| **Authentication** | ON → Username GitHub + PAT |
+| **Authentication** | ON → Username GitHub + PAT (si repo privé) |
 | **GitOps updates** | OFF (Watchtower plus tard) |
 | **Skip TLS Verification** | OFF |
 
@@ -335,8 +344,10 @@ Prod : `https://jobbingtrack.com` + `https://api.jobbingtrack.com`.
 1. Mode **Advanced**  
 2. **Load variables from .env file**  
 3. Sélectionne `deploy/production/.env.preprod.generated`  
-4. Vérifie `IMAGE_PULL_POLICY=build` pour le **premier** deploy (le VPS build les images ; long)  
+4. Vérifie `STACK_REPO_PATH`, `IMAGE_PULL_POLICY=always` (images GHCR `:dev` déjà buildées)  
 5. **Deploy the stack**
+
+Aucun **port publié** : exposition uniquement via NPM (noms `jobbingtrack-preprod-frontend` / `…-api-gateway`).
 
 ### Conteneurs attendus
 
@@ -349,6 +360,8 @@ Noms préfixés `jobbingtrack-preprod-` : postgres, redis, api-gateway, frontend
 - **`shared-network-copy`**
 
 Si erreur « network not found » : les réseaux externes doivent déjà exister (ils existent pour ytmusic / cooking).
+
+Si `jt-env-policy.cjs introuvable` : relancer `sync-vps-stack-files.sh` puis **Pull and redeploy** la stack.
 
 ---
 
