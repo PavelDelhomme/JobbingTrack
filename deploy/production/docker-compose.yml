@@ -42,8 +42,9 @@ x-database-url: &database-url
   ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS}
 
 x-config-volume: &config-volume
-  # compose path = deploy/production → ../../config = racine du dépôt
-  - ../../config:/app/config:ro
+  # Portainer CE ne remplit PAS les bind mounts relatifs Git (feature Business).
+  # STACK_REPO_PATH = clone hôte maintenu (ex. /home/pavel/stacks/jobbingtrack-files/repo)
+  - ${STACK_REPO_PATH:?set STACK_REPO_PATH}/config:/app/config:ro
 
 services:
   postgres:
@@ -60,7 +61,7 @@ services:
       TZ: ${POSTGRES_SYSTEM_METRICS_TZ:-UTC}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../../backend/init-db:/docker-entrypoint-initdb.d:ro
+      - ${STACK_REPO_PATH:?set STACK_REPO_PATH}/backend/init-db:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -419,7 +420,7 @@ services:
       MOBILE_IOS_RELEASE_NOTES: ${MOBILE_IOS_RELEASE_NOTES:-}
     volumes:
       - mobile_releases:/app/mobile-releases
-      - ../../config:/app/config:ro
+      - ${STACK_REPO_PATH:?set STACK_REPO_PATH}/config:/app/config:ro
     healthcheck:
       # 127.0.0.1 évite le faux négatif IPv6 (::1) de wget sur localhost
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/health || exit 1"]

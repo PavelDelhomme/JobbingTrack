@@ -141,12 +141,16 @@ function applyMissingRequired(base, slug) {
   return out;
 }
 
+/** Clone git hôte pour bind mounts (Portainer CE n’a pas relative-path Business). */
+const DEFAULT_STACK_REPO_PATH = '/home/pavel/stacks/jobbingtrack-files/repo';
+
 const PREPROD_OVERRIDES = {
   STACK_SLUG: 'jobbingtrack-preprod',
   JT_RUNTIME_ENV: 'preproduction',
   IMAGE_TAG: 'dev',
   // always = pull GHCR :dev (Watchtower / push branche). build = 1er boot sans images GHCR.
   IMAGE_PULL_POLICY: 'always',
+  STACK_REPO_PATH: DEFAULT_STACK_REPO_PATH,
   API_PUBLISH_HOST: '127.0.0.1',
   API_PUBLISH_PORT: '3010',
   FRONTEND_PUBLISH_HOST: '127.0.0.1',
@@ -183,6 +187,7 @@ const PROD_OVERRIDES = {
   JT_RUNTIME_ENV: 'production',
   IMAGE_TAG: 'latest',
   IMAGE_PULL_POLICY: 'always',
+  STACK_REPO_PATH: DEFAULT_STACK_REPO_PATH,
   API_PUBLISH_HOST: '127.0.0.1',
   API_PUBLISH_PORT: '3020',
   FRONTEND_PUBLISH_HOST: '127.0.0.1',
@@ -217,6 +222,7 @@ const PROD_OVERRIDES = {
 /** Ordre : clés compose obligatoires d'abord, puis le reste alpha */
 const PRIORITY_KEYS = [
   'STACK_SLUG',
+  'STACK_REPO_PATH',
   'IMAGE_REGISTRY',
   'IMAGE_TAG',
   'IMAGE_PULL_POLICY',
