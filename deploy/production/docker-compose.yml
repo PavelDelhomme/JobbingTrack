@@ -42,6 +42,10 @@ x-backend-common: &backend-common
 
 x-database-url: &database-url
   DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+  ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?set ALLOWED_ORIGINS}
+
+x-config-volume: &config-volume
+  - ../../../config:/app/config:ro
 
 services:
   postgres:
@@ -120,6 +124,7 @@ services:
       dockerfile: Dockerfile
     container_name: ${STACK_SLUG:-jobbingtrack}-auth-service
     mem_limit: ${AUTH_SERVICE_MEMORY_LIMIT:-384m}
+    volumes: *config-volume
     environment:
       <<: *database-url
       ADMIN_EMAIL: ${ADMIN_EMAIL:?set ADMIN_EMAIL}
@@ -418,6 +423,7 @@ services:
       MOBILE_IOS_RELEASE_NOTES: ${MOBILE_IOS_RELEASE_NOTES:-}
     volumes:
       - mobile_releases:/app/mobile-releases
+      - ../../../config:/app/config:ro
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1"]
       interval: 30s
