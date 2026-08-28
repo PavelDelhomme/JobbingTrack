@@ -55,6 +55,27 @@
 | Porteur login admin préprod/prod | navigateur | **À faire** |
 | Porteur J OTA | Nothing | **À faire** |
 
+### Smoke agent — 28/08/2026 (17h) — login tablette + schéma BDD
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Cause login tablette | **Corrigé** | `getApiUrl` prenait `port===443` → `api.jobbingtrack.localhost:5443` |
+| Login navigateur préprod → `/backoffice` | **OK** | API = `api-preprod.jobbingtrack.com` ; dashboard menu visible |
+| Panel `/backoffice/mobile/releases` | **OK** | page OTA accessible (SUPER_ADMIN) |
+| Login API préprod/prod | **OK 200** | `admin@jobbingtrack.com` |
+| Companies / contacts / interviews / events / followups | **OK 200** | |
+| Applications préprod | **OK 200** | après SQL `isTestData` / `isArchived` |
+| Prisma `companyType` + fix Application cols | **OK** | db push auth + scripts `fix-*.sql` sur préprod+prod |
+| Security-service healthcheck | **OK healthy** | fichier `src/healthcheck.js` ajouté |
+| Redis NOAUTH (5 min) | **OK 0** | |
+| OTA latest Android | **OK 200** | v1.0.42 — **`downloadUrl: null`** (aucun APK publié dans le volume) |
+| DNS `backoffice` / `backoffice-preprod` | **KO** | toujours absent OVH — utiliser `/login` sur vitrine |
+| Image frontend `:dev` | **Redéployée** | préprod + prod (fix API URL) |
+
+**Suite mobile (J)** : builder + publier APK canal `dev` (`publish-apk-remote.sh`) puis tester Nothing Phone.
+
+---
+
 ### Smoke agent — 28/08/2026 (soir)
 
 | Check | Résultat | Notes |

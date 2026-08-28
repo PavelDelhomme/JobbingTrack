@@ -4,37 +4,28 @@
   "phase": {
     "id": "C",
     "label": "Déploiement VPS",
-    "step": "F",
-    "subStep": "login-admin",
+    "step": "J",
+    "subStep": "ota-apk-dev",
     "point": "DEPLOY-GHA-01",
-    "title": "Login admin préprod/prod puis OTA"
+    "title": "Login OK — publier APK OTA canal dev"
   },
   "recentDone": [
+    { "id": "DEPLOY-F-login", "label": "Login admin préprod navigateur (fix API URL tablette)" },
     { "id": "DEPLOY-I-prod", "label": "Stack Portainer prod + NPM jobbingtrack.com" },
     { "id": "DEPLOY-preprod-portainer", "label": "Stack Portainer préprod (plus SSH orpheline)" },
-    { "id": "DEPLOY-ghcr-latest", "label": "CI channel=prod → images :latest" },
-    { "id": "DEPLOY-local-https", "label": "Proxy HTTPS :5443 + metrics-aggregator" }
+    { "id": "DEPLOY-ghcr-latest", "label": "CI channel=prod → images :latest" }
   ],
   "queue": [
-    { "id": "DEPLOY-F-login", "status": "active", "label": "Login admin préprod + prod (smoke)" },
-    { "id": "DEPLOY-C3", "status": "pending", "label": "OTA 1er APK canal dev (Nothing)" },
+    { "id": "DEPLOY-C3", "status": "active", "label": "OTA 1er APK canal dev (Nothing)" },
+    { "id": "DEPLOY-DNS-backoffice", "status": "pending", "label": "DNS OVH backoffice + NPM hosts" },
     { "id": "BACKEND-CLEAN-01", "status": "later", "label": "Mutualiser logger/email microservices" },
-    { "id": "MOB-HUB-01", "status": "pending", "label": "Hubs mobile (après deploy)" }
+    { "id": "MOB-HUB-01", "status": "pending", "label": "Hubs mobile (après OTA)" }
   ],
   "openFixes": [
     {
       "id": "MOB-HUB-01",
-      "label": "Validation hubs (après préprod)",
-      "status": "paused_until_deploy"
+      "label": "Validation hubs (après OTA)",
+      "status": "paused_until_ota"
     }
-  ],
-  "files": {
-    "pilotage": "docs/pilotage/PILOTAGE.md",
-    "todos": "docs/pilotage/TODOS.md",
-    "tester": "docs/pilotage/TODOS_A_TESTER.md",
-    "valider": "docs/pilotage/TODOS_A_VALIDER.md",
-    "done": "docs/pilotage/TODOS_DONE.md",
-    "suivi": "docs/pilotage/suivi-actif.json",
-    "deploy": "DEPLOY.md"
-  }
+  ]
 }

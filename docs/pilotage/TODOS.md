@@ -34,20 +34,20 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ## ▶ En cours maintenant — DEPLOY VPS (**jobbingtrack.com**, style YTMusic)
 
-> **Focus unique Kanban** : **DEPLOY-GHA-01** (login F + OTA J)  
-> **Pause** : MOB-HUB / MOB-LIST / FAB gate B — reprise **après** login prod OK  
+> **Focus unique Kanban** : **DEPLOY-GHA-01** (OTA J — APK canal dev)  
+> **Pause** : MOB-HUB / MOB-LIST / FAB gate B — reprise **après** OTA installable  
 > **Appareil mobile** : **Nothing Phone** (pas Samsung pour la gate deploy)  
 > **UI** : [Portainer](https://portainer.delhomme.ovh) · [NPM](https://nginx.delhomme.ovh) · VPS `95.111.227.204`  
 > **Guide miroir** : [`DEPLOY.md`](../../DEPLOY.md) (ne rien perdre — cette section = **copie opérationnelle** A→J + canaux mobile §15)  
 > **Stub mobile** : [`CANAL_DISTRIBUTION_MOBILE.md`](../deployment/CANAL_DISTRIBUTION_MOBILE.md) → pointe vers `DEPLOY.md` §15 (contenu recopié en **Étape J** ci-dessous)
 
 ```
-État 28/08 (soir) :
-  ✅ Dev = local PC ; serveur = Portainer préprod + prod (plus stack SSH)
-  ✅ jobbingtrack-preprod + jobbingtrack-prod dans Portainer CE
-  ✅ Aucun port publié — NPM only (STACK_REPO_PATH pour config/)
-  ✅ https://jobbingtrack.com + api. + preprod. → 200 / health OK
-  ◀ Prochaine : login admin (F) → OTA (J)
+État 28/08 (17h) :
+  ✅ Dev = local PC ; serveur = Portainer préprod + prod
+  ✅ Login admin préprod navigateur OK (fix API URL tablette)
+  ✅ Schéma BDD aligné (companyType, Application.isTestData…)
+  ✅ OTA API 200 — downloadUrl null (APK à publier)
+  ◀ Prochaine : build+publish APK canal dev (J) → Nothing Phone
 ```
 
 ---
