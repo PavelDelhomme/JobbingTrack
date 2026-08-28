@@ -1,46 +1,22 @@
-"use client";
+import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { VitrinePage } from "@/components/vitrine/VitrinePage";
+import { isBackofficeHost } from "@/lib/site/hosts";
+import { BACKOFFICE_BASE_PATH } from "@/config/backoffice.config";
 
-import { useAuth } from "@/lib/hooks/auth";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { JobbingTrackLogo } from "@/components/brand/JobbingTrackLogo";
+export const metadata: Metadata = {
+  title: "JobbingTrack — Suivi de candidatures",
+  description:
+    "JobbingTrack : plateforme de suivi de candidatures, entreprises, entretiens et mobile.",
+};
 
-export default function HomePage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+export default async function HomePage() {
+  const host = (await headers()).get("host");
 
-  useEffect(() => {
-    if (!loading) {
-      if (user) {
-        router.push("/backoffice");
-      } else {
-        router.push("/login");
-      }
-    }
-  }, [user, loading, router]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
-        <div className="text-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Chargement...</p>
-        </div>
-      </div>
-    );
+  if (isBackofficeHost(host)) {
+    redirect(BACKOFFICE_BASE_PATH);
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
-      <div className="text-center">
-        <JobbingTrackLogo
-          className="mb-4 justify-center text-4xl font-bold text-gray-900 dark:text-white"
-          imgClassName="h-14 w-14"
-        />
-        <p className="text-gray-600 dark:text-gray-400">
-          Redirection en cours...
-        </p>
-      </div>
-    </div>
-  );
+  return <VitrinePage />;
 }

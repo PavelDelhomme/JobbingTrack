@@ -184,6 +184,7 @@ services:
       - NEXT_PUBLIC_AUTH_SERVICE_URL=${NEXT_PUBLIC_AUTH_SERVICE_URL:-https://api.jobbingtrack.localhost:${DEV_HTTPS_PORT:-5443}}
       - NEXT_PUBLIC_CHART_TIMEZONE=${NEXT_PUBLIC_CHART_TIMEZONE:-}
       - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL:-https://jobbingtrack.localhost:${DEV_HTTPS_PORT:-5443}}
+      - NEXT_PUBLIC_BACKOFFICE_URL=${NEXT_PUBLIC_BACKOFFICE_URL:-https://backoffice.jobbingtrack.localhost:${DEV_HTTPS_PORT:-5443}}
       # Persistance / docker list : appels via le front (`/api/metrics-aggregator` → agrégateur) pour éviter
       # HOST_IP:5004 injoignable depuis le navigateur (localhost, firewall, mauvaise IP).
       - NEXT_PUBLIC_METRICS_URL=${NEXT_PUBLIC_METRICS_URL:-/api/metrics-aggregator}

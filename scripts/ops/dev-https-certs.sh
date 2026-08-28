@@ -196,7 +196,8 @@ subjectAltName=@alt_names
 [alt_names]
 DNS.1=jobbingtrack.localhost
 DNS.2=api.jobbingtrack.localhost
-DNS.3=localhost
+DNS.3=backoffice.jobbingtrack.localhost
+DNS.4=localhost
 IP.1=127.0.0.1
 IP.2=::1
 CONF

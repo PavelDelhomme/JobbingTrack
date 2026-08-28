@@ -250,7 +250,8 @@ URLs à ouvrir dans le navigateur :
 
 | Surface | URL |
 |---------|-----|
-| Front / login | `https://jobbingtrack.localhost:5443/login` |
+| **Vitrine** | `https://jobbingtrack.localhost:5443` |
+| **Backoffice admin** | `https://backoffice.jobbingtrack.localhost:5443` → login |
 | API | `https://api.jobbingtrack.localhost:5443` |
 | MailHog | `http://127.0.0.1:8125` |
 
@@ -278,12 +279,28 @@ Zone OVH **jobbingtrack.com** → IP **`95.111.227.204`**
 | **`api`** | A | 95.111.227.204 | Prod API | ✅ |
 | **`preprod`** | A | 95.111.227.204 | Préprod web | ✅ |
 | **`api-preprod`** | A | 95.111.227.204 | Préprod API | ✅ |
+| **`backoffice-preprod`** | A | 95.111.227.204 | Préprod admin | à créer |
+| **`backoffice`** | A | 95.111.227.204 | Prod admin | à créer |
 
 ```bash
 dig +short api.jobbingtrack.com
 dig +short preprod.jobbingtrack.com
 dig +short api-preprod.jobbingtrack.com
+dig +short backoffice.jobbingtrack.com
+dig +short backoffice-preprod.jobbingtrack.com
 ```
+
+**Rôles des domaines**
+
+| Domaine | Rôle |
+|---------|------|
+| `jobbingtrack.com` / `www` | **Site vitrine** (présentation publique) |
+| `backoffice.jobbingtrack.com` | **Backoffice admin** → `/backoffice` (+ login) |
+| `preprod.jobbingtrack.com` | Vitrine préprod |
+| `backoffice-preprod.jobbingtrack.com` | Backoffice préprod |
+| `api.*` | API gateway |
+
+Accès admin discret sur la vitrine : petit point dans le pied de page → sous-domaine backoffice.
 
 Attendre la propagation (souvent 5–30 min) avant de demander le certificat Let's Encrypt sur NPM.
 
@@ -383,7 +400,7 @@ Ouvre https://nginx.delhomme.ovh → **Proxy Hosts** → **Add Proxy Host**
 | Force SSL | ✅ |
 | HTTP/2 | ✅ |
 
-### Host 2 — Web
+### Host 2 — Web (vitrine)
 
 | Champ | Valeur |
 |-------|--------|
@@ -391,6 +408,17 @@ Ouvre https://nginx.delhomme.ovh → **Proxy Hosts** → **Add Proxy Host**
 | Forward Hostname / IP | `jobbingtrack-preprod-frontend` |
 | Forward Port | `3000` |
 | SSL | idem Let's Encrypt + Force SSL |
+
+### Host 3 — Backoffice admin
+
+| Champ | Valeur |
+|-------|--------|
+| Domain Names | `backoffice-preprod.jobbingtrack.com` |
+| Forward Hostname / IP | `jobbingtrack-preprod-frontend` |
+| Forward Port | `3000` |
+| SSL | idem Let's Encrypt + Force SSL |
+
+Script : `NPM_TOKEN=… bash scripts/deploy/setup-npm-backoffice-hosts.sh`
 
 C’est le **même modèle** que YTMusic (`ytmusic` → port `8787`).
 
@@ -500,7 +528,8 @@ Aucun port hôte — NPM uniquement.
 | Domain | Forward |
 |--------|---------|
 | `api.jobbingtrack.com` | `jobbingtrack-prod-api-gateway:3000` |
-| `jobbingtrack.com` (+ `www`) | `jobbingtrack-prod-frontend:3000` |
+| `jobbingtrack.com` (+ `www`) | `jobbingtrack-prod-frontend:3000` — **vitrine** |
+| `backoffice.jobbingtrack.com` | `jobbingtrack-prod-frontend:3000` — **admin** |
 
 Smoke :
 

@@ -4,6 +4,7 @@ import {
   BACKOFFICE_BASE_PATH,
   BACKOFFICE_LEGACY_PATH,
 } from "@/config/backoffice.config";
+import { isBackofficeHost } from "@/lib/site/hosts";
 
 function hasValidSessionToken(token: string | undefined): boolean {
   if (!token) return false;
@@ -77,6 +78,16 @@ export function middleware(request: NextRequest) {
   if (httpsRedirect) return httpsRedirect;
 
   const { pathname } = request.nextUrl;
+  const host = request.headers.get("host");
+
+  // Sous-domaine backoffice.* → racine = espace admin (login si session absente).
+  if (isBackofficeHost(host) && pathname === "/") {
+    const token = readSessionToken(request);
+    if (!hasValidSessionToken(token)) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.redirect(new URL(BACKOFFICE_BASE_PATH, request.url));
+  }
 
   // Ancien alias → chemin canonique /backoffice (auth identique).
   if (

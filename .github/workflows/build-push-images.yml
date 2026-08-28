@@ -134,9 +134,11 @@ jobs:
           if [ "${{ github.ref_name }}" = "main" ] || [ "${CHANNEL}" = "prod" ]; then
             API="https://api.jobbingtrack.com"
             WEB="https://jobbingtrack.com"
+            BO="https://backoffice.jobbingtrack.com"
           else
             API="https://api-preprod.jobbingtrack.com"
             WEB="https://preprod.jobbingtrack.com"
+            BO="https://backoffice-preprod.jobbingtrack.com"
           fi
           {
             echo "args<<EOF"
@@ -144,6 +146,7 @@ jobs:
             echo "NEXT_PUBLIC_API_GATEWAY_URL=${API}"
             echo "NEXT_PUBLIC_AUTH_SERVICE_URL=${API}"
             echo "NEXT_PUBLIC_FRONTEND_URL=${WEB}"
+            echo "NEXT_PUBLIC_BACKOFFICE_URL=${BO}"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
