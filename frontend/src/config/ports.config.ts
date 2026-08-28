@@ -115,27 +115,53 @@ function shouldUseDevHttpsSameOriginApi(
   return port === httpsDevPort && isPrivateLanHostname(hostname);
 }
 
+function publicApiUrlFromHost(hostname: string): string | undefined {
+  const h = hostname.toLowerCase();
+  if (h === "preprod.jobbingtrack.com" || h === "backoffice-preprod.jobbingtrack.com") {
+    return "https://api-preprod.jobbingtrack.com";
+  }
+  if (
+    h === "jobbingtrack.com" ||
+    h === "www.jobbingtrack.com" ||
+    h === "backoffice.jobbingtrack.com"
+  ) {
+    return "https://api.jobbingtrack.com";
+  }
+  return undefined;
+}
+
 const getApiUrl = () => {
+  const fromEnv =
+    envPublicUrl("NEXT_PUBLIC_API_URL") ||
+    envPublicUrl("NEXT_PUBLIC_API_GATEWAY_URL");
+
   if (typeof window !== "undefined") {
     const { protocol, hostname, port } = window.location;
     const httpsDevPort = devHttpsPort();
+    const publicApi = publicApiUrlFromHost(hostname);
+    // VPS / tablette : jamais api.jobbingtrack.localhost (port 443 matchait tout le HTTPS public).
+    if (publicApi) {
+      return publicApi;
+    }
 
     // Dev HTTPS : API sur la même origine Nginx (évite CORS api.* et port 443).
     if (shouldUseDevHttpsSameOriginApi(protocol, hostname, port)) {
       return devHttpsSameOrigin(hostname, port, protocol);
     }
 
-    // Autres pages HTTPS (sous-domaine api.* explicite, ports atypiques).
+    const isLocalhost =
+      hostname === "jobbingtrack.localhost" ||
+      hostname.endsWith(".jobbingtrack.localhost") ||
+      hostname === "localhost";
+
+    // Autres pages HTTPS locales uniquement (sous-domaine api.* / ports atypiques).
     if (
+      isLocalhost &&
       protocol === "https:" &&
       (port === httpsDevPort ||
         port === "443" ||
-        (port === "" &&
-          (hostname === "jobbingtrack.localhost" ||
-            hostname.endsWith(".jobbingtrack.localhost"))) ||
-        ((hostname === "jobbingtrack.localhost" ||
-          hostname.endsWith(".jobbingtrack.localhost")) &&
-          port !== String(EXTERNAL_PORTS.API_GATEWAY)))
+        port === "" ||
+        port !== String(EXTERNAL_PORTS.API_GATEWAY))
     ) {
       return devHttpsApiOrigin(port);
     }
@@ -145,14 +171,16 @@ const getApiUrl = () => {
       return devHttpsApiOrigin(port);
     }
 
+    if (protocol === "http:" && isLocalhost) {
+      return `http://${hostname}:${EXTERNAL_PORTS.API_GATEWAY}`;
+    }
+
+    if (fromEnv) return fromEnv.replace(/\/$/, "");
     if (protocol === "http:") {
       return `http://${hostname}:${EXTERNAL_PORTS.API_GATEWAY}`;
     }
   }
 
-  const fromEnv =
-    envPublicUrl("NEXT_PUBLIC_API_URL") ||
-    envPublicUrl("NEXT_PUBLIC_API_GATEWAY_URL");
   if (fromEnv) return fromEnv.replace(/\/$/, "");
 
   // SSR / premier paint : défaut documenté (.env.example / docker-compose)
