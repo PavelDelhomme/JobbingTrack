@@ -421,11 +421,12 @@ services:
       - mobile_releases:/app/mobile-releases
       - ../../config:/app/config:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      # 127.0.0.1 évite le faux négatif IPv6 (::1) de wget sur localhost
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 120s
 
   frontend:
     <<: *watchtower-labels
@@ -457,20 +458,22 @@ services:
       METRICS_API_KEY: ${METRICS_API_KEY}
       API_GATEWAY_URL: http://api-gateway:3000
       METRICS_AGGREGATOR_INTERNAL_URL: http://metrics-aggregator:3014
+    # service_started (pas healthy) : Portainer `compose up --wait` ne bloque
+    # pas toute la stack si le gateway met >60s (cold start Postgres).
     depends_on:
       api-gateway:
-        condition: service_healthy
+        condition: service_started
     networks:
       - jobbingtrack-network
       - npm-network
       - shared
     logging: *default-logging
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 90s
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 120s
 
 volumes:
   postgres_data:
