@@ -4,12 +4,10 @@ Dernière mise à jour : **28 août 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : DEPLOY-GHA-01** — login admin **préprod + prod**, puis OTA (J)  
-**Préprod** : ✅ Portainer `jobbingtrack-preprod` · `https://preprod.jobbingtrack.com`  
-**Prod** : ✅ Portainer `jobbingtrack-prod` · `https://jobbingtrack.com` + `api.` (28/08)  
-**Local** : HTTPS `:5443` ✅ · **Dev = PC** / **serveur = préprod+prod Portainer**  
-**Prochaine action** : login admin (F) → OTA Nothing (J)  
-**Mobile** : OTA après login web OK  
+**Focus (1 seule) : DEPLOY-GHA-01** — DNS backoffice + login admin, puis OTA (J)  
+**Vitrine** : ✅ `jobbingtrack.com` / `preprod.` (28/08)  
+**Backoffice** : `backoffice.jobbingtrack.com` (+ préprod) — **DNS OVH à créer**  
+**Prochaine action** : DNS `backoffice` + `backoffice-preprod` → login admin (F)  
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist **A→J** : [`TODOS.md`](TODOS.md) ▶ En cours  
 

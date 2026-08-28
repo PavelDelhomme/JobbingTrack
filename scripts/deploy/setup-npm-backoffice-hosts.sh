@@ -14,6 +14,27 @@ if [ -z "$TOKEN" ]; then
   exit 1
 fi
 
+check_dns() {
+  local host="$1"
+  local ip
+  ip="$(dig +short "$host" | head -1)"
+  if [ "$ip" = "95.111.227.204" ]; then
+    echo "DNS OK  $host → $ip"
+    return 0
+  fi
+  echo "DNS KO  $host → ${ip:-vide} (attendu 95.111.227.204)" >&2
+  echo "  → Crée l’entrée A dans OVH (voir docs/deployment/DNS_OVH_JOBBINGTRACK.md)" >&2
+  return 1
+}
+
+dns_ok=1
+check_dns backoffice.jobbingtrack.com || dns_ok=0
+check_dns backoffice-preprod.jobbingtrack.com || dns_ok=0
+if [ "$dns_ok" -eq 0 ]; then
+  echo "Abandon : corrige le DNS OVH puis relance ce script." >&2
+  exit 2
+fi
+
 python3 <<'PY'
 import json, os, urllib.request, urllib.error
 

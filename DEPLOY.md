@@ -304,6 +304,8 @@ Accès admin discret sur la vitrine : petit point dans le pied de page → sous-
 
 Attendre la propagation (souvent 5–30 min) avant de demander le certificat Let's Encrypt sur NPM.
 
+**Guide détaillé OVH (captures champs)** : [`docs/deployment/DNS_OVH_JOBBINGTRACK.md`](../docs/deployment/DNS_OVH_JOBBINGTRACK.md)
+
 > Les entrées `jobbingtrack` / `api.jobbingtrack` sur **delhomme.ovh** ne sont **plus** la cible JobbingTrack.
 
 ---
