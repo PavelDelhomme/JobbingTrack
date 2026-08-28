@@ -23,32 +23,31 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ## Récemment terminé (max 1 catégorie + 3 sous-items)
 
-### Déploiement — local remis + DNS (24–28/08)
+### Déploiement — Portainer préprod+prod (28/08)
 
-1. **Livré** scripts + `DEPLOY.md` + domaines **jobbingtrack.com** + MailHog **8125**  
-2. **OK porteur** DNS zone complète (`api` / `preprod` / `api-preprod`)  
-3. **OK agent 28/08** local : `metrics-aggregator` + proxy HTTPS **`:5443`** (chargement)  
-4. **À finir VPS** : Portainer services incomplets + NPM TLS SNI (étapes D/E)
+1. **OK** stacks Portainer `jobbingtrack-preprod` + `jobbingtrack-prod` (Git, **aucun port hôte**)  
+2. **OK** NPM : preprod / api-preprod / apex+www / api + Let's Encrypt  
+3. **OK** GHCR `:dev` + `:latest` (`workflow_dispatch` channel=prod)  
+4. **À finir** : login admin (F) + OTA Nothing (J)
 
 ---
 
 ## ▶ En cours maintenant — DEPLOY VPS (**jobbingtrack.com**, style YTMusic)
 
-> **Focus unique Kanban** : **DEPLOY-GHA-01** (ops porteur = C1→C3 + suite A–J)  
-> **Pause** : MOB-HUB / MOB-LIST / FAB gate B — reprise **après** préprod HTTPS OK  
+> **Focus unique Kanban** : **DEPLOY-GHA-01** (login F + OTA J)  
+> **Pause** : MOB-HUB / MOB-LIST / FAB gate B — reprise **après** login prod OK  
 > **Appareil mobile** : **Nothing Phone** (pas Samsung pour la gate deploy)  
 > **UI** : [Portainer](https://portainer.delhomme.ovh) · [NPM](https://nginx.delhomme.ovh) · VPS `95.111.227.204`  
 > **Guide miroir** : [`DEPLOY.md`](../../DEPLOY.md) (ne rien perdre — cette section = **copie opérationnelle** A→J + canaux mobile §15)  
 > **Stub mobile** : [`CANAL_DISTRIBUTION_MOBILE.md`](../deployment/CANAL_DISTRIBUTION_MOBILE.md) → pointe vers `DEPLOY.md` §15 (contenu recopié en **Étape J** ci-dessous)
 
 ```
-État 28/08 (après-midi) :
-  ✅ CI GHCR Buildx + images :dev publiques
-  ✅ Stack VPS jobbingtrack-preprod-* (gateway/frontend healthy)
-  ✅ NPM preprod + api-preprod + Let's Encrypt
-  ✅ Smoke HTTPS health + /login 200
-  ✅ Watchtower labels + script vps-up-preprod.sh
-  ◀ Prochaine : login admin préprod → stack prod (I) → OTA (J)
+État 28/08 (soir) :
+  ✅ Dev = local PC ; serveur = Portainer préprod + prod (plus stack SSH)
+  ✅ jobbingtrack-preprod + jobbingtrack-prod dans Portainer CE
+  ✅ Aucun port publié — NPM only (STACK_REPO_PATH pour config/)
+  ✅ https://jobbingtrack.com + api. + preprod. → 200 / health OK
+  ◀ Prochaine : login admin (F) → OTA (J)
 ```
 
 ---

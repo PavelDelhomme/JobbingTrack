@@ -4,15 +4,16 @@ Dernière mise à jour : **28 août 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : DEPLOY-GHA-01** — valider login admin préprod, puis **prod** (étape I)  
-**Préprod** : ✅ `https://preprod.jobbingtrack.com` + API healthy (28/08)  
-**Local** : HTTPS `:5443` ✅  
-**Prochaine action** : login admin préprod → stack **prod** + NPM apex/`api.`  
-**Mobile** : OTA Nothing (étape J) après prod web OK  
+**Focus (1 seule) : DEPLOY-GHA-01** — login admin **préprod + prod**, puis OTA (J)  
+**Préprod** : ✅ Portainer `jobbingtrack-preprod` · `https://preprod.jobbingtrack.com`  
+**Prod** : ✅ Portainer `jobbingtrack-prod` · `https://jobbingtrack.com` + `api.` (28/08)  
+**Local** : HTTPS `:5443` ✅ · **Dev = PC** / **serveur = préprod+prod Portainer**  
+**Prochaine action** : login admin (F) → OTA Nothing (J)  
+**Mobile** : OTA après login web OK  
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist **A→J** : [`TODOS.md`](TODOS.md) ▶ En cours  
 
-MOB-HUB / MOB-LIST en pause jusqu’à préprod OK.
+MOB-HUB / MOB-LIST en pause jusqu’à login prod OK.
 
 ## Kanban ADHD (règle d’or)
 
@@ -66,7 +67,7 @@ Décisions UI (OK/KO/PARTIEL/Plus tard/REWORK) + **déplacement de colonne** →
 | Phase | Statut |
 |-------|--------|
 | **B** gate mobile | MOB-ENT OK → HUB/LIST en pause → reprise après deploy VPS |
-| **C** déploiement | **DEPLOY-GHA-01 en cours** → DEPLOY-C1→C3 porteur |
+| **C** déploiement | **DEPLOY-GHA-01** — stacks Portainer préprod+prod OK → login + OTA |
 | D backoffice | board Kanban |
 
 ## Règle agent

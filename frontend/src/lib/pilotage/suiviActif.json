@@ -5,18 +5,18 @@
     "id": "C",
     "label": "Déploiement VPS",
     "step": "F",
-    "subStep": "login-preprod",
+    "subStep": "login-admin",
     "point": "DEPLOY-GHA-01",
-    "title": "Valider login préprod puis stack prod"
+    "title": "Login admin préprod/prod puis OTA"
   },
   "recentDone": [
-    { "id": "DEPLOY-preprod-up", "label": "Stack + NPM + smoke préprod jobbingtrack.com" },
-    { "id": "DEPLOY-ghcr-buildx", "label": "CI GHCR Buildx + images :dev" },
+    { "id": "DEPLOY-I-prod", "label": "Stack Portainer prod + NPM jobbingtrack.com" },
+    { "id": "DEPLOY-preprod-portainer", "label": "Stack Portainer préprod (plus SSH orpheline)" },
+    { "id": "DEPLOY-ghcr-latest", "label": "CI channel=prod → images :latest" },
     { "id": "DEPLOY-local-https", "label": "Proxy HTTPS :5443 + metrics-aggregator" }
   ],
   "queue": [
-    { "id": "DEPLOY-F-login", "status": "active", "label": "Login admin préprod + smoke métier" },
-    { "id": "DEPLOY-I-prod", "status": "pending", "label": "Stack + NPM production" },
+    { "id": "DEPLOY-F-login", "status": "active", "label": "Login admin préprod + prod (smoke)" },
     { "id": "DEPLOY-C3", "status": "pending", "label": "OTA 1er APK canal dev (Nothing)" },
     { "id": "BACKEND-CLEAN-01", "status": "later", "label": "Mutualiser logger/email microservices" },
     { "id": "MOB-HUB-01", "status": "pending", "label": "Hubs mobile (après deploy)" }

@@ -476,23 +476,31 @@ bash scripts/deploy/bump-platform-version.sh patch
 
 **Uniquement après préprod validée.**
 
+> Note 28/08 : `main` et `dev` n’ont **pas** d’historique Git commun.  
+> Images `:latest` = `gh workflow run build-push-images.yml --ref dev -f channel=prod`  
+> Stack Git = `refs/heads/dev` + env `IMAGE_TAG=latest` (pas de force-push `main`).
+
+Prérequis : `bash scripts/deploy/sync-vps-stack-files.sh` (même `STACK_REPO_PATH` que préprod).
+
 | Champ | Valeur |
 |-------|--------|
 | Name | `jobbingtrack-prod` |
-| Reference | `refs/heads/main` |
+| Reference | `refs/heads/dev` |
 | Compose path | `deploy/production/docker-compose.yml` |
 | Env file | `.env.prod.generated` |
 | `STACK_SLUG` | `jobbingtrack-prod` |
+| `STACK_REPO_PATH` | `/home/pavel/stacks/jobbingtrack-files/repo` |
 | `IMAGE_TAG` | `latest` |
 | `IMAGE_PULL_POLICY` | `always` |
+
+Aucun port hôte — NPM uniquement.
 
 ### NPM prod
 
 | Domain | Forward |
 |--------|---------|
 | `api.jobbingtrack.com` | `jobbingtrack-prod-api-gateway:3000` |
-| `jobbingtrack.com` | `jobbingtrack-prod-frontend:3000` |
-| `www.jobbingtrack.com` | même frontend **ou** redirect 301 vers apex |
+| `jobbingtrack.com` (+ `www`) | `jobbingtrack-prod-frontend:3000` |
 
 Smoke :
 
