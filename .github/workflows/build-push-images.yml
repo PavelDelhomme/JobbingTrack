@@ -15,6 +15,14 @@ on:
       tag:
         description: 'Tag image supplementaire (ex. v1.0.0)'
         required: false
+      channel:
+        description: 'Canal images (preprod=tag branche ; prod=ajoute :latest+:prod + URLs jobbingtrack.com)'
+        required: true
+        default: preprod
+        type: choice
+        options:
+          - preprod
+          - prod
 
 env:
   REGISTRY: ghcr.io
@@ -107,20 +115,23 @@ jobs:
           PREFIX="ghcr.io/${OWNER}/jobbingtrack"
           BRANCH="${{ github.ref_name }}"
           SHORT_SHA="${GITHUB_SHA:0:7}"
+          CHANNEL="${{ github.event.inputs.channel || 'preprod' }}"
           TAGS="${PREFIX}-${{ matrix.image }}:${BRANCH},${PREFIX}-${{ matrix.image }}:sha-${SHORT_SHA}"
-          if [ "${BRANCH}" = "main" ]; then
+          if [ "${BRANCH}" = "main" ] || [ "${CHANNEL}" = "prod" ]; then
             TAGS="${TAGS},${PREFIX}-${{ matrix.image }}:latest,${PREFIX}-${{ matrix.image }}:prod"
           fi
           if [ -n "${{ github.event.inputs.tag }}" ]; then
             TAGS="${TAGS},${PREFIX}-${{ matrix.image }}:${{ github.event.inputs.tag }}"
           fi
+          echo "channel=${CHANNEL}" >> "$GITHUB_OUTPUT"
           echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
 
       - name: Frontend public URLs (baked at build)
         id: fe_args
         if: matrix.has_target
         run: |
-          if [ "${{ github.ref_name }}" = "main" ]; then
+          CHANNEL="${{ github.event.inputs.channel || 'preprod' }}"
+          if [ "${{ github.ref_name }}" = "main" ] || [ "${CHANNEL}" = "prod" ]; then
             API="https://api.jobbingtrack.com"
             WEB="https://jobbingtrack.com"
           else
