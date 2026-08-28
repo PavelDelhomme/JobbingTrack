@@ -145,7 +145,8 @@ const PREPROD_OVERRIDES = {
   STACK_SLUG: 'jobbingtrack-preprod',
   JT_RUNTIME_ENV: 'preproduction',
   IMAGE_TAG: 'dev',
-  IMAGE_PULL_POLICY: 'build',
+  // always = pull GHCR :dev (Watchtower / push branche). build = 1er boot sans images GHCR.
+  IMAGE_PULL_POLICY: 'always',
   API_PUBLISH_HOST: '127.0.0.1',
   API_PUBLISH_PORT: '3010',
   FRONTEND_PUBLISH_HOST: '127.0.0.1',
