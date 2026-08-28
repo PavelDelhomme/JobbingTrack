@@ -2,18 +2,15 @@
 # Compose path Portainer : deploy/production/docker-compose.yml
 # Secrets : variables stack Portainer (Load from .env) — jamais dans Git.
 #
-# Pattern YTMusic / cooking-recipes :
-#   - api-gateway + frontend → réseaux npm-network + shared (NPM résout par nom de conteneur)
-#   - postgres / redis / microservices → réseau interne uniquement
-#   - Watchtower label sur les services applicatifs
+# Règle d’exposition :
+#   - AUCUN port hôte publié (ni 3000/3001, ni 127.0.0.1)
+#   - api-gateway + frontend → réseaux npm-network + shared
+#   - NPM résout par nom de conteneur (ex. jobbingtrack-prod-frontend:3000)
 #
-# NPM (ex. prod) :
-#   Domain jobbingtrack.com     → http://jobbingtrack-prod-frontend:3000
-#   Domain api.jobbingtrack.com → http://jobbingtrack-prod-api-gateway:3000
-#   SSL Let's Encrypt + Force SSL + Websockets ON
-# Réseaux Docker VPS (externes, déjà présents) :
-#   nginx-proxy-manager_npm-network
-#   shared-network-copy
+# Domaines :
+#   préprod : preprod.jobbingtrack.com / api-preprod.jobbingtrack.com
+#   prod    : jobbingtrack.com (+ www) / api.jobbingtrack.com
+# Dev local = docker-compose.yml sur le PC (pas cette stack).
 
 name: jobbingtrack
 
@@ -355,9 +352,7 @@ services:
       dockerfile: api-gateway/Dockerfile.backend-context
     container_name: ${STACK_SLUG:-jobbingtrack}-api-gateway
     mem_limit: ${API_GATEWAY_MEMORY_LIMIT:-384m}
-    # Ports hôte optionnels (fallback). Préférer NPM via réseau npm-network (nom du conteneur).
-    ports:
-      - "${API_PUBLISH_HOST:-127.0.0.1}:${API_PUBLISH_PORT:-3000}:3000"
+    # Pas de ports hôte : exposition uniquement via NPM (réseaux npm-network + shared)
     networks:
       - jobbingtrack-network
       - npm-network
@@ -454,8 +449,7 @@ services:
     container_name: ${STACK_SLUG:-jobbingtrack}-frontend
     restart: unless-stopped
     mem_limit: ${FRONTEND_MEMORY_LIMIT:-1024m}
-    ports:
-      - "${FRONTEND_PUBLISH_HOST:-127.0.0.1}:${FRONTEND_PUBLISH_PORT:-3001}:3000"
+    # Pas de ports hôte : exposition uniquement via NPM (réseaux npm-network + shared)
     environment:
       NODE_ENV: production
       PORT: "3000"
