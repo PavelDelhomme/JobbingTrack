@@ -1,23 +1,21 @@
 {
-  "updatedAt": "2026-08-24",
+  "updatedAt": "2026-08-28",
   "apk": "1.0.42+42",
   "phase": {
     "id": "C",
     "label": "Déploiement VPS",
-    "step": "C",
-    "subStep": "env",
+    "step": "D",
+    "subStep": "Portainer+NPM",
     "point": "DEPLOY-GHA-01",
-    "title": "Générer .env Portainer puis stack préprod"
+    "title": "Finir préprod : conteneurs healthy + NPM TLS"
   },
   "recentDone": [
+    { "id": "DEPLOY-local-https", "label": "Proxy HTTPS :5443 + metrics-aggregator (28/08)" },
     { "id": "DEPLOY-B-DNS", "label": "DNS api + preprod + api-preprod (OVH, dig OK)" },
-    { "id": "DEPLOY-mailhog-8125", "label": "MailHog UI 8125 (conflit Cloudity)" },
-    { "id": "DEPLOY-domains-com", "label": "Domaines cibles jobbingtrack.com + generate-env" }
+    { "id": "DEPLOY-mailhog-8125", "label": "MailHog UI 8125 (conflit Cloudity)" }
   ],
   "queue": [
-    { "id": "DEPLOY-C-env", "status": "active", "label": "generate-portainer-env.sh + vérif .com" },
-    { "id": "DEPLOY-C1", "status": "pending", "label": "Stack Portainer préprod" },
-    { "id": "DEPLOY-C2", "status": "pending", "label": "NPM HTTPS api + web" },
+    { "id": "DEPLOY-C1-C2", "status": "active", "label": "Préprod : Portainer healthy + NPM TLS (SNI)" },
     { "id": "DEPLOY-C3", "status": "pending", "label": "OTA 1er APK canal dev (Nothing)" },
     { "id": "BACKEND-CLEAN-01", "status": "later", "label": "Mutualiser logger/email microservices" },
     { "id": "MOB-HUB-01", "status": "pending", "label": "Hubs mobile (après deploy)" },

@@ -1,6 +1,6 @@
 # TODOS — choses à faire (source de vérité)
 
-Dernière mise à jour : **24 août 2026**
+Dernière mise à jour : **28 août 2026**
 
 ## Process de suivi (obligatoire)
 
@@ -23,12 +23,12 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ## Récemment terminé (max 1 catégorie + 3 sous-items)
 
-### Déploiement — scripts, domaines, MailHog (19–24/08)
+### Déploiement — local remis + DNS (24–28/08)
 
-1. **Livré** scripts deploy + `DEPLOY.md` + Watchtower + labels NPM + `STACK_SLUG`  
-2. **Livré** domaines cibles **jobbingtrack.com** (+ génération `.env` Portainer)  
-3. **Livré** fix local MailHog UI **8125** (conflit Cloudity Mailpit 8025)  
-4. **À faire porteur** : checklist **A→J** ci-dessous (ops VPS + OTA)
+1. **Livré** scripts + `DEPLOY.md` + domaines **jobbingtrack.com** + MailHog **8125**  
+2. **OK porteur** DNS zone complète (`api` / `preprod` / `api-preprod`)  
+3. **OK agent 28/08** local : `metrics-aggregator` + proxy HTTPS **`:5443`** (chargement)  
+4. **À finir VPS** : Portainer services incomplets + NPM TLS SNI (étapes D/E)
 
 ---
 
@@ -42,12 +42,15 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 > **Stub mobile** : [`CANAL_DISTRIBUTION_MOBILE.md`](../deployment/CANAL_DISTRIBUTION_MOBILE.md) → pointe vers `DEPLOY.md` §15 (contenu recopié en **Étape J** ci-dessous)
 
 ```
-État 24/08 (soir) :
+État 28/08 :
   ✅ Scripts + DEPLOY.md + compose réseaux NPM + domaines .com
   ✅ MailHog local 8125
-  ✅ DNS zone complète → 95.111.227.204 (@, www, api, preprod, api-preprod)
-  ◀ Prochaine session : étape C (generate-env) → D Portainer → E NPM
-  ❌ Portainer stack préprod / NPM / smoke / Watchtower / prod / OTA
+  ✅ DNS zone complète → 95.111.227.204
+  ✅ Local remis : metrics-aggregator + proxy HTTPS :5443 (login 200)
+  ✅ .env.preprod/.prod.generated présents sur le PC
+  ⚠️ VPS : stack préprod démarrée mais services incomplets / chargement KO
+  ❌ NPM préprod : TLS SNI fail (hosts LE à refaire) — étapes D/E
+  ❌ Smoke / Watchtower / prod / OTA
 ```
 
 ---
@@ -56,17 +59,21 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 | # | Action | État |
 |---|--------|------|
-| A.1 | `docker compose --profile full up -d` (éviter `make` dans Cursor) | [ ] |
-| A.2 | `docker ps --filter name=jobbingtrack-` | [ ] |
-| A.3 | `curl -fsS http://127.0.0.1:5002/health` (port api-gateway du `.env`) | [ ] |
-| A.4 | HTTPS local si certs : `https://jobbingtrack.localhost:5443` + API `:5443` | [ ] |
-| A.5 | MailHog UI : `http://127.0.0.1:8125` (pas 8025 — Cloudity) | ✅ doc + `.env` |
-| A.6 | Mobile local OTA : `bash scripts/mobile/publish-built-dev.sh` + `/backoffice/mobile/releases` | [ ] optionnel |
+| A.1 | `docker compose --profile full up -d` | ✅ stack up |
+| A.2 | `docker ps --filter name=jobbingtrack-` | ✅ |
+| A.3 | `curl -fsS http://127.0.0.1:5002/health` | ✅ 200 |
+| A.4 | Proxy HTTPS : `… --profile https up -d dev-https-proxy` | ✅ **28/08** |
+| A.5 | `https://jobbingtrack.localhost:5443/login` → 200 | ✅ |
+| A.6 | MailHog UI `http://127.0.0.1:8125` | ✅ |
+| A.7 | `docker start jobbingtrack-metrics-aggregator` si Created | ✅ **28/08** |
+| A.8 | Mobile local OTA (optionnel) | [ ] |
 
-**Correctif déjà appliqué (24/08)** : `8025 already allocated` → MailHog UI **8125**.
+**Correctifs** : MailHog **8125** (24/08) · sans proxy HTTPS = **chargement cassé** (28/08).
 
 ```bash
-docker compose --profile full up -d mailhog
+bash scripts/ops/dev-https-certs.sh
+docker compose -f docker-compose.yml -f docker-compose.https.yml --profile https up -d dev-https-proxy
+docker start jobbingtrack-metrics-aggregator   # si Status=Created
 ```
 
 ---
@@ -89,60 +96,65 @@ dig +short preprod.jobbingtrack.com
 dig +short api-preprod.jobbingtrack.com
 ```
 
-Attendre propagation 5–30 min **avant** Let's Encrypt sur NPM. **✅ Propagation confirmée 24/08** (`dig` → `95.111.227.204`).
+**✅ Propagation confirmée 24/08** (`dig` → `95.111.227.204`).
 
 ---
 
-### Étape C — Générer les `.env` Portainer — [`DEPLOY.md` §8] ◀ **PROCHAINE SESSION**
+### Étape C — Générer les `.env` Portainer — [`DEPLOY.md` §8]
 
 ```bash
 git pull origin dev
 bash scripts/deploy/generate-portainer-env.sh
 ```
 
-Fichiers (gitignorés) : `deploy/production/.env.preprod.generated` · `.env.prod.generated`
+Fichiers (gitignorés) : `deploy/production/.env.preprod.generated` · `.env.prod.generated` — **présents PC (24/08)**.
 
 | Clé à vérifier (préprod) | Doit contenir | [ ] |
 |--------------------------|---------------|-----|
-| `STACK_SLUG` | `jobbingtrack-preprod` | [ ] |
+| `STACK_SLUG` | `jobbingtrack-preprod` | [ ] re-check |
 | `NEXT_PUBLIC_FRONTEND_URL` | `https://preprod.jobbingtrack.com` | [ ] |
 | `NEXT_PUBLIC_API_URL` | `https://api-preprod.jobbingtrack.com` | [ ] |
 | `ADMIN_EMAIL` | `admin@jobbingtrack.com` | [ ] |
 | `SMTP_PASS` | vraie valeur (pas `REMPLIR_…`) | [ ] |
 | `GITHUB_PAT` | **absent** (PAT = Portainer Auth UI seulement) | [ ] |
-| `IMAGE_PULL_POLICY` | `build` au **1er** deploy | [ ] |
+| `IMAGE_PULL_POLICY` | `build` au 1er deploy, puis `always` | [ ] |
 
 Prod attendu : `https://jobbingtrack.com` + `https://api.jobbingtrack.com`.  
 PAT GitHub : fine-grained Contents Read, ou classic `repo`.
 
 ---
 
-### Étape D — Stack Portainer **préprod** (= DEPLOY-C1) — [`DEPLOY.md` §9]
+### Étape D — Stack Portainer **préprod** (= DEPLOY-C1) — [`DEPLOY.md` §9] ◀ **À FINIR**
 
-1. https://portainer.delhomme.ovh → Environment **local** → **Stacks** → **Add stack**  
-2. Méthode **Repository** (Git)
+Porteur : stack **démarrée** mais **pas tous les services** / chargement KO.
 
-| Champ | Valeur | [ ] |
-|-------|--------|-----|
-| Name | `jobbingtrack-preprod` | [ ] |
-| Repository URL | `https://github.com/PavelDelhomme/JobbingTrack.git` | [ ] |
-| Repository reference | `refs/heads/dev` | [ ] |
-| Compose path | `deploy/production/docker-compose.yml` | [ ] |
-| Authentication | ON → Username GitHub + PAT | [ ] |
-| GitOps updates | OFF | [ ] |
-| Skip TLS Verification | OFF | [ ] |
-| Env | Advanced → Load `.env.preprod.generated` | [ ] |
+1. https://portainer.delhomme.ovh → stack `jobbingtrack-preprod`  
+2. Conteneurs `jobbingtrack-preprod-*` : tous **healthy** (pas Created / Exit)  
+3. Priorité : `api-gateway`, `frontend`, `postgres`, `redis`, `auth-service`  
+4. Réseaux : `nginx-proxy-manager_npm-network` + `shared-network-copy` sur gateway + frontend  
+5. Logs Portainer sur Exit / Restarting  
 
-**Deploy the stack** → conteneurs `jobbingtrack-preprod-*` healthy.  
-Réseaux : interne + **`nginx-proxy-manager_npm-network`** + **`shared-network-copy`** (comme YTMusic).  
-Si « network not found » : les réseaux externes existent déjà pour ytmusic/cooking.
+Si 1er deploy : `IMAGE_PULL_POLICY=build`. Sinon après GHCR : `always` + Update stack.
+
+Champs stack (si création) :
+
+| Champ | Valeur |
+|-------|--------|
+| Name | `jobbingtrack-preprod` |
+| Repo | `https://github.com/PavelDelhomme/JobbingTrack.git` |
+| Ref | `refs/heads/dev` |
+| Compose | `deploy/production/docker-compose.yml` |
+| Auth | Username + PAT |
+| Env | Load `.env.preprod.generated` |
 
 ---
 
-### Étape E — NPM préprod (= DEPLOY-C2) — [`DEPLOY.md` §10]
+### Étape E — NPM préprod (= DEPLOY-C2) — [`DEPLOY.md` §10] ◀ **À FINIR (TLS)**
 
-https://nginx.delhomme.ovh → **Proxy Hosts** → **Add Proxy Host**  
-Forward **par nom de conteneur** (pas l’IP), port **3000**.
+**Constat 28/08** : `curl https://preprod.jobbingtrack.com` → `tlsv1 unrecognized name`  
+→ Proxy Hosts incomplets / mauvais Domain Name / cert LE absent.
+
+https://nginx.delhomme.ovh → **Proxy Hosts** → recréer / corriger (forward **par nom de conteneur**, port **3000**) :
 
 #### Host 1 — API
 
@@ -152,9 +164,8 @@ Forward **par nom de conteneur** (pas l’IP), port **3000**.
 | Scheme | `http` | [ ] |
 | Forward Hostname | `jobbingtrack-preprod-api-gateway` | [ ] |
 | Forward Port | `3000` | [ ] |
-| Block Common Exploits | ✅ | [ ] |
-| Websockets Support | ✅ | [ ] |
-| SSL | LE + Force SSL + HTTP/2 | [ ] |
+| Block Common Exploits / Websockets | ✅ | [ ] |
+| SSL | Request LE + Force SSL + HTTP/2 | [ ] |
 
 #### Host 2 — Web
 

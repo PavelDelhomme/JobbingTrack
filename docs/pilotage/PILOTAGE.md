@@ -1,17 +1,18 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **24 août 2026**
+Dernière mise à jour : **28 août 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : DEPLOY-GHA-01** — **étape C** (generate-env) puis Portainer + NPM  
-**Local** : MailHog UI **8125** — ✅  
-**DNS** : zone **jobbingtrack.com** complète ✅ (porteur 24/08)  
-**Prochaine session** : `generate-portainer-env.sh` → stack `jobbingtrack-preprod` → NPM  
-**Mobile** : OTA sur **Nothing Phone** après HTTPS préprod (étape J)  
-**Après deploy** : **BACKEND-CLEAN-01** (mutualiser logger/email entre services) — pas maintenant  
+**Focus (1 seule) : DEPLOY-GHA-01** — **finir D+E** (Portainer services + NPM TLS)  
+**Local** : MailHog **8125** + proxy HTTPS **`:5443`** + metrics ✅ (remis 28/08)  
+**DNS** : zone **jobbingtrack.com** complète ✅  
+**VPS** : stack préprod démarrée ⚠️ services incomplets · NPM → `tlsv1 unrecognized name`  
+**Prochaine action** : Portainer (healthy tous conteneurs) → NPM 2 hosts + Let's Encrypt  
+**Mobile** : OTA Nothing après HTTPS préprod (étape J)  
+**Après deploy** : **BACKEND-CLEAN-01** — pas maintenant  
 
-Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist **complète A→J** : [`TODOS.md`](TODOS.md) ▶ En cours  
+Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist **A→J** : [`TODOS.md`](TODOS.md) ▶ En cours  
 
 MOB-HUB / MOB-LIST en pause jusqu’à préprod OK.
 

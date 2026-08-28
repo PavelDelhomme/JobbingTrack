@@ -2,12 +2,12 @@
 
 > **Source unique** pour déployer web, API, mobile (OTA), local / préprod / prod.  
 > Pattern inspiré de **YTMusic** : GitHub Actions → GHCR → Portainer CE → Nginx Proxy Manager → Watchtower.  
-> Dernière mise à jour : **24 août 2026**
+> Dernière mise à jour : **28 août 2026**
 
 Ce fichier remplace / absorbe l’ancien `docs/deployment/CANAL_DISTRIBUTION_MOBILE.md` (canaux mobile inclus ici).  
 Checklist porteur **copie opérationnelle** (sans rien perdre) aussi dans [`docs/pilotage/TODOS.md`](docs/pilotage/TODOS.md) section **▶ En cours**.
 
-### État d’avancement (24/08)
+### État d’avancement (28/08)
 
 | Bloc | État |
 |------|------|
@@ -16,7 +16,11 @@ Checklist porteur **copie opérationnelle** (sans rien perdre) aussi dans [`docs
 | Domaines cibles `*.jobbingtrack.com` dans générateur env | ✅ |
 | MailHog local UI **8125** (évite Cloudity 8025) | ✅ |
 | DNS `@` + `www` + `api` + `preprod` + `api-preprod` → `95.111.227.204` | ✅ porteur 24/08 |
-| Portainer préprod + NPM + smoke + Watchtower + prod + OTA | ❌ porteur (étapes C→J) |
+| **Local** : stack + `metrics-aggregator` + **proxy HTTPS `:5443`** | ✅ remis 28/08 (agent) |
+| `.env.preprod.generated` / `.env.prod.generated` | ✅ présents (PC) — **re-vérifier** URLs avant Update Portainer |
+| Portainer préprod (stack démarrée côté VPS) | ⚠️ **partiel** porteur — services incomplets / chargement KO |
+| NPM préprod SSL (`preprod.` / `api-preprod.`) | ❌ **TLS SNI fail** 28/08 (`tlsv1 unrecognized name`) → hosts LE à refaire |
+| Smoke HTTPS + login préprod / Watchtower / prod / OTA | ❌ (étapes F→J) |
 
 **Hors scope deploy** (à faire **après** préprod OK) : nettoyer / mutualiser `backend/auth-service` (email*, logger*, centralLogger) et les duplications entre microservices — carte **BACKEND-CLEAN-01** dans le pilotage.
 
@@ -216,24 +220,42 @@ docker compose --profile full up -d mailhog
 
 ## 6. Étape A — Dev local (PC)
 
-### Démarrer la stack
+> **Important** : le front lit `NEXT_PUBLIC_*` en **HTTPS** (`*.localhost:5443`).  
+> Sans le proxy `dev-https-proxy`, le navigateur **tourne en boucle / ne charge pas** sur `jobbingtrack.localhost`.  
+> `http://127.0.0.1:5003` répond, mais ce n’est **pas** le parcours backoffice documenté.
+
+### Démarrer la stack + HTTPS
 
 ```bash
 # Équivalent sous-jacent à make up-full (éviter make si Cursor ouvre le fichier)
 docker compose --profile full up -d
+
+# Si metrics-aggregator reste en "Created" :
+docker start jobbingtrack-metrics-aggregator
+
+# Proxy TLS local (équivalent make dev-https-up)
+bash scripts/ops/dev-https-certs.sh
+docker compose -f docker-compose.yml -f docker-compose.https.yml --profile https up -d dev-https-proxy
 ```
 
 Vérifier :
 
 ```bash
-docker ps --filter name=jobbingtrack-
-curl -fsS http://127.0.0.1:5002/health   # api-gateway (port .env)
+docker ps --filter name=jobbingtrack- --format 'table {{.Names}}\t{{.Status}}'
+curl -fsS http://127.0.0.1:5002/health
+curl -skS -o /dev/null -w '%{http_code}\n' https://jobbingtrack.localhost:5443/login   # → 200
+curl -skS https://api.jobbingtrack.localhost:5443/health
 ```
 
-HTTPS local (si nginx/certs configurés) :
+URLs à ouvrir dans le navigateur :
 
-- Front : `https://jobbingtrack.localhost:5443`
-- API : `https://api.jobbingtrack.localhost:5443`
+| Surface | URL |
+|---------|-----|
+| Front / login | `https://jobbingtrack.localhost:5443/login` |
+| API | `https://api.jobbingtrack.localhost:5443` |
+| MailHog | `http://127.0.0.1:8125` |
+
+Si `ERR_CERT_AUTHORITY_INVALID` : `DEV_HTTPS_INSTALL_CA=1 bash scripts/ops/dev-https-certs.sh` puis doc `docs/operations/DEV_HTTPS.md` (import CA Brave).
 
 ### Mobile local → OTA canal dev
 
@@ -577,11 +599,14 @@ Watchtower : `deploy/watchtower-compose.yml`
 
 | Symptôme | Cause | Fix |
 |----------|-------|-----|
+| Local : page qui charge / tourne en boucle | Proxy HTTPS **5443** arrêté | `docker compose … --profile https up -d dev-https-proxy` (§6) |
+| `metrics-aggregator` en **Created** | Conteneur jamais démarré | `docker start jobbingtrack-metrics-aggregator` |
 | `8025 already allocated` | Cloudity Mailpit | MailHog → **8125** |
 | Portainer « authentication failed » | PAT / droits | Fine-grained Contents Read, ou classic `repo` |
 | Network external not found | Réseaux NPM absents | Créer/joindre `nginx-proxy-manager_npm-network` |
 | Let's Encrypt fail | DNS pas propagé | `dig` puis réessayer SSL |
-| Conteneur unhealthy | Build / secrets | Logs Portainer ; 1er deploy `IMAGE_PULL_POLICY=build` |
+| `tlsv1 unrecognized name` sur préprod | NPM : mauvais domaine / pas de cert / SNI | Recréer Proxy Hosts §10 (Domain Names exacts + Request LE) |
+| Conteneur unhealthy / manquant VPS | Build / secrets / stack incomplète | Logs Portainer ; 1er deploy `IMAGE_PULL_POLICY=build` ; attendre healthy |
 | CORS / Network Error | Origins | `ALLOWED_ORIGINS` = URLs HTTPS exactes |
 | OTA ne propose rien | Canal / version | Canal `dev` pour debug APK ; version distante > locale |
 | Image pull denied | GHCR privé | Packages en Public ou registry login Portainer |
@@ -591,12 +616,12 @@ Watchtower : `deploy/watchtower-compose.yml`
 ## 19. Checklist porteur condensée
 
 ```
-[x] A  Stack locale OK (MailHog 8125) — doc + config livrées ; vérifier ton `up` local
-[x] B  DNS : api + preprod + api-preprod sur jobbingtrack.com  (✅ porteur 24/08 — dig OK)
-[ ] C  generate-portainer-env.sh → vérifier URLs .com  ◀ **prochaine session**
-[ ] D  Portainer stack jobbingtrack-preprod (Git dev + .env)
-[ ] E  NPM : 2 hosts préprod (forward noms conteneurs)
-[ ] F  Smoke HTTPS + login admin
+[x] A  Stack locale OK — MailHog 8125 + proxy HTTPS 5443 + metrics (✅ 28/08)
+[x] B  DNS : api + preprod + api-preprod sur jobbingtrack.com  (✅ 24/08)
+[x] C  .env Portainer générés sur le PC — re-vérifier URLs .com avant Update stack
+[!] D  Portainer préprod démarré mais services incomplets / chargement KO  ◀ **finir**
+[!] E  NPM préprod : TLS SNI fail → refaire 2 Proxy Hosts + Let's Encrypt  ◀ **avec D**
+[ ] F  Smoke HTTPS + login admin préprod
 [ ] G  GHCR public + Watchtower + IMAGE_PULL_POLICY=always
 [ ] H  admin-deploy-dev.sh au quotidien
 [ ] I  Stack + NPM prod (après validation préprod)

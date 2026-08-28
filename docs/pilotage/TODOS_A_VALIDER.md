@@ -17,11 +17,11 @@
 
 | # | ID / étape | À valider | Décision | Notes |
 |---|------------|-----------|----------|-------|
-| 1 | **A** local | Stack locale + MailHog **8125** | | config déjà livrée |
-| 2 | **B** DNS | `api` + `preprod` + `api-preprod` → `95.111.227.204` | **OK porteur 24/08** | `dig` confirme propagation |
-| 3 | **C** env | `.env.preprod.generated` URLs `.com`, sans `GITHUB_PAT` | | **◀ prochaine session** — `generate-portainer-env.sh` |
-| 4 | **D / DEPLOY-C1** | Stack Portainer `jobbingtrack-preprod` healthy | | Git `dev` + compose prod |
-| 5 | **E / DEPLOY-C2** | NPM 2 hosts préprod (noms conteneurs :3000) + LE | | comme ytmusic |
+| 1 | **A** local | Stack + MailHog 8125 + HTTPS `:5443` | **OK agent 28/08** | proxy remis |
+| 2 | **B** DNS | `api` + `preprod` + `api-preprod` → `95.111.227.204` | **OK porteur 24/08** | dig OK |
+| 3 | **C** env | `.env.preprod.generated` URLs `.com` | **PARTIEL** | fichiers présents — re-check avant Update |
+| 4 | **D / DEPLOY-C1** | Stack Portainer `jobbingtrack-preprod` **tous** healthy | **PARTIEL** | démarrée ; services incomplets |
+| 5 | **E / DEPLOY-C2** | NPM 2 hosts + LE | **KO 28/08** | `tlsv1 unrecognized name` — refaire hosts |
 | 6 | **F** smoke | HTTPS health + login `admin@jobbingtrack.com` | | |
 | 7 | **G** | GHCR public + Watchtower + `IMAGE_PULL_POLICY=always` | | |
 | 8 | **H** | `admin-deploy-dev.sh` OK une fois | | |

@@ -30,28 +30,23 @@
 
 ---
 
-## En cours — Phase C — Déploiement (19–24/08)
+## En cours — Phase C — Déploiement (19–28/08)
 
 ### DEPLOY-GHA-01 — chaîne GH Actions + Portainer + jobbingtrack.com
 
 | Livrable / check | Fichier / commande | Résultat |
 |------------------|--------------------|----------|
-| Guide principal | `DEPLOY.md` (état + checklist §19) | **Livré / maj 24/08** |
-| Checklist ops A→J | `docs/pilotage/TODOS.md` ▶ En cours | **Livré / maj 24/08** |
-| Stub canaux mobile | `docs/deployment/CANAL_DISTRIBUTION_MOBILE.md` → `DEPLOY.md` §15 | **OK** |
-| Watchtower CE | `deploy/watchtower-compose.yml` | **Livré** |
-| Labels + réseaux NPM | `deploy/production/docker-compose.yml` | **Livré** |
-| Scripts deploy | `admin-deploy-*`, `redeploy-vps`, `generate-portainer-env`, `publish-apk-remote` | **Livré** |
-| GHCR workflow | `.github/workflows/build-push-images.yml` | **Livré** |
-| MailHog local | port UI **8125** (`.env` + compose) | **OK 24/08** |
-| DNS `@` / `www` | `dig` → `95.111.227.204` | **OK** |
-| DNS `api` / `preprod` / `api-preprod` | `dig +short …` → `95.111.227.204` | **OK porteur 24/08** |
-| Générateur env | `bash scripts/deploy/generate-portainer-env.sh` | **À faire demain** (étape C) |
-| Porteur D = stack préprod | Portainer `jobbingtrack-preprod` | **À faire** |
-| Porteur E = NPM | 2 hosts préprod (noms conteneurs) | **À faire** |
-| Porteur F = smoke | HTTPS + login admin | **À faire** |
-| Porteur G–I | GHCR / Watchtower / prod | **À faire** |
-| Porteur J = OTA | Nothing Phone canal `dev` | **À faire** |
+| Guide principal | `DEPLOY.md` (état + checklist §19) | **Maj 28/08** |
+| Checklist ops A→J | `docs/pilotage/TODOS.md` ▶ En cours | **Maj 28/08** |
+| MailHog local | port UI **8125** | **OK** |
+| DNS zone complète | `dig` → `95.111.227.204` | **OK 24/08** |
+| Local HTTPS proxy | `dev-https-proxy` `:5443` | **OK agent 28/08** — login 200 |
+| Local metrics-aggregator | était **Created** → `docker start` | **OK healthy 28/08** |
+| `.env` Portainer générés | `deploy/production/.env.*.generated` | **Présents** — re-vérifier |
+| Porteur D = stack préprod | Portainer `jobbingtrack-preprod` | **PARTIEL** — services incomplets |
+| Porteur E = NPM | 2 hosts préprod + LE | **KO** — `tlsv1 unrecognized name` |
+| Porteur F = smoke | HTTPS + login admin | **À faire** après E |
+| Porteur G–I / J OTA | Watchtower / prod / Nothing | **À faire** |
 
 ---
 
