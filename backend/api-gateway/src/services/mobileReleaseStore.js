@@ -8,8 +8,22 @@ const {
   computeSuggestedVersion: computeSuggestedFromPolicy,
 } = require('../lib/mobileVersionPolicy');
 
-const DEFAULT_CHANNELS = ['dev', 'production'];
+const DEFAULT_CHANNELS = ['dev', 'preprod', 'production'];
 const DEFAULT_PLATFORMS = ['android', 'ios'];
+
+function ensureChannelPlatform(store, channel, platform) {
+  if (!store.channels) store.channels = {};
+  if (!store.channels[channel]) store.channels[channel] = {};
+  if (!store.channels[channel][platform]) {
+    store.channels[channel][platform] = {
+      activeReleaseId: null,
+      minVersion: '0.0.0',
+      minBuild: 0,
+      forceUpdate: false,
+    };
+  }
+  return store.channels[channel][platform];
+}
 
 /** Ancien stub admin.routes.js — remplacé par email JWT réel. */
 const LEGACY_STUB_AUTHORS = new Set(['user@jobbingtrack.test', 'admin@jobbingtrack.test']);
@@ -77,10 +91,22 @@ function readStore() {
   }
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
-    return migrateLegacyReleaseAuthors({
+    const store = migrateLegacyReleaseAuthors({
       channels: parsed.channels || emptyStore().channels,
       releases: Array.isArray(parsed.releases) ? parsed.releases : [],
     });
+    // Migration douce : ajouter preprod (et plateformes manquantes) sans écraser l’existant.
+    let changed = false;
+    for (const channel of DEFAULT_CHANNELS) {
+      for (const platform of DEFAULT_PLATFORMS) {
+        if (!store.channels?.[channel]?.[platform]) {
+          ensureChannelPlatform(store, channel, platform);
+          changed = true;
+        }
+      }
+    }
+    if (changed) writeStore(store);
+    return store;
   } catch {
     return emptyStore();
   }
@@ -383,7 +409,7 @@ function createRelease({
   }
 
   store.releases.unshift(release);
-  store.channels[channel][platform].activeReleaseId = release.id;
+  ensureChannelPlatform(store, channel, platform).activeReleaseId = release.id;
   writeStore(store);
   return release;
 }
@@ -406,7 +432,7 @@ function activateRelease(releaseId, channel, platform) {
 
   release.channel = channel;
   release.status = 'active';
-  store.channels[channel][platform].activeReleaseId = release.id;
+  ensureChannelPlatform(store, channel, platform).activeReleaseId = release.id;
   writeStore(store);
   return release;
 }
@@ -449,7 +475,7 @@ function promoteRelease({ platform, fromChannel = 'dev', toChannel = 'production
   };
 
   store.releases.unshift(promoted);
-  store.channels[toChannel][platform].activeReleaseId = promoted.id;
+  ensureChannelPlatform(store, toChannel, platform).activeReleaseId = promoted.id;
   writeStore(store);
   return promoted;
 }

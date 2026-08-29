@@ -1,22 +1,22 @@
 {
-  "updatedAt": "2026-08-28",
+  "updatedAt": "2026-08-29",
   "apk": "1.0.42+42",
   "phase": {
     "id": "C",
     "label": "Déploiement VPS",
     "step": "J",
-    "subStep": "ota-apk-dev",
+    "subStep": "ota-detect-porteur",
     "point": "DEPLOY-GHA-01",
-    "title": "Login OK — publier APK OTA canal dev"
+    "title": "3 apps posées — tester détection OTA (porteur)"
   },
   "recentDone": [
+    { "id": "DEPLOY-J-3apps", "label": "3 APK (dev/préprod/prod) sur Nothing + Samsung + OTA downloadUrl" },
     { "id": "DEPLOY-F-login", "label": "Login admin préprod navigateur (fix API URL tablette)" },
     { "id": "DEPLOY-I-prod", "label": "Stack Portainer prod + NPM jobbingtrack.com" },
-    { "id": "DEPLOY-preprod-portainer", "label": "Stack Portainer préprod (plus SSH orpheline)" },
-    { "id": "DEPLOY-ghcr-latest", "label": "CI channel=prod → images :latest" }
+    { "id": "DEPLOY-preprod-portainer", "label": "Stack Portainer préprod (plus SSH orpheline)" }
   ],
   "queue": [
-    { "id": "DEPLOY-C3", "status": "active", "label": "OTA 1er APK canal dev (Nothing)" },
+    { "id": "DEPLOY-C3", "status": "active", "label": "Porteur : détection MAJ OTA (puis install optionnelle)" },
     { "id": "DEPLOY-DNS-backoffice", "status": "pending", "label": "DNS OVH backoffice + NPM hosts" },
     { "id": "BACKEND-CLEAN-01", "status": "later", "label": "Mutualiser logger/email microservices" },
     { "id": "MOB-HUB-01", "status": "pending", "label": "Hubs mobile (après OTA)" }

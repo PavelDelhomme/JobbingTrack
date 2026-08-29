@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
-# Build (optionnel) + upload APK vers API distante (préprod ou prod).
+# Build (optionnel) + upload APK vers API distante (local / préprod / prod).
 #
 # Usage :
-#   DEPLOY_URL=https://api.jobbingtrack.example.com bash scripts/deploy/publish-apk-remote.sh
-#   MOBILE_RELEASE_CHANNEL=dev BUILD_FIRST=0 bash scripts/deploy/publish-apk-remote.sh
+#   DEPLOY_URL=https://api-preprod.jobbingtrack.com bash scripts/deploy/publish-apk-remote.sh
+#   MOBILE_RELEASE_CHANNEL=dev BUILD_FIRST=0 APK_PATH=... bash scripts/deploy/publish-apk-remote.sh
+#
+# Variables :
+#   DEPLOY_URL / API_BASE_URL — cible upload
+#   MOBILE_RELEASE_CHANNEL    — dev | preprod | production
+#   BUILD_FIRST=0|1           — rebuild avant upload (défaut 1)
+#   FLAVOR                    — passé au build si BUILD_FIRST=1
+#   APK_PATH                  — chemin APK explicite (sinon détecte flavor / release / debug)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
@@ -21,21 +28,31 @@ API_BASE_URL="${API_BASE_URL%/}"
 CHANNEL="${MOBILE_RELEASE_CHANNEL:-dev}"
 NOTES="${MOBILE_RELEASE_NOTES:-Publication depuis publish-apk-remote.sh}"
 BUILD_FIRST="${BUILD_FIRST:-1}"
+FLAVOR="${FLAVOR:-}"
 
 APK_DEBUG="$ROOT/mobile/build/app/outputs/flutter-apk/app-debug.apk"
 APK_RELEASE="$ROOT/mobile/build/app/outputs/flutter-apk/app-release.apk"
 
 if [[ "$BUILD_FIRST" == "1" ]]; then
-  echo "==> Build APK release pour $API_BASE_URL"
-  API_BASE_URL="$API_BASE_URL" bash "$ROOT/scripts/mobile/setup/build-apk-release.sh"
+  echo "==> Build APK release pour $API_BASE_URL (flavor=${FLAVOR:-prod})"
+  API_BASE_URL="$API_BASE_URL" \
+    MOBILE_RELEASE_CHANNEL="$CHANNEL" \
+    FLAVOR="${FLAVOR:-prod}" \
+    bash "$ROOT/scripts/mobile/setup/build-apk-release.sh"
 fi
 
-APK="$APK_RELEASE"
+APK="${APK_PATH:-}"
+if [[ -z "$APK" && -n "$FLAVOR" ]]; then
+  APK="$ROOT/mobile/build/app/outputs/flutter-apk/app-${FLAVOR}-release.apk"
+fi
+if [[ -z "$APK" || ! -f "$APK" ]]; then
+  APK="$APK_RELEASE"
+fi
 if [[ ! -f "$APK" ]]; then
   APK="$APK_DEBUG"
 fi
 if [[ ! -f "$APK" ]]; then
-  echo "APK introuvable — lancez build-apk-release.sh ou build-apk-debug.sh" >&2
+  echo "APK introuvable — lancez build-apk-release.sh ou passez APK_PATH=..." >&2
   exit 1
 fi
 
@@ -61,11 +78,17 @@ if [[ -z "$TOKEN" ]]; then
   exit 1
 fi
 
-VERSION="$(grep '^version:' "$ROOT/mobile/pubspec.yaml" | head -1 | awk '{print $2}' | tr -d \"'\" || echo '1.0.0')"
-BUILD="$(grep -E 'versionCode|flutter.versionCode' "$ROOT/mobile/android/app/build.gradle.kts" 2>/dev/null | head -1 | grep -oE '[0-9]+' || echo '1')"
+RAW_VERSION="$(grep '^version:' "$ROOT/mobile/pubspec.yaml" | head -1 | awk '{print $2}' | tr -d '"')"
+VERSION="${RAW_VERSION%%+*}"
+BUILD="${RAW_VERSION##*+}"
+if [[ "$BUILD" == "$RAW_VERSION" || -z "$BUILD" ]]; then
+  BUILD=1
+fi
+VERSION="${MOBILE_RELEASE_VERSION:-$VERSION}"
+BUILD="${MOBILE_RELEASE_BUILD:-$BUILD}"
 
 echo "==> Upload canal $CHANNEL → $API_BASE_URL/api/v1/admin/mobile/releases/upload"
-echo "    fichier : $APK ($(du -h "$APK" | cut -f1)) · $VERSION+$BUILD"
+echo "    fichier : $APK ($(du -h "$APK" | cut -f1)) · ${VERSION}+${BUILD}"
 
 curl -fsS -X POST "$API_BASE_URL/api/v1/admin/mobile/releases/upload" \
   -H "Authorization: Bearer $TOKEN" \
@@ -79,4 +102,3 @@ curl -fsS -X POST "$API_BASE_URL/api/v1/admin/mobile/releases/upload" \
 
 echo ""
 echo "==> OK — OTA : GET $API_BASE_URL/api/v1/mobile/releases/latest?platform=android&channel=${CHANNEL}"
-echo "    Backoffice : $DEPLOY_URL/backoffice/mobile/releases"

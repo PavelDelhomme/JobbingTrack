@@ -52,8 +52,8 @@
 | Stack prod Portainer | `jobbingtrack-prod` Id 33 | **OK 28/08** — healthy, 0 ports |
 | NPM prod | apex+www + api + LE | **OK 28/08** — hosts 21/22 |
 | Smoke prod | `jobbingtrack.com` + `api.`/health | **OK 200** |
-| Porteur login admin préprod/prod | navigateur | **À faire** |
-| Porteur J OTA | Nothing | **À faire** |
+| Porteur login admin préprod/prod | navigateur | **OK agent 28/08** (tablette API fix) |
+| Porteur J OTA | Nothing + Samsung | **APKs posés 29/08** — détection MAJ à tester porteur |
 
 ### Smoke agent — 28/08/2026 (17h) — login tablette + schéma BDD
 
@@ -72,7 +72,32 @@
 | DNS `backoffice` / `backoffice-preprod` | **KO** | toujours absent OVH — utiliser `/login` sur vitrine |
 | Image frontend `:dev` | **Redéployée** | préprod + prod (fix API URL) |
 
-**Suite mobile (J)** : builder + publier APK canal `dev` (`publish-apk-remote.sh`) puis tester Nothing Phone.
+**Suite mobile (J)** : ✅ 3 apps installées + OTA `downloadUrl` publié (29/08) — porteur teste détection MAJ (sans obligation d’installer tout de suite).
+
+---
+
+### Smoke agent — 29/08/2026 — 3 apps + OTA (Nothing + Samsung)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Flavors Android `dev` / `preprod` / `prod` | **OK** | labels JT Dev / JT Préprod / JobbingTrack |
+| Build APK `1.0.42+42` ×3 | **OK** | `install-three-channels-devices.sh` |
+| Publish OTA local `channel=dev` | **OK** | `downloadUrl` relatif (résolu par l’app) |
+| Publish OTA préprod `channel=dev` | **OK** | URL absolue api-preprod |
+| Publish OTA prod `channel=production` | **OK** | URL absolue api.jobbingtrack.com |
+| Canal local `preprod` (miroir) | **OK** | gateway local (src monté) |
+| Install Nothing Phone | **OK** | 3 packages `.dev` / `.preprod` / base |
+| Install Samsung SM-G990B2 | **OK** | idem |
+| Install OTA in-app | **Non testé** (volontaire) | porteur : publier `>1.0.42` pour voir la popup |
+| Script | `bash scripts/mobile/setup/install-three-channels-devices.sh` | |
+
+**Mapping**
+
+| App | Package | API | Canal OTA |
+|-----|---------|-----|-----------|
+| JT Dev | `…mobile.dev` | `http://192.168.1.134:5002` | `dev` |
+| JT Préprod | `…mobile.preprod` | `https://api-preprod.jobbingtrack.com` | `dev` |
+| JobbingTrack | `…mobile` | `https://api.jobbingtrack.com` | `production` |
 
 ---
 

@@ -1,45 +1,31 @@
 {
-  "updatedAt": "2026-08-19",
+  "updatedAt": "2026-08-29",
   "apk": "1.0.42+42",
   "phase": {
     "id": "C",
     "label": "Déploiement VPS",
-    "step": "C1",
-    "subStep": "GHA",
+    "step": "J",
+    "subStep": "ota-detect-porteur",
     "point": "DEPLOY-GHA-01",
-    "title": "GH Actions + Portainer"
+    "title": "3 apps posées — tester détection OTA (porteur)"
   },
   "recentDone": [
-    { "id": "DEPLOY-GHA-scripts", "label": "Scripts deploy + DEPLOY.md (agent 19/08)" },
-    { "id": "B2-B.3", "label": "USER drawer sans Administration" },
-    { "id": "B2-B.4", "label": "Impersonnaliser → hub admin" }
+    { "id": "DEPLOY-J-3apps", "label": "3 APK (dev/préprod/prod) sur Nothing + Samsung + OTA downloadUrl" },
+    { "id": "DEPLOY-F-login", "label": "Login admin préprod navigateur (fix API URL tablette)" },
+    { "id": "DEPLOY-I-prod", "label": "Stack Portainer prod + NPM jobbingtrack.com" },
+    { "id": "DEPLOY-preprod-portainer", "label": "Stack Portainer préprod (plus SSH orpheline)" }
   ],
   "queue": [
-    { "id": "DEPLOY-C1", "status": "active", "label": "Stack Portainer préprod" },
-    { "id": "DEPLOY-C2", "status": "pending", "label": "NPM HTTPS api + web" },
-    { "id": "DEPLOY-C3", "status": "pending", "label": "OTA 1er APK canal dev" },
-    { "id": "MOB-HUB-01", "status": "pending", "label": "Hubs mobile (après deploy)" },
-    { "id": "MOB-LIST-01", "status": "pending", "label": "Métadonnées listes" }
+    { "id": "DEPLOY-C3", "status": "active", "label": "Porteur : détection MAJ OTA (puis install optionnelle)" },
+    { "id": "DEPLOY-DNS-backoffice", "status": "pending", "label": "DNS OVH backoffice + NPM hosts" },
+    { "id": "BACKEND-CLEAN-01", "status": "later", "label": "Mutualiser logger/email microservices" },
+    { "id": "MOB-HUB-01", "status": "pending", "label": "Hubs mobile (après OTA)" }
   ],
   "openFixes": [
     {
       "id": "MOB-HUB-01",
-      "label": "Validation hubs Samsung",
-      "status": "paused_until_deploy"
-    },
-    {
-      "id": "PILOTAGE-PERF",
-      "label": "Re-test perf pilotage porteur",
-      "status": "fixed_pending_retest"
+      "label": "Validation hubs (après OTA)",
+      "status": "paused_until_ota"
     }
-  ],
-  "files": {
-    "pilotage": "docs/pilotage/PILOTAGE.md",
-    "todos": "docs/pilotage/TODOS.md",
-    "tester": "docs/pilotage/TODOS_A_TESTER.md",
-    "valider": "docs/pilotage/TODOS_A_VALIDER.md",
-    "done": "docs/pilotage/TODOS_DONE.md",
-    "suivi": "docs/pilotage/suivi-actif.json",
-    "deploy": "DEPLOY.md"
-  }
+  ]
 }

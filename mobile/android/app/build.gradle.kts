@@ -25,6 +25,26 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        resValue("string", "app_name", "JobbingTrack")
+    }
+
+    // Trois apps côte à côte (dev / préprod / prod) + OTA par canal API.
+    flavorDimensions += "env"
+    productFlavors {
+        create("dev") {
+            dimension = "env"
+            applicationIdSuffix = ".dev"
+            resValue("string", "app_name", "JT Dev")
+        }
+        create("preprod") {
+            dimension = "env"
+            applicationIdSuffix = ".preprod"
+            resValue("string", "app_name", "JT Préprod")
+        }
+        create("prod") {
+            dimension = "env"
+            resValue("string", "app_name", "JobbingTrack")
+        }
     }
 
     buildTypes {

@@ -34,9 +34,14 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ## ▶ En cours maintenant — DEPLOY VPS (**jobbingtrack.com**, style YTMusic)
 
-> **Focus unique Kanban** : **DEPLOY-GHA-01** (OTA J — APK canal dev)  
-> **Pause** : MOB-HUB / MOB-LIST / FAB gate B — reprise **après** OTA installable  
-> **Appareil mobile** : **Nothing Phone** (pas Samsung pour la gate deploy)  
+> **Focus unique Kanban** : **DEPLOY-GHA-01** (OTA J — détection MAJ porteur)
+> **Pause** : MOB-HUB / MOB-LIST / FAB gate B — reprise **après** validation OTA
+> **Appareils** : **Nothing Phone** + **Samsung** — 3 apps installées 29/08 (JT Dev / JT Préprod / JobbingTrack)
+>
+> **État 29/08** :
+> - ✅ APKs `1.0.42+42` posés + OTA `downloadUrl` (local/dev, préprod/dev, prod/production)
+> - ⏳ Porteur : ouvrir les apps ; pour voir une MAJ, republier `>1.0.42` (ne pas forcer l’install)
+> - Script : `bash scripts/mobile/setup/install-three-channels-devices.sh`
 > **UI** : [Portainer](https://portainer.delhomme.ovh) · [NPM](https://nginx.delhomme.ovh) · VPS `95.111.227.204`  
 > **Guide miroir** : [`DEPLOY.md`](../../DEPLOY.md) (ne rien perdre — cette section = **copie opérationnelle** A→J + canaux mobile §15)  
 > **Stub mobile** : [`CANAL_DISTRIBUTION_MOBILE.md`](../deployment/CANAL_DISTRIBUTION_MOBILE.md) → pointe vers `DEPLOY.md` §15 (contenu recopié en **Étape J** ci-dessous)
