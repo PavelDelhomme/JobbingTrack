@@ -109,6 +109,17 @@
 | 429 ressenti | possible rate-limit général (100 req/min) hors buffer | rafales multi-listes + refresh — à confirmer au prochain essai |
 | Correctif | `if (!mounted) return` après le refresh dans `_loadAll` | rebuild prod + réinstall Nothing **sans lancer** l’app |
 
+### Retour porteur — 29/08 ~03h20 — vue d’ensemble préprod 0/21
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Préprod + prod API health | **OK 200** | stacks VPS **vivantes** (site/API OK) |
+| Vue d’ensemble « 0/21 actifs » | **Bug monitoring** | `GET /api/v1/metrics` → `health.offline=19`, `containers={}` |
+| Cause | DNS Docker | `getaddrinfo ENOTFOUND jobbingtrack-api-gateway` (etc.) — noms conteneurs Portainer ≠ noms attendus par metrics-aggregator |
+| CPU/mémoire conteneurs JT | **0** | `system.jobbingtrack.containers.count=0` alors que CPU/RAM **hôte** VPS OK (~10–15 % / ~36 %) |
+| `/api/v1/services` | **fallback** | `metricsUnavailable: true` — liste partielle, message monitoring Docker indisponible |
+| Suite | **À reprendre demain** | aligner discovery Docker (noms réseau / socket) sur stacks Portainer préprod+prod — **pas un arrêt réel des services métier** |
+
 ---
 
 ### Smoke agent — 28/08/2026 (soir)

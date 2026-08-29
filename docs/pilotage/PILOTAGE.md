@@ -1,19 +1,20 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **29 août 2026**
+Dernière mise à jour : **29 août 2026 (nuit)**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : DEPLOY-GHA-01** — détection OTA porteur (J)  
-**Vitrine** : ✅ `jobbingtrack.com` / `preprod.` (28/08)  
-**Login admin** : ✅ préprod navigateur OK (fix API URL tablette 28/08)  
-**Mobile** : ✅ **3 apps** (JT Dev / JT Préprod / JobbingTrack) sur **Nothing + Samsung** + OTA `downloadUrl`  
-**Backoffice DNS** : `backoffice.*` — **DNS OVH à créer** (fallback `/login` OK)  
-**Prochaine action** : porteur ouvre les apps → publier version `>1.0.42` pour voir la popup MAJ (install optionnelle)  
+**Focus (1 seule) : DEPLOY-GHA-01** — pause nuit ; reprise demain  
+**Vitrine / API** : ✅ préprod + prod **UP** (`/health` 200)  
+**Mobile** : ✅ 3 apps posées ; crash `_loadAll` corrigé (PR)  
+**Backoffice DNS** : `backoffice.*` — DNS OVH à créer  
+**Vue d’ensemble préprod** : ⚠️ **0/21 + CPU/RAM conteneurs à 0** = bug discovery Docker metrics (services métier OK) — voir `TODOS_A_TESTER`  
+**Local PC** : stack JobbingTrack **arrêtée** (nuit)  
+**Branche** : `feat/mobile-ota-three-channels` · PR #25  
+
+**Prochaine action (demain)** : fix monitoring Portainer (noms conteneurs) + suite OTA détection.
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist **A→J** : [`TODOS.md`](TODOS.md) ▶ En cours  
-
-MOB-HUB / MOB-LIST en pause jusqu’à validation détection OTA.
 
 ## Kanban ADHD (règle d’or)
 

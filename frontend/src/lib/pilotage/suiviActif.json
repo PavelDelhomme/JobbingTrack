@@ -5,23 +5,28 @@
     "id": "C",
     "label": "Déploiement VPS",
     "step": "J",
-    "subStep": "ota-detect-porteur",
+    "subStep": "pause-nuit",
     "point": "DEPLOY-GHA-01",
-    "title": "3 apps posées — tester détection OTA (porteur)"
+    "title": "Pause — demain : monitoring 0/21 + OTA"
   },
   "recentDone": [
+    { "id": "DEPLOY-J-crash-loadAll", "label": "Fix null-check _loadAll + réinstall prod Nothing" },
     { "id": "DEPLOY-J-3apps", "label": "3 APK (dev/préprod/prod) sur Nothing + Samsung + OTA downloadUrl" },
     { "id": "DEPLOY-F-login", "label": "Login admin préprod navigateur (fix API URL tablette)" },
-    { "id": "DEPLOY-I-prod", "label": "Stack Portainer prod + NPM jobbingtrack.com" },
-    { "id": "DEPLOY-preprod-portainer", "label": "Stack Portainer préprod (plus SSH orpheline)" }
+    { "id": "DEPLOY-I-prod", "label": "Stack Portainer prod + NPM jobbingtrack.com" }
   ],
   "queue": [
-    { "id": "DEPLOY-C3", "status": "active", "label": "Porteur : détection MAJ OTA (puis install optionnelle)" },
+    { "id": "MONITOR-DOCKER-01", "status": "active", "label": "Préprod/prod : discovery Docker metrics (0/21, containers vides)" },
+    { "id": "DEPLOY-C3", "status": "pending", "label": "Porteur : détection MAJ OTA (puis install optionnelle)" },
     { "id": "DEPLOY-DNS-backoffice", "status": "pending", "label": "DNS OVH backoffice + NPM hosts" },
-    { "id": "BACKEND-CLEAN-01", "status": "later", "label": "Mutualiser logger/email microservices" },
     { "id": "MOB-HUB-01", "status": "pending", "label": "Hubs mobile (après OTA)" }
   ],
   "openFixes": [
+    {
+      "id": "MONITOR-DOCKER-01",
+      "label": "Vue d’ensemble 0/21 — ENOTFOUND noms conteneurs Portainer",
+      "status": "noted_resume_tomorrow"
+    },
     {
       "id": "MOB-HUB-01",
       "label": "Validation hubs (après OTA)",
