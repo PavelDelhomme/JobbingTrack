@@ -182,8 +182,10 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
   }
 
   Future<void> _loadAll() async {
+    if (!mounted) return;
     final auth = Provider.of<AuthProvider>(context, listen: false);
     await auth.refreshSessionIfOnline();
+    if (!mounted) return;
     final token = auth.token;
     final userId = auth.user?.id;
     final appProvider = Provider.of<ApplicationProvider>(context, listen: false);

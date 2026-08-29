@@ -99,6 +99,16 @@
 | JT Préprod | `…mobile.preprod` | `https://api-preprod.jobbingtrack.com` | `dev` |
 | JobbingTrack | `…mobile` | `https://api.jobbingtrack.com` | `production` |
 
+### Retour porteur — 29/08 ~02h50 — prod Nothing (listes)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Crashes prod API | **4×** `Null check operator used on a null value` | Nothing A059, app `1.0.42+42`, user admin |
+| Stack | `applications_screen.dart:189` `_loadAll` → `State.context` | après `await refreshSession` alors que l’écran n’était plus monté (nav vers `/statistics`) |
+| API dans le buffer crash | **toutes 200** (applications, companies, followups, calls…) | **aucun 429** dans les `userActions` envoyés |
+| 429 ressenti | possible rate-limit général (100 req/min) hors buffer | rafales multi-listes + refresh — à confirmer au prochain essai |
+| Correctif | `if (!mounted) return` après le refresh dans `_loadAll` | rebuild prod + réinstall Nothing **sans lancer** l’app |
+
 ---
 
 ### Smoke agent — 28/08/2026 (soir)
