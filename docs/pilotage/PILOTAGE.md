@@ -1,18 +1,16 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **29 août 2026 (nuit)**
+Dernière mise à jour : **31 août 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : DEPLOY-GHA-01** — pause nuit ; reprise demain  
-**Vitrine / API** : ✅ préprod + prod **UP** (`/health` 200)  
-**Mobile** : ✅ 3 apps posées ; crash `_loadAll` corrigé (PR)  
-**Backoffice DNS** : `backoffice.*` — DNS OVH à créer  
-**Vue d’ensemble préprod** : ⚠️ **0/21 + CPU/RAM conteneurs à 0** = bug discovery Docker metrics (services métier OK) — voir `TODOS_A_TESTER`  
-**Local PC** : stack JobbingTrack **arrêtée** (nuit)  
+**Focus (1 seule) : DEPLOY-GHA-01** — maintenance prod + monitoring STACK_SLUG  
+**Apex `jobbingtrack.com`** : côté serveur = **vitrine JT** (si tu vois Nextcloud → cache navigateur / host NPM)  
+**Page maintenance** : `/maintenance` — activer avec `NEXT_PUBLIC_SITE_MAINTENANCE=1` sur stack **prod**  
+**Monitoring 0/21** : correctif code (STACK_SLUG + docker.sock) — **redeploy Portainer** préprod+prod  
 **Branche** : `feat/mobile-ota-three-channels` · PR #25  
 
-**Prochaine action (demain)** : fix monitoring Portainer (noms conteneurs) + suite OTA détection.
+**Prochaine action** : redeploy stacks VPS (metrics + frontend maintenance) puis vérifier vue d’ensemble.
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist **A→J** : [`TODOS.md`](TODOS.md) ▶ En cours  
 

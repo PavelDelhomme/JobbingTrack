@@ -7,16 +7,22 @@ const lokiService = require('../services/loki.service');
 const persistenceService = require('../services/persistence.service');
 
 const {
-  SERVICE_HEALTH_ENDPOINTS,
+  buildKnownServicesMap,
   isNonHttpProbe,
   resolveProbeHost,
 } = require('../config/serviceHealthEndpoints');
 
+const KNOWN_SERVICES = buildKnownServicesMap();
+
 /** Sondes HTTP uniquement — ports réseau Docker internes (300x), pas les mappings hôte 800x. */
 const SERVICE_HEALTH_CONFIG = Object.fromEntries(
-  Object.entries(SERVICE_HEALTH_ENDPOINTS)
+  Object.entries(KNOWN_SERVICES)
     .filter(([, cfg]) => !isNonHttpProbe(cfg))
-    .map(([name, cfg]) => [name, { port: cfg.port, path: cfg.path || '/health' }]),
+    .map(([name, cfg]) => [name, {
+      port: cfg.port,
+      path: cfg.healthPath || '/health',
+      composeService: cfg.composeService,
+    }]),
 );
 
 const FIVE_MINUTES_IN_MINUTES = 5;
@@ -88,13 +94,25 @@ function normalizeDockerPsName(namesField) {
 function normaliseServiceKey(containerName = '') {
   const stripped = normalizeDockerPsName(containerName);
   if (!stripped) return null;
+  if (SERVICE_HEALTH_CONFIG[stripped]) return stripped;
+
+  // Portainer : jobbingtrack-preprod-api-gateway / jobbingtrack-prod-auth-service
+  for (const [key, cfg] of Object.entries(SERVICE_HEALTH_CONFIG)) {
+    if (cfg.composeService && (
+      stripped === cfg.composeService
+      || stripped.endsWith(`-${cfg.composeService}`)
+    )) {
+      return key;
+    }
+  }
+
   const variants = new Set([
     stripped,
     stripped.replace(/-prod$/, ''),
     stripped.replace(/-preview$/, ''),
     stripped.replace(/-staging$/, ''),
     stripped.replace(/(-prod|-preview|-staging)?-[0-9]+$/, ''),
-    stripped.replace(/_[0-9]+$/, '')
+    stripped.replace(/_[0-9]+$/, ''),
   ]);
 
   for (const variant of variants) {
@@ -129,7 +147,7 @@ async function probeServiceHealth(containerName, containerStats = null) {
   const config = SERVICE_HEALTH_CONFIG[key];
   // Depuis le conteneur metrics-aggregator, localhost ≠ les autres services : utiliser le nom
   // Docker (même clé que dans SERVICE_HEALTH_CONFIG), sauf override explicite pour un run hors réseau compose.
-  const probeHost = resolveProbeHost(key);
+  const probeHost = resolveProbeHost(key, KNOWN_SERVICES);
   const url = `http://${probeHost}:${config.port}${config.path}`;
 
   const startTime = Date.now();

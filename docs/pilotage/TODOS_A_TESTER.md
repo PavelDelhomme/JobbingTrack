@@ -120,6 +120,17 @@
 | `/api/v1/services` | **fallback** | `metricsUnavailable: true` — liste partielle, message monitoring Docker indisponible |
 | Suite | **À reprendre demain** | aligner discovery Docker (noms réseau / socket) sur stacks Portainer préprod+prod — **pas un arrêt réel des services métier** |
 
+### Session 31/08 — apex vs Nextcloud + monitoring STACK_SLUG + maintenance
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| `https://jobbingtrack.com/` (curl VPS) | **OK JobbingTrack** | title vitrine JT ; `x-served-by: jobbingtrack.com` — **pas** de redirect Nextcloud côté serveur |
+| `https://preprod.jobbingtrack.com/` | **OK JobbingTrack** | même vitrine |
+| Redirect ressenti → nextcloud | **Cache / ancien host NPM** probable | vider cache navigateur ; vérifier proxy host NPM apex → `jobbingtrack-prod-frontend:3000` |
+| Page `/maintenance` | **Livré** | activable `NEXT_PUBLIC_SITE_MAINTENANCE=1` (stack prod Portainer) |
+| Metrics STACK_SLUG | **Livré code** | sondes via nom Compose (`api-gateway`) ; clés `jobbingtrack-preprod-*` / `jobbingtrack-prod-*` |
+| docker.sock metrics-aggregator | **Livré compose** | mount `:ro` + env `STACK_SLUG` — **redeploy Portainer** requis |
+
 ---
 
 ### Smoke agent — 28/08/2026 (soir)

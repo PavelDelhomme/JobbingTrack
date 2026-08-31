@@ -533,6 +533,23 @@ Aucun port hôte — NPM uniquement.
 | `jobbingtrack.com` (+ `www`) | `jobbingtrack-prod-frontend:3000` — **vitrine** |
 | `backoffice.jobbingtrack.com` | `jobbingtrack-prod-frontend:3000` — **admin** |
 
+> Si le navigateur renvoie vers **Nextcloud** alors que `curl https://jobbingtrack.com/` affiche JobbingTrack : vider le cache / HSTS, et vérifier dans NPM que l’host apex pointe bien vers `jobbingtrack-prod-frontend:3000` (pas un ancien proxy).
+
+### Maintenance vitrine (optionnel)
+
+Page jolie : `/maintenance`. Sur la stack **prod** Portainer, ajouter :
+
+```text
+NEXT_PUBLIC_SITE_MAINTENANCE=1
+SITE_MAINTENANCE_MODE=1
+```
+
+Puis recreate du service `frontend` (rebuild image si le flag est un build-arg). Désactiver = `0` + recreate.
+
+### Monitoring vue d’ensemble (0/21)
+
+`STACK_SLUG` doit être `jobbingtrack-preprod` / `jobbingtrack-prod`. Le metrics-aggregator sonde les noms Compose (`api-gateway`, …) et lit `docker.sock`. Après mise à jour compose : **Update the stack** dans Portainer.
+
 Smoke :
 
 ```bash

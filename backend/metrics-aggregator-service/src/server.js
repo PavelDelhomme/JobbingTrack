@@ -151,10 +151,13 @@ const {
   buildKnownServicesMap,
   isNonHttpProbe,
   resolveProbeHost,
+  resolveStackSlug,
 } = require('./config/serviceHealthEndpoints')
 
-// Configuration des services connus (alignée docker-compose + sondes réseau interne)
+// Configuration des services connus (STACK_SLUG = jobbingtrack | jobbingtrack-preprod | jobbingtrack-prod)
 const KNOWN_SERVICES = buildKnownServicesMap()
+const STACK_SLUG = resolveStackSlug()
+console.log(`[METRICS] STACK_SLUG=${STACK_SLUG} — ${Object.keys(KNOWN_SERVICES).length} services connus`)
 
 // Stockage des métriques
 let servicesMetrics = {}
@@ -164,11 +167,17 @@ let containerMetrics = {}
 // Conteneurs considérés comme "JobbingTrack" (nom complet ou court, selon source bas niveau)
 function isJobbingTrackContainer(name) {
   if (!name || typeof name !== 'string') return false
-  const n = name.toLowerCase().trim()
+  const n = name.toLowerCase().trim().replace(/^\//, '')
   if (n.includes('jobbingtrack')) return true
   if (KNOWN_SERVICES[n]) return true
-  const withPrefix = 'jobbingtrack-' + n.replace(/^\//, '')
+  const withPrefix = 'jobbingtrack-' + n
   if (KNOWN_SERVICES[withPrefix]) return true
+  const withSlug = `${STACK_SLUG}-${n}`
+  if (KNOWN_SERVICES[withSlug]) return true
+  // service compose court (api-gateway) vu depuis docker.sock
+  for (const cfg of Object.values(KNOWN_SERVICES)) {
+    if (cfg.composeService && cfg.composeService === n) return true
+  }
   return false
 }
 // Payload complet pour le backoffice (source bas niveau → aggregator → frontend)
@@ -218,23 +227,54 @@ async function testServiceHealth(serviceName, serviceConfig) {
   }
 
   try {
-    const probeHost = resolveProbeHost(serviceName)
-    const baseUrl = `http://${probeHost}:${serviceConfig.port}`
+    const primary = resolveProbeHost(serviceName, KNOWN_SERVICES)
+    const candidates = [primary]
+    if (serviceConfig.composeService && !candidates.includes(serviceConfig.composeService)) {
+      candidates.push(serviceConfig.composeService)
+    }
+    if (!candidates.includes(serviceName)) candidates.push(serviceName)
+    // Local compose : metrics-aggregator s’appelle parfois jobbingtrack-metrics-aggregator
+    if (serviceConfig.composeService === 'metrics-aggregator') {
+      candidates.push('jobbingtrack-metrics-aggregator')
+    }
 
-    const response = await axios.get(`${baseUrl}${serviceConfig.healthPath}`, {
-      timeout: 5000,
-      validateStatus: (status) => status < 500
-    })
+    let lastError = null
+    for (const probeHost of candidates) {
+      try {
+        const baseUrl = `http://${probeHost}:${serviceConfig.port}`
+        const response = await axios.get(`${baseUrl}${serviceConfig.healthPath}`, {
+          timeout: 5000,
+          validateStatus: (status) => status < 500
+        })
+        const responseTime = Date.now() - startTime
+        return {
+          status: response.status >= 200 && response.status < 400 ? 'healthy' : 'unhealthy',
+          responseTime: responseTime,
+          responseTimeMs: responseTime,
+          statusCode: response.status,
+          version: response.data?.version || '1.0.0',
+          probeHost,
+          error: response.status >= 400 ? `HTTP ${response.status}` : undefined
+        }
+      } catch (error) {
+        lastError = error
+        if (error.code !== 'ENOTFOUND' && error.code !== 'ECONNREFUSED') {
+          break
+        }
+      }
+    }
 
-    const responseTime = Date.now() - startTime;
-
+    const responseTime = Date.now() - startTime
+    const error = lastError
     return {
-      status: response.status >= 200 && response.status < 400 ? 'healthy' : 'unhealthy',
+      status: 'offline',
       responseTime: responseTime,
-      responseTimeMs: responseTime, // ✅ Ajouter aussi en responseTimeMs pour compatibilité
-      statusCode: response.status,
-      version: response.data?.version || '1.0.0',
-      error: response.status >= 400 ? `HTTP ${response.status}` : undefined
+      responseTimeMs: responseTime,
+      statusCode: null,
+      error: error?.code === 'ECONNREFUSED' ? 'Service non démarré' :
+             error?.code === 'ETIMEDOUT' ? 'Timeout' :
+             error?.code === 'ENOTFOUND' ? `getaddrinfo ENOTFOUND (${candidates.join(' | ')})` :
+             error?.message || 'Service inaccessible'
     }
 
   } catch (error) {
