@@ -10,7 +10,7 @@ Dernière mise à jour : **31 août 2026**
 **Monitoring 0/21** : correctif code (STACK_SLUG + docker.sock) — **redeploy Portainer** préprod+prod  
 **Branche** : `feat/mobile-ota-three-channels` · PR #25  
 
-**Prochaine action** : redeploy stacks VPS (metrics + frontend maintenance) puis vérifier vue d’ensemble.
+**Prochaine action** : **1)** redeploy stacks VPS (metrics + frontend) → vérifier vue d’ensemble ≠ 0/21 · **2)** merge PRs OTA + entretien/agenda · **3)** OTA détection MAJ porteur (`>1.0.42`).
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist **A→J** : [`TODOS.md`](TODOS.md) ▶ En cours  
 

@@ -57,6 +57,25 @@ function classifyEmail(input = {}) {
 
   if (
     includesAny(text, [
+      'bilan de competence',
+      'bilan de compétences',
+      'bilan competences',
+      'conseiller en evolution professionnelle',
+      'accompagnement cep',
+    ])
+  ) {
+    return {
+      classification: 'interview_request',
+      confidence: 'high',
+      suggestedStatus: 'OTHER_INTERVIEW_PENDING',
+      labels: ['bilan-competences', 'rendez-vous'],
+      eventKind: 'bilan_de_competences',
+      proposedActions: ['create_task_prepare_interview', 'propose_calendar_event'],
+    };
+  }
+
+  if (
+    includesAny(text, [
       'entretien',
       'rendez-vous',
       'rendez vous',
@@ -71,6 +90,7 @@ function classifyEmail(input = {}) {
       confidence: 'high',
       suggestedStatus: input.hadInterview ? 'OTHER_INTERVIEW_PENDING' : 'FIRST_INTERVIEW_PENDING',
       labels: ['candidature', 'entretien'],
+      eventKind: 'entretien_embauche',
       proposedActions: ['create_task_prepare_interview', 'propose_calendar_event'],
     };
   }

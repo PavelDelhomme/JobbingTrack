@@ -131,6 +131,28 @@
 | Metrics STACK_SLUG | **Livré code** | sondes via nom Compose (`api-gateway`) ; clés `jobbingtrack-preprod-*` / `jobbingtrack-prod-*` |
 | docker.sock metrics-aggregator | **Livré compose** | mount `:ro` + env `STACK_SLUG` — **redeploy Portainer** requis |
 
+### Session 31/08 — entretien confirmé → agenda (lieu / bilan / invite)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Jest `meetingPlacePolicy` | **6/6 OK** | présentiel / tél / visio / invite / bilan / hybride |
+| Frontend `npm run type-check` | **OK** | Agent email + types Calendar enrichis |
+| `dart analyze` fichiers touchés | **OK** (infos only) | create sheet + detail + helpers |
+| Mobile : offre agenda après create / change date | **Livré** | dialog → Google Calendar TEMPLATE |
+| Agent email : format + proposant + liens | **Livré** | bouton « Je confirme → agenda » |
+| Extraction invite depuis **corps mail complet** | **Partiel** | triage n’a que `snippet` aujourd’hui |
+
+### Reste à faire (ops / porteur) — 31/08
+
+| # | Action | État |
+|---|--------|------|
+| 1 | **Redeploy Portainer** préprod + prod (metrics `STACK_SLUG` + `docker.sock` + frontend maintenance) | ⏳ bloquant monitoring 0/21 |
+| 2 | Vérifier vue d’ensemble préprod/prod ≠ 0/21 après redeploy | ⏳ |
+| 3 | OTA : publier APK `>1.0.42` + détection MAJ Nothing/Samsung (sans forcer install) | ⏳ porteur |
+| 4 | Optionnel : `NEXT_PUBLIC_SITE_MAINTENANCE=1` sur prod si coupure voulue | ⬜ |
+| 5 | DNS `backoffice*` toujours KO — utiliser `/login` sur vitrine | connu |
+| 6 | Merge PR OTA (#25) + PR entretien/agenda → `dev` | en cours |
+
 ---
 
 ### Smoke agent — 28/08/2026 (soir)
