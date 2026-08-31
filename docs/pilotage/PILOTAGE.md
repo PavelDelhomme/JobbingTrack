@@ -1,16 +1,16 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **31 août 2026**
+Dernière mise à jour : **31 août 2026 (soir)**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : DEPLOY-GHA-01** — maintenance prod + monitoring STACK_SLUG  
-**Apex `jobbingtrack.com`** : côté serveur = **vitrine JT** (si tu vois Nextcloud → cache navigateur / host NPM)  
-**Page maintenance** : `/maintenance` — activer avec `NEXT_PUBLIC_SITE_MAINTENANCE=1` sur stack **prod**  
-**Monitoring 0/21** : correctif code (STACK_SLUG + docker.sock) — **redeploy Portainer** préprod+prod  
-**Branche** : `feat/mobile-ota-three-channels` · PR #25  
+**Focus (1 seule) : DEPLOY-GHA-01** — OTA détection MAJ porteur + sortie maintenance  
+**Monitoring** : préprod+prod **17/21 healthy** (plus 0/21) — `STACK_SLUG` + `docker.sock` OK  
+**Maintenance prod** : **ACTIVE** (`SITE_MAINTENANCE_MODE=1`) — `jobbingtrack.com` → `/maintenance`  
+**OTA** : APK **1.0.43+43** publié — prod `channel=production` + préprod `channel=dev`  
+**Branche** : `dev` (PR #26 mergée)  
 
-**Prochaine action** : **1)** redeploy stacks VPS (metrics + frontend) → vérifier vue d’ensemble ≠ 0/21 · **2)** merge PRs OTA + entretien/agenda · **3)** OTA détection MAJ porteur (`>1.0.42`).
+**Prochaine action** : porteur ouvre les apps Nothing/Samsung → détecte MAJ 1.0.43 ; puis **désactiver maintenance** quand OK.
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist **A→J** : [`TODOS.md`](TODOS.md) ▶ En cours  
 

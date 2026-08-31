@@ -151,7 +151,31 @@
 | 3 | OTA : publier APK `>1.0.42` + détection MAJ Nothing/Samsung (sans forcer install) | ⏳ porteur |
 | 4 | Optionnel : `NEXT_PUBLIC_SITE_MAINTENANCE=1` sur prod si coupure voulue | ⬜ |
 | 5 | DNS `backoffice*` toujours KO — utiliser `/login` sur vitrine | connu |
-| 6 | Merge PR OTA (#25) + PR entretien/agenda → `dev` | en cours |
+| 6 | Merge PR OTA (#25) + PR entretien/agenda → `dev` | ✅ **PR #26 mergée** 31/08 |
+
+### Session ops 31/08 soir — redeploy + vue d’ensemble + OTA + maintenance
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Sync VPS `STACK_REPO_PATH` | **OK** | `origin/dev` @ merge PR #26 + fix maintenance route |
+| Compose Portainer + `docker.sock` | **OK** | stacks 32/33 mis à jour |
+| Metrics préprod recreate | **OK** | `STACK_SLUG=jobbingtrack-preprod` + sock |
+| Metrics prod recreate | **OK** | image `:dev` forcée (évite re-pull `:latest` stale) |
+| Vue d’ensemble préprod | **17/21 healthy** | plus 0/21 ; 4 offline (rs / hors stack) |
+| Vue d’ensemble prod | **17/21 healthy** | idem |
+| Build frontend conflict `/maintenance` | **Corrigé** | admin → `/backoffice/maintenance` |
+| Maintenance prod | **ACTIVE** | `SITE_MAINTENANCE_MODE=1` ; `/` → 307 `/maintenance` ; page « On prépare… » ; API **200** |
+| OTA prod `1.0.43+43` | **OK** | `channel=production` + `downloadUrl` |
+| OTA préprod `1.0.43+43` | **OK** | `channel=dev` + `downloadUrl` |
+| OTA flavor JT Dev (LAN) | **Non publié** | stack locale arrêtée — à faire au besoin |
+| Porteur détection MAJ apps | **À tester** | Nothing + Samsung sans forcer install |
+
+**Désactiver maintenance prod** (quand prêt) :
+
+```bash
+# Sur VPS : SITE_MAINTENANCE_MODE=0 + NEXT_PUBLIC_SITE_MAINTENANCE=0 dans /data/compose/33/stack.env
+# puis recreate frontend (docker compose … up -d --force-recreate frontend)
+```
 
 ---
 
