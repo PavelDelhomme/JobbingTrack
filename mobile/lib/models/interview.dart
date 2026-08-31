@@ -64,4 +64,18 @@ class Interview {
         if (applicationPosition != null) 'application': {'position': applicationPosition},
         if (companyName != null) 'company': {'name': companyName},
       };
+
+  Interview copyWithDate(DateTime date) => Interview(
+        id: id,
+        applicationId: applicationId,
+        interviewDate: date,
+        location: location,
+        videoLink: videoLink,
+        notes: notes,
+        estimatedDuration: estimatedDuration,
+        applicationPosition: applicationPosition,
+        companyName: companyName,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
 }

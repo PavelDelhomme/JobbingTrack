@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
-import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/providers/application_provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
@@ -11,6 +10,8 @@ import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/application_picker_field.dart';
 import 'package:jobbingtrack_mobile/widgets/contact_picker_sheet.dart';
+import 'package:jobbingtrack_mobile/widgets/interview_calendar_offer.dart';
+import 'package:jobbingtrack_mobile/utils/meeting_place_policy.dart';
 
 /// Création d'un entretien avec candidature obligatoire (picker trié par date récente).
 Future<bool> showCreateInterviewSheet(
@@ -84,7 +85,24 @@ class _InterviewCreateSheetBodyState extends State<_InterviewCreateSheetBody> {
     setState(() => _saving = true);
     final token = Provider.of<AuthProvider>(context, listen: false).token;
     try {
+      // Si lieu = tél / lien → forcer distanciel (pas présentiel).
+      applyLocationAutoStyle(
+        location: _location.text,
+        videoLink: _videoLink.text,
+        setStyle: (s) => _style = s,
+      );
+      final modality = MeetingPlacePolicy.detectModality(
+        location: _location.text,
+        videoLink: _videoLink.text,
+        text: _notes.text,
+      );
       final noteParts = <String>['[Format: $_style]'];
+      if (modality == MeetingModality.telephone || modality == MeetingModality.visio) {
+        noteParts.add('[Pas en présentiel — ${MeetingPlacePolicy.modalityLabelFr(modality)}]');
+      }
+      if (MeetingPlacePolicy.isBilanDeCompetences(_notes.text)) {
+        noteParts.add('[Type: bilan de compétences]');
+      }
       if (_notes.text.trim().isNotEmpty) noteParts.add(_notes.text.trim());
       final created = await ApiService.createInterview(
         applicationId: _selectedApp!.id,
@@ -97,12 +115,14 @@ class _InterviewCreateSheetBodyState extends State<_InterviewCreateSheetBody> {
         token: token,
       );
       await Provider.of<InterviewProvider>(context, listen: false).loadInterviews(token: token);
-      if (mounted) {
-        Navigator.pop(context, true);
-        await Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => InterviewDetailScreen(interview: created)),
-        );
-      }
+      if (!mounted) return;
+      final nav = Navigator.of(context);
+      await offerAddInterviewToCalendar(context, interview: created);
+      if (!mounted) return;
+      nav.pop(true);
+      await nav.push(
+        MaterialPageRoute(builder: (_) => InterviewDetailScreen(interview: created)),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -112,6 +132,15 @@ class _InterviewCreateSheetBodyState extends State<_InterviewCreateSheetBody> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  String? _locationHint() {
+    final m = MeetingPlacePolicy.detectModality(
+      location: _location.text,
+      videoLink: _videoLink.text,
+    );
+    if (m == MeetingModality.inconnu) return null;
+    return MeetingPlacePolicy.modalityLabelFr(m);
   }
 
   @override
@@ -178,13 +207,34 @@ class _InterviewCreateSheetBodyState extends State<_InterviewCreateSheetBody> {
               const SizedBox(height: 12),
               TextField(
                 controller: _location,
-                decoration: const InputDecoration(labelText: 'Lieu (optionnel)', border: OutlineInputBorder()),
+                decoration: InputDecoration(
+                  labelText: 'Lieu / tél (optionnel)',
+                  helperText: _locationHint(),
+                  border: const OutlineInputBorder(),
+                ),
+                onChanged: (_) => setState(() {
+                  applyLocationAutoStyle(
+                    location: _location.text,
+                    videoLink: _videoLink.text,
+                    setStyle: (s) => _style = s,
+                  );
+                }),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _videoLink,
-                decoration: const InputDecoration(labelText: 'Lien visio (optionnel)', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Lien visio (optionnel)',
+                  border: OutlineInputBorder(),
+                ),
                 keyboardType: TextInputType.url,
+                onChanged: (_) => setState(() {
+                  applyLocationAutoStyle(
+                    location: _location.text,
+                    videoLink: _videoLink.text,
+                    setStyle: (s) => _style = s,
+                  );
+                }),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -213,6 +263,24 @@ class _InterviewCreateSheetBodyState extends State<_InterviewCreateSheetBody> {
                           candidates: byApp,
                           applicationLinkedIds: byApp.map((c) => c['id']?.toString()).whereType<String>().toSet(),
                           companyName: app.company.name,
+                          onCreateContact: ({
+                            required String firstName,
+                            required String lastName,
+                            String? email,
+                            String? phone,
+                            String? notes,
+                          }) async {
+                            final created = await ApiService.createContact(
+                              firstName: firstName,
+                              lastName: lastName,
+                              email: email,
+                              phone: phone,
+                              notes: notes,
+                              companyId: app.company.id,
+                              token: token,
+                            );
+                            return created;
+                          },
                         );
                         if (picked != null) setState(() => _contacts = picked);
                       },

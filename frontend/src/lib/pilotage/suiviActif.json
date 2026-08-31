@@ -1,31 +1,64 @@
 {
-  "updatedAt": "2026-08-28",
+  "updatedAt": "2026-08-31",
   "apk": "1.0.42+42",
   "phase": {
     "id": "C",
     "label": "Déploiement VPS",
     "step": "J",
-    "subStep": "ota-apk-dev",
+    "subStep": "maintenance-monitoring",
     "point": "DEPLOY-GHA-01",
-    "title": "Login OK — publier APK OTA canal dev"
+    "title": "Maintenance page + metrics STACK_SLUG — redeploy VPS"
   },
   "recentDone": [
-    { "id": "DEPLOY-F-login", "label": "Login admin préprod navigateur (fix API URL tablette)" },
-    { "id": "DEPLOY-I-prod", "label": "Stack Portainer prod + NPM jobbingtrack.com" },
-    { "id": "DEPLOY-preprod-portainer", "label": "Stack Portainer préprod (plus SSH orpheline)" },
-    { "id": "DEPLOY-ghcr-latest", "label": "CI channel=prod → images :latest" }
+    {
+      "id": "MONITOR-DOCKER-01-code",
+      "label": "Fix discovery metrics STACK_SLUG + docker.sock (code)"
+    },
+    {
+      "id": "MAINT-PAGE-01",
+      "label": "Page /maintenance + flag NEXT_PUBLIC_SITE_MAINTENANCE"
+    },
+    {
+      "id": "DEPLOY-J-crash-loadAll",
+      "label": "Fix null-check _loadAll + réinstall prod Nothing"
+    },
+    {
+      "id": "DEPLOY-J-3apps",
+      "label": "3 APK sur Nothing + Samsung + OTA downloadUrl"
+    }
   ],
   "queue": [
-    { "id": "DEPLOY-C3", "status": "active", "label": "OTA 1er APK canal dev (Nothing)" },
-    { "id": "DEPLOY-DNS-backoffice", "status": "pending", "label": "DNS OVH backoffice + NPM hosts" },
-    { "id": "BACKEND-CLEAN-01", "status": "later", "label": "Mutualiser logger/email microservices" },
-    { "id": "MOB-HUB-01", "status": "pending", "label": "Hubs mobile (après OTA)" }
+    {
+      "id": "MONITOR-DOCKER-01",
+      "status": "active",
+      "label": "Redeploy Portainer préprod+prod (metrics + sock)"
+    },
+    {
+      "id": "MAINT-PROD-01",
+      "status": "pending",
+      "label": "Activer maintenance sur stack prod si besoin"
+    },
+    {
+      "id": "DEPLOY-C3",
+      "status": "pending",
+      "label": "Porteur : détection MAJ OTA"
+    },
+    {
+      "id": "DEPLOY-DNS-backoffice",
+      "status": "pending",
+      "label": "DNS OVH backoffice"
+    }
   ],
   "openFixes": [
     {
-      "id": "MOB-HUB-01",
-      "label": "Validation hubs (après OTA)",
-      "status": "paused_until_ota"
+      "id": "MONITOR-DOCKER-01",
+      "label": "Vue 0/21 — redeploy après fix STACK_SLUG",
+      "status": "code_done_await_redeploy"
+    },
+    {
+      "id": "NPM-APEX-CACHE",
+      "label": "Si navigateur → nextcloud : vider cache / vérifier host NPM apex",
+      "status": "note"
     }
   ]
 }

@@ -750,15 +750,71 @@ export default function AgentEmailContent() {
                               ? calendarAction.message
                               : calendarAction.reason || "Proposition calendrier"}
                           </p>
+                          {"title" in calendarAction && calendarAction.title ? (
+                            <p className="mt-1 text-gray-600 dark:text-gray-300">
+                              {calendarAction.title}
+                            </p>
+                          ) : null}
+                          {"modalityLabelFr" in calendarAction &&
+                          calendarAction.modalityLabelFr ? (
+                            <p className="mt-1">
+                              Format : {calendarAction.modalityLabelFr}
+                              {"isPresentiel" in calendarAction &&
+                              calendarAction.isPresentiel === false
+                                ? " — pas en présentiel"
+                                : ""}
+                            </p>
+                          ) : null}
+                          {"proposer" in calendarAction &&
+                          calendarAction.proposer ? (
+                            <p>
+                              Proposant :{" "}
+                              {calendarAction.proposer.displayName ||
+                                calendarAction.proposer.labelFr}
+                              {calendarAction.proposer.isBilanDeCompetences
+                                ? " (bilan de compétences)"
+                                : ""}
+                            </p>
+                          ) : null}
+                          {"inviteLink" in calendarAction &&
+                          calendarAction.inviteLink ? (
+                            <p className="truncate">
+                              Invitation :{" "}
+                              <a
+                                href={calendarAction.inviteLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline"
+                              >
+                                lien agenda
+                              </a>
+                            </p>
+                          ) : null}
+                          {"videoLink" in calendarAction &&
+                          calendarAction.videoLink ? (
+                            <p className="truncate">
+                              Visio :{" "}
+                              <a
+                                href={calendarAction.videoLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline"
+                              >
+                                rejoindre
+                              </a>
+                            </p>
+                          ) : null}
                           {"decision" in calendarAction &&
-                            calendarAction.decision === "schedule" && (
+                            calendarAction.decision !== "reject" && (
                             <button
                               type="button"
                               onClick={() => handleCreateCalendar(msg.id)}
                               disabled={actionLoading === `calendar-${msg.id}`}
                               className="mt-1 px-2 py-1 rounded bg-indigo-600 text-white"
                             >
-                              Créer événement (10h00)
+                              {calendarAction.decision === "schedule"
+                                ? "Confirmer et ajouter à l’agenda"
+                                : "Je confirme le créneau → agenda"}
                             </button>
                           )}
                         </div>

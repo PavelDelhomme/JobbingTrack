@@ -19,6 +19,8 @@ import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_detail_field.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_link_tile.dart';
+import 'package:jobbingtrack_mobile/widgets/interview_calendar_offer.dart';
+import 'package:jobbingtrack_mobile/utils/meeting_place_policy.dart';
 
 class InterviewDetailScreen extends StatefulWidget {
   final Interview interview;
@@ -152,20 +154,38 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
       ),
     );
     if (ok != true || !mounted) return;
+    final previousDate = i.interviewDate;
     try {
       final token = Provider.of<AuthProvider>(context, listen: false).token;
+      final modality = MeetingPlacePolicy.detectModality(
+        location: locationController.text,
+        videoLink: videoLinkController.text,
+        text: notesController.text,
+      );
+      var notes = notesController.text.trim();
+      if (modality == MeetingModality.telephone || modality == MeetingModality.visio) {
+        final tag = '[Pas en présentiel — ${MeetingPlacePolicy.modalityLabelFr(modality)}]';
+        if (!notes.contains('[Pas en présentiel')) {
+          notes = notes.isEmpty ? tag : '$tag\n$notes';
+        }
+      }
       await ApiService.updateInterview(
         i.id,
         interviewDate: date,
         location: locationController.text.trim(),
         videoLink: videoLinkController.text.trim(),
         estimatedDuration: int.tryParse(durationController.text.trim()),
-        notes: notesController.text.trim(),
+        notes: notes,
         token: token,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Entretien mis à jour')));
-        _load();
+        await _load();
+        final updated = _interview ?? i;
+        final dateChanged = previousDate.toUtc().difference(date.toUtc()).inMinutes.abs() > 0;
+        if (dateChanged && mounted) {
+          await offerAddInterviewToCalendar(context, interview: updated.copyWithDate(date));
+        }
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
@@ -211,6 +231,11 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
       appBar: AppBar(
         title: const Text('Entretien'),
         actions: [
+          IconButton(
+            tooltip: 'Ajouter à l’agenda',
+            icon: const Icon(Icons.event_available_outlined),
+            onPressed: () => offerAddInterviewToCalendar(context, interview: i),
+          ),
           IconButton(tooltip: 'Modifier', icon: const Icon(Icons.edit_outlined), onPressed: _showEditDialog),
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -230,6 +255,16 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
               padding: scrollSafePadding(context),
               children: [
                 EntityDetailField(label: 'Date', value: formatSmartEventDate(i.interviewDate)),
+                EntityDetailField(
+                  label: 'Format détecté',
+                  value: MeetingPlacePolicy.modalityLabelFr(
+                    MeetingPlacePolicy.detectModality(
+                      location: i.location,
+                      videoLink: i.videoLink,
+                      text: i.notes,
+                    ),
+                  ),
+                ),
                 EntityDetailField(label: 'Lieu', value: i.location ?? ''),
                 EntityDetailField(label: 'Lien visio', value: i.videoLink ?? ''),
                 EntityDetailField(label: 'Notes', value: i.notes ?? '', multiline: true),

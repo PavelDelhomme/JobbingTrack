@@ -247,7 +247,7 @@ export function MobileReleaseManagementPanel() {
 
   const [version, setVersion] = useState("1.0.0");
   const [buildNumber, setBuildNumber] = useState("1");
-  const [channel, setChannel] = useState<"dev" | "production">("dev");
+  const [channel, setChannel] = useState<"dev" | "preprod" | "production">("dev");
   const [releaseNotes, setReleaseNotes] = useState("");
   const [apkFile, setApkFile] = useState<File | null>(null);
   const [hintsApplied, setHintsApplied] = useState(false);
@@ -464,7 +464,7 @@ export function MobileReleaseManagementPanel() {
     }
   };
 
-  const activateRelease = async (id: string, targetChannel: "dev" | "production") => {
+  const activateRelease = async (id: string, targetChannel: "dev" | "preprod" | "production") => {
     if (!token) return;
     setActionId(id);
     try {
@@ -487,6 +487,7 @@ export function MobileReleaseManagementPanel() {
   };
 
   const devAndroid = state?.channels?.dev?.android;
+  const preprodAndroid = state?.channels?.preprod?.android;
   const prodAndroid = state?.channels?.production?.android;
   const hints = state?.deployHints;
   const activeDev = hints?.activeDevRelease;
@@ -565,11 +566,18 @@ export function MobileReleaseManagementPanel() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <ChannelCard
           title="Canal DEV (bêta-testeurs)"
-          subtitle="Appareils de test, émulateurs, APK fraîche avant prod"
+          subtitle="Appareils de test, émulateurs, APK fraîche avant préprod"
           channelState={devAndroid}
+          loading={loading}
+          otaBaseUrl={otaBaseUrl}
+        />
+        <ChannelCard
+          title="Canal PRÉPROD"
+          subtitle="Stack api-preprod — validation avant production"
+          channelState={preprodAndroid}
           loading={loading}
           otaBaseUrl={otaBaseUrl}
         />
@@ -629,15 +637,16 @@ export function MobileReleaseManagementPanel() {
             <span className="font-medium">Canal</span>
             <select
               value={channel}
-              onChange={(e) => setChannel(e.target.value as "dev" | "production")}
+              onChange={(e) => setChannel(e.target.value as "dev" | "preprod" | "production")}
               className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
             >
-              <option value="dev">dev — bêta / validation (recommandé)</option>
+              <option value="dev">dev — bêta / validation locale</option>
+              <option value="preprod">preprod — stack api-preprod</option>
               <option value="production">production — utilisateurs finaux (après promote)</option>
             </select>
             <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-              En pratique : uploadez d’abord en <strong>dev</strong>, validez, puis utilisez le bouton
-              « Promouvoir dev → production » plutôt qu’un upload direct prod.
+              En pratique : uploadez d’abord en <strong>dev</strong>, validez, puis{" "}
+              <strong>preprod</strong>, puis « Promouvoir → production » plutôt qu’un upload direct prod.
             </p>
           </label>
           <label className="block text-sm md:col-span-2">
@@ -786,6 +795,14 @@ export function MobileReleaseManagementPanel() {
                             className="rounded border border-gray-300 px-2 py-0.5 text-xs hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
                           >
                             Activer dev
+                          </button>
+                          <button
+                            type="button"
+                            disabled={actionId === r.id}
+                            onClick={() => void activateRelease(r.id, "preprod")}
+                            className="rounded border border-gray-300 px-2 py-0.5 text-xs hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
+                          >
+                            Activer préprod
                           </button>
                           <button
                             type="button"

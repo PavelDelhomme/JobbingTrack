@@ -101,6 +101,8 @@ services:
       dockerfile: Dockerfile
     container_name: ${STACK_SLUG:-jobbingtrack}-metrics-aggregator
     mem_limit: ${METRICS_AGGREGATOR_MEMORY_LIMIT:-512m}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       <<: *database-url
       POSTGRES_DB: ${POSTGRES_DB}
@@ -112,6 +114,7 @@ services:
       ENABLE_METRICS_AUTH: ${ENABLE_METRICS_AUTH:-true}
       ENABLE_METRICS_COLLECTION: ${ENABLE_METRICS_COLLECTION:-true}
       FRONTEND_URL: ${FRONTEND_URL:?set FRONTEND_URL}
+      STACK_SLUG: ${STACK_SLUG:-jobbingtrack}
       NODE_ENV: production
       PORT: "3014"
 
@@ -452,6 +455,7 @@ services:
         NEXT_PUBLIC_METRICS_AGGREGATOR_URL: ${NEXT_PUBLIC_METRICS_AGGREGATOR_URL:-/api/metrics-aggregator}
         NEXT_PUBLIC_METRICS_VIA_FRONTEND: ${NEXT_PUBLIC_METRICS_VIA_FRONTEND:-true}
         NEXT_PUBLIC_TZ: ${NEXT_PUBLIC_TZ:-Europe/Paris}
+        NEXT_PUBLIC_SITE_MAINTENANCE: ${NEXT_PUBLIC_SITE_MAINTENANCE:-0}
     container_name: ${STACK_SLUG:-jobbingtrack}-frontend
     restart: unless-stopped
     mem_limit: ${FRONTEND_MEMORY_LIMIT:-1024m}
@@ -463,6 +467,8 @@ services:
       METRICS_API_KEY: ${METRICS_API_KEY}
       API_GATEWAY_URL: http://api-gateway:3000
       METRICS_AGGREGATOR_INTERNAL_URL: http://metrics-aggregator:3014
+      SITE_MAINTENANCE_MODE: ${SITE_MAINTENANCE_MODE:-${NEXT_PUBLIC_SITE_MAINTENANCE:-0}}
+      NEXT_PUBLIC_SITE_MAINTENANCE: ${NEXT_PUBLIC_SITE_MAINTENANCE:-0}
     # service_started (pas healthy) : Portainer `compose up --wait` ne bloque
     # pas toute la stack si le gateway met >60s (cold start Postgres).
     depends_on:

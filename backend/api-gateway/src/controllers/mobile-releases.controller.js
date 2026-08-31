@@ -35,8 +35,8 @@ exports.publishBuiltRelease = async (req, res) => {
     const version = req.body.version;
     const buildNumber = req.body.buildNumber;
 
-    if (!['dev', 'production'].includes(channel)) {
-      return res.status(400).json({ success: false, error: 'channel invalide (dev | production)' });
+    if (!['dev', 'preprod', 'production'].includes(channel)) {
+      return res.status(400).json({ success: false, error: 'channel invalide (dev | preprod | production)' });
     }
 
     let release = publishBuiltApk({
@@ -72,8 +72,8 @@ exports.uploadRelease = async (req, res) => {
     if (!version || !buildNumber) {
       return res.status(400).json({ success: false, error: 'version et buildNumber requis' });
     }
-    if (!['dev', 'production'].includes(channel)) {
-      return res.status(400).json({ success: false, error: 'channel invalide (dev | production)' });
+    if (!['dev', 'preprod', 'production'].includes(channel)) {
+      return res.status(400).json({ success: false, error: 'channel invalide (dev | preprod | production)' });
     }
     if (platform !== 'android') {
       return res.status(400).json({ success: false, error: 'Seul android supporte l’upload APK pour l’instant' });

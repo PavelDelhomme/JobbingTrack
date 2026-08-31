@@ -3,6 +3,7 @@ const { prisma } = require('../utils/prismaClient');
 const { decryptSecret } = require('../utils/secretCrypto');
 const { createOAuthClient } = require('./gmailOAuthService');
 const { evaluateCalendarSlot } = require('../lib/calendarTimePolicy');
+const { buildInterviewEventPayload } = require('../lib/meetingPlacePolicy');
 const logger = require('../utils/logger');
 
 async function loadGmailMailbox(userId) {
@@ -51,9 +52,16 @@ function buildCalendarProposal(message) {
       kind: 'calendar',
       decision: 'confirm',
       reason: 'not_interview_request',
-      message: 'Proposition calendrier réservée aux emails entretien.',
+      message: 'Proposition calendrier réservée aux emails entretien / bilan.',
     };
   }
+
+  const eventPayload = buildInterviewEventPayload({
+    from: message.fromAddress || '',
+    subject: message.subject,
+    body: message.snippet || '',
+    snippet: message.snippet || '',
+  });
 
   const slot = evaluateCalendarSlot({
     hasExplicitTime: false,
@@ -64,12 +72,20 @@ function buildCalendarProposal(message) {
 
   return {
     kind: 'calendar',
-    title: `Entretien — ${message.subject}`.slice(0, 120),
+    title: eventPayload.title,
+    modality: eventPayload.modality,
+    modalityLabelFr: eventPayload.modalityLabelFr,
+    isPresentiel: eventPayload.isPresentiel,
+    proposer: eventPayload.proposer,
+    inviteLink: eventPayload.inviteLink,
+    videoLink: eventPayload.videoLink,
+    location: eventPayload.location,
+    descriptionPreview: eventPayload.description.slice(0, 400),
     ...slot,
     message:
       slot.decision === 'schedule'
-        ? 'Créneau exploitable — validation utilisateur requise avant création.'
-        : 'Horaire non explicite — créer une tâche ou confirmer l’heure.',
+        ? `Créneau exploitable (${eventPayload.modalityLabelFr}) — validation requise avant création.`
+        : 'Horaire non explicite — confirmer l’heure puis ajouter à l’agenda.',
   };
 }
 
@@ -190,18 +206,46 @@ async function createGoogleCalendarEvent(userId, messageId, payload = {}) {
   start.setHours(slot.hour, slot.minute, 0, 0);
   const end = new Date(start.getTime() + (payload.durationMinutes || 60) * 60 * 1000);
 
+  const eventPayload = buildInterviewEventPayload({
+    from: message.fromAddress || '',
+    subject: message.subject,
+    body: message.snippet || '',
+    snippet: message.snippet || '',
+    location: payload.location,
+    videoLink: payload.videoLink,
+    titleOverride: payload.title,
+  });
+
   const calendar = google.calendar({ version: 'v3', auth: client });
   try {
+    const requestBody = {
+      summary: eventPayload.title,
+      description: eventPayload.description,
+      location: eventPayload.location || undefined,
+      start: { dateTime: start.toISOString(), timeZone: process.env.EMAIL_TRIAGE_DIGEST_TIMEZONE || 'Europe/Paris' },
+      end: { dateTime: end.toISOString(), timeZone: process.env.EMAIL_TRIAGE_DIGEST_TIMEZONE || 'Europe/Paris' },
+      source: eventPayload.inviteLink
+        ? { title: 'Invitation agenda', url: eventPayload.inviteLink }
+        : undefined,
+    };
+    if (eventPayload.videoLink) {
+      requestBody.description = `${eventPayload.description}\n\nRejoindre : ${eventPayload.videoLink}`.slice(0, 4000);
+    }
+
     const created = await calendar.events.insert({
       calendarId: payload.calendarId || 'primary',
-      requestBody: {
-        summary: payload.title || `Entretien — ${message.subject}`.slice(0, 120),
-        description: (message.snippet || message.subject).slice(0, 4000),
-        start: { dateTime: start.toISOString(), timeZone: process.env.EMAIL_TRIAGE_DIGEST_TIMEZONE || 'Europe/Paris' },
-        end: { dateTime: end.toISOString(), timeZone: process.env.EMAIL_TRIAGE_DIGEST_TIMEZONE || 'Europe/Paris' },
-      },
+      requestBody,
     });
-    return { ok: true, eventId: created.data.id, htmlLink: created.data.htmlLink, start: start.toISOString() };
+    return {
+      ok: true,
+      eventId: created.data.id,
+      htmlLink: created.data.htmlLink,
+      start: start.toISOString(),
+      modality: eventPayload.modality,
+      proposer: eventPayload.proposer,
+      inviteLink: eventPayload.inviteLink,
+      videoLink: eventPayload.videoLink,
+    };
   } catch (error) {
     logger.warn(`Google Calendar create failed: ${error.message}`);
     const err = new Error('google_calendar_create_failed');

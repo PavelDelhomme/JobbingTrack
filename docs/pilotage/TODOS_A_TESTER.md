@@ -52,8 +52,8 @@
 | Stack prod Portainer | `jobbingtrack-prod` Id 33 | **OK 28/08** — healthy, 0 ports |
 | NPM prod | apex+www + api + LE | **OK 28/08** — hosts 21/22 |
 | Smoke prod | `jobbingtrack.com` + `api.`/health | **OK 200** |
-| Porteur login admin préprod/prod | navigateur | **À faire** |
-| Porteur J OTA | Nothing | **À faire** |
+| Porteur login admin préprod/prod | navigateur | **OK agent 28/08** (tablette API fix) |
+| Porteur J OTA | Nothing + Samsung | **APKs posés 29/08** — détection MAJ à tester porteur |
 
 ### Smoke agent — 28/08/2026 (17h) — login tablette + schéma BDD
 
@@ -72,7 +72,86 @@
 | DNS `backoffice` / `backoffice-preprod` | **KO** | toujours absent OVH — utiliser `/login` sur vitrine |
 | Image frontend `:dev` | **Redéployée** | préprod + prod (fix API URL) |
 
-**Suite mobile (J)** : builder + publier APK canal `dev` (`publish-apk-remote.sh`) puis tester Nothing Phone.
+**Suite mobile (J)** : ✅ 3 apps installées + OTA `downloadUrl` publié (29/08) — porteur teste détection MAJ (sans obligation d’installer tout de suite).
+
+---
+
+### Smoke agent — 29/08/2026 — 3 apps + OTA (Nothing + Samsung)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Flavors Android `dev` / `preprod` / `prod` | **OK** | labels JT Dev / JT Préprod / JobbingTrack |
+| Build APK `1.0.42+42` ×3 | **OK** | `install-three-channels-devices.sh` |
+| Publish OTA local `channel=dev` | **OK** | `downloadUrl` relatif (résolu par l’app) |
+| Publish OTA préprod `channel=dev` | **OK** | URL absolue api-preprod |
+| Publish OTA prod `channel=production` | **OK** | URL absolue api.jobbingtrack.com |
+| Canal local `preprod` (miroir) | **OK** | gateway local (src monté) |
+| Install Nothing Phone | **OK** | 3 packages `.dev` / `.preprod` / base |
+| Install Samsung SM-G990B2 | **OK** | idem |
+| Install OTA in-app | **Non testé** (volontaire) | porteur : publier `>1.0.42` pour voir la popup |
+| Script | `bash scripts/mobile/setup/install-three-channels-devices.sh` | |
+
+**Mapping**
+
+| App | Package | API | Canal OTA |
+|-----|---------|-----|-----------|
+| JT Dev | `…mobile.dev` | `http://192.168.1.134:5002` | `dev` |
+| JT Préprod | `…mobile.preprod` | `https://api-preprod.jobbingtrack.com` | `dev` |
+| JobbingTrack | `…mobile` | `https://api.jobbingtrack.com` | `production` |
+
+### Retour porteur — 29/08 ~02h50 — prod Nothing (listes)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Crashes prod API | **4×** `Null check operator used on a null value` | Nothing A059, app `1.0.42+42`, user admin |
+| Stack | `applications_screen.dart:189` `_loadAll` → `State.context` | après `await refreshSession` alors que l’écran n’était plus monté (nav vers `/statistics`) |
+| API dans le buffer crash | **toutes 200** (applications, companies, followups, calls…) | **aucun 429** dans les `userActions` envoyés |
+| 429 ressenti | possible rate-limit général (100 req/min) hors buffer | rafales multi-listes + refresh — à confirmer au prochain essai |
+| Correctif | `if (!mounted) return` après le refresh dans `_loadAll` | rebuild prod + réinstall Nothing **sans lancer** l’app |
+
+### Retour porteur — 29/08 ~03h20 — vue d’ensemble préprod 0/21
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Préprod + prod API health | **OK 200** | stacks VPS **vivantes** (site/API OK) |
+| Vue d’ensemble « 0/21 actifs » | **Bug monitoring** | `GET /api/v1/metrics` → `health.offline=19`, `containers={}` |
+| Cause | DNS Docker | `getaddrinfo ENOTFOUND jobbingtrack-api-gateway` (etc.) — noms conteneurs Portainer ≠ noms attendus par metrics-aggregator |
+| CPU/mémoire conteneurs JT | **0** | `system.jobbingtrack.containers.count=0` alors que CPU/RAM **hôte** VPS OK (~10–15 % / ~36 %) |
+| `/api/v1/services` | **fallback** | `metricsUnavailable: true` — liste partielle, message monitoring Docker indisponible |
+| Suite | **À reprendre demain** | aligner discovery Docker (noms réseau / socket) sur stacks Portainer préprod+prod — **pas un arrêt réel des services métier** |
+
+### Session 31/08 — apex vs Nextcloud + monitoring STACK_SLUG + maintenance
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| `https://jobbingtrack.com/` (curl VPS) | **OK JobbingTrack** | title vitrine JT ; `x-served-by: jobbingtrack.com` — **pas** de redirect Nextcloud côté serveur |
+| `https://preprod.jobbingtrack.com/` | **OK JobbingTrack** | même vitrine |
+| Redirect ressenti → nextcloud | **Cache / ancien host NPM** probable | vider cache navigateur ; vérifier proxy host NPM apex → `jobbingtrack-prod-frontend:3000` |
+| Page `/maintenance` | **Livré** | activable `NEXT_PUBLIC_SITE_MAINTENANCE=1` (stack prod Portainer) |
+| Metrics STACK_SLUG | **Livré code** | sondes via nom Compose (`api-gateway`) ; clés `jobbingtrack-preprod-*` / `jobbingtrack-prod-*` |
+| docker.sock metrics-aggregator | **Livré compose** | mount `:ro` + env `STACK_SLUG` — **redeploy Portainer** requis |
+
+### Session 31/08 — entretien confirmé → agenda (lieu / bilan / invite)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Jest `meetingPlacePolicy` | **6/6 OK** | présentiel / tél / visio / invite / bilan / hybride |
+| Frontend `npm run type-check` | **OK** | Agent email + types Calendar enrichis |
+| `dart analyze` fichiers touchés | **OK** (infos only) | create sheet + detail + helpers |
+| Mobile : offre agenda après create / change date | **Livré** | dialog → Google Calendar TEMPLATE |
+| Agent email : format + proposant + liens | **Livré** | bouton « Je confirme → agenda » |
+| Extraction invite depuis **corps mail complet** | **Partiel** | triage n’a que `snippet` aujourd’hui |
+
+### Reste à faire (ops / porteur) — 31/08
+
+| # | Action | État |
+|---|--------|------|
+| 1 | **Redeploy Portainer** préprod + prod (metrics `STACK_SLUG` + `docker.sock` + frontend maintenance) | ⏳ bloquant monitoring 0/21 |
+| 2 | Vérifier vue d’ensemble préprod/prod ≠ 0/21 après redeploy | ⏳ |
+| 3 | OTA : publier APK `>1.0.42` + détection MAJ Nothing/Samsung (sans forcer install) | ⏳ porteur |
+| 4 | Optionnel : `NEXT_PUBLIC_SITE_MAINTENANCE=1` sur prod si coupure voulue | ⬜ |
+| 5 | DNS `backoffice*` toujours KO — utiliser `/login` sur vitrine | connu |
+| 6 | Merge PR OTA (#25) + PR entretien/agenda → `dev` | en cours |
 
 ---
 

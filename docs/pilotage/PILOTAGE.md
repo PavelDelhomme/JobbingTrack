@@ -1,18 +1,18 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **28 août 2026**
+Dernière mise à jour : **31 août 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : DEPLOY-GHA-01** — OTA APK canal `dev` (J)  
-**Vitrine** : ✅ `jobbingtrack.com` / `preprod.` (28/08)  
-**Login admin** : ✅ préprod navigateur OK (fix API URL tablette 28/08 17h)  
-**Backoffice DNS** : `backoffice.*` — **DNS OVH à créer** (fallback `/login` OK)  
-**Prochaine action** : publier APK OTA `dev` → test Nothing Phone  
+**Focus (1 seule) : DEPLOY-GHA-01** — maintenance prod + monitoring STACK_SLUG  
+**Apex `jobbingtrack.com`** : côté serveur = **vitrine JT** (si tu vois Nextcloud → cache navigateur / host NPM)  
+**Page maintenance** : `/maintenance` — activer avec `NEXT_PUBLIC_SITE_MAINTENANCE=1` sur stack **prod**  
+**Monitoring 0/21** : correctif code (STACK_SLUG + docker.sock) — **redeploy Portainer** préprod+prod  
+**Branche** : `feat/mobile-ota-three-channels` · PR #25  
+
+**Prochaine action** : **1)** redeploy stacks VPS (metrics + frontend) → vérifier vue d’ensemble ≠ 0/21 · **2)** merge PRs OTA + entretien/agenda · **3)** OTA détection MAJ porteur (`>1.0.42`).
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist **A→J** : [`TODOS.md`](TODOS.md) ▶ En cours  
-
-MOB-HUB / MOB-LIST en pause jusqu’à OTA installable.
 
 ## Kanban ADHD (règle d’or)
 

@@ -80,6 +80,26 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host");
 
+  // Mode maintenance (prod) : NEXT_PUBLIC_SITE_MAINTENANCE=1 ou SITE_MAINTENANCE_MODE=1
+  const maintenanceOn =
+    process.env.NEXT_PUBLIC_SITE_MAINTENANCE === "1" ||
+    process.env.SITE_MAINTENANCE_MODE === "1" ||
+    process.env.SITE_MAINTENANCE_MODE === "true";
+  if (maintenanceOn) {
+    const allowed =
+      pathname === "/maintenance" ||
+      pathname.startsWith("/maintenance/") ||
+      pathname === "/health" ||
+      pathname.startsWith("/_next/") ||
+      pathname.startsWith("/api/") ||
+      pathname === "/favicon.ico";
+    if (!allowed) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/maintenance";
+      return NextResponse.redirect(url, 307);
+    }
+  }
+
   // Sous-domaine backoffice.* → racine = espace admin (login si session absente).
   if (isBackofficeHost(host) && pathname === "/") {
     const token = readSessionToken(request);
@@ -130,10 +150,11 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Inclure la racine et pages publiques pour forcer la redirection HTTPS.
+  // Inclure la racine et pages publiques pour forcer la redirection HTTPS / maintenance.
   matcher: [
     "/",
     "/login",
+    "/maintenance",
     "/backoffice/:path*",
     "/b4ck0ff1ce/:path*",
     "/((?!_next/static|_next/image|favicon.ico|health|api/).*)",

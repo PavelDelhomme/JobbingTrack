@@ -1,45 +1,64 @@
 {
-  "updatedAt": "2026-08-19",
+  "updatedAt": "2026-08-31",
   "apk": "1.0.42+42",
   "phase": {
     "id": "C",
     "label": "Déploiement VPS",
-    "step": "C1",
-    "subStep": "GHA",
+    "step": "J",
+    "subStep": "maintenance-monitoring",
     "point": "DEPLOY-GHA-01",
-    "title": "GH Actions + Portainer"
+    "title": "Maintenance page + metrics STACK_SLUG — redeploy VPS"
   },
   "recentDone": [
-    { "id": "DEPLOY-GHA-scripts", "label": "Scripts deploy + DEPLOY.md (agent 19/08)" },
-    { "id": "B2-B.3", "label": "USER drawer sans Administration" },
-    { "id": "B2-B.4", "label": "Impersonnaliser → hub admin" }
+    {
+      "id": "MONITOR-DOCKER-01-code",
+      "label": "Fix discovery metrics STACK_SLUG + docker.sock (code)"
+    },
+    {
+      "id": "MAINT-PAGE-01",
+      "label": "Page /maintenance + flag NEXT_PUBLIC_SITE_MAINTENANCE"
+    },
+    {
+      "id": "DEPLOY-J-crash-loadAll",
+      "label": "Fix null-check _loadAll + réinstall prod Nothing"
+    },
+    {
+      "id": "DEPLOY-J-3apps",
+      "label": "3 APK sur Nothing + Samsung + OTA downloadUrl"
+    }
   ],
   "queue": [
-    { "id": "DEPLOY-C1", "status": "active", "label": "Stack Portainer préprod" },
-    { "id": "DEPLOY-C2", "status": "pending", "label": "NPM HTTPS api + web" },
-    { "id": "DEPLOY-C3", "status": "pending", "label": "OTA 1er APK canal dev" },
-    { "id": "MOB-HUB-01", "status": "pending", "label": "Hubs mobile (après deploy)" },
-    { "id": "MOB-LIST-01", "status": "pending", "label": "Métadonnées listes" }
+    {
+      "id": "MONITOR-DOCKER-01",
+      "status": "active",
+      "label": "Redeploy Portainer préprod+prod (metrics + sock)"
+    },
+    {
+      "id": "MAINT-PROD-01",
+      "status": "pending",
+      "label": "Activer maintenance sur stack prod si besoin"
+    },
+    {
+      "id": "DEPLOY-C3",
+      "status": "pending",
+      "label": "Porteur : détection MAJ OTA"
+    },
+    {
+      "id": "DEPLOY-DNS-backoffice",
+      "status": "pending",
+      "label": "DNS OVH backoffice"
+    }
   ],
   "openFixes": [
     {
-      "id": "MOB-HUB-01",
-      "label": "Validation hubs Samsung",
-      "status": "paused_until_deploy"
+      "id": "MONITOR-DOCKER-01",
+      "label": "Vue 0/21 — redeploy après fix STACK_SLUG",
+      "status": "code_done_await_redeploy"
     },
     {
-      "id": "PILOTAGE-PERF",
-      "label": "Re-test perf pilotage porteur",
-      "status": "fixed_pending_retest"
+      "id": "NPM-APEX-CACHE",
+      "label": "Si navigateur → nextcloud : vider cache / vérifier host NPM apex",
+      "status": "note"
     }
-  ],
-  "files": {
-    "pilotage": "docs/pilotage/PILOTAGE.md",
-    "todos": "docs/pilotage/TODOS.md",
-    "tester": "docs/pilotage/TODOS_A_TESTER.md",
-    "valider": "docs/pilotage/TODOS_A_VALIDER.md",
-    "done": "docs/pilotage/TODOS_DONE.md",
-    "suivi": "docs/pilotage/suivi-actif.json",
-    "deploy": "DEPLOY.md"
-  }
+  ]
 }

@@ -58,7 +58,28 @@ export interface ProposedAgentActions {
     | { allowed: true; title: string; notes: string }
     | { allowed: false; reason: string };
   calendar:
-    | { allowed?: true; kind: string; decision?: string; title?: string; reason?: string; message?: string }
+    | {
+        allowed?: true;
+        kind: string;
+        decision?: string;
+        title?: string;
+        reason?: string;
+        message?: string;
+        modality?: string;
+        modalityLabelFr?: string;
+        isPresentiel?: boolean;
+        inviteLink?: string | null;
+        videoLink?: string | null;
+        location?: string | null;
+        descriptionPreview?: string;
+        proposer?: {
+          kind?: string;
+          labelFr?: string;
+          displayName?: string | null;
+          email?: string | null;
+          isBilanDeCompetences?: boolean;
+        };
+      }
     | { allowed: false; reason: string };
 }
 
