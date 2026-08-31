@@ -35,6 +35,7 @@ export const PAGE_TITLE_BY_PATH: Record<string, string> = {
   "/search": "Recherche",
   "/notifications": "Notifications",
   "/deployments": "Déploiements",
+  "/backoffice/maintenance": "Maintenance services",
   "/maintenance": "Maintenance",
   "/data-management": "Gestion des données",
   "/test-data": "Données de test",
