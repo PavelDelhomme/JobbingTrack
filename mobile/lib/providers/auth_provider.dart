@@ -286,7 +286,7 @@ class AuthProvider with ChangeNotifier {
         _tokenStale = false;
         CrashReporter.setToken(_token);
         await ApiConfigStore.ensureAnalyticsConsentEnabled();
-        await MobileAnalyticsService.instance.initialize(authToken: _token);
+        unawaited(MobileAnalyticsService.instance.initialize(authToken: _token));
         await MobileAnalyticsService.instance.updateAuthToken(_token);
         await ApiConfigStore.saveKeepLoggedIn(keepLoggedIn);
         if (keepLoggedIn && enableBiometric) {

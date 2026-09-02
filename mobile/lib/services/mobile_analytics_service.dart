@@ -17,7 +17,7 @@ class MobileAnalyticsService extends ChangeNotifier {
   MobileAnalyticsService._();
   static final MobileAnalyticsService instance = MobileAnalyticsService._();
 
-  static const Duration flushInterval = Duration(minutes: 5);
+  static const Duration flushInterval = Duration(minutes: 2);
 
   bool _consent = false;
   bool _performanceEnabled = true;

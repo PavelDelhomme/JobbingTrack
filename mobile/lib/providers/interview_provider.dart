@@ -9,6 +9,8 @@ class InterviewProvider with ChangeNotifier {
   List<Interview> _interviews = [];
   bool _isLoading = false;
   bool _isOfflineData = false;
+  DateTime? _lastLoadedAt;
+  Future<void>? _inFlight;
 
   List<Interview> get interviews => _interviews;
   List<Interview> get upcomingInterviews => filterUpcomingInterviews(_interviews);
@@ -16,32 +18,60 @@ class InterviewProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isOfflineData => _isOfflineData;
 
-  Future<void> loadInterviews({String? token, String? userId}) async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      final result = await OfflineListLoader.load<Interview>(
-        userId: userId,
-        cacheKey: OfflineEntityKeys.interviews,
-        fetch: () => ApiService.getInterviews(token: token),
-        fromJson: Interview.fromJson,
-        toJson: (i) => i.toJson(),
-      );
-      _interviews = result.items;
-      _isOfflineData = result.fromCache;
-    } catch (e) {
-      _isOfflineData = false;
-      rethrow;
-    } finally {
-      _isLoading = false;
+  Future<void> loadInterviews({
+    String? token,
+    String? userId,
+    bool force = false,
+  }) async {
+    if (!force &&
+        _lastLoadedAt != null &&
+        DateTime.now().difference(_lastLoadedAt!) < const Duration(seconds: 20) &&
+        _interviews.isNotEmpty) {
+      return;
+    }
+    if (_inFlight != null) return _inFlight!;
+
+    final showSpinner = _interviews.isEmpty;
+    if (showSpinner) {
+      _isLoading = true;
       notifyListeners();
     }
+
+    _inFlight = () async {
+      try {
+        final result = await OfflineListLoader.load<Interview>(
+          userId: userId,
+          cacheKey: OfflineEntityKeys.interviews,
+          fetch: () => ApiService.getInterviews(token: token),
+          fromJson: Interview.fromJson,
+          toJson: (i) => i.toJson(),
+        );
+        _interviews = result.items;
+        _isOfflineData = result.fromCache;
+        _lastLoadedAt = DateTime.now();
+      } catch (e) {
+        if (_interviews.isEmpty) {
+          _isOfflineData = false;
+          rethrow;
+        }
+        // Garder le cache local en cas d’erreur réseau.
+        _isOfflineData = true;
+      } finally {
+        _isLoading = false;
+        _inFlight = null;
+        notifyListeners();
+      }
+    }();
+
+    return _inFlight!;
   }
 
   void clearUserCache() {
     _interviews = [];
     _isLoading = false;
     _isOfflineData = false;
+    _lastLoadedAt = null;
+    _inFlight = null;
     notifyListeners();
   }
 }

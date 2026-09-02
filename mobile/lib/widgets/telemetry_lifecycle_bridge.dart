@@ -41,8 +41,12 @@ class _TelemetryLifecycleBridgeState extends State<TelemetryLifecycleBridge>
     CrashReporter.trackAppLifecycle(state.name);
     if (state == AppLifecycleState.resumed) {
       unawaited(_syncPendingTelemetry());
-      unawaited(ShellDataRefreshService.refreshIfStale(force: true));
+      unawaited(ShellDataRefreshService.refreshIfStale(force: false));
       unawaited(_checkOtaOnResume());
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      // Snapshot perf / file avant mise en arrière-plan (batterie / mémoire).
+      unawaited(MobileAnalyticsService.instance.flushTelemetry());
     }
   }
 

@@ -17,7 +17,7 @@ class ShellDataRefreshService {
   ShellDataRefreshService._();
 
   static DateTime? _lastRefreshAt;
-  static const _minInterval = Duration(seconds: 4);
+  static const _minInterval = Duration(seconds: 30);
 
   static Future<void> refreshIfStale({BuildContext? context, bool force = false}) async {
     final now = DateTime.now();

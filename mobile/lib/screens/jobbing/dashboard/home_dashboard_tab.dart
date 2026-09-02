@@ -37,10 +37,21 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.isShellVisible) _loadData();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeDashboardTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isShellVisible && widget.isShellVisible) {
+      _loadData();
+    }
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final token = auth.token;
     final userId = auth.user?.id;

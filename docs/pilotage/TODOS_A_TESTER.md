@@ -193,6 +193,22 @@
 | OTA **1.0.45** préprod | **OK** | canal `dev` sur api-preprod |
 | Install USB **1.0.45** | **OK** | 3 phones prod ; Samsung+Nothing préprod |
 
+### Session 02/09 — MOB-PERF-UX-01 (login / drawer / thème / crashes)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Crash Logs `Null check State.context` `_loadAll` | **Corrigé** | load seulement si onglet visible + `mounted` ; lazy IndexedStack |
+| Drawer Accueil → Candidatures sélectionné | **Corrigé** | plus de `setCurrentTab(1)` si invisible |
+| Login / cold start lent | **Amélioré** | lazy tabs ; OTA optionnelle non bloquante ; analytics `unawaited` |
+| Liste Entretiens spinner plein écran | **Corrigé** | stale-while-revalidate + debounce 20s |
+| Versions Paramètres vs drawer | **Aligné** | `displayVersionLine` des deux côtés |
+| Thème clair/sombre/système | **Livré** | Paramètres → Apparence |
+| Perf télémétrie | **Amélioré** | flush 2 min + snapshot à `paused` ; refresh shell 30s |
+| Crashes API récents | **4× même stack 29/08** | `_ApplicationsScreenState._loadAll` — fix ci-dessus |
+| APK | **1.0.47+47** | build + install 3 phones |
+
+**Reste (file)** : validation FAB D.6 porteur ; sync CRUD/notifs serveur D7 ; dashboard polish ; maintenance prod off.
+
 ### Session 02/09 — reprise B2-D.6 FAB Relance
 
 | Check | Résultat | Notes |

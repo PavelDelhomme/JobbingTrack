@@ -1,41 +1,41 @@
 {
   "updatedAt": "2026-09-02",
-  "apk": "1.0.46+46",
+  "apk": "1.0.47+47",
   "phase": {
     "id": "B",
     "label": "Gate pré-prod mobile",
-    "step": "B2",
-    "subStep": "D.6",
-    "point": "B2-D.6",
-    "title": "FAB → Relance depuis candidature"
+    "step": "PERF",
+    "subStep": "ux-crashes",
+    "point": "MOB-PERF-UX-01",
+    "title": "Perf login + drawer + thème + crashes + entretiens"
   },
   "recentDone": [
     {
-      "id": "MOB-OTA-OFFLINE-01",
-      "label": "OTA in-app + hors-ligne 1.0.45 (events/notifs) — PR #27"
+      "id": "B2-D.6-code",
+      "label": "FAB Relance correctifs + APK 1.0.46 (PR #28)"
     },
     {
-      "id": "DEPLOY-MONITOR-17-21",
-      "label": "Monitoring préprod/prod 17/21"
+      "id": "MOB-OTA-OFFLINE-01",
+      "label": "OTA in-app + hors-ligne 1.0.45 (PR #27)"
     }
   ],
   "queue": [
     {
+      "id": "MOB-PERF-UX-01",
+      "label": "Test porteur Nothing : login / drawer / thème / entretiens"
+    },
+    {
       "id": "B2-D.6",
-      "label": "FAB Relance — test porteur + smoke ADB"
+      "label": "FAB Relance validation porteur"
     },
     {
       "id": "B2-D.7",
-      "label": "FAB → Appel (après D.6 OK)"
-    },
-    {
-      "id": "MOB-HUB-01",
-      "label": "Hubs détail + liens croisés"
+      "label": "FAB → Appel"
     },
     {
       "id": "MAINT-OFF",
       "label": "Désactiver maintenance prod"
     }
   ],
-  "focusId": "B2-D.6"
+  "focusId": "MOB-PERF-UX-01"
 }

@@ -20,6 +20,7 @@ import 'package:jobbingtrack_mobile/services/network_recovery_service.dart';
 import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/back_to_home_scope.dart';
+import 'package:jobbingtrack_mobile/services/theme_controller.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_update_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -43,8 +44,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   DateTime? _callLogSyncedAt;
   DateTime? _phoneContactsSyncedAt;
   bool _phoneSyncing = false;
-  String _appVersion = '…';
+  String _appVersionLine = '…';
   int _offlinePending = 0;
+  ThemeMode _themeMode = ThemeMode.system;
 
   @override
   void initState() {
@@ -67,10 +69,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final phoneContactsCount = await LocalPhoneIntegrationsService.getLocalPhoneContactsCount();
     final callSynced = await LocalPhoneIntegrationsService.getCallLogSyncedAt();
     final contactsSynced = await LocalPhoneIntegrationsService.getContactsSyncedAt();
-    final version = await AppVersionInfo.get();
+    final details = await AppVersionInfo.getDetails();
     await OfflineBusinessSyncQueue.instance.initialize();
     final pending = OfflineBusinessSyncQueue.instance.pendingCount;
     await MobileUpdateController.instance.refresh(silent: true);
+    if (!ThemeController.instance.isLoaded) {
+      await ThemeController.instance.load();
+    }
     if (!mounted) return;
     setState(() {
       _consent = consent;
@@ -84,8 +89,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _localPhoneContactsCount = phoneContactsCount;
       _callLogSyncedAt = callSynced;
       _phoneContactsSyncedAt = contactsSynced;
-      _appVersion = version;
+      _appVersionLine = details.displayVersionLine;
       _offlinePending = pending;
+      _themeMode = ThemeController.instance.mode;
       _loading = false;
     });
   }
@@ -201,6 +207,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  _sectionTitle('Apparence'),
+                  Card(
+                    child: Column(
+                      children: [
+                        for (final mode in ThemeMode.values) ...[
+                          if (mode != ThemeMode.values.first) const Divider(height: 1),
+                          RadioListTile<ThemeMode>(
+                            title: Text(ThemeController.label(mode)),
+                            subtitle: mode == ThemeMode.system
+                                ? const Text('Suit le réglage Android / iOS')
+                                : null,
+                            value: mode,
+                            groupValue: _themeMode,
+                            onChanged: (v) async {
+                              if (v == null) return;
+                              setState(() => _themeMode = v);
+                              await ThemeController.instance.setMode(v);
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   _sectionTitle('Parcours & sécurité'),
                   Card(
                     child: Column(
@@ -307,7 +337,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                               title: Text(hasUpdate ? 'Mise à jour disponible' : 'Application à jour'),
                               subtitle: Text(
-                                'Version $_appVersion · canal ${MobileUpdateService.releaseChannel}\n'
+                                '$_appVersionLine · canal ${MobileUpdateService.releaseChannel}\n'
                                 '$lastLabel'
                                 '${ctrl.lastError != null ? '\nErreur: ${ctrl.lastError}' : ''}',
                               ),
@@ -377,7 +407,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ListTile(
                               leading: const Icon(Icons.info_outline),
                               title: const Text('Version installée'),
-                              subtitle: Text('$_appVersion · API ${ApiService.baseUrl}'),
+                              subtitle: Text('$_appVersionLine · API ${ApiService.baseUrl}'),
                             ),
                           ],
                         );

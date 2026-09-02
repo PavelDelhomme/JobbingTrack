@@ -39,7 +39,17 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
   void initState() {
     super.initState();
     _loadPrefs();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.isShellVisible) _load();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant EventsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isShellVisible && widget.isShellVisible) {
+      _load();
+    }
   }
 
   @override

@@ -50,6 +50,7 @@ import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/mobile_update_controller.dart';
 import 'package:jobbingtrack_mobile/services/mobile_update_service.dart';
+import 'package:jobbingtrack_mobile/services/theme_controller.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_update_dialog.dart';
 
 Route<dynamic>? resolveAppRoute(RouteSettings settings) {
@@ -124,6 +125,7 @@ void main() async {
   } catch (e, st) {
     debugPrint('[APP] CrashReporter init error (ignored): $e\n$st');
   }
+  unawaited(ThemeController.instance.load());
   debugPrint('[APP] Démarrage JobbingTrack Mobile');
 
   runApp(const JobbingTrackMobileApp());
@@ -131,6 +133,18 @@ void main() async {
 
 class JobbingTrackMobileApp extends StatelessWidget {
   const JobbingTrackMobileApp({super.key});
+
+  static ThemeData _lightTheme() => ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue, brightness: Brightness.light),
+        useMaterial3: true,
+        snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
+      );
+
+  static ThemeData _darkTheme() => ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue, brightness: Brightness.dark),
+        useMaterial3: true,
+        snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -143,9 +157,12 @@ class JobbingTrackMobileApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => InterviewProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => FollowUpProvider()),
+        ChangeNotifierProvider.value(value: ThemeController.instance),
       ],
       child: TelemetryLifecycleBridge(
-        child: MaterialApp(
+        child: ListenableBuilder(
+          listenable: ThemeController.instance,
+          builder: (context, _) => MaterialApp(
         navigatorKey: appNavigatorKey,
         scaffoldMessengerKey: rootScaffoldMessengerKey,
         title: 'JobbingTrack Mobile',
@@ -154,15 +171,9 @@ class JobbingTrackMobileApp extends StatelessWidget {
           child: TelemetryDevStatusBanner(child: child),
         ),
         navigatorObservers: [MobileAnalyticsRouteObserver(), shellListRouteObserver],
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          useMaterial3: true,
-          snackBarTheme: const SnackBarThemeData(
-            behavior: SnackBarBehavior.floating,
-            // Durée courte par défaut — les SnackBar avec action ne restent plus collés.
-          ),
-          // Pas de fontFamily : Inter n'est pas dans pubspec → crash au lancement sur Android si on le met
-        ),
+        theme: _lightTheme(),
+        darkTheme: _darkTheme(),
+        themeMode: ThemeController.instance.mode,
         initialRoute: '/',
         onGenerateInitialRoutes: (String initialRouteName) {
           if (initialRouteName != '/' && initialRouteName.isNotEmpty) {
@@ -236,6 +247,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/admin/pilotage': (context) =>
               const AdminGuard(child: PilotageScreen()),
         },
+          ),
         ),
       ),
     );
@@ -324,13 +336,7 @@ class _SplashScreenState extends State<_SplashScreen> {
         setState(() => _status = 'Mise à jour requise pour continuer.');
         return;
       }
-      await showMobileUpdateDialog(
-        context,
-        release: update.release,
-        currentVersion: update.current,
-        forceUpdate: false,
-      );
-      if (!mounted) return;
+      // MAJ optionnelle : ne pas bloquer le splash — bandeau shell / Paramètres.
     }
 
     _setStatus('Restauration de la session...');

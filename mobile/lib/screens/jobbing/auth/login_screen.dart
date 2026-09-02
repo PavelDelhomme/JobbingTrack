@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -195,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
         keepLoggedIn: true,
         enableBiometric: bioEnabled || _enableBiometric,
       );
-      await MobileAnalyticsService.instance.initialize(authToken: authProvider.token);
+      unawaited(MobileAnalyticsService.instance.initialize(authToken: authProvider.token));
       await _navigateAfterLogin(biometricEnabled: true, skipUnlockScreen: true);
     } catch (e) {
       debugPrint('[LOGIN] Erreur empreinte: $e');
@@ -252,7 +254,7 @@ class _LoginScreenState extends State<LoginScreen> {
         keepLoggedIn: _keepLoggedIn,
         enableBiometric: _keepLoggedIn && _enableBiometric,
       );
-      await MobileAnalyticsService.instance.initialize(authToken: authProvider.token);
+      unawaited(MobileAnalyticsService.instance.initialize(authToken: authProvider.token));
       if (mounted) {
         await _navigateAfterLogin(
           biometricEnabled: _keepLoggedIn && _enableBiometric,
