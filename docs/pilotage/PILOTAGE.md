@@ -1,18 +1,17 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **31 août 2026 (soir)**
+Dernière mise à jour : **2 septembre 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : DEPLOY-GHA-01** — OTA détection MAJ porteur + sortie maintenance  
-**Monitoring** : préprod+prod **17/21 healthy** (plus 0/21) — `STACK_SLUG` + `docker.sock` OK  
-**Maintenance prod** : **ACTIVE** (`SITE_MAINTENANCE_MODE=1`) — `jobbingtrack.com` → `/maintenance`  
-**OTA** : APK **1.0.43+43** publié — prod `channel=production` + préprod `channel=dev`  
-**Branche** : `dev` (PR #26 mergée)  
+**Focus (1 seule) : MOB-OTA-OFFLINE-01** — OTA in-app prod + hors-ligne / resync  
+**Constat porteur** : indicateur MAJ prod **ne s’affichait pas** correctement ; sync hors réseau incomplète  
+**Branche** : `feat/mobile-ota-offline-resync`  
+**Maintenance prod** : toujours active si non désactivée  
 
-**Prochaine action** : porteur ouvre les apps Nothing/Samsung → détecte MAJ 1.0.43 ; puis **désactiver maintenance** quand OK.
+**Prochaine action** : rebuild APK **1.0.44** → publish OTA → test Nothing/Samsung (Paramètres → Mise à jour).
 
-Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist **A→J** : [`TODOS.md`](TODOS.md) ▶ En cours  
+Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist : [`TODOS.md`](TODOS.md) ▶ En cours  
 
 ## Kanban ADHD (règle d’or)
 

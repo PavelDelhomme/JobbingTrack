@@ -168,7 +168,20 @@
 | OTA prod `1.0.43+43` | **OK** | `channel=production` + `downloadUrl` |
 | OTA préprod `1.0.43+43` | **OK** | `channel=dev` + `downloadUrl` |
 | OTA flavor JT Dev (LAN) | **Non publié** | stack locale arrêtée — à faire au besoin |
-| Porteur détection MAJ apps | **À tester** | Nothing + Samsung sans forcer install |
+| Porteur détection MAJ apps | **KO porteur 02/09** | indicateur prod insuffisant (splash only) → chantier MOB-OTA-OFFLINE-01 |
+
+### Session 02/09 — OTA in-app + hors-ligne / resync
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Cause OTA « invisible » | **Identifiée** | check **splash only** ; erreur silencieuse ; Paramètres affichait version **1.0.0** figée ; pas de bandeau shell |
+| API prod latest `production` | **OK** | `1.0.43+43` + downloadUrl 62 Mo (avant rebuild 1.0.44) |
+| Correctifs livrés (branche) | **En cours** | `MobileUpdateController` + bandeau shell + Paramètres « Vérifier MAJ » + progress download |
+| Offline | **Amélioré** | `archiveApplication` en file ; bandeau sync shell ; flush drop 4xx sans bloquer ; sync manuelle Paramètres |
+| Resync auto | **Déjà + renforcé** | `NetworkRecoveryService` + resume lifecycle + OTA recheck si force |
+| Version cible | **1.0.44+44** | à builder + publish OTA après validation analyze |
+
+**Reste** : calendrier/events hors file offline ; conflits merge D7 ; OTA JT Dev LAN ; désactiver maintenance prod quand OK.
 
 **Désactiver maintenance prod** (quand prêt) :
 

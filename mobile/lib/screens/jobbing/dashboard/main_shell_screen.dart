@@ -7,6 +7,8 @@ import 'package:jobbingtrack_mobile/screens/jobbing/applications/applications_sc
 import 'package:jobbingtrack_mobile/screens/jobbing/calendar/events_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/home_dashboard_tab.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/users/profile_screen.dart';
+import 'package:jobbingtrack_mobile/widgets/mobile_update_banner.dart';
+import 'package:jobbingtrack_mobile/widgets/shell_connectivity_banner.dart';
 
 /// Shell principal : 4 onglets (Accueil, Candidatures, Calendrier, Profil).
 /// La recherche globale reste dans la barre du haut — pas dans la navigation basse.
@@ -229,31 +231,42 @@ class _MainShellScreenState extends State<MainShellScreen> {
         if (!didPop) _handleSystemBack();
       },
       child: Scaffold(
-        body: IndexedStack(
+        body: Column(
+          children: [
+            const MobileUpdateBanner(),
+            const ShellConnectivityBanner(),
+            Expanded(
+              child: IndexedStack(
                 index: _selectedIndex,
                 children: [
-            HomeDashboardTab(
-              isShellVisible: _selectedIndex == 0,
-              onOpenApplications: ({required applicationsTabIndex, statusFilter}) {
-              _openApplications(tabIndex: applicationsTabIndex, statusFilter: statusFilter);
-            }),
-            ApplicationsScreen(
-              key: ValueKey('apps-$_applicationsResetEpoch-$_applicationsTabIndex-${_applicationStatusFilter ?? ''}'),
-              initialTabIndex: _applicationsTabIndex,
-              statusFilter: _applicationStatusFilter,
-              isShellVisible: _selectedIndex == 1,
-              onSubTabIndexChanged: (index) {
-                if (_applicationsTabIndex != index) {
-                  setState(() {
-                    _applicationsTabIndex = index;
-                    _syncShellRegistry();
-                  });
-                }
-              },
-            ),
-            EventsScreen(isShellVisible: _selectedIndex == 2),
-            ProfileScreen(isShellVisible: _selectedIndex == 3),
+                  HomeDashboardTab(
+                    isShellVisible: _selectedIndex == 0,
+                    onOpenApplications: ({required applicationsTabIndex, statusFilter}) {
+                      _openApplications(tabIndex: applicationsTabIndex, statusFilter: statusFilter);
+                    },
+                  ),
+                  ApplicationsScreen(
+                    key: ValueKey(
+                      'apps-$_applicationsResetEpoch-$_applicationsTabIndex-${_applicationStatusFilter ?? ''}',
+                    ),
+                    initialTabIndex: _applicationsTabIndex,
+                    statusFilter: _applicationStatusFilter,
+                    isShellVisible: _selectedIndex == 1,
+                    onSubTabIndexChanged: (index) {
+                      if (_applicationsTabIndex != index) {
+                        setState(() {
+                          _applicationsTabIndex = index;
+                          _syncShellRegistry();
+                        });
+                      }
+                    },
+                  ),
+                  EventsScreen(isShellVisible: _selectedIndex == 2),
+                  ProfileScreen(isShellVisible: _selectedIndex == 3),
                 ],
+              ),
+            ),
+          ],
         ),
         bottomNavigationBar: SafeArea(
           top: false,

@@ -105,14 +105,25 @@ class MobileUpdateService {
     return MobileReleaseInfo.fromJson(decoded);
   }
 
+  static Future<String> readCurrentVersion() => AppVersionInfo.get();
+
   static Future<({MobileReleaseInfo release, String current, bool optional, bool blocked})?> evaluateUpdate() async {
     final release = await fetchLatestRelease();
-    if (release == null) return null;
+    if (release == null) {
+      debugPrint('[OTA] latest null (channel=$releaseChannel base=${ApiService.baseUrl})');
+      return null;
+    }
 
     final current = await AppVersionInfo.get();
     final currentParts = AppVersionParts.parse(current);
     final latestParts = AppVersionParts.parse('${release.version}+${release.buildNumber}');
     final minParts = AppVersionParts.parse('${release.minVersion}+${release.minBuild}');
+
+    debugPrint(
+      '[OTA] channel=$releaseChannel current=$current '
+      'latest=${release.version}+${release.buildNumber} '
+      'download=${release.downloadUrl != null}',
+    );
 
     if (currentParts.isOlderThan(minParts)) {
       return (release: release, current: current, optional: false, blocked: true);
@@ -155,18 +166,43 @@ class MobileUpdateService {
     return resolved;
   }
 
-  static Future<void> downloadAndInstallAndroid(String downloadUrl) async {
+  /// Télécharge l’APK (avec progression optionnelle) puis ouvre l’installateur système.
+  static Future<void> downloadAndInstallAndroid(
+    String downloadUrl, {
+    void Function(double progress)? onProgress,
+  }) async {
     if (!Platform.isAndroid) return;
 
-    await Permission.requestInstallPackages.request();
-
-    final resolvedUrl = resolveAndroidDownloadUrl(downloadUrl);
-    final response = await http.get(Uri.parse(resolvedUrl)).timeout(const Duration(minutes: 3));
-    if (response.statusCode != 200) {
-      throw Exception('Téléchargement APK échoué (${response.statusCode})');
+    final installPerm = await Permission.requestInstallPackages.request();
+    if (installPerm.isDenied || installPerm.isPermanentlyDenied) {
+      throw Exception(
+        'Permission d’installer des apps refusée. '
+        'Autorisez JobbingTrack dans Paramètres Android → Installer des apps inconnues.',
+      );
     }
 
-    final bytes = response.bodyBytes;
+    final resolvedUrl = resolveAndroidDownloadUrl(downloadUrl);
+    onProgress?.call(0.02);
+
+    final request = http.Request('GET', Uri.parse(resolvedUrl));
+    final streamed = await request.send().timeout(const Duration(minutes: 3));
+    if (streamed.statusCode != 200) {
+      throw Exception('Téléchargement APK échoué (${streamed.statusCode})');
+    }
+
+    final total = streamed.contentLength ?? 0;
+    final bytes = <int>[];
+    var received = 0;
+    await for (final chunk in streamed.stream) {
+      bytes.addAll(chunk);
+      received += chunk.length;
+      if (total > 0) {
+        onProgress?.call((received / total).clamp(0.0, 0.99));
+      } else if (received > 0) {
+        onProgress?.call(0.5);
+      }
+    }
+
     if (bytes.length < 100 * 1024) {
       throw Exception(
         'APK téléchargé invalide (${bytes.length} octets). '
@@ -176,14 +212,16 @@ class MobileUpdateService {
 
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/jobbingtrack-update.apk');
-    await file.writeAsBytes(response.bodyBytes, flush: true);
+    await file.writeAsBytes(bytes, flush: true);
+    onProgress?.call(1.0);
 
     final result = await OpenFilex.open(
       file.path,
       type: 'application/vnd.android.package-archive',
     );
     if (result.type != ResultType.done) {
-      throw Exception(result.message ?? 'Installation APK refusée');
+      final msg = result.message.trim();
+      throw Exception(msg.isEmpty ? 'Installation APK refusée' : msg);
     }
   }
 }

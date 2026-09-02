@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:jobbingtrack_mobile/services/mobile_update_controller.dart';
 import 'package:jobbingtrack_mobile/services/mobile_update_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -17,6 +18,7 @@ Future<bool> showMobileUpdateDialog(
   required bool forceUpdate,
 }) async {
   var installing = false;
+  double progress = 0;
   String? error;
 
   final proceed = await showDialog<bool>(
@@ -29,6 +31,7 @@ Future<bool> showMobileUpdateDialog(
             setState(() {
               installing = true;
               error = null;
+              progress = 0;
             });
             try {
               if (Platform.isAndroid) {
@@ -36,7 +39,13 @@ Future<bool> showMobileUpdateDialog(
                 if (url == null || url.isEmpty) {
                   throw Exception('URL de téléchargement APK absente côté serveur');
                 }
-                await MobileUpdateService.downloadAndInstallAndroid(url);
+                await MobileUpdateService.downloadAndInstallAndroid(
+                  url,
+                  onProgress: (p) {
+                    MobileUpdateController.instance.setDownloadProgress(p);
+                    if (context.mounted) setState(() => progress = p);
+                  },
+                );
               } else {
                 final store = release.storeUrl ?? release.downloadUrl;
                 if (store == null || store.isEmpty) {
@@ -51,8 +60,10 @@ Future<bool> showMobileUpdateDialog(
             } catch (e) {
               setState(() {
                 installing = false;
-                error = e.toString();
+                error = e.toString().replaceFirst('Exception: ', '');
               });
+            } finally {
+              MobileUpdateController.instance.setDownloadProgress(null);
             }
           }
 
@@ -68,13 +79,24 @@ Future<bool> showMobileUpdateDialog(
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                      'Le +N est le numéro de build (chaque APK), pas un patch 1.0.N.',
+                      'Canal OTA : ${MobileUpdateService.releaseChannel}',
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ),
                   if (release.releaseNotes.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Text(release.releaseNotes),
+                  ],
+                  if (installing) ...[
+                    const SizedBox(height: 16),
+                    LinearProgressIndicator(value: progress <= 0 ? null : progress),
+                    const SizedBox(height: 8),
+                    Text(
+                      progress >= 1
+                          ? 'Ouverture de l’installateur…'
+                          : 'Téléchargement ${(progress * 100).clamp(0, 100).toStringAsFixed(0)} %',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                    ),
                   ],
                   if (error != null) ...[
                     const SizedBox(height: 12),
@@ -91,13 +113,7 @@ Future<bool> showMobileUpdateDialog(
                 ),
               FilledButton(
                 onPressed: installing ? null : install,
-                child: installing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(Platform.isAndroid ? 'Télécharger et installer' : 'Ouvrir l’App Store'),
+                child: Text(Platform.isAndroid ? 'Télécharger et installer' : 'Ouvrir l’App Store'),
               ),
             ],
           );

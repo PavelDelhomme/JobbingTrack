@@ -12,9 +12,15 @@ import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/services/app_version_info.dart';
 import 'package:jobbingtrack_mobile/services/local_phone_integrations_service.dart';
+import 'package:jobbingtrack_mobile/services/mobile_update_controller.dart';
+import 'package:jobbingtrack_mobile/services/mobile_update_service.dart';
+import 'package:jobbingtrack_mobile/services/network_recovery_service.dart';
+import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/back_to_home_scope.dart';
+import 'package:jobbingtrack_mobile/widgets/mobile_update_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -37,6 +43,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   DateTime? _callLogSyncedAt;
   DateTime? _phoneContactsSyncedAt;
   bool _phoneSyncing = false;
+  String _appVersion = '…';
+  int _offlinePending = 0;
 
   @override
   void initState() {
@@ -59,6 +67,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final phoneContactsCount = await LocalPhoneIntegrationsService.getLocalPhoneContactsCount();
     final callSynced = await LocalPhoneIntegrationsService.getCallLogSyncedAt();
     final contactsSynced = await LocalPhoneIntegrationsService.getContactsSyncedAt();
+    final version = await AppVersionInfo.get();
+    await OfflineBusinessSyncQueue.instance.initialize();
+    final pending = OfflineBusinessSyncQueue.instance.pendingCount;
+    await MobileUpdateController.instance.refresh(silent: true);
     if (!mounted) return;
     setState(() {
       _consent = consent;
@@ -72,6 +84,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _localPhoneContactsCount = phoneContactsCount;
       _callLogSyncedAt = callSynced;
       _phoneContactsSyncedAt = contactsSynced;
+      _appVersion = version;
+      _offlinePending = pending;
       _loading = false;
     });
   }
@@ -273,12 +287,101 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  _sectionTitle('Application'),
+                  _sectionTitle('Mise à jour & synchronisation'),
                   Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.info_outline),
-                      title: const Text('Version'),
-                      subtitle: const Text('JobbingTrack Mobile 1.0.0'),
+                    child: AnimatedBuilder(
+                      animation: MobileUpdateController.instance,
+                      builder: (context, _) {
+                        final ctrl = MobileUpdateController.instance;
+                        final hasUpdate = ctrl.hasUpdate;
+                        final last = ctrl.lastCheckedAt;
+                        final lastLabel = last == null
+                            ? 'Pas encore vérifié'
+                            : 'Vérifié ${last.hour.toString().padLeft(2, '0')}:${last.minute.toString().padLeft(2, '0')}';
+                        return Column(
+                          children: [
+                            ListTile(
+                              leading: Icon(
+                                hasUpdate ? Icons.system_update_alt : Icons.system_update_outlined,
+                                color: hasUpdate ? Colors.blue : null,
+                              ),
+                              title: Text(hasUpdate ? 'Mise à jour disponible' : 'Application à jour'),
+                              subtitle: Text(
+                                'Version $_appVersion · canal ${MobileUpdateService.releaseChannel}\n'
+                                '$lastLabel'
+                                '${ctrl.lastError != null ? '\nErreur: ${ctrl.lastError}' : ''}',
+                              ),
+                              isThreeLine: true,
+                              trailing: ctrl.checking
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.refresh),
+                              onTap: ctrl.checking
+                                  ? null
+                                  : () async {
+                                      final result = await ctrl.refresh(silent: true);
+                                      if (!mounted) return;
+                                      if (result != null) {
+                                        await showMobileUpdateDialog(
+                                          context,
+                                          release: result.release,
+                                          currentVersion: result.current,
+                                          forceUpdate: result.blocked,
+                                        );
+                                        await ctrl.refresh(silent: true);
+                                      } else if (ctrl.lastError != null) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Vérification échouée: ${ctrl.lastError}')),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Aucune mise à jour disponible')),
+                                        );
+                                      }
+                                      setState(() {});
+                                    },
+                            ),
+                            const Divider(height: 1),
+                            ListTile(
+                              leading: const Icon(Icons.cloud_sync_outlined),
+                              title: const Text('Synchroniser maintenant'),
+                              subtitle: Text(
+                                _offlinePending > 0
+                                    ? '$_offlinePending modification(s) en attente'
+                                    : 'File vide — sync au retour réseau automatique',
+                              ),
+                              trailing: const Icon(Icons.play_arrow),
+                              onTap: () async {
+                                final ok = await NetworkRecoveryService.recoverConnection();
+                                await OfflineBusinessSyncQueue.instance.flush();
+                                await OfflineBusinessSyncQueue.instance.initialize();
+                                if (!mounted) return;
+                                setState(() {
+                                  _offlinePending = OfflineBusinessSyncQueue.instance.pendingCount;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      ok
+                                          ? 'Sync terminée ($_offlinePending restant(s))'
+                                          : 'Réseau indisponible — les actions restent en file',
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            const Divider(height: 1),
+                            ListTile(
+                              leading: const Icon(Icons.info_outline),
+                              title: const Text('Version installée'),
+                              subtitle: Text('$_appVersion · API ${ApiService.baseUrl}'),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],

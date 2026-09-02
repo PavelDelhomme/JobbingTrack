@@ -106,16 +106,19 @@ class OfflineBusinessSyncQueue {
       final ordered = List<_QueuedMutation>.from(_pending)
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-      var index = 0;
-      while (index < ordered.length) {
-        final sent = await _sendItem(ordered[index], token);
-        if (!sent) break;
-        index += 1;
+      final doneIds = <String>{};
+      for (final item in ordered) {
+        final outcome = await _sendItemDetailed(item, token);
+        if (outcome == _FlushOutcome.ok || outcome == _FlushOutcome.drop) {
+          doneIds.add(item.id);
+          continue;
+        }
+        // stop on network / auth — garder le reste en file
+        break;
       }
 
-      if (index > 0) {
-        final sentIds = ordered.take(index).map((e) => e.id).toSet();
-        _pending.removeWhere((e) => sentIds.contains(e.id));
+      if (doneIds.isNotEmpty) {
+        _pending.removeWhere((e) => doneIds.contains(e.id));
         await _persistToDisk();
         debugPrint('[OfflineSync] Flush OK — reste: ${_pending.length}');
       }
@@ -124,7 +127,7 @@ class OfflineBusinessSyncQueue {
     }
   }
 
-  Future<bool> _sendItem(_QueuedMutation item, String? currentToken) async {
+  Future<_FlushOutcome> _sendItemDetailed(_QueuedMutation item, String? currentToken) async {
     try {
       final effectiveToken = currentToken ?? item.token;
       final headers = HttpCorrelation.jsonHeaders(bearerToken: effectiveToken);
@@ -147,24 +150,25 @@ class OfflineBusinessSyncQueue {
           break;
         default:
           debugPrint('[OfflineSync] Méthode ignorée: ${item.method}');
-          return true;
+          return _FlushOutcome.drop;
       }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return true;
+        return _FlushOutcome.ok;
       }
       if (response.statusCode == 401 || response.statusCode == 403) {
-        return false;
+        return _FlushOutcome.retryLater;
       }
       if (response.statusCode >= 500) {
-        return false;
+        return _FlushOutcome.retryLater;
       }
-      debugPrint('[OfflineSync] Rejet ${response.statusCode} sur ${item.path}');
-      return true;
+      // 4xx métier : abandonner l'item pour ne pas bloquer la file
+      debugPrint('[OfflineSync] Rejet ${response.statusCode} sur ${item.path} — drop');
+      return _FlushOutcome.drop;
     } catch (e) {
-      if (isNetworkError(e)) return false;
+      if (isNetworkError(e)) return _FlushOutcome.retryLater;
       debugPrint('[OfflineSync] Erreur envoi ${item.path}: $e');
-      return false;
+      return _FlushOutcome.retryLater;
     }
   }
 
@@ -203,6 +207,8 @@ class OfflineBusinessSyncQueue {
     }
   }
 }
+
+enum _FlushOutcome { ok, drop, retryLater }
 
 class _QueuedMutation {
   _QueuedMutation({

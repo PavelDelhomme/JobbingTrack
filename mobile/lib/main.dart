@@ -48,6 +48,7 @@ import 'package:jobbingtrack_mobile/navigation/app_navigator.dart';
 import 'package:jobbingtrack_mobile/utils/locale_init.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
+import 'package:jobbingtrack_mobile/services/mobile_update_controller.dart';
 import 'package:jobbingtrack_mobile/services/mobile_update_service.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_update_dialog.dart';
 
@@ -305,8 +306,7 @@ class _SplashScreenState extends State<_SplashScreen> {
     _setStatus('Vérification des mises à jour...');
     ({MobileReleaseInfo release, String current, bool optional, bool blocked})? update;
     try {
-      update = await MobileUpdateService.evaluateUpdate()
-          .timeout(const Duration(seconds: 12));
+      update = await MobileUpdateController.instance.refresh(silent: true);
     } catch (e, st) {
       debugPrint('[SPLASH] evaluateUpdate skipped: $e\n$st');
     }

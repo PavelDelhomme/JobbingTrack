@@ -835,20 +835,23 @@ class ApiService {
   }
 
   static Future<void> archiveApplication(String id, {String? token, String? reason}) async {
-    try {
-      final response = await _post(
-        '/api/v1/applications/$id/archive',
+    final path = '/api/v1/applications/$id/archive';
+    final body = <String, dynamic>{
+      if (reason != null && reason.isNotEmpty) 'reason': reason,
+    };
+    await OfflineMutationHelper.executeVoid(
+      method: 'POST',
+      path: path,
+      body: body.isEmpty ? null : body,
+      entityType: 'application',
+      token: token,
+      successStatus: 200,
+      send: () => _post(
+        path,
         headers: _jsonHeaders(token),
-        body: jsonEncode({if (reason != null && reason.isNotEmpty) 'reason': reason}),
-      );
-      if (response.statusCode != 200) {
-        final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
-        throw Exception(body['error'] ?? body['message'] ?? 'Erreur HTTP ${response.statusCode}');
-      }
-    } catch (e) {
-      if (e is Exception) rethrow;
-      throw Exception('Erreur réseau: $e');
-    }
+        body: jsonEncode(body),
+      ),
+    );
   }
 
   static Future<Application> getApplication(String id, {String? token}) async {

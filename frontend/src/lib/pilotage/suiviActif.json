@@ -1,64 +1,41 @@
 {
-  "updatedAt": "2026-08-31",
-  "apk": "1.0.42+42",
+  "updatedAt": "2026-09-02",
+  "apk": "1.0.44+44",
   "phase": {
-    "id": "C",
-    "label": "Déploiement VPS",
-    "step": "J",
-    "subStep": "maintenance-monitoring",
-    "point": "DEPLOY-GHA-01",
-    "title": "Maintenance page + metrics STACK_SLUG — redeploy VPS"
+    "id": "B",
+    "label": "Mobile OTA + offline",
+    "step": "OTA",
+    "subStep": "in-app-resync",
+    "point": "MOB-OTA-OFFLINE-01",
+    "title": "OTA in-app prod + hors-ligne / resync auto"
   },
   "recentDone": [
     {
-      "id": "MONITOR-DOCKER-01-code",
-      "label": "Fix discovery metrics STACK_SLUG + docker.sock (code)"
+      "id": "DEPLOY-MONITOR-17-21",
+      "label": "Monitoring préprod/prod 17/21 (STACK_SLUG + sock)"
     },
     {
-      "id": "MAINT-PAGE-01",
-      "label": "Page /maintenance + flag NEXT_PUBLIC_SITE_MAINTENANCE"
+      "id": "DEPLOY-OTA-143",
+      "label": "OTA 1.0.43 publié prod+préprod"
     },
     {
-      "id": "DEPLOY-J-crash-loadAll",
-      "label": "Fix null-check _loadAll + réinstall prod Nothing"
-    },
-    {
-      "id": "DEPLOY-J-3apps",
-      "label": "3 APK sur Nothing + Samsung + OTA downloadUrl"
+      "id": "MAINT-PAGE-ACTIVE",
+      "label": "Maintenance prod active"
     }
   ],
   "queue": [
     {
-      "id": "MONITOR-DOCKER-01",
-      "status": "active",
-      "label": "Redeploy Portainer préprod+prod (metrics + sock)"
+      "id": "MOB-OTA-OFFLINE-01",
+      "label": "OTA bandeau/Paramètres + offline sync — build 1.0.44 + test porteur"
     },
     {
-      "id": "MAINT-PROD-01",
-      "status": "pending",
-      "label": "Activer maintenance sur stack prod si besoin"
+      "id": "MAINT-OFF",
+      "label": "Désactiver maintenance prod quand OK"
     },
     {
-      "id": "DEPLOY-C3",
-      "status": "pending",
-      "label": "Porteur : détection MAJ OTA"
-    },
-    {
-      "id": "DEPLOY-DNS-backoffice",
-      "status": "pending",
-      "label": "DNS OVH backoffice"
+      "id": "OFFLINE-EVENTS",
+      "label": "Calendrier/events dans file offline (suite)"
     }
   ],
-  "openFixes": [
-    {
-      "id": "MONITOR-DOCKER-01",
-      "label": "Vue 0/21 — redeploy après fix STACK_SLUG",
-      "status": "code_done_await_redeploy"
-    },
-    {
-      "id": "NPM-APEX-CACHE",
-      "label": "Si navigateur → nextcloud : vider cache / vérifier host NPM apex",
-      "status": "note"
-    }
-  ]
+  "focusId": "MOB-OTA-OFFLINE-01"
 }
