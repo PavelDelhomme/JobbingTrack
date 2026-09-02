@@ -70,7 +70,8 @@ class FollowUpProvider with ChangeNotifier {
   }
 
   Future<void> addFollowUp(FollowUp followUp) async {
-    _followUps.add(followUp);
+    _followUps.removeWhere((f) => f.id == followUp.id);
+    _followUps.insert(0, followUp);
     notifyListeners();
   }
 

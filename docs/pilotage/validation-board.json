@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-10T15:13:48.000Z",
+  "updatedAt": "2026-09-02T12:34:35.000Z",
   "cycles": [
     {
       "id": "correctifs-2207",
@@ -574,8 +574,14 @@
       "kind": "task"
     },
     "D.6": {
-      "porteurNote": "◀ à remplir",
-      "history": [],
+      "porteurNote": "Focus 02/09 — reprise gate B après OTA/offline",
+      "history": [
+        {
+          "at": "2026-09-02T12:34:35.000Z",
+          "action": "focus",
+          "note": "En cours après MOB-OTA-OFFLINE-01"
+        }
+      ],
       "id": "D.6",
       "cycleId": "fab-mobile",
       "section": "B2 — FAB",
@@ -616,7 +622,7 @@
           "done": false
         }
       ],
-      "column": "backlog",
+      "column": "doing",
       "kind": "task"
     },
     "APK-BUILD-01": {
@@ -837,23 +843,52 @@
       "expected": "Push dev → GHCR :dev → préprod VPS ; merge main → :latest → prod.",
       "status": "partial",
       "order": 395,
-      "column": "doing",
+      "column": "a_valider",
       "kind": "task",
-      "porteurNote": "Focus 19/08 — agent livré scripts + doc ; porteur : stack VPS DEPLOY-C1",
+      "porteurNote": "Stacks + OTA 1.0.45 OK ; reste maintenance off + merge — focus passé à D.6",
       "history": [
         {
           "at": "2026-08-19T17:00:00.000Z",
           "action": "focus",
           "note": "Priorité porteur — avant MOB-HUB / MOB-LIST"
+        },
+        {
+          "at": "2026-09-02T12:34:35.000Z",
+          "action": "move",
+          "note": "Focus → D.6 FAB Relance"
         }
       ],
       "checklist": [
-        { "id": "scripts", "label": "Scripts deploy/ livrés", "done": true },
-        { "id": "watchtower", "label": "watchtower-compose + labels compose", "done": true },
-        { "id": "deploy-md", "label": "DEPLOY.md + canaux mobile", "done": true },
-        { "id": "ghcr-workflow", "label": "GHCR workflow :prod + public hint", "done": true },
-        { "id": "porteur-stack", "label": "Stack Portainer préprod (DEPLOY-C1)", "done": false },
-        { "id": "porteur-smoke", "label": "Smoke HTTPS + redeploy testé", "done": false }
+        {
+          "id": "scripts",
+          "label": "Scripts deploy/ livrés",
+          "done": true
+        },
+        {
+          "id": "watchtower",
+          "label": "watchtower-compose + labels compose",
+          "done": true
+        },
+        {
+          "id": "deploy-md",
+          "label": "DEPLOY.md + canaux mobile",
+          "done": true
+        },
+        {
+          "id": "ghcr-workflow",
+          "label": "GHCR workflow :prod + public hint",
+          "done": true
+        },
+        {
+          "id": "porteur-stack",
+          "label": "Stack Portainer préprod (DEPLOY-C1)",
+          "done": false
+        },
+        {
+          "id": "porteur-smoke",
+          "label": "Smoke HTTPS + redeploy testé",
+          "done": false
+        }
       ]
     },
     "DEPLOY-C1": {
@@ -1366,5 +1401,5 @@
       "kind": "task"
     }
   },
-  "focusTaskId": "DEPLOY-GHA-01"
+  "focusTaskId": "D.6"
 }

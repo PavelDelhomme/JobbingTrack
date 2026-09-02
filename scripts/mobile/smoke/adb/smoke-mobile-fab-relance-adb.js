@@ -51,8 +51,12 @@ async function ensureLoggedIn(phone, email, password) {
   await phone.tap('Relance');
   await phone.wait(2500);
 
-  if (!(await phone.uiContains('Nouvelle relance'))) {
-    throw new Error('Dialogue « Nouvelle relance » introuvable');
+  // Titre dialog = « Relance » (plus « Nouvelle relance » depuis fix 22/07).
+  const dialogOpen =
+    (await phone.uiContains('Date et heure prévues')) ||
+    ((await phone.uiContains('Relance')) && (await phone.uiContains('Créer')));
+  if (!dialogOpen) {
+    throw new Error('Dialogue Relance introuvable (attendu titre Relance + Créer)');
   }
   console.log('✅ FAB → Relance : dialogue ouvert');
 
@@ -65,8 +69,8 @@ async function ensureLoggedIn(phone, email, password) {
 
   const created =
     (await phone.uiContains('Relance créée')) ||
-    (await phone.uiContains('Relances')) ||
-    !(await phone.uiContains('Nouvelle relance'));
+    (await phone.uiContains('Voir détail')) ||
+    (await phone.uiContains('Relances'));
   if (!created) {
     throw new Error('Création relance depuis FAB : pas de confirmation');
   }

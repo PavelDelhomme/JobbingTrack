@@ -1,22 +1,18 @@
 {
   "updatedAt": "2026-09-02",
-  "apk": "1.0.45+45",
+  "apk": "1.0.46+46",
   "phase": {
     "id": "B",
-    "label": "Mobile OTA + offline",
-    "step": "OTA",
-    "subStep": "offline-events-notifs",
-    "point": "MOB-OTA-OFFLINE-01",
-    "title": "OTA 1.0.45 + hors-ligne calendrier/notifications"
+    "label": "Gate pré-prod mobile",
+    "step": "B2",
+    "subStep": "D.6",
+    "point": "B2-D.6",
+    "title": "FAB → Relance depuis candidature"
   },
   "recentDone": [
     {
-      "id": "MOB-OTA-144",
-      "label": "OTA in-app 1.0.44 (bandeau/Paramètres) publié + install 3 phones"
-    },
-    {
-      "id": "MOB-OFFLINE-EVENTS-NOTIFS",
-      "label": "Cache events + notifs + file sync mutations (1.0.45)"
+      "id": "MOB-OTA-OFFLINE-01",
+      "label": "OTA in-app + hors-ligne 1.0.45 (events/notifs) — PR #27"
     },
     {
       "id": "DEPLOY-MONITOR-17-21",
@@ -25,17 +21,21 @@
   ],
   "queue": [
     {
-      "id": "MOB-OTA-OFFLINE-01",
-      "label": "Porteur : test hors-ligne + OTA 1.0.45 sur Nothing/Samsung/Blackview"
+      "id": "B2-D.6",
+      "label": "FAB Relance — test porteur + smoke ADB"
+    },
+    {
+      "id": "B2-D.7",
+      "label": "FAB → Appel (après D.6 OK)"
+    },
+    {
+      "id": "MOB-HUB-01",
+      "label": "Hubs détail + liens croisés"
     },
     {
       "id": "MAINT-OFF",
-      "label": "Désactiver maintenance prod quand OK"
-    },
-    {
-      "id": "OFFLINE-D7-MERGE",
-      "label": "Conflits merge offline / notifs programmées serveur (D7)"
+      "label": "Désactiver maintenance prod"
     }
   ],
-  "focusId": "MOB-OTA-OFFLINE-01"
+  "focusId": "B2-D.6"
 }

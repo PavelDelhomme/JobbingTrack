@@ -193,9 +193,23 @@
 | OTA **1.0.45** préprod | **OK** | canal `dev` sur api-preprod |
 | Install USB **1.0.45** | **OK** | 3 phones prod ; Samsung+Nothing préprod |
 
+### Session 02/09 — reprise B2-D.6 FAB Relance
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Focus pilotage | **D.6** | DEPLOY-GHA-01 → À valider ; Kanban focusTaskId = D.6 |
+| Sync `FollowUpProvider` à la création FAB | **Livré** | `addFollowUp` immédiat |
+| Snack | **Livré** | label **Voir détail** |
+| Edit relance | **Livré** | date + time picker (comme create) |
+| Tiles détail candidature | **Livré** | `followUpListTitle` (date · canal) |
+| Smoke ADB | **Aligné** | plus « Nouvelle relance » |
+| APK cible | **1.0.46+46** | build + install 3 phones |
+
+**À tester porteur** : candidature → FAB → Relance → Créer → snack → Voir détail ; modifier ; corbeille.
+
 **État hors-ligne (lecture + mutations en file)** : candidatures, entreprises, contacts, entretiens, relances, appels, **événements (lecture)**, **notifications in-app (lecture + lu/suppr)**.  
 **Hors scope mobile (D7 serveur)** : planification / envoi des rappels automatiques (workflow + notification-service).  
-**Reste** : CRUD events UI mobile ; conflits merge ; désactiver maintenance prod ; OTA JT Dev LAN.
+**Reste après D.6** : FAB D.7–D.9 ; MOB-HUB ; désactiver maintenance prod ; merge PR #27.
 
 **Désactiver maintenance prod** (quand prêt) :
 

@@ -1,15 +1,15 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **2 septembre 2026 (soir)**
+Dernière mise à jour : **2 septembre 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : MOB-OTA-OFFLINE-01** — OTA in-app + hors-ligne étendu  
-**Installé USB** : Nothing / Blackview / Samsung → **1.0.44** (prod) ; suite **1.0.45** (events + notifs offline)  
-**Branche** : `feat/mobile-ota-offline-resync` · PR #27  
-**Maintenance prod** : toujours active si non désactivée  
+**Focus (1 seule) : B2-D.6** — FAB → Relance (gate mobile B)  
+**Pourquoi** : OTA/offline **1.0.45** livré (PR #27) ; reprise gate B après deploy  
+**Branche** : `feat/b2-d6-fab-relance`  
+**APK** : **1.0.46** (après rebuild)  
 
-**Prochaine action** : publish OTA **1.0.45** + test hors-ligne calendrier / cloche / CRUD métier.
+**Prochaine action** : valider sur téléphone — candidature → FAB → Relance → Créer → snack « Voir détail ».
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist : [`TODOS.md`](TODOS.md) ▶ En cours  
 
