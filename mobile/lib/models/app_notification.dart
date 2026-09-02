@@ -27,11 +27,24 @@ class AppNotification {
       title: json['title']?.toString() ?? '',
       message: json['message']?.toString() ?? '',
       type: json['type']?.toString() ?? 'INFO',
-      read: json['read'] == true,
+      read: json['read'] == true || json['isRead'] == true,
       readAt: json['readAt'] != null ? DateTime.tryParse(json['readAt'].toString()) : null,
       entityType: json['entityType']?.toString(),
       entityId: json['entityId']?.toString(),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'message': message,
+        'type': type,
+        'read': read,
+        'isRead': read,
+        if (readAt != null) 'readAt': readAt!.toIso8601String(),
+        if (entityType != null) 'entityType': entityType,
+        if (entityId != null) 'entityId': entityId,
+        'createdAt': createdAt.toIso8601String(),
+      };
 }

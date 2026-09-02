@@ -1,77 +1,13 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **31 août 2026 (soir)**
+Dernière mise à jour : **2 septembre 2026 (soir)**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : DEPLOY-GHA-01** — OTA détection MAJ porteur + sortie maintenance  
-**Monitoring** : préprod+prod **17/21 healthy** (plus 0/21) — `STACK_SLUG` + `docker.sock` OK  
-**Maintenance prod** : **ACTIVE** (`SITE_MAINTENANCE_MODE=1`) — `jobbingtrack.com` → `/maintenance`  
-**OTA** : APK **1.0.43+43** publié — prod `channel=production` + préprod `channel=dev`  
-**Branche** : `dev` (PR #26 mergée)  
+**Focus (1 seule) : MOB-PERF-UX-01** — merge + déploiement 1.0.50  
+**Branche** : `feat/mobile-perf-drawer-theme` → merge `dev` / images préprod+prod  
+**APK** : **1.0.50** (thème sombre M3 + unlock + liens + dashboard)  
 
-**Prochaine action** : porteur ouvre les apps Nothing/Samsung → détecte MAJ 1.0.43 ; puis **désactiver maintenance** quand OK.
+**Prochaine action** : valider unlock/thème sombre Nothing ; notifs STATUS_CHANGE après redeploy followup/interview.
 
-Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist **A→J** : [`TODOS.md`](TODOS.md) ▶ En cours  
-
-## Kanban ADHD (règle d’or)
-
-| Colonne | Sens | WIP |
-|---------|------|-----|
-| Inbox retours | Bugs/suggestions utilisateurs (app) | ∞ |
-| Inbox erreurs | Crashes / erreurs auto | ∞ |
-| **À faire** | Prêt, **pas démarré** | ∞ |
-| **▶ En cours** | **UNE** carte focus | **1** |
-| À tester | Preuves `TODOS_A_TESTER` | ∞ |
-| À valider | Gate porteur `TODOS_A_VALIDER` | ∞ |
-| À reprendre | KO / REWORK | ∞ |
-| Plus tard | Reporté | ∞ |
-| Terminées | OK / DONE | ∞ |
-
-Ne mets **jamais** toute la file en « En cours ». Clique **En cours** sur **une** carte seulement.
-
-**UI** : clic carte → **fiche à droite** (desktop ≥1024px) ou **popup** (mobile). Déplacement = sélecteur / recherche de colonne (une carte = une colonne).
-
-### Ce que le Kanban n’est pas
-
-Le board est une **file phase active** (curated), **pas** un dump de tous les `.md` de `docs/`.  
-`docs/pilotage/TODOS.md` + backlog BL-26 / PLAN restent la source large ; seules les cartes seedées apparaissent.  
-Coche « Afficher colonnes calmes » pour voir **Plus tard** / **OK**.
-
-## Fichiers sync live
-
-| Fichier | Rôle |
-|---------|------|
-| `TODOS.md` | À faire / backlog |
-| `TODOS_A_TESTER.md` | Preuves tests |
-| `TODOS_A_VALIDER.md` | Validations + Point exact |
-| `TODOS_DONE.md` | Archive OK |
-| `validation-board.json` | Colonnes, focus, checklists — **ADMIN API only** (jamais `/public`) |
-| `PILOTAGE.md` | Ce fichier |
-| Docs liés (UI Fichiers) | `STATUS.md`, `BACKLOG.md`, `PLAN.md`, `ERRORS.md`, `RESOLUTIONS.md` |
-
-Sécurité : `validation-board.json` et l’édition md passent uniquement par `/api/pilotage/*` (ADMIN+). Pas de static public pour le board.
-
-Décisions UI (OK/KO/PARTIEL/Plus tard/REWORK) + **déplacement de colonne** → écriture md + JSON.
-
-## Onglets UI
-
-1. **Kanban** — colonnes + focus TDAH + inbox retours/erreurs  
-2. **Liste détaillée** — suites / cycles / catalogues md  
-3. **Vue synthèse** — snapshot  
-4. **Fichiers bruts** — édition SUPER_ADMIN  
-
-## Phases
-
-| Phase | Statut |
-|-------|--------|
-| **B** gate mobile | MOB-ENT OK → HUB/LIST en pause → reprise après deploy VPS |
-| **C** déploiement | **DEPLOY-GHA-01** — stacks Portainer préprod+prod OK → login + OTA |
-| D backoffice | board Kanban |
-
-## Règle agent
-
-Lire ce fichier → **focus** Kanban / Point exact → `TODOS_A_TESTER`.  
-Une tâche à la fois.
-
-UI Kanban : classes sémantiques `@/lib/ui` (`jtKanban`) — pas de pastels Tailwind dans le board.
+Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist : [`TODOS.md`](TODOS.md) ▶ En cours  

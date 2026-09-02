@@ -7,6 +7,8 @@ import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
 import 'package:jobbingtrack_mobile/services/network_recovery_service.dart';
 import 'package:jobbingtrack_mobile/services/shell_data_refresh_service.dart';
+import 'package:jobbingtrack_mobile/services/mobile_update_controller.dart';
+import 'package:jobbingtrack_mobile/widgets/mobile_update_dialog.dart';
 
 /// Déclenche le flush télémétrie quand l'app revient au premier plan (fin d'appel, retour réseau).
 class TelemetryLifecycleBridge extends StatefulWidget {
@@ -39,7 +41,26 @@ class _TelemetryLifecycleBridgeState extends State<TelemetryLifecycleBridge>
     CrashReporter.trackAppLifecycle(state.name);
     if (state == AppLifecycleState.resumed) {
       unawaited(_syncPendingTelemetry());
-      unawaited(ShellDataRefreshService.refreshIfStale(force: true));
+      unawaited(ShellDataRefreshService.refreshIfStale(force: false));
+      unawaited(_checkOtaOnResume());
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      // Snapshot perf / file avant mise en arrière-plan (batterie / mémoire).
+      unawaited(MobileAnalyticsService.instance.flushTelemetry());
+    }
+  }
+
+  Future<void> _checkOtaOnResume() async {
+    final result = await MobileUpdateController.instance.refresh(silent: true);
+    if (!mounted || result == null) return;
+    // Ne pas bloquer : le bandeau shell + Paramètres suffisent ; popup seulement si force.
+    if (result.blocked) {
+      await showMobileUpdateDialog(
+        context,
+        release: result.release,
+        currentVersion: result.current,
+        forceUpdate: true,
+      );
     }
   }
 

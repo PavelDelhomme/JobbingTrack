@@ -34,6 +34,16 @@ class ContactProvider with ChangeNotifier {
     }
   }
 
+  void upsertContact(Map<String, dynamic> contact) {
+    final id = contact['id']?.toString();
+    if (id == null || id.isEmpty) return;
+    _contacts = [
+      contact,
+      ..._contacts.where((c) => (c is Map ? c['id']?.toString() : null) != id),
+    ];
+    notifyListeners();
+  }
+
   void clearUserCache() {
     _contacts = [];
     _isLoading = false;

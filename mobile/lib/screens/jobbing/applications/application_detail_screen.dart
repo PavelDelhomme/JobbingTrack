@@ -5,6 +5,9 @@ import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
+import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
+import 'package:jobbingtrack_mobile/providers/contact_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
@@ -185,7 +188,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
       duration: const Duration(seconds: 3),
       action: onOpen != null
           ? SnackBarAction(
-              label: 'Voir',
+              label: 'Voir détail',
               textColor: Colors.white,
               onPressed: onOpen,
             )
@@ -343,8 +346,8 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                   else
                     ..._followUps.map((f) => _linkTile(
                           icon: Icons.schedule_send_outlined,
-                          title: formatSmartEventDate(f.scheduledDate),
-                          subtitle: f.notes ?? followUpStatusLabel(f.status),
+                          title: followUpListTitle(f),
+                          subtitle: followUpStatusLabel(f.status),
                           onTap: () async {
                             final deleted = await Navigator.of(context).push<bool>(
                               MaterialPageRoute(
@@ -633,6 +636,9 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         token: token,
       );
       if (mounted) {
+        try {
+          Provider.of<ContactProvider>(context, listen: false).upsertContact(created);
+        } catch (_) {}
         await _load();
         _showCreatedSnack(
           'Contact ajouté',
@@ -830,7 +836,10 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         ),
       ),
     );
-    if (ok != true || !mounted) return;
+    if (ok != true || !mounted) {
+      notesController.dispose();
+      return;
+    }
     final previousStatus = app.status;
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
@@ -843,6 +852,11 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         contactId: selectedContact?['id']?.toString(),
         token: auth.token,
       );
+      try {
+        await Provider.of<FollowUpProvider>(context, listen: false).addFollowUp(created);
+      } catch (_) {
+        /* best-effort sync onglet Relances */
+      }
       if (mounted) {
         await _load();
         _notifyStatusIfChanged(previousStatus, showSnack: false);
@@ -860,6 +874,8 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    } finally {
+      notesController.dispose();
     }
   }
 
@@ -1021,6 +1037,9 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         contactIds: selectedContacts.map((c) => c['id'].toString()).toList(),
         token: auth.token,
       );
+      try {
+        Provider.of<InterviewProvider>(context, listen: false).addInterview(created);
+      } catch (_) {}
       if (mounted) {
         await _load();
         _notifyStatusIfChanged(previousStatus, showSnack: false);

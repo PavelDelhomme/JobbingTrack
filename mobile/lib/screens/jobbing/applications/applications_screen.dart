@@ -79,8 +79,14 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     _tabController.addListener(_onSubTabChanged);
     ApplicationsSubTabRegistry.registerGoToFirstSubTab(_goToFirstSubTab);
     ApplicationsSubTabRegistry.setCurrentIndex(_tabController.index.clamp(0, 5));
-    ShellTabRegistry.setCurrentTab(1, applicationsSubTab: _tabController.index);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadAll());
+    // Ne jamais écraser le tab shell Accueil (0) tant que cet onglet n'est pas visible.
+    if (widget.isShellVisible) {
+      ShellTabRegistry.setCurrentTab(1, applicationsSubTab: _tabController.index);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (widget.isShellVisible) _loadAll();
+    });
   }
 
   static const _subTabTitles = [
@@ -96,7 +102,9 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     if (!mounted) return;
     final index = _tabController.index;
     ApplicationsSubTabRegistry.setCurrentIndex(index);
-    ShellTabRegistry.setCurrentTab(1, applicationsSubTab: index);
+    if (widget.isShellVisible) {
+      ShellTabRegistry.setCurrentTab(1, applicationsSubTab: index);
+    }
     widget.onSubTabIndexChanged?.call(index);
     if (!_tabController.indexIsChanging) {
       setState(() {});
@@ -119,6 +127,10 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     if (oldWidget.statusFilter != widget.statusFilter) {
       setState(() => _statusFilter = widget.statusFilter);
     }
+    if (!oldWidget.isShellVisible && widget.isShellVisible) {
+      ShellTabRegistry.setCurrentTab(1, applicationsSubTab: _tabController.index);
+      _loadAll();
+    }
   }
 
   @override
@@ -134,15 +146,17 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     _loadAll();
   }
 
-  Future<void> _loadCalls({String? userId}) async {
+  Future<void> _loadCalls({String? userId, String? token}) async {
+    if (!mounted) return;
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final uid = userId ?? auth.user?.id;
-    setState(() => _callsLoading = true);
+    final authToken = token ?? auth.token;
+    if (mounted) setState(() => _callsLoading = true);
     try {
       final result = await OfflineListLoader.load<Call>(
         userId: uid,
         cacheKey: OfflineEntityKeys.calls,
-        fetch: () => ApiService.getCalls(token: auth.token),
+        fetch: () => ApiService.getCalls(token: authToken),
         fromJson: Call.fromJson,
         toJson: (c) => c.toJson(),
       );
@@ -182,7 +196,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
   }
 
   Future<void> _loadAll() async {
-    if (!mounted) return;
+    if (!mounted || !widget.isShellVisible) return;
     final auth = Provider.of<AuthProvider>(context, listen: false);
     await auth.refreshSessionIfOnline();
     if (!mounted) return;
@@ -194,7 +208,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     final interviewProvider = Provider.of<InterviewProvider>(context, listen: false);
     final followUpProvider = Provider.of<FollowUpProvider>(context, listen: false);
 
-    setState(() => _callsLoading = true);
+    if (mounted) setState(() => _callsLoading = true);
 
     await Future.wait([
       appProvider.loadApplications(
@@ -209,7 +223,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
       contactProvider.loadContacts(token: token, userId: userId).catchError((_) {}),
       interviewProvider.loadInterviews(token: token, userId: userId).catchError((_) {}),
       followUpProvider.loadFollowUps(token: token, userId: userId).catchError((_) {}),
-      _loadCalls(userId: userId),
+      _loadCalls(userId: userId, token: token),
     ]);
 
     if (!mounted) return;
@@ -668,7 +682,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
   Widget _buildEntretiensTab() {
     final interviewProvider = Provider.of<InterviewProvider>(context);
     final interviews = interviewProvider.interviews;
-    if (interviewProvider.isLoading) {
+    // Stale-while-revalidate : garder la liste visible pendant le reload.
+    if (interviewProvider.isLoading && interviews.isEmpty) {
       return const Center(child: CircularProgressIndicator(color: Colors.blue));
     }
     if (interviews.isEmpty) {

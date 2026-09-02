@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/services/offline_entity_cache.dart';
+import 'package:jobbingtrack_mobile/services/offline_list_loader.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/calendar_drawer.dart';
@@ -26,6 +28,7 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   List<Map<String, dynamic>> _events = [];
   bool _loading = true;
+  bool _fromCache = false;
   String? _error;
   CalendarViewMode _viewMode = CalendarViewMode.planner;
   CalendarFilters _filters = const CalendarFilters();
@@ -36,7 +39,17 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
   void initState() {
     super.initState();
     _loadPrefs();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.isShellVisible) _load();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant EventsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isShellVisible && widget.isShellVisible) {
+      _load();
+    }
   }
 
   @override
@@ -65,11 +78,25 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
       _error = null;
     });
     try {
-      final token = Provider.of<AuthProvider>(context, listen: false).token;
-      final events = await ApiService.getCalendarEvents(token: token, limit: 200);
-      if (mounted) setState(() => _events = events);
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final result = await OfflineListLoader.loadMaps(
+        userId: auth.user?.id,
+        cacheKey: OfflineEntityKeys.events,
+        fetch: () => ApiService.getCalendarEvents(token: auth.token, limit: 200),
+      );
+      if (mounted) {
+        setState(() {
+          _events = result.items;
+          _fromCache = result.fromCache;
+        });
+      }
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      if (mounted) {
+        setState(() {
+          _error = e.toString().replaceAll('Exception: ', '');
+          _fromCache = false;
+        });
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -151,7 +178,7 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
           children: [
             const Text('Calendrier'),
             Text(
-              viewLabel,
+              _fromCache ? '$viewLabel · hors ligne' : viewLabel,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: Colors.white70,
                     fontWeight: FontWeight.normal,

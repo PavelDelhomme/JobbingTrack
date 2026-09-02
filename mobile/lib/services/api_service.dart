@@ -426,17 +426,21 @@ class ApiService {
     );
   }
 
-  /// Réinitialise la détection API (après mode avion / changement réseau).
+  /// Prépare l’API avant login — sans reset ni double health inutiles.
   static Future<bool> prepareForLogin() async {
-    _resolvedBaseUrl = null;
-    final ok = await autoDetectApi();
-    if (!ok) return false;
-    try {
-      final res = await http.get(Uri.parse('$baseUrl/health')).timeout(const Duration(seconds: 3));
-      return res.statusCode == 200;
-    } catch (_) {
-      return false;
+    const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (fromEnv.isNotEmpty) {
+      // Prod / préprod : URL figée au build — aucun probe (évite 0–2 s inutiles).
+      _resolvedBaseUrl = fromEnv;
+      return true;
     }
+    if (_resolvedBaseUrl != null && _resolvedBaseUrl!.isNotEmpty) {
+      try {
+        final res = await http.get(Uri.parse('$baseUrl/health')).timeout(const Duration(seconds: 2));
+        if (res.statusCode == 200) return true;
+      } catch (_) {}
+    }
+    return autoDetectApi();
   }
 
   static Future<Map<String, dynamic>> login(String email, String password) async {
@@ -835,20 +839,23 @@ class ApiService {
   }
 
   static Future<void> archiveApplication(String id, {String? token, String? reason}) async {
-    try {
-      final response = await _post(
-        '/api/v1/applications/$id/archive',
+    final path = '/api/v1/applications/$id/archive';
+    final body = <String, dynamic>{
+      if (reason != null && reason.isNotEmpty) 'reason': reason,
+    };
+    await OfflineMutationHelper.executeVoid(
+      method: 'POST',
+      path: path,
+      body: body.isEmpty ? null : body,
+      entityType: 'application',
+      token: token,
+      successStatus: 200,
+      send: () => _post(
+        path,
         headers: _jsonHeaders(token),
-        body: jsonEncode({if (reason != null && reason.isNotEmpty) 'reason': reason}),
-      );
-      if (response.statusCode != 200) {
-        final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
-        throw Exception(body['error'] ?? body['message'] ?? 'Erreur HTTP ${response.statusCode}');
-      }
-    } catch (e) {
-      if (e is Exception) rethrow;
-      throw Exception('Erreur réseau: $e');
-    }
+        body: jsonEncode(body),
+      ),
+    );
   }
 
   static Future<Application> getApplication(String id, {String? token}) async {
@@ -1020,36 +1027,39 @@ class ApiService {
   }
 
   static Future<void> markNotificationRead(String id, {String? token}) async {
-    final response = await _put(
-      '/api/v1/notifications/${Uri.encodeComponent(id)}/mark-read',
-      headers: _jsonHeaders(token),
+    final path = '/api/v1/notifications/${Uri.encodeComponent(id)}/mark-read';
+    await OfflineMutationHelper.executeVoid(
+      method: 'PUT',
+      path: path,
+      entityType: 'notification',
+      token: token,
+      successStatus: 200,
+      send: () => _put(path, headers: _jsonHeaders(token)),
     );
-    if (response.statusCode != 200) {
-      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
-      throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
-    }
   }
 
   static Future<void> markAllNotificationsRead({String? token}) async {
-    final response = await _put(
-      '/api/v1/notifications/mark-all-read?scope=in_app',
-      headers: _jsonHeaders(token),
+    final path = '/api/v1/notifications/mark-all-read?scope=in_app';
+    await OfflineMutationHelper.executeVoid(
+      method: 'PUT',
+      path: path,
+      entityType: 'notification',
+      token: token,
+      successStatus: 200,
+      send: () => _put(path, headers: _jsonHeaders(token)),
     );
-    if (response.statusCode != 200) {
-      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
-      throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
-    }
   }
 
   static Future<void> deleteNotification(String id, {String? token}) async {
-    final response = await _delete(
-      '/api/v1/notifications/${Uri.encodeComponent(id)}',
-      headers: _jsonHeaders(token),
+    final path = '/api/v1/notifications/${Uri.encodeComponent(id)}';
+    await OfflineMutationHelper.executeVoid(
+      method: 'DELETE',
+      path: path,
+      entityType: 'notification',
+      token: token,
+      successStatus: 200,
+      send: () => _delete(path, headers: _jsonHeaders(token)),
     );
-    if (response.statusCode != 200) {
-      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
-      throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
-    }
   }
 
   /// Enregistre un token push FCM/APNs (ou dev) côté notification-service.
@@ -1769,10 +1779,12 @@ class ApiService {
             raw.map((e) => Map<String, dynamic>.from(e as Map)),
           );
         }
+        return [];
       }
-      return [];
+      throw Exception('Erreur HTTP ${response.statusCode}');
     } catch (e) {
-      return [];
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
     }
   }
 }

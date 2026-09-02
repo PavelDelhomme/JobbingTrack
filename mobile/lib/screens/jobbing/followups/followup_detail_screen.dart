@@ -100,6 +100,7 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.calendar_today),
                   title: Text(formatSmartEventDate(date)),
+                  subtitle: const Text('Date et heure prévues'),
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: ctx,
@@ -107,7 +108,20 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                     );
-                    if (picked != null) setDialogState(() => date = picked);
+                    if (picked == null || !ctx.mounted) return;
+                    final time = await showTimePicker(
+                      context: ctx,
+                      initialTime: TimeOfDay.fromDateTime(date),
+                    );
+                    setDialogState(() {
+                      date = DateTime(
+                        picked.year,
+                        picked.month,
+                        picked.day,
+                        time?.hour ?? date.hour,
+                        time?.minute ?? date.minute,
+                      );
+                    });
                   },
                 ),
                 DropdownButtonFormField<String>(
@@ -140,10 +154,14 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
         ),
       ),
     );
-    if (ok != true || !mounted) return;
+    if (ok != true || !mounted) {
+      notesController.dispose();
+      responseController.dispose();
+      return;
+    }
     try {
       final token = Provider.of<AuthProvider>(context, listen: false).token;
-      await ApiService.updateFollowUp(
+      final updated = await ApiService.updateFollowUp(
         f.id,
         followUpDate: date,
         notes: notesController.text.trim(),
@@ -151,12 +169,21 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
         status: status,
         token: token,
       );
+      try {
+        await Provider.of<FollowUpProvider>(context, listen: false)
+            .updateFollowUp(updated.id, updated);
+      } catch (_) {
+        /* best-effort sync liste globale */
+      }
       if (mounted) {
         AppSnack.success('Relance mise à jour', context: context);
         _load();
       }
     } catch (e) {
       if (mounted) AppSnack.error('Erreur: $e', context: context);
+    } finally {
+      notesController.dispose();
+      responseController.dispose();
     }
   }
 

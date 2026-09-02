@@ -7,6 +7,8 @@ import 'package:jobbingtrack_mobile/screens/jobbing/applications/applications_sc
 import 'package:jobbingtrack_mobile/screens/jobbing/calendar/events_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/dashboard/home_dashboard_tab.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/users/profile_screen.dart';
+import 'package:jobbingtrack_mobile/widgets/mobile_update_banner.dart';
+import 'package:jobbingtrack_mobile/widgets/shell_connectivity_banner.dart';
 
 /// Shell principal : 4 onglets (Accueil, Candidatures, Calendrier, Profil).
 /// La recherche globale reste dans la barre du haut — pas dans la navigation basse.
@@ -37,6 +39,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
   int _applicationsResetEpoch = 0;
   DateTime? _lastBackToBackgroundPrompt;
   bool _handlingSystemBack = false;
+  late final Set<int> _mountedTabs;
 
   @override
   void initState() {
@@ -45,6 +48,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     _applicationsTabIndex = widget.applicationsTabIndex;
     _applicationStatusFilter = widget.applicationStatusFilter;
     _pendingReturnTab = widget.returnTabOnBack;
+    _mountedTabs = {_selectedIndex};
     _syncShellRegistry();
     ShellBackRegistry.registerSystemBackHandler(_handleSystemBack);
     ShellNavigationRegistry.registerApplyHandler(_applyShellNavigation);
@@ -61,6 +65,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     ShellDrawerRegistry.closeAllDrawers();
     setState(() {
       _selectedIndex = args.initialTab.clamp(0, 3);
+      _mountedTabs.add(_selectedIndex);
       if (_applicationsTabIndex != args.applicationsTabIndex ||
           _applicationStatusFilter != args.applicationStatusFilter) {
         _applicationsTabIndex = args.applicationsTabIndex;
@@ -87,6 +92,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     ShellDrawerRegistry.closeAllDrawers();
     setState(() {
       _selectedIndex = index;
+      _mountedTabs.add(index);
       _pendingReturnTab = null;
       _syncShellRegistry();
     });
@@ -96,6 +102,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     ShellDrawerRegistry.closeAllDrawers();
     setState(() {
       _selectedIndex = 1;
+      _mountedTabs.add(1);
       _applicationsTabIndex = tabIndex;
       _applicationStatusFilter = statusFilter;
       _pendingReturnTab = null;
@@ -229,39 +236,56 @@ class _MainShellScreenState extends State<MainShellScreen> {
         if (!didPop) _handleSystemBack();
       },
       child: Scaffold(
-        body: IndexedStack(
+        body: Column(
+          children: [
+            const MobileUpdateBanner(),
+            const ShellConnectivityBanner(),
+            Expanded(
+              child: IndexedStack(
                 index: _selectedIndex,
                 children: [
-            HomeDashboardTab(
-              isShellVisible: _selectedIndex == 0,
-              onOpenApplications: ({required applicationsTabIndex, statusFilter}) {
-              _openApplications(tabIndex: applicationsTabIndex, statusFilter: statusFilter);
-            }),
-            ApplicationsScreen(
-              key: ValueKey('apps-$_applicationsResetEpoch-$_applicationsTabIndex-${_applicationStatusFilter ?? ''}'),
-              initialTabIndex: _applicationsTabIndex,
-              statusFilter: _applicationStatusFilter,
-              isShellVisible: _selectedIndex == 1,
-              onSubTabIndexChanged: (index) {
-                if (_applicationsTabIndex != index) {
-                  setState(() {
-                    _applicationsTabIndex = index;
-                    _syncShellRegistry();
-                  });
-                }
-              },
-            ),
-            EventsScreen(isShellVisible: _selectedIndex == 2),
-            ProfileScreen(isShellVisible: _selectedIndex == 3),
+                  _mountedTabs.contains(0)
+                      ? HomeDashboardTab(
+                          isShellVisible: _selectedIndex == 0,
+                          onOpenApplications: ({required applicationsTabIndex, statusFilter}) {
+                            _openApplications(tabIndex: applicationsTabIndex, statusFilter: statusFilter);
+                          },
+                        )
+                      : const SizedBox.shrink(),
+                  _mountedTabs.contains(1)
+                      ? ApplicationsScreen(
+                          key: ValueKey(
+                            'apps-$_applicationsResetEpoch-$_applicationsTabIndex-${_applicationStatusFilter ?? ''}',
+                          ),
+                          initialTabIndex: _applicationsTabIndex,
+                          statusFilter: _applicationStatusFilter,
+                          isShellVisible: _selectedIndex == 1,
+                          onSubTabIndexChanged: (index) {
+                            if (_applicationsTabIndex != index) {
+                              setState(() {
+                                _applicationsTabIndex = index;
+                                _syncShellRegistry();
+                              });
+                            }
+                          },
+                        )
+                      : const SizedBox.shrink(),
+                  _mountedTabs.contains(2)
+                      ? EventsScreen(isShellVisible: _selectedIndex == 2)
+                      : const SizedBox.shrink(),
+                  _mountedTabs.contains(3)
+                      ? ProfileScreen(isShellVisible: _selectedIndex == 3)
+                      : const SizedBox.shrink(),
                 ],
+              ),
+            ),
+          ],
         ),
         bottomNavigationBar: SafeArea(
           top: false,
           child: BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
             currentIndex: _selectedIndex,
-            selectedItemColor: Colors.blue[600],
-            unselectedItemColor: Colors.grey[400],
             onTap: _onBottomNavTap,
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),

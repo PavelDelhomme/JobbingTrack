@@ -17,7 +17,7 @@ class MobileAnalyticsService extends ChangeNotifier {
   MobileAnalyticsService._();
   static final MobileAnalyticsService instance = MobileAnalyticsService._();
 
-  static const Duration flushInterval = Duration(minutes: 5);
+  static const Duration flushInterval = Duration(minutes: 2);
 
   bool _consent = false;
   bool _performanceEnabled = true;
@@ -43,8 +43,9 @@ class MobileAnalyticsService extends ChangeNotifier {
     if (authToken != null) {
       CrashReporter.setToken(authToken);
       if (_consent) {
-        await _registerDevice();
-        await AnalyticsTelemetryQueue.instance.flush(authTokenOverride: authToken);
+        // Ne jamais bloquer login / déverrouillage sur register device + flush.
+        unawaited(_registerDevice());
+        unawaited(AnalyticsTelemetryQueue.instance.flush(authTokenOverride: authToken));
       }
     } else {
       CrashReporter.setToken(null);

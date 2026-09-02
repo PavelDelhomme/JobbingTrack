@@ -4,12 +4,12 @@
 > Tu remplis **uniquement** ce fichier pour la phase en cours. Pas d’autres phases ici.  
 > **UI** : `/backoffice/pilotage` → onglet **Tableau de suivi** (OK/KO écrit ici automatiquement en dev/préprod).
 
-**Phase active** : **C — Déploiement VPS** (**jobbingtrack.com**, style YTMusic)  
-**Point exact** : **DEPLOY-GHA-01** — seul **En cours** Kanban  
-**Guide** : [`DEPLOY.md`](../../DEPLOY.md) · checklist complète A→J dans [`TODOS.md`](TODOS.md)  
-**Mobile** : MOB-HUB / MOB-LIST en pause · validation OTA = **Nothing Phone** · APK **1.0.42**
+**Phase active** : **B — Gate pré-prod mobile**  
+**Point exact** : **B2-D.6** — FAB → Relance (seul **En cours** Kanban)  
+**Guide** : candidature → FAB Ajouter → Relance → Créer → snack + Voir détail  
+**APK** : **≥ 1.0.46** · OTA/offline 1.0.45 livré (PR #27) · deploy C largement OK  
 
-> **Kanban** : badge = **colonne**. Focus deploy avant reprise gate mobile B / hubs.
+> **Kanban** : badge = **colonne**. Focus **D.6** ; DEPLOY-GHA-01 en **À valider** (reste maintenance / merge).
 
 ---
 
@@ -17,27 +17,15 @@
 
 | # | ID / étape | À valider | Décision | Notes |
 |---|------------|-----------|----------|-------|
-| 1 | **A** local | Stack + MailHog 8125 + HTTPS `:5443` | **OK agent 28/08** | proxy remis |
-| 2 | **B** DNS | `api` + `preprod` + `api-preprod` → `95.111.227.204` | **OK porteur 24/08** | dig OK |
-| 3 | **C** env | `.env.preprod.generated` URLs `.com` | **PARTIEL** | fichiers présents — re-check avant Update |
-| 4 | **D / DEPLOY-C1** | Stack préprod healthy | **OK 28/08** | Portainer Id 32 |
-| 5 | **E / DEPLOY-C2** | NPM 2 hosts + LE | **OK 28/08** | |
-| 6 | **F** smoke | HTTPS health + `/login` | **OK 28/08** | **◀ login admin à valider** |
-| 7 | **G** | GHCR public + Watchtower + `IMAGE_PULL_POLICY=always` | **PARTIEL** | `:latest` OK via channel=prod |
-| 8 | **H** | `admin-deploy-dev.sh` OK une fois | | |
-| 9 | **I** | Stack + NPM **prod** | **OK agent 28/08** | Portainer Id 33 · apex/www/api LE |
-| 10 | **J / DEPLOY-C3** | OTA canal `dev` sur **Nothing** puis promote | | détail = `DEPLOY.md` §15 |
+| 1 | **D.6** | Candidature → FAB → Relance → Créer | | snack + Voir détail |
+| 2 | **D.6** | Modifier (+ heure) + corbeille | | liste rafraîchie |
+| 3 | **D.6** | Snack auto-dismiss | | pas collée |
+| 4 | **APK** | Version ≥ 1.0.46 | | Nothing / Samsung / Blackview |
 
-**OK global phase C (préprod)** quand B→F cochés OK :
+**OK global D.6** :
 
 ```text
-OK Déploiement — préprod jobbingtrack.com (DNS + Portainer + NPM + login)
-```
-
-**OK global phase C (prod + mobile)** quand I + J OK :
-
-```text
-OK Déploiement — prod + OTA Nothing (dev → production)
+OK B2-D.6 — FAB Relance (création + détail + snacks)
 ```
 
 ---
@@ -46,20 +34,16 @@ OK Déploiement — prod + OTA Nothing (dev → production)
 
 | # | ID | Colonne | À faire | Décision | Notes |
 |---|----|---------|---------|----------|-------|
-| 1 | **DEPLOY-GHA-01** | ▶ En cours | Checklist A→J (voir `TODOS.md`) | **PARTIEL agent** | scripts + doc OK ; ops porteur |
-| 2 | **DEPLOY-C1→C3** | dans GHA-01 | D Portainer · E NPM · J OTA | | pas de 2e carte En cours |
-| 3 | **DEPLOY-MAKE** | À tester | Cibles Make documentées (ne pas lancer make dans Cursor) | | scripts sous-jacents OK |
-| 4 | **MOB-HUB-01** | À faire | Hubs détail + liens croisés | | **pause** — après F |
-| 5 | **MOB-LIST-01** | À valider | Cartes listes métadonnées | **PARTIEL agent** | après HUB |
-| 6 | **MOB-NAV-01** | À faire | Retours système depuis chaque détail | | après HUB |
-| 7 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | après NAV |
-| 8 | **D.6** | À faire | FAB Relance | | après snacks |
-| 9 | D.7→D.9 | Plus tard | FAB Appel / Entretien / Contact | | après D.6 |
-| 10 | E.10→F.12 | Plus tard | Shell re-tap / FAB contacts / double retour | | après FAB |
-| 11 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **OK agent 04/08** | confirmer Nothing |
-| 12 | **PILOTAGE-PERF** | À tester | Page pilotage trop lente | **PARTIEL 10/08** | après deploy |
-| 13 | **AUDIT-QA-01** | Plus tard | Audit QA exhaustif | | après gate B |
-| 14 | **BACKEND-CLEAN-01** | Plus tard | Mutualiser logger/email/utils microservices | | **après** deploy — voir note auth-service |
+| 1 | **D.6** | ▶ En cours | FAB Relance | | focus |
+| 2 | **D.7→D.9** | À faire | FAB Appel / Entretien / Contact | | après D.6 |
+| 3 | **MOB-HUB-01** | À faire | Hubs détail + liens croisés | | après FAB |
+| 4 | **MOB-LIST-01** | À valider | Cartes listes métadonnées | **PARTIEL agent** | |
+| 5 | **MOB-NAV-01** | À faire | Retours système depuis chaque détail | | après HUB |
+| 6 | **MOB-SNACK-01** | À faire | Snacks auto-dismiss | | lié D.6 |
+| 7 | **DEPLOY-GHA-01** | À valider | Fin phase C (maint off, merge) | **PARTIEL** | stacks + OTA OK |
+| 8 | **APK-BUILD-01** | À valider | Rebuild sans Zip + install | **OK agent** | |
+| 9 | E.10→F.12 | Plus tard | Shell re-tap / FAB contacts / double retour | | après FAB |
+| 10 | **AUDIT-QA-01** | Plus tard | Audit QA exhaustif | | après gate B |
 
 ---
 
@@ -68,14 +52,12 @@ OK Déploiement — prod + OTA Nothing (dev → production)
 | ID | À faire | Décision | Notes |
 |----|---------|----------|-------|
 | **MOB-ENT-01** | Hub entreprise Capgemini | **OK 29/07** | |
-| **MOB-HUB-01** | Liens croisés fiches | | pause jusqu’à préprod |
-| **APK-BUILD-01** | Rebuild APK 1.0.42 | **OK agent 04/08** | re-test Nothing |
+| **MOB-OTA-OFFLINE-01** | OTA in-app + hors-ligne | **Livré 1.0.45** | PR #27 |
 | **WEB-LOGIN-01** | Login bandeau FR | **OK 22/07** | |
-| **PILOTAGE-PERF** | Perf `/backoffice/pilotage` | **PARTIEL** | À tester après deploy |
 
 ---
 
-## B2 — Navigation + FAB (pause — reprise après deploy)
+## B2 — Navigation + FAB
 
 | Point | À faire | Décision | Notes |
 |-------|---------|----------|-------|
@@ -83,7 +65,7 @@ OK Déploiement — prod + OTA Nothing (dev → production)
 | B.3 | USER drawer sans Administration | **OK 22/07** | |
 | B.4 | ADMIN impersonnaliser → hub | **OK 22/07** | |
 | C.5 | Liste Relances sans crash | **OK 22/07** | |
-| **D.6** | FAB → Relance | | reprise après MOB-HUB |
+| **D.6** | FAB → Relance | | **◀ En cours** |
 | D.7–D.9 / E–F | FAB + shell | | après D.6 |
 
 ---
@@ -91,12 +73,11 @@ OK Déploiement — prod + OTA Nothing (dev → production)
 ## Note porteur — auth-service / backend (pas maintenant)
 
 `backend/auth-service` est plus gros que application/contact/… parce qu’il porte **auth + e-mail (SMTP/Resend/templates) + agent IMAP/OAuth + digests + logging sécurité/central** — pas un CRUD mince.  
-Les `logger.js` / `logger-filter.js` / `centralLogger.js` / `email*` sont liés à ce périmètre (et des copies depuis `backend/shared`).  
-**BACKEND-CLEAN-01** = après deploy : package partagé, supprimer les doublons entre services. **Ne pas démarrer pendant DEPLOY-GHA-01.**
+**BACKEND-CLEAN-01** = après gate B : package partagé. **Ne pas démarrer pendant D.6.**
 
 ---
 
-## B3 — SMTP OVH `@jobbingtrack.com` (⏸ après deploy / B2)
+## B3 — SMTP OVH `@jobbingtrack.com` (⏸ après B2)
 
 | # | Action | Décision | Notes |
 |---|--------|----------|-------|

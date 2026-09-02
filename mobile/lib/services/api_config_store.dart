@@ -207,6 +207,17 @@ class ApiConfigStore {
   static const _keyCalendarFilterFollowups = 'calendar_filter_followups';
   static const _keyCalendarFilterEvents = 'calendar_filter_events';
   static const _keyCalendarFilterInterim = 'calendar_filter_interim';
+  static const _keyThemeMode = 'ui_theme_mode';
+
+  static Future<String> loadThemeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyThemeMode) ?? 'system';
+  }
+
+  static Future<void> saveThemeMode(String mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyThemeMode, mode);
+  }
 
   static Future<String> loadCalendarViewMode() async {
     final prefs = await SharedPreferences.getInstance();

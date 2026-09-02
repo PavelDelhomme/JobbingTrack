@@ -168,7 +168,99 @@
 | OTA prod `1.0.43+43` | **OK** | `channel=production` + `downloadUrl` |
 | OTA préprod `1.0.43+43` | **OK** | `channel=dev` + `downloadUrl` |
 | OTA flavor JT Dev (LAN) | **Non publié** | stack locale arrêtée — à faire au besoin |
-| Porteur détection MAJ apps | **À tester** | Nothing + Samsung sans forcer install |
+| Porteur détection MAJ apps | **KO porteur 02/09** | indicateur prod insuffisant (splash only) → chantier MOB-OTA-OFFLINE-01 |
+
+### Session 02/09 — OTA in-app + hors-ligne / resync
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Cause OTA « invisible » | **Identifiée** | check **splash only** ; erreur silencieuse ; Paramètres affichait version **1.0.0** figée ; pas de bandeau shell |
+| API prod latest `production` | **OK** | `1.0.43+43` + downloadUrl 62 Mo (avant rebuild 1.0.44) |
+| Correctifs livrés (branche) | **En cours** | `MobileUpdateController` + bandeau shell + Paramètres « Vérifier MAJ » + progress download |
+| Offline | **Amélioré** | `archiveApplication` en file ; bandeau sync shell ; flush drop 4xx sans bloquer ; sync manuelle Paramètres |
+| Resync auto | **Déjà + renforcé** | `NetworkRecoveryService` + resume lifecycle + OTA recheck si force |
+| Version cible | **1.0.44+44** | publié prod + install USB 3 phones |
+
+### Session 02/09 soir — offline events/notifs + OTA 1.0.45
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Install USB **1.0.44** | **OK** | Blackview + Samsung + Nothing (prod) ; préprod Samsung/Nothing |
+| Offline calendrier | **Livré** | `OfflineListLoader` + clé `events` ; `getCalendarEvents` ne avale plus les erreurs |
+| Offline cloche | **Livré** | cache `notifications` ; mark-read / mark-all / delete en file |
+| File sync | **Étendue** | préfixes `/api/v1/events` + `/api/v1/notifications` |
+| OTA **1.0.45** prod | **OK** | canal `production` |
+| OTA **1.0.45** préprod | **OK** | canal `dev` sur api-preprod |
+| Install USB **1.0.45** | **OK** | 3 phones prod ; Samsung+Nothing préprod |
+
+### Session 02/09 — MOB-PERF-UX-01d (thème sombre M3 — 1.0.50)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Thème sombre Material 3 | **Livré** | palette slate (#0B0F14), surfaces, primary #60A5FA |
+| Drawer / bottom nav / inputs | **Adapté** | plus de gris clair sur fond sombre |
+| Admin hub + pilotage | **Refonte cartes** | surfaces + accent (plus blocs blancs/orange) |
+| Accueil + cartes candidatures | **Adapté** | `ColorScheme` partout |
+| APK Nothing 3 apps | **1.0.50+50** | install adb + OTA prod/préprod |
+
+**À tester** : Paramètres → Apparence → Sombre ; Admin + Accueil + Candidatures.
+
+### Session 02/09 — MOB-PERF-UX-01c (1.0.49 OTA Nothing + perf)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Perf splash / login / home | **Livré** | session keep+secure parallèle ; login prefs parallèle ; délai bio 400 ms retiré ; splash prod non bloqué autoDetect ; dashboard barre fine (plus de spinner plein écran) ; FU SWR |
+| OTA prod `production` | **OK** | latest 1.0.49+49 + downloadUrl ; réinstall Nothing depuis artefact OTA |
+| OTA préprod `dev` + `preprod` | **OK** | JT Préprod écoute `dev` ; publish dual |
+| OTA local / JT Dev | **Skip** | API LAN `192.168.1.134:5002` down — APK install adb only |
+| Nothing 3 apps | **1.0.49** | Dev + Préprod + Prod lancés (pid OK) |
+| APK | **1.0.49+49** | |
+
+### Session 02/09 — MOB-PERF-UX-01b (unlock ultra + liens + notifs + dashboard)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Unlock lent (probe health / persist / delay 350 ms) | **Corrigé** | prod : **aucun** probe avant login ; persist/analytics/push `unawaited` ; delay bio retiré ; session mémoire → Accueil immédiat |
+| FAB create contact / entretien → providers | **Livré** | `upsertContact` / `addInterview` + relance déjà sync |
+| Notifs `STATUS_CHANGE` cascade FU/IV | **Code serveur** | followup + interview controllers ; **redeploy** services VPS requis pour effet prod |
+| Dashboard Accueil | **Polish** | offline banner, empty « À venir », tap détail, refresh, actions sans emoji |
+| APK | **1.0.48+48** | install 3 phones + OTA production |
+
+**À tester porteur (Nothing)** : kill app → ouvrir → empreinte → Accueil (ressenti &lt; ~1 s après bio) ; FAB contact/entretien depuis candidature ; cloche après changement statut (après redeploy API).
+
+### Session 02/09 — MOB-PERF-UX-01 (login / drawer / thème / crashes)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Crash Logs `Null check State.context` `_loadAll` | **Corrigé** | load seulement si onglet visible + `mounted` ; lazy IndexedStack |
+| Drawer Accueil → Candidatures sélectionné | **Corrigé** | plus de `setCurrentTab(1)` si invisible |
+| Login / cold start lent | **Amélioré** | lazy tabs ; OTA optionnelle non bloquante ; analytics `unawaited` |
+| Liste Entretiens spinner plein écran | **Corrigé** | stale-while-revalidate + debounce 20s |
+| Versions Paramètres vs drawer | **Aligné** | `displayVersionLine` des deux côtés |
+| Thème clair/sombre/système | **Livré** | Paramètres → Apparence |
+| Perf télémétrie | **Amélioré** | flush 2 min + snapshot à `paused` ; refresh shell 30s |
+| Crashes API récents | **4× même stack 29/08** | `_ApplicationsScreenState._loadAll` — fix ci-dessus |
+| APK | **1.0.47+47** | build + install 3 phones |
+
+**Reste (file)** : validation FAB D.6 porteur ; sync CRUD/notifs serveur D7 ; dashboard polish ; maintenance prod off.
+
+### Session 02/09 — reprise B2-D.6 FAB Relance
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Focus pilotage | **D.6** | DEPLOY-GHA-01 → À valider ; Kanban focusTaskId = D.6 |
+| Sync `FollowUpProvider` à la création FAB | **Livré** | `addFollowUp` immédiat |
+| Snack | **Livré** | label **Voir détail** |
+| Edit relance | **Livré** | date + time picker (comme create) |
+| Tiles détail candidature | **Livré** | `followUpListTitle` (date · canal) |
+| Smoke ADB | **Aligné** | plus « Nouvelle relance » |
+| APK cible | **1.0.46+46** | build + install 3 phones |
+
+**À tester porteur** : candidature → FAB → Relance → Créer → snack → Voir détail ; modifier ; corbeille.
+
+**État hors-ligne (lecture + mutations en file)** : candidatures, entreprises, contacts, entretiens, relances, appels, **événements (lecture)**, **notifications in-app (lecture + lu/suppr)**.  
+**Hors scope mobile (D7 serveur)** : planification / envoi des rappels automatiques (workflow + notification-service).  
+**Reste après D.6** : FAB D.7–D.9 ; MOB-HUB ; désactiver maintenance prod ; merge PR #27.
 
 **Désactiver maintenance prod** (quand prêt) :
 

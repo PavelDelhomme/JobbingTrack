@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -42,11 +44,16 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _initOptions() async {
-    final keep = await ApiConfigStore.loadKeepLoggedIn();
-    final bio = await ApiConfigStore.loadBiometricUnlockEnabled();
-    final supported = await BiometricAuthService.canOfferUnlockOption();
-    final creds = await BiometricCredentialStore.load();
-    final skipBioTest = kDebugMode && await ApiConfigStore.loadTestAutomationSkipBiometric();
+    final (keep, bio, supported, creds, skipFlag) = await (
+      ApiConfigStore.loadKeepLoggedIn(),
+      ApiConfigStore.loadBiometricUnlockEnabled(),
+      BiometricAuthService.canOfferUnlockOption(),
+      BiometricCredentialStore.load(),
+      kDebugMode
+          ? ApiConfigStore.loadTestAutomationSkipBiometric()
+          : Future<bool>.value(false),
+    ).wait;
+    final skipBioTest = kDebugMode && skipFlag;
     if (mounted) {
       setState(() {
         _keepLoggedIn = keep;
@@ -63,9 +70,9 @@ class _LoginScreenState extends State<LoginScreen> {
           _savedAccountEmail != null &&
           supported &&
           !_showFullLoginForm) {
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          await Future<void>.delayed(const Duration(milliseconds: 400));
-          if (mounted) await _loginWithBiometric(auto: true);
+        // Empreinte dès le prochain frame — plus de délai artificiel 400 ms.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _loginWithBiometric(auto: true);
         });
       }
     }
@@ -195,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
         keepLoggedIn: true,
         enableBiometric: bioEnabled || _enableBiometric,
       );
-      await MobileAnalyticsService.instance.initialize(authToken: authProvider.token);
+      unawaited(MobileAnalyticsService.instance.initialize(authToken: authProvider.token));
       await _navigateAfterLogin(biometricEnabled: true, skipUnlockScreen: true);
     } catch (e) {
       debugPrint('[LOGIN] Erreur empreinte: $e');
@@ -252,7 +259,7 @@ class _LoginScreenState extends State<LoginScreen> {
         keepLoggedIn: _keepLoggedIn,
         enableBiometric: _keepLoggedIn && _enableBiometric,
       );
-      await MobileAnalyticsService.instance.initialize(authToken: authProvider.token);
+      unawaited(MobileAnalyticsService.instance.initialize(authToken: authProvider.token));
       if (mounted) {
         await _navigateAfterLogin(
           biometricEnabled: _keepLoggedIn && _enableBiometric,

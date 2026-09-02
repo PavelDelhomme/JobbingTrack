@@ -13,6 +13,8 @@ abstract final class OfflineEntityKeys {
   static const interviews = 'interviews';
   static const followUps = 'followUps';
   static const calls = 'calls';
+  static const events = 'events';
+  static const notifications = 'notifications';
 }
 
 /// Persistance locale des listes métier pour consultation hors connexion.

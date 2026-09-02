@@ -26,7 +26,10 @@ async function updateApplicationStatus(applicationId, statusCode, comment, userI
     }
     const statusRow = await prisma.applicationStatus.findFirst({ where: { code: statusCode } });
     if (!statusRow) return;
-    const app = await prisma.application.findUnique({ where: { id: applicationId }, select: { statusId: true, userId: true, statusEngineOptOut: true } });
+    const app = await prisma.application.findUnique({
+      where: { id: applicationId },
+      select: { statusId: true, userId: true, statusEngineOptOut: true, position: true, status: { select: { code: true } } }
+    });
     if (!app || app.statusId === statusRow.id) return;
     if (app.statusEngineOptOut === true) {
       logger.info(`Cascade ignorée pour candidature ${applicationId} (statusEngineOptOut=true)`);
@@ -44,6 +47,24 @@ async function updateApplicationStatus(applicationId, statusCode, comment, userI
     });
     await prisma.application.update({ where: { id: applicationId }, data: { statusId: statusRow.id } });
     logger.info(`Statut candidature ${applicationId} mis à jour → ${statusCode}`);
+
+    if (typeof prisma.notification?.create === 'function' && app.userId) {
+      try {
+        const prevCode = app.status?.code || '?';
+        await prisma.notification.create({
+          data: {
+            userId: app.userId,
+            title: 'Changement de statut',
+            message: `Candidature "${app.position || ''}" : ${prevCode} → ${statusCode}`,
+            type: 'STATUS_CHANGE',
+            entityType: 'Application',
+            entityId: applicationId
+          }
+        });
+      } catch (e) {
+        logger.warn('Création notification statut (cascade entretien):', e.message);
+      }
+    }
   } catch (e) {
     logger.warn(`Cascade statut candidature échouée (${statusCode}):`, e.message);
   }

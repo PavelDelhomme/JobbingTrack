@@ -62,9 +62,9 @@ class PilotageScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.amber.shade50,
+                color: theme.colorScheme.tertiaryContainer,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.shade200),
+                border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.4)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,7 +73,7 @@ class PilotageScreen extends StatelessWidget {
                     'VOUS ÊTES ICI',
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: Colors.amber.shade900,
+                      color: theme.colorScheme.onTertiaryContainer,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -99,7 +99,7 @@ class PilotageScreen extends StatelessWidget {
               'Décisions OK / KO / PARTIEL / Plus tard : uniquement via\n'
               'https://jobbingtrack.localhost:5443/backoffice/pilotage\n'
               '(pas http://localhost:5003 — provoque ERR_SSL si forcé en https)',
-              style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 20),
             Text('File B2', style: theme.textTheme.titleMedium),
@@ -111,7 +111,7 @@ class PilotageScreen extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(
                   active ? Icons.play_arrow : Icons.schedule,
-                  color: active ? Colors.amber.shade800 : Colors.grey,
+                  color: active ? theme.colorScheme.tertiary : theme.colorScheme.onSurfaceVariant,
                 ),
                 title: Text('$id — $label'),
                 subtitle: Text(active ? 'en cours' : 'en attente'),

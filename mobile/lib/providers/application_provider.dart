@@ -34,10 +34,14 @@ class ApplicationProvider with ChangeNotifier {
     String? userId,
     Future<String?> Function()? renewToken,
   }) async {
-    _isLoading = true;
-    _lastError = null;
-    _notifySafely();
-
+    final showSpinner = _applications.isEmpty;
+    if (showSpinner) {
+      _isLoading = true;
+      _lastError = null;
+      _notifySafely();
+    } else {
+      _lastError = null;
+    }
     try {
       final result = await OfflineListLoader.load<Application>(
         userId: userId,

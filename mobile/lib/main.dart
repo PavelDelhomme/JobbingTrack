@@ -48,7 +48,9 @@ import 'package:jobbingtrack_mobile/navigation/app_navigator.dart';
 import 'package:jobbingtrack_mobile/utils/locale_init.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
-import 'package:jobbingtrack_mobile/services/mobile_update_service.dart';
+import 'package:jobbingtrack_mobile/services/mobile_update_controller.dart';
+import 'package:jobbingtrack_mobile/services/theme_controller.dart';
+import 'package:jobbingtrack_mobile/theme/app_theme.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_update_dialog.dart';
 
 Route<dynamic>? resolveAppRoute(RouteSettings settings) {
@@ -123,6 +125,7 @@ void main() async {
   } catch (e, st) {
     debugPrint('[APP] CrashReporter init error (ignored): $e\n$st');
   }
+  unawaited(ThemeController.instance.load());
   debugPrint('[APP] Démarrage JobbingTrack Mobile');
 
   runApp(const JobbingTrackMobileApp());
@@ -130,6 +133,10 @@ void main() async {
 
 class JobbingTrackMobileApp extends StatelessWidget {
   const JobbingTrackMobileApp({super.key});
+
+  static ThemeData _lightTheme() => AppTheme.light();
+
+  static ThemeData _darkTheme() => AppTheme.dark();
 
   @override
   Widget build(BuildContext context) {
@@ -142,9 +149,12 @@ class JobbingTrackMobileApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => InterviewProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => FollowUpProvider()),
+        ChangeNotifierProvider.value(value: ThemeController.instance),
       ],
       child: TelemetryLifecycleBridge(
-        child: MaterialApp(
+        child: ListenableBuilder(
+          listenable: ThemeController.instance,
+          builder: (context, _) => MaterialApp(
         navigatorKey: appNavigatorKey,
         scaffoldMessengerKey: rootScaffoldMessengerKey,
         title: 'JobbingTrack Mobile',
@@ -153,15 +163,9 @@ class JobbingTrackMobileApp extends StatelessWidget {
           child: TelemetryDevStatusBanner(child: child),
         ),
         navigatorObservers: [MobileAnalyticsRouteObserver(), shellListRouteObserver],
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          useMaterial3: true,
-          snackBarTheme: const SnackBarThemeData(
-            behavior: SnackBarBehavior.floating,
-            // Durée courte par défaut — les SnackBar avec action ne restent plus collés.
-          ),
-          // Pas de fontFamily : Inter n'est pas dans pubspec → crash au lancement sur Android si on le met
-        ),
+        theme: _lightTheme(),
+        darkTheme: _darkTheme(),
+        themeMode: ThemeController.instance.mode,
         initialRoute: '/',
         onGenerateInitialRoutes: (String initialRouteName) {
           if (initialRouteName != '/' && initialRouteName.isNotEmpty) {
@@ -235,6 +239,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
           '/admin/pilotage': (context) =>
               const AdminGuard(child: PilotageScreen()),
         },
+          ),
         ),
       ),
     );
@@ -293,60 +298,55 @@ class _SplashScreenState extends State<_SplashScreen> {
   }
 
   Future<void> _runInit() async {
-    _setStatus('Recherche du serveur...');
+    _setStatus('Démarrage...');
     debugPrint('[SPLASH] Vérification API...');
-    try {
-      await ApiService.autoDetectApi().timeout(const Duration(seconds: 15));
-    } catch (e, st) {
-      debugPrint('[SPLASH] autoDetectApi error (continuing): $e\n$st');
-    }
-    if (!mounted) return;
 
-    _setStatus('Vérification des mises à jour...');
-    ({MobileReleaseInfo release, String current, bool optional, bool blocked})? update;
-    try {
-      update = await MobileUpdateService.evaluateUpdate()
-          .timeout(const Duration(seconds: 12));
-    } catch (e, st) {
-      debugPrint('[SPLASH] evaluateUpdate skipped: $e\n$st');
-    }
-    if (!mounted) return;
-
-    if (update != null) {
-      if (update.blocked) {
-        await showMobileUpdateDialog(
-          context,
-          release: update.release,
-          currentVersion: update.current,
-          forceUpdate: true,
-        );
-        if (!mounted) return;
-        setState(() => _status = 'Mise à jour requise pour continuer.');
-        return;
-      }
+    // OTA en fond (sauf force bloquante plus tard via bandeau).
+    unawaited(MobileUpdateController.instance.refresh(silent: true).then((update) async {
+      if (!mounted || update == null || !update.blocked) return;
       await showMobileUpdateDialog(
         context,
         release: update.release,
         currentVersion: update.current,
-        forceUpdate: false,
+        forceUpdate: true,
       );
-      if (!mounted) return;
+    }).catchError((Object e, StackTrace st) {
+      debugPrint('[SPLASH] evaluateUpdate skipped: $e\n$st');
+    }));
+
+    // Prod/préprod : URL déjà connue — ne pas bloquer le splash.
+    const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (fromEnv.isEmpty) {
+      try {
+        await ApiService.autoDetectApi().timeout(const Duration(seconds: 8));
+      } catch (e, st) {
+        debugPrint('[SPLASH] autoDetectApi error (continuing): $e\n$st');
+      }
+    } else {
+      unawaited(ApiService.autoDetectApi());
     }
+    if (!mounted) return;
 
     _setStatus('Restauration de la session...');
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final restored = await auth.restoreSession().timeout(const Duration(seconds: 20));
+    final restored = await auth.restoreSession().timeout(const Duration(seconds: 12));
     MobileAnalyticsService.instance.sessionRefreshBeforeFlush = auth.refreshSessionIfOnline;
-    // Télémétrie en arrière-plan — ne pas bloquer l'écran de démarrage.
     unawaited(MobileAnalyticsService.instance.updateAuthToken(auth.token));
     unawaited(MobileAnalyticsService.instance.initialize(authToken: auth.token));
     if (!mounted) return;
 
     if (restored) {
-      final skipBioTest = kDebugMode && await ApiConfigStore.loadTestAutomationSkipBiometric();
-      final bio = await ApiConfigStore.loadBiometricUnlockEnabled();
-      final keep = await ApiConfigStore.loadKeepLoggedIn();
-      if (!skipBioTest && bio && keep && await BiometricAuthService.isDeviceSupported()) {
+      final results = await Future.wait<bool>([
+        ApiConfigStore.loadTestAutomationSkipBiometric(),
+        ApiConfigStore.loadBiometricUnlockEnabled(),
+        ApiConfigStore.loadKeepLoggedIn(),
+        BiometricAuthService.isDeviceSupported(),
+      ]);
+      final skipBioTest = kDebugMode && results[0];
+      final bio = results[1];
+      final keep = results[2];
+      final deviceBio = results[3];
+      if (!skipBioTest && bio && keep && deviceBio) {
         Navigator.of(context).pushReplacementNamed('/biometric-unlock');
         return;
       }

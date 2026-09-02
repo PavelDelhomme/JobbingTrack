@@ -1,64 +1,45 @@
 {
-  "updatedAt": "2026-08-31",
-  "apk": "1.0.42+42",
+  "updatedAt": "2026-09-02",
+  "apk": "1.0.49+49",
   "phase": {
-    "id": "C",
-    "label": "Déploiement VPS",
-    "step": "J",
-    "subStep": "maintenance-monitoring",
-    "point": "DEPLOY-GHA-01",
-    "title": "Maintenance page + metrics STACK_SLUG — redeploy VPS"
+    "id": "B",
+    "label": "Gate pré-prod mobile",
+    "step": "PERF",
+    "subStep": "ota-nothing-perf",
+    "point": "MOB-PERF-UX-01",
+    "title": "1.0.49 OTA Nothing + charge accélérée"
   },
   "recentDone": [
     {
-      "id": "MONITOR-DOCKER-01-code",
-      "label": "Fix discovery metrics STACK_SLUG + docker.sock (code)"
+      "id": "MOB-PERF-UX-01-49",
+      "label": "1.0.49 OTA Nothing 3 apps + perf splash/home"
     },
     {
-      "id": "MAINT-PAGE-01",
-      "label": "Page /maintenance + flag NEXT_PUBLIC_SITE_MAINTENANCE"
+      "id": "MOB-PERF-UX-01-code",
+      "label": "APK 1.0.48 unlock + liens + dashboard"
     },
     {
-      "id": "DEPLOY-J-crash-loadAll",
-      "label": "Fix null-check _loadAll + réinstall prod Nothing"
-    },
-    {
-      "id": "DEPLOY-J-3apps",
-      "label": "3 APK sur Nothing + Samsung + OTA downloadUrl"
+      "id": "B2-D.6-code",
+      "label": "FAB Relance correctifs + APK 1.0.46 (PR #28)"
     }
   ],
   "queue": [
     {
-      "id": "MONITOR-DOCKER-01",
-      "status": "active",
-      "label": "Redeploy Portainer préprod+prod (metrics + sock)"
+      "id": "MOB-PERF-UX-01",
+      "label": "Test porteur Nothing : splash/bio/Accueil 1.0.49"
     },
     {
-      "id": "MAINT-PROD-01",
-      "status": "pending",
-      "label": "Activer maintenance sur stack prod si besoin"
+      "id": "B2-D.6",
+      "label": "FAB Relance validation porteur"
     },
     {
-      "id": "DEPLOY-C3",
-      "status": "pending",
-      "label": "Porteur : détection MAJ OTA"
+      "id": "B2-D.7",
+      "label": "FAB → Appel"
     },
     {
-      "id": "DEPLOY-DNS-backoffice",
-      "status": "pending",
-      "label": "DNS OVH backoffice"
+      "id": "MAINT-OFF",
+      "label": "Désactiver maintenance prod"
     }
   ],
-  "openFixes": [
-    {
-      "id": "MONITOR-DOCKER-01",
-      "label": "Vue 0/21 — redeploy après fix STACK_SLUG",
-      "status": "code_done_await_redeploy"
-    },
-    {
-      "id": "NPM-APEX-CACHE",
-      "label": "Si navigateur → nextcloud : vider cache / vérifier host NPM apex",
-      "status": "note"
-    }
-  ]
+  "focusId": "MOB-PERF-UX-01"
 }

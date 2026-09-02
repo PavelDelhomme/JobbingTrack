@@ -18,6 +18,7 @@ class AdminKpiTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return SizedBox(
       width: 158,
       child: Card(
@@ -29,10 +30,10 @@ class AdminKpiTile extends StatelessWidget {
               Icon(icon, color: color, size: 22),
               const SizedBox(height: 8),
               Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-              Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              Text(label, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
               if (subtitle != null) ...[
                 const SizedBox(height: 4),
-                Text(subtitle!, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                Text(subtitle!, style: TextStyle(fontSize: 10, color: cs.outline)),
               ],
             ],
           ),
@@ -57,7 +58,7 @@ class AdminSectionTitle extends StatelessWidget {
         children: [
           Text(title, style: Theme.of(context).textTheme.titleMedium),
           if (subtitle != null)
-            Text(subtitle!, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );
