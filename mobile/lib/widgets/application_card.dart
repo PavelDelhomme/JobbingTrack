@@ -24,6 +24,7 @@ class ApplicationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final statusColor = applicationStatusColor(application.status);
     final statusText = applicationStatusLabel(application.status);
     final dateLabel = formatSmartPostulationDate(application.appliedDate);
@@ -77,11 +78,12 @@ class ApplicationCard extends StatelessWidget {
           onTap: onTap,
           child: Container(
             decoration: BoxDecoration(
+              color: cs.surfaceContainer,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.7)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
+                  color: cs.shadow.withValues(alpha: 0.06),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -96,8 +98,8 @@ class ApplicationCard extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundColor: Colors.purple.shade50,
-                      child: Icon(Icons.business, size: 20, color: Colors.purple.shade700),
+                      backgroundColor: cs.primaryContainer,
+                      child: Icon(Icons.business, size: 20, color: cs.onPrimaryContainer),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -109,7 +111,7 @@ class ApplicationCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
-                              color: Colors.grey.shade900,
+                              color: cs.onSurface,
                             ),
                           ),
                           if (applicationListSubtitle(application) != null) ...[
@@ -119,7 +121,7 @@ class ApplicationCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.purple.shade800,
+                                color: cs.primary,
                               ),
                             ),
                           ],
@@ -143,26 +145,26 @@ class ApplicationCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.event, size: 16, color: Colors.grey.shade500),
+                    Icon(Icons.event, size: 16, color: cs.onSurfaceVariant),
                     const SizedBox(width: 6),
                     Text(
                       'Postulé · $dateLabel',
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                     ),
                     const Spacer(),
-                    Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                    Icon(Icons.chevron_right, color: cs.outline),
                   ],
                 ),
                 if (application.location.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.place_outlined, size: 16, color: Colors.grey.shade500),
+                      Icon(Icons.place_outlined, size: 16, color: cs.onSurfaceVariant),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           application.location,
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

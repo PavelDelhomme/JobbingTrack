@@ -11,18 +11,28 @@ class AppPermissionsService {
 
   static const _keyNotificationsGranted = 'app_permissions_notifications_ok';
 
+  bool? _grantedThisProcess;
+
   /// Notifications système requises pour relances / entretiens sur le téléphone.
   Future<bool> areRequiredPermissionsGranted() async {
+    if (_grantedThisProcess == true) return true;
     if (!Platform.isAndroid && !Platform.isIOS) return true;
     if (Platform.isAndroid) {
       final status = await Permission.notification.status;
-      if (status.isGranted) return true;
+      if (status.isGranted) {
+        _grantedThisProcess = true;
+        return true;
+      }
       final cached = await ApiConfigStore.prefsGetBool(_keyNotificationsGranted);
-      return cached == true && status.isGranted;
+      final ok = cached == true && status.isGranted;
+      if (ok) _grantedThisProcess = true;
+      return ok;
     }
     // iOS : permission_handler.notification
     final status = await Permission.notification.status;
-    return status.isGranted;
+    final ok = status.isGranted;
+    if (ok) _grantedThisProcess = true;
+    return ok;
   }
 
   Future<bool> requestRequiredPermissions() async {
@@ -31,6 +41,7 @@ class AppPermissionsService {
     final status = await Permission.notification.request();
     final granted = status.isGranted;
     if (granted) {
+      _grantedThisProcess = true;
       await ApiConfigStore.prefsSetBool(_keyNotificationsGranted, true);
     }
     debugPrint('[PERMS] notification → $status (granted=$granted)');
@@ -40,6 +51,7 @@ class AppPermissionsService {
   Future<bool> openSystemSettings() => openAppSettings();
 
   Future<void> clearCachedGrant() async {
+    _grantedThisProcess = null;
     await ApiConfigStore.prefsSetBool(_keyNotificationsGranted, false);
   }
 }

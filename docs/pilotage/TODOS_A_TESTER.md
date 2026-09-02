@@ -193,6 +193,41 @@
 | OTA **1.0.45** préprod | **OK** | canal `dev` sur api-preprod |
 | Install USB **1.0.45** | **OK** | 3 phones prod ; Samsung+Nothing préprod |
 
+### Session 02/09 — MOB-PERF-UX-01d (thème sombre M3 — 1.0.50)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Thème sombre Material 3 | **Livré** | palette slate (#0B0F14), surfaces, primary #60A5FA |
+| Drawer / bottom nav / inputs | **Adapté** | plus de gris clair sur fond sombre |
+| Admin hub + pilotage | **Refonte cartes** | surfaces + accent (plus blocs blancs/orange) |
+| Accueil + cartes candidatures | **Adapté** | `ColorScheme` partout |
+| APK Nothing 3 apps | **1.0.50+50** | install adb + OTA prod/préprod |
+
+**À tester** : Paramètres → Apparence → Sombre ; Admin + Accueil + Candidatures.
+
+### Session 02/09 — MOB-PERF-UX-01c (1.0.49 OTA Nothing + perf)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Perf splash / login / home | **Livré** | session keep+secure parallèle ; login prefs parallèle ; délai bio 400 ms retiré ; splash prod non bloqué autoDetect ; dashboard barre fine (plus de spinner plein écran) ; FU SWR |
+| OTA prod `production` | **OK** | latest 1.0.49+49 + downloadUrl ; réinstall Nothing depuis artefact OTA |
+| OTA préprod `dev` + `preprod` | **OK** | JT Préprod écoute `dev` ; publish dual |
+| OTA local / JT Dev | **Skip** | API LAN `192.168.1.134:5002` down — APK install adb only |
+| Nothing 3 apps | **1.0.49** | Dev + Préprod + Prod lancés (pid OK) |
+| APK | **1.0.49+49** | |
+
+### Session 02/09 — MOB-PERF-UX-01b (unlock ultra + liens + notifs + dashboard)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Unlock lent (probe health / persist / delay 350 ms) | **Corrigé** | prod : **aucun** probe avant login ; persist/analytics/push `unawaited` ; delay bio retiré ; session mémoire → Accueil immédiat |
+| FAB create contact / entretien → providers | **Livré** | `upsertContact` / `addInterview` + relance déjà sync |
+| Notifs `STATUS_CHANGE` cascade FU/IV | **Code serveur** | followup + interview controllers ; **redeploy** services VPS requis pour effet prod |
+| Dashboard Accueil | **Polish** | offline banner, empty « À venir », tap détail, refresh, actions sans emoji |
+| APK | **1.0.48+48** | install 3 phones + OTA production |
+
+**À tester porteur (Nothing)** : kill app → ouvrir → empreinte → Accueil (ressenti &lt; ~1 s après bio) ; FAB contact/entretien depuis candidature ; cloche après changement statut (après redeploy API).
+
 ### Session 02/09 — MOB-PERF-UX-01 (login / drawer / thème / crashes)
 
 | Check | Résultat | Notes |

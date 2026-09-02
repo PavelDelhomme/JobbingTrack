@@ -66,6 +66,13 @@ class InterviewProvider with ChangeNotifier {
     return _inFlight!;
   }
 
+  void addInterview(Interview interview) {
+    _interviews.removeWhere((i) => i.id == interview.id);
+    _interviews.insert(0, interview);
+    _lastLoadedAt = DateTime.now();
+    notifyListeners();
+  }
+
   void clearUserCache() {
     _interviews = [];
     _isLoading = false;

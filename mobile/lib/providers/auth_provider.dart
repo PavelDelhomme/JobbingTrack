@@ -42,9 +42,11 @@ class AuthProvider with ChangeNotifier {
   Future<bool> restoreSession() async {
     if (_sessionRestored) return isAuthenticated;
     _sessionRestored = true;
-    final keepLoggedIn = await ApiConfigStore.loadKeepLoggedIn();
+    final (keepLoggedIn, stored) = await (
+      ApiConfigStore.loadKeepLoggedIn(),
+      ApiConfigStore.loadAuthSession(),
+    ).wait;
     if (!keepLoggedIn) return false;
-    final stored = await ApiConfigStore.loadAuthSession();
     if (stored == null) return false;
 
     _restoringSession = true;
@@ -56,18 +58,21 @@ class AuthProvider with ChangeNotifier {
       _tokenStale = false;
       _restoreImpersonationFromStored(stored);
       CrashReporter.setToken(_token);
-      await ApiConfigStore.ensureAnalyticsConsentEnabled();
-      MobileAnalyticsService.instance.updateAuthToken(_token);
+      unawaited(ApiConfigStore.ensureAnalyticsConsentEnabled());
+      unawaited(MobileAnalyticsService.instance.updateAuthToken(_token));
       notifyListeners();
 
-      if (await ApiService.isReachable()) {
-        final refreshed = await trySilentTokenRefresh();
-        if (refreshed) {
-          unawaited(_refreshProfileFromServer());
-        } else {
-          unawaited(_refreshProfileFromServer());
+      // Refresh JWT / profil en fond — ne pas bloquer splash → biométrie / Accueil.
+      unawaited(() async {
+        try {
+          if (await ApiService.isReachable()) {
+            await trySilentTokenRefresh();
+            unawaited(_refreshProfileFromServer());
+          }
+        } catch (e) {
+          debugPrint('[AUTH] restoreSession background refresh: $e');
         }
-      }
+      }());
       return isAuthenticated;
     } catch (e) {
       debugPrint('[AUTH] restoreSession invalid: $e');
@@ -101,8 +106,8 @@ class AuthProvider with ChangeNotifier {
         _refreshToken = result.refreshToken ?? storedRefresh;
         _tokenStale = false;
         CrashReporter.setToken(_token);
-        await _persistSession();
-        MobileAnalyticsService.instance.updateAuthToken(_token);
+        unawaited(_persistSession());
+        unawaited(MobileAnalyticsService.instance.updateAuthToken(_token));
         notifyListeners();
         debugPrint('[AUTH] JWT renouvelé via refresh token');
         return true;
@@ -285,26 +290,26 @@ class AuthProvider with ChangeNotifier {
         _user = User.fromJson(response['user']);
         _tokenStale = false;
         CrashReporter.setToken(_token);
-        await ApiConfigStore.ensureAnalyticsConsentEnabled();
+        unawaited(ApiConfigStore.ensureAnalyticsConsentEnabled());
         unawaited(MobileAnalyticsService.instance.initialize(authToken: _token));
-        await MobileAnalyticsService.instance.updateAuthToken(_token);
-        await ApiConfigStore.saveKeepLoggedIn(keepLoggedIn);
+        unawaited(MobileAnalyticsService.instance.updateAuthToken(_token));
+        unawaited(ApiConfigStore.saveKeepLoggedIn(keepLoggedIn));
         if (keepLoggedIn && enableBiometric) {
-          await _persistSession();
-          await BiometricCredentialStore.save(email: email, password: password);
-          await ApiConfigStore.saveBiometricUnlockEnabled(true);
+          unawaited(_persistSession());
+          unawaited(BiometricCredentialStore.save(email: email, password: password));
+          unawaited(ApiConfigStore.saveBiometricUnlockEnabled(true));
         } else if (keepLoggedIn) {
-          await _persistSession();
+          unawaited(_persistSession());
           if (!enableBiometric) {
-            await BiometricCredentialStore.clear();
-            await ApiConfigStore.saveBiometricUnlockEnabled(false);
+            unawaited(BiometricCredentialStore.clear());
+            unawaited(ApiConfigStore.saveBiometricUnlockEnabled(false));
           }
         } else {
-          await ApiConfigStore.clearAuthSession();
+          unawaited(ApiConfigStore.clearAuthSession());
           // Pas de session persistante — identifiants empreinte conservés pour reconnexion rapide.
         }
         CrashReporter.trackAction('login:${_user?.email ?? "unknown"}');
-        CrashReporter.flushPendingReports();
+        unawaited(CrashReporter.flushPendingReports());
         unawaited(PushNotificationService.instance.registerAfterLogin(authToken: _token));
         _isLoading = false;
         notifyListeners();
@@ -372,13 +377,14 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<bool> ensureSessionAfterBiometric() async {
+    // Session déjà en mémoire (splash) : ouvrir tout de suite, refresh en fond.
+    if (_token != null && _user != null && !_tokenStale) {
+      unawaited(refreshSessionIfOnline());
+      return true;
+    }
     if (_token != null && _user != null) {
-      if (await ApiService.isReachable()) {
-        final refreshed = await trySilentTokenRefresh();
-        if (refreshed || !_tokenStale) return true;
-      } else {
-        return true;
-      }
+      unawaited(refreshSessionIfOnline());
+      return true;
     }
     final creds = await BiometricCredentialStore.load();
     if (creds == null) return false;
@@ -390,9 +396,9 @@ class AuthProvider with ChangeNotifier {
         _user = User.fromJson(response['user']);
         _tokenStale = false;
         CrashReporter.setToken(_token);
-        MobileAnalyticsService.instance.updateAuthToken(_token);
-        await _persistSession();
+        unawaited(MobileAnalyticsService.instance.updateAuthToken(_token));
         notifyListeners();
+        unawaited(_persistSession());
         return true;
       }
     } catch (e) {
@@ -425,10 +431,10 @@ class AuthProvider with ChangeNotifier {
     _user = User.fromJson(response['user']);
     _tokenStale = false;
     CrashReporter.setToken(_token);
-    await MobileAnalyticsService.instance.updateAuthToken(_token);
-    await _persistSession();
-    await BiometricCredentialStore.save(email: _user!.email, password: trimmed);
+    unawaited(MobileAnalyticsService.instance.updateAuthToken(_token));
     notifyListeners();
+    unawaited(_persistSession());
+    unawaited(BiometricCredentialStore.save(email: _user!.email, password: trimmed));
   }
 
   Future<void> disableBiometricUnlock() async {

@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/admin/admin_hub_leading.dart';
 
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key});
 
+  static const _tools = <(IconData, String, Color, String)>[
+    (Icons.people_alt, 'Utilisateurs', Color(0xFF6366F1), '/users'),
+    (Icons.explore, 'Pilotage', Color(0xFFD97706), '/admin/pilotage'),
+    (Icons.analytics, 'Analytics', Color(0xFF14B8A6), '/analytics'),
+    (Icons.speed, 'Performances', Color(0xFF64748B), '/performance'),
+    (Icons.article, 'Logs', Color(0xFFF59E0B), '/logs'),
+    (Icons.bar_chart, 'Statistiques', Color(0xFF8B5CF6), '/statistics'),
+    (Icons.delete_outline, 'Corbeille', Color(0xFFEF4444), '/trash'),
+    (Icons.science, 'Donnees test', Color(0xFF06B6D4), '/test-data'),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final cs = context.cs;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Administration'),
@@ -22,24 +35,30 @@ class AdminScreen extends StatelessWidget {
             children: [
               Text(
                 'Outils d\'administration',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey[800]),
+                style: context.sectionTitleStyle,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Hub admin — même compte que le backoffice web',
+                style: context.captionMuted,
               ),
               const SizedBox(height: 16),
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
                 children: [
-                  _buildCard(context, Icons.people_alt, 'Utilisateurs', Colors.indigo[600]!, '/users'),
-                  _buildCard(context, Icons.explore, 'Pilotage', Colors.brown[600]!, '/admin/pilotage'),
-                  _buildCard(context, Icons.analytics, 'Analytics', Colors.teal[600]!, '/analytics'),
-                  _buildCard(context, Icons.speed, 'Performances', Colors.blueGrey[700]!, '/performance'),
-                  _buildCard(context, Icons.article, 'Logs', Colors.amber[600]!, '/logs'),
-                  _buildCard(context, Icons.bar_chart, 'Statistiques', Colors.deepPurple[600]!, '/statistics'),
-                  _buildCard(context, Icons.delete_outline, 'Corbeille', Colors.red[600]!, '/trash'),
-                  _buildCard(context, Icons.science, 'Donnees test', Colors.cyan[600]!, '/test-data'),
+                  for (final tool in _tools)
+                    _AdminToolCard(
+                      icon: tool.$1,
+                      title: tool.$2,
+                      accent: tool.$3,
+                      route: tool.$4,
+                      surface: cs.surfaceContainerHighest,
+                      onSurface: cs.onSurface,
+                    ),
                 ],
               ),
             ],
@@ -48,26 +67,62 @@ class AdminScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildCard(BuildContext context, IconData icon, String title, Color color, String route) {
-    return GestureDetector(
-      onTap: () => Navigator.of(context).pushNamed(route),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(color: color.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4)),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 36, color: Colors.white),
-            const SizedBox(height: 10),
-            Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white), textAlign: TextAlign.center),
-          ],
+class _AdminToolCard extends StatelessWidget {
+  const _AdminToolCard({
+    required this.icon,
+    required this.title,
+    required this.accent,
+    required this.route,
+    required this.surface,
+    required this.onSurface,
+  });
+
+  final IconData icon;
+  final String title;
+  final Color accent;
+  final String route;
+  final Color surface;
+  final Color onSurface;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: surface,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.of(context).pushNamed(route),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: accent.withValues(alpha: 0.35)),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, size: 28, color: accent),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: onSurface,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

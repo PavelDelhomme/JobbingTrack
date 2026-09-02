@@ -23,8 +23,12 @@ class FollowUpProvider with ChangeNotifier {
     String? userId,
     String? applicationId,
   }) async {
-    _isLoading = true;
-    notifyListeners();
+    // Stale-while-revalidate : pas de spinner plein écran si cache déjà présent.
+    final showSpinner = _followUps.isEmpty;
+    if (showSpinner) {
+      _isLoading = true;
+      notifyListeners();
+    }
     try {
       if (applicationId != null && applicationId.isNotEmpty) {
         _followUps = await ApiService.getFollowUps(

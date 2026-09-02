@@ -13,27 +13,29 @@ class OfflineModeBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final syncLabel = pendingSyncCount > 0
         ? ' · $pendingSyncCount modification(s) en attente de sync'
         : '';
     return Material(
-      color: Colors.orange.shade50,
+      color: cs.tertiaryContainer,
+      borderRadius: BorderRadius.circular(10),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
-            Icon(Icons.cloud_off, size: 18, color: Colors.orange.shade800),
+            Icon(Icons.cloud_off, size: 18, color: cs.onTertiaryContainer),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 'Mode hors ligne — données en cache$syncLabel',
-                style: TextStyle(fontSize: 13, color: Colors.orange.shade900),
+                style: TextStyle(fontSize: 13, color: cs.onTertiaryContainer),
               ),
             ),
             if (onRetry != null)
               TextButton(
                 onPressed: onRetry,
-                child: const Text('Réessayer'),
+                child: Text('Réessayer', style: TextStyle(color: cs.onTertiaryContainer)),
               ),
           ],
         ),

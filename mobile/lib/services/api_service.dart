@@ -426,17 +426,21 @@ class ApiService {
     );
   }
 
-  /// Réinitialise la détection API (après mode avion / changement réseau).
+  /// Prépare l’API avant login — sans reset ni double health inutiles.
   static Future<bool> prepareForLogin() async {
-    _resolvedBaseUrl = null;
-    final ok = await autoDetectApi();
-    if (!ok) return false;
-    try {
-      final res = await http.get(Uri.parse('$baseUrl/health')).timeout(const Duration(seconds: 3));
-      return res.statusCode == 200;
-    } catch (_) {
-      return false;
+    const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (fromEnv.isNotEmpty) {
+      // Prod / préprod : URL figée au build — aucun probe (évite 0–2 s inutiles).
+      _resolvedBaseUrl = fromEnv;
+      return true;
     }
+    if (_resolvedBaseUrl != null && _resolvedBaseUrl!.isNotEmpty) {
+      try {
+        final res = await http.get(Uri.parse('$baseUrl/health')).timeout(const Duration(seconds: 2));
+        if (res.statusCode == 200) return true;
+      } catch (_) {}
+    }
+    return autoDetectApi();
   }
 
   static Future<Map<String, dynamic>> login(String email, String password) async {

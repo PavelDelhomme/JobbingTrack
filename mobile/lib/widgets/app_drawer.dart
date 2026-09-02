@@ -7,6 +7,7 @@ import 'package:jobbingtrack_mobile/services/app_version_info.dart';
 import 'package:jobbingtrack_mobile/utils/admin_access.dart';
 import 'package:jobbingtrack_mobile/utils/auth_logout.dart';
 import 'package:jobbingtrack_mobile/widgets/impersonation_banner.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 class AppDrawer extends StatefulWidget {
   const AppDrawer({super.key});
@@ -45,6 +46,7 @@ class _AppDrawerState extends State<AppDrawer> {
     final user = authProvider.user;
     final isAdmin = AdminAccess.canAccessAdmin(user);
     final isImpersonating = authProvider.isImpersonating;
+    final cs = context.cs;
 
     return ValueListenableBuilder<int>(
       valueListenable: ShellTabRegistry.revision,
@@ -55,20 +57,20 @@ class _AppDrawerState extends State<AppDrawer> {
           if (isImpersonating)
             Material(
               elevation: 4,
-              color: Colors.orange.shade100,
+              color: cs.tertiaryContainer,
               child: ListTile(
-                leading: Icon(Icons.switch_account, color: Colors.orange.shade900),
+                leading: Icon(Icons.switch_account, color: cs.onTertiaryContainer),
                 title: Text(
                   'Désimpersonnaliser',
                   style: TextStyle(
-                    color: Colors.orange.shade900,
+                    color: cs.onTertiaryContainer,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 subtitle: Text(
                   'Impersonnalisation — ${user?.email ?? ''}\nRetour au hub administrateur',
                   style: TextStyle(
-                    color: Colors.orange.shade900.withValues(alpha: 0.85),
+                    color: cs.onTertiaryContainer.withValues(alpha: 0.85),
                     fontSize: 12,
                   ),
                 ),
@@ -83,15 +85,15 @@ class _AppDrawerState extends State<AppDrawer> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Colors.blue[700]!,
-                  Colors.blue[500]!,
+                  cs.primary,
+                  cs.primary.withValues(alpha: 0.82),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
             ),
             currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
+              backgroundColor: cs.onPrimary.withValues(alpha: 0.15),
               child: Text(
                 (user?.firstName.isNotEmpty == true
                         ? user!.firstName.substring(0, 1)
@@ -100,7 +102,7 @@ class _AppDrawerState extends State<AppDrawer> {
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue[700],
+                  color: cs.onPrimary,
                 ),
               ),
             ),
@@ -240,11 +242,11 @@ class _AppDrawerState extends State<AppDrawer> {
 
           // Déconnexion
           ListTile(
-            leading: Icon(Icons.logout, color: Colors.red[600]),
+            leading: Icon(Icons.logout, color: cs.error),
             title: Text(
               'Déconnexion',
               style: TextStyle(
-                color: Colors.red[600],
+                color: cs.error,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -266,7 +268,7 @@ class _AppDrawerState extends State<AppDrawer> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey[700],
+                      color: cs.onSurfaceVariant,
                     ),
                   ),
                   if (_appVersion!.displayBuildLine != null) ...[
@@ -276,7 +278,7 @@ class _AppDrawerState extends State<AppDrawer> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.grey[500],
+                        color: cs.outline,
                       ),
                     ),
                   ],
@@ -294,6 +296,7 @@ class _AppDrawerState extends State<AppDrawer> {
     required String title,
     required List<_DrawerItem> items,
   }) {
+    final cs = context.cs;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -301,11 +304,9 @@ class _AppDrawerState extends State<AppDrawer> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
             title,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
-            ),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
           ),
         ),
         ...items.map((item) => _buildDrawerTile(context, item)),
@@ -315,21 +316,22 @@ class _AppDrawerState extends State<AppDrawer> {
 
   Widget _buildDrawerTile(BuildContext context, _DrawerItem item) {
     final isSelected = ShellNavigation.isDrawerRouteSelected(item.route);
+    final cs = context.cs;
 
     return ListTile(
       leading: Icon(
         item.icon,
-        color: isSelected ? Colors.blue[700] : Colors.grey[700],
+        color: isSelected ? cs.primary : cs.onSurfaceVariant,
       ),
       title: Text(
         item.title,
         style: TextStyle(
-          color: isSelected ? Colors.blue[700] : Colors.grey[800],
+          color: isSelected ? cs.primary : cs.onSurface,
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
       selected: isSelected,
-      selectedTileColor: Colors.blue[50],
+      selectedTileColor: cs.primaryContainer.withValues(alpha: 0.55),
       onTap: () => ShellNavigation.navigateFromDrawer(context, item.route),
     );
   }

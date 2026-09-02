@@ -32,12 +32,16 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ---
 
-## ▶ En cours maintenant — DEPLOY VPS (**jobbingtrack.com**, style YTMusic)
+## ▶ En cours maintenant — MOB-PERF-UX-01 (unlock + liens + notifs)
 
-> **Focus unique Kanban** : **DEPLOY-GHA-01** (OTA J — détection MAJ porteur)
-> **Pause** : MOB-HUB / MOB-LIST / FAB gate B — reprise **après** validation OTA
-> **Appareils** : **Nothing Phone** + **Samsung** — 3 apps installées 29/08 (JT Dev / JT Préprod / JobbingTrack)
+> **Focus unique Kanban** : **MOB-PERF-UX-01** — APK **1.0.48** à tester (unlock rapide)
+> **Branche** : `feat/mobile-perf-drawer-theme`
+> **Appareils** : Nothing + Samsung + Blackview — **1.0.48** installé 02/09
+> **File** : B2-D.6 validation ; redeploy followup/interview (notifs STATUS_CHANGE) ; B2-D.7
 >
+> *Section DEPLOY VPS ci-dessous = historique A→J (conservée).*
+>
+
 > **État 29/08** :
 > - ✅ APKs `1.0.42+42` posés + OTA `downloadUrl` (local/dev, préprod/dev, prod/production)
 > - ⏳ Porteur : ouvrir les apps ; pour voir une MAJ, republier `>1.0.42` (ne pas forcer l’install)

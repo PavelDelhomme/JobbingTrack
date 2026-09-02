@@ -28,7 +28,7 @@ async function updateApplicationStatus(applicationId, statusCode, comment, userI
     if (!statusRow) return;
     const app = await prisma.application.findUnique({
       where: { id: applicationId },
-      select: { statusId: true, userId: true, statusEngineOptOut: true }
+      select: { statusId: true, userId: true, statusEngineOptOut: true, position: true, status: { select: { code: true } } }
     });
     if (!app || app.statusId === statusRow.id) return;
     if (app.statusEngineOptOut === true) {
@@ -45,6 +45,25 @@ async function updateApplicationStatus(applicationId, statusCode, comment, userI
     });
     await prisma.application.update({ where: { id: applicationId }, data: { statusId: statusRow.id } });
     logger.info(`Statut candidature ${applicationId} mis à jour → ${statusCode}`);
+
+    // Notif in-app (cloche) — même pattern que application-service.
+    if (typeof prisma.notification?.create === 'function' && app.userId) {
+      try {
+        const prevCode = app.status?.code || '?';
+        await prisma.notification.create({
+          data: {
+            userId: app.userId,
+            title: 'Changement de statut',
+            message: `Candidature "${app.position || ''}" : ${prevCode} → ${statusCode}`,
+            type: 'STATUS_CHANGE',
+            entityType: 'Application',
+            entityId: applicationId
+          }
+        });
+      } catch (e) {
+        logger.warn('Création notification statut (cascade relance):', e.message);
+      }
+    }
   } catch (e) {
     logger.warn(`Cascade statut candidature échouée (${statusCode}):`, e.message);
   }

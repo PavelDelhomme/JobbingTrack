@@ -43,8 +43,9 @@ class MobileAnalyticsService extends ChangeNotifier {
     if (authToken != null) {
       CrashReporter.setToken(authToken);
       if (_consent) {
-        await _registerDevice();
-        await AnalyticsTelemetryQueue.instance.flush(authTokenOverride: authToken);
+        // Ne jamais bloquer login / déverrouillage sur register device + flush.
+        unawaited(_registerDevice());
+        unawaited(AnalyticsTelemetryQueue.instance.flush(authTokenOverride: authToken));
       }
     } else {
       CrashReporter.setToken(null);

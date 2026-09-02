@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
@@ -28,7 +29,7 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _loadDeviceCapabilities();
       if (!mounted || !_localAuthAvailable) return;
-      await Future<void>.delayed(const Duration(milliseconds: 350));
+      // Lancer l’empreinte dès que possible (plus de délai 350 ms).
       if (mounted) await _tryUnlock(auto: true);
     });
   }
@@ -40,8 +41,13 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> {
       await PostAuthNavigation.go(context, '/home');
       return;
     }
-    final supported = await BiometricAuthService.isDeviceSupported();
-    final enrolled = await BiometricAuthService.getEnrolledBiometrics();
+    // Parallèle : support appareil + empreintes enregistrées.
+    final results = await Future.wait([
+      BiometricAuthService.isDeviceSupported(),
+      BiometricAuthService.getEnrolledBiometrics(),
+    ]);
+    final supported = results[0] as bool;
+    final enrolled = results[1] as List<BiometricType>;
     if (!mounted) return;
     setState(() {
       _checkingDevice = false;

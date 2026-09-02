@@ -286,8 +286,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
           child: BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
             currentIndex: _selectedIndex,
-            selectedItemColor: Colors.blue[600],
-            unselectedItemColor: Colors.grey[400],
             onTap: _onBottomNavTap,
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
