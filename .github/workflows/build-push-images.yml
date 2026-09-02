@@ -140,6 +140,7 @@ jobs:
             WEB="https://preprod.jobbingtrack.com"
             BO="https://backoffice-preprod.jobbingtrack.com"
           fi
+          FE_VER="$(node -p "require('./frontend/package.json').version" 2>/dev/null || echo 1.0.2)"
           {
             echo "args<<EOF"
             echo "NEXT_PUBLIC_API_URL=${API}"
@@ -147,6 +148,7 @@ jobs:
             echo "NEXT_PUBLIC_AUTH_SERVICE_URL=${API}"
             echo "NEXT_PUBLIC_FRONTEND_URL=${WEB}"
             echo "NEXT_PUBLIC_BACKOFFICE_URL=${BO}"
+            echo "NEXT_PUBLIC_APP_VERSION=${FE_VER}"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 

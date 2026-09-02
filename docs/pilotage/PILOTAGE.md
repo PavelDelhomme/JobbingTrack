@@ -4,11 +4,10 @@ Dernière mise à jour : **2 septembre 2026 (soir)**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : MOB-PERF-UX-01** — test porteur après merge/deploy  
-**Git** : PR **#29** mergée dans `dev` (`e0890d92`)  
-**Images** : GHCR `:dev` + `:latest` rebuild OK ; followup/interview/frontend redeploy préprod+prod  
-**APK** : **1.0.50** OTA (Nothing déjà installé)  
+**Focus (1 seule) : FIX-METRICS-01** — liste conteneurs 500 + versions web fiche user  
+**Branche** : `fix/metrics-docker-services-web-versions`  
+**Hotfix VPS** : metrics-aggregator préprod+prod (KNOWN_SERVICES) — `/docker/services/all` → **200**  
 
-**Prochaine action** : Nothing — thème sombre + unlock ; cloche STATUS_CHANGE après création relance/entretien.
+**Prochaine action** : merge → rebuild images frontend + metrics ; valider Performances → Conteneurs + fiche SUPER_ADMIN versions.
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist : [`TODOS.md`](TODOS.md) ▶ En cours  

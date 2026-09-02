@@ -55,7 +55,7 @@ function appendMissingExpectedServices(existingServices, options = {}) {
   );
   const augmented = [...existingServices];
 
-  for (const fullName of Object.keys(SERVICE_HEALTH_ENDPOINTS)) {
+  for (const fullName of Object.keys(KNOWN_SERVICES)) {
     const key = normalizeCatalogServiceKey(fullName);
     if (!key || present.has(key)) continue;
     if (!shouldIncludeExpectedCatalogService(fullName, options)) continue;

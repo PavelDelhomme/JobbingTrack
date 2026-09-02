@@ -108,6 +108,11 @@ const nextConfig = {
       process.env.METRICS_AGGREGATOR_PORT || "5004",
     NEXT_PUBLIC_DASHBOARD_SERVICE_PORT:
       process.env.DASHBOARD_SERVICE_PORT || "8012",
+    // Version web affichée / trackée (fiche user, analytics) — package.json sauf override build.
+    NEXT_PUBLIC_APP_VERSION:
+      process.env.NEXT_PUBLIC_APP_VERSION ||
+      require("./package.json").version ||
+      "1.0.0",
     NEXT_PUBLIC_API_GATEWAY_URL:
       process.env.NEXT_PUBLIC_API_GATEWAY_URL ||
       `https://api.jobbingtrack.localhost:${process.env.DEV_HTTPS_PORT || "5443"}`,
