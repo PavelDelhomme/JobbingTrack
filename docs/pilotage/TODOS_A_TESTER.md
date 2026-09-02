@@ -193,6 +193,17 @@
 | OTA **1.0.45** préprod | **OK** | canal `dev` sur api-preprod |
 | Install USB **1.0.45** | **OK** | 3 phones prod ; Samsung+Nothing préprod |
 
+### Session 02/09 — Deploy git + VPS (après 1.0.50)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Commit + push feat | **OK** | `319ac889` |
+| Merge PR #29 → `dev` | **OK** | `e0890d92` (admin merge, CI quality unstable) |
+| GHCR `:dev` + `:latest` | **OK** | 3 runs success (push + 2 dispatch) |
+| Merge `main` | **N/A** | historiques `main`/`dev` sans ancêtre commun — prod via `channel=prod` sur `dev` ([DEPLOY.md](../../DEPLOY.md)) |
+| Redeploy followup/interview/frontend | **OK** | préprod `:dev` + prod `:latest` ; code `STATUS_CHANGE` présent dans conteneurs |
+| Health API / OTA | **OK** | api + api-preprod 200 ; OTA latest **1.0.50+50** |
+
 ### Session 02/09 — MOB-PERF-UX-01d (thème sombre M3 — 1.0.50)
 
 | Check | Résultat | Notes |
