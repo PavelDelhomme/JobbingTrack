@@ -179,9 +179,23 @@
 | Correctifs livrés (branche) | **En cours** | `MobileUpdateController` + bandeau shell + Paramètres « Vérifier MAJ » + progress download |
 | Offline | **Amélioré** | `archiveApplication` en file ; bandeau sync shell ; flush drop 4xx sans bloquer ; sync manuelle Paramètres |
 | Resync auto | **Déjà + renforcé** | `NetworkRecoveryService` + resume lifecycle + OTA recheck si force |
-| Version cible | **1.0.44+44** | à builder + publish OTA après validation analyze |
+| Version cible | **1.0.44+44** | publié prod + install USB 3 phones |
 
-**Reste** : calendrier/events hors file offline ; conflits merge D7 ; OTA JT Dev LAN ; désactiver maintenance prod quand OK.
+### Session 02/09 soir — offline events/notifs + OTA 1.0.45
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| Install USB **1.0.44** | **OK** | Blackview + Samsung + Nothing (prod) ; préprod Samsung/Nothing |
+| Offline calendrier | **Livré** | `OfflineListLoader` + clé `events` ; `getCalendarEvents` ne avale plus les erreurs |
+| Offline cloche | **Livré** | cache `notifications` ; mark-read / mark-all / delete en file |
+| File sync | **Étendue** | préfixes `/api/v1/events` + `/api/v1/notifications` |
+| OTA **1.0.45** prod | **OK** | canal `production` |
+| OTA **1.0.45** préprod | **OK** | canal `dev` sur api-preprod |
+| Install USB **1.0.45** | **OK** | 3 phones prod ; Samsung+Nothing préprod |
+
+**État hors-ligne (lecture + mutations en file)** : candidatures, entreprises, contacts, entretiens, relances, appels, **événements (lecture)**, **notifications in-app (lecture + lu/suppr)**.  
+**Hors scope mobile (D7 serveur)** : planification / envoi des rappels automatiques (workflow + notification-service).  
+**Reste** : CRUD events UI mobile ; conflits merge ; désactiver maintenance prod ; OTA JT Dev LAN.
 
 **Désactiver maintenance prod** (quand prêt) :
 

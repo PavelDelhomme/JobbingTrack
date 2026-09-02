@@ -1023,36 +1023,39 @@ class ApiService {
   }
 
   static Future<void> markNotificationRead(String id, {String? token}) async {
-    final response = await _put(
-      '/api/v1/notifications/${Uri.encodeComponent(id)}/mark-read',
-      headers: _jsonHeaders(token),
+    final path = '/api/v1/notifications/${Uri.encodeComponent(id)}/mark-read';
+    await OfflineMutationHelper.executeVoid(
+      method: 'PUT',
+      path: path,
+      entityType: 'notification',
+      token: token,
+      successStatus: 200,
+      send: () => _put(path, headers: _jsonHeaders(token)),
     );
-    if (response.statusCode != 200) {
-      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
-      throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
-    }
   }
 
   static Future<void> markAllNotificationsRead({String? token}) async {
-    final response = await _put(
-      '/api/v1/notifications/mark-all-read?scope=in_app',
-      headers: _jsonHeaders(token),
+    final path = '/api/v1/notifications/mark-all-read?scope=in_app';
+    await OfflineMutationHelper.executeVoid(
+      method: 'PUT',
+      path: path,
+      entityType: 'notification',
+      token: token,
+      successStatus: 200,
+      send: () => _put(path, headers: _jsonHeaders(token)),
     );
-    if (response.statusCode != 200) {
-      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
-      throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
-    }
   }
 
   static Future<void> deleteNotification(String id, {String? token}) async {
-    final response = await _delete(
-      '/api/v1/notifications/${Uri.encodeComponent(id)}',
-      headers: _jsonHeaders(token),
+    final path = '/api/v1/notifications/${Uri.encodeComponent(id)}';
+    await OfflineMutationHelper.executeVoid(
+      method: 'DELETE',
+      path: path,
+      entityType: 'notification',
+      token: token,
+      successStatus: 200,
+      send: () => _delete(path, headers: _jsonHeaders(token)),
     );
-    if (response.statusCode != 200) {
-      final err = response.body.isNotEmpty ? jsonDecode(response.body) : {};
-      throw Exception(err['error'] ?? err['message'] ?? 'Erreur HTTP ${response.statusCode}');
-    }
   }
 
   /// Enregistre un token push FCM/APNs (ou dev) côté notification-service.
@@ -1772,10 +1775,12 @@ class ApiService {
             raw.map((e) => Map<String, dynamic>.from(e as Map)),
           );
         }
+        return [];
       }
-      return [];
+      throw Exception('Erreur HTTP ${response.statusCode}');
     } catch (e) {
-      return [];
+      if (e is Exception) rethrow;
+      throw Exception('Erreur réseau: $e');
     }
   }
 }

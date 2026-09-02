@@ -1,15 +1,15 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **2 septembre 2026**
+Dernière mise à jour : **2 septembre 2026 (soir)**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : MOB-OTA-OFFLINE-01** — OTA in-app prod + hors-ligne / resync  
-**Constat porteur** : indicateur MAJ prod **ne s’affichait pas** correctement ; sync hors réseau incomplète  
-**Branche** : `feat/mobile-ota-offline-resync`  
+**Focus (1 seule) : MOB-OTA-OFFLINE-01** — OTA in-app + hors-ligne étendu  
+**Installé USB** : Nothing / Blackview / Samsung → **1.0.44** (prod) ; suite **1.0.45** (events + notifs offline)  
+**Branche** : `feat/mobile-ota-offline-resync` · PR #27  
 **Maintenance prod** : toujours active si non désactivée  
 
-**Prochaine action** : rebuild APK **1.0.44** → publish OTA → test Nothing/Samsung (Paramètres → Mise à jour).
+**Prochaine action** : publish OTA **1.0.45** + test hors-ligne calendrier / cloche / CRUD métier.
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist : [`TODOS.md`](TODOS.md) ▶ En cours  
 

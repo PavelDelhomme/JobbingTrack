@@ -1,40 +1,40 @@
 {
   "updatedAt": "2026-09-02",
-  "apk": "1.0.44+44",
+  "apk": "1.0.45+45",
   "phase": {
     "id": "B",
     "label": "Mobile OTA + offline",
     "step": "OTA",
-    "subStep": "in-app-resync",
+    "subStep": "offline-events-notifs",
     "point": "MOB-OTA-OFFLINE-01",
-    "title": "OTA in-app prod + hors-ligne / resync auto"
+    "title": "OTA 1.0.45 + hors-ligne calendrier/notifications"
   },
   "recentDone": [
     {
+      "id": "MOB-OTA-144",
+      "label": "OTA in-app 1.0.44 (bandeau/Paramètres) publié + install 3 phones"
+    },
+    {
+      "id": "MOB-OFFLINE-EVENTS-NOTIFS",
+      "label": "Cache events + notifs + file sync mutations (1.0.45)"
+    },
+    {
       "id": "DEPLOY-MONITOR-17-21",
-      "label": "Monitoring préprod/prod 17/21 (STACK_SLUG + sock)"
-    },
-    {
-      "id": "DEPLOY-OTA-143",
-      "label": "OTA 1.0.43 publié prod+préprod"
-    },
-    {
-      "id": "MAINT-PAGE-ACTIVE",
-      "label": "Maintenance prod active"
+      "label": "Monitoring préprod/prod 17/21"
     }
   ],
   "queue": [
     {
       "id": "MOB-OTA-OFFLINE-01",
-      "label": "OTA bandeau/Paramètres + offline sync — build 1.0.44 + test porteur"
+      "label": "Porteur : test hors-ligne + OTA 1.0.45 sur Nothing/Samsung/Blackview"
     },
     {
       "id": "MAINT-OFF",
       "label": "Désactiver maintenance prod quand OK"
     },
     {
-      "id": "OFFLINE-EVENTS",
-      "label": "Calendrier/events dans file offline (suite)"
+      "id": "OFFLINE-D7-MERGE",
+      "label": "Conflits merge offline / notifs programmées serveur (D7)"
     }
   ],
   "focusId": "MOB-OTA-OFFLINE-01"

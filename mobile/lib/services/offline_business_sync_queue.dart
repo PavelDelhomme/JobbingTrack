@@ -38,6 +38,8 @@ class OfflineBusinessSyncQueue {
     '/api/v1/interviews',
     '/api/v1/contacts',
     '/api/v1/companies',
+    '/api/v1/events',
+    '/api/v1/notifications',
   };
 
   final List<_QueuedMutation> _pending = [];
@@ -83,7 +85,7 @@ class OfflineBusinessSyncQueue {
     final item = _QueuedMutation(
       id: '${DateTime.now().microsecondsSinceEpoch}',
       method: method.toUpperCase(),
-      path: path.split('?').first,
+      path: path, // conserver query (?scope=…) pour le flush
       body: TelemetrySanitize.forPersistenceOptional(body),
       entityType: entityType,
       token: token,
