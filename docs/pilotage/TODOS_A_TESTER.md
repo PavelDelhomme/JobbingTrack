@@ -193,6 +193,15 @@
 | OTA **1.0.45** préprod | **OK** | canal `dev` sur api-preprod |
 | Install USB **1.0.45** | **OK** | 3 phones prod ; Samsung+Nothing préprod |
 
+### Session 02/09 — FIX-METRICS-01 (conteneurs 500 + versions web user)
+
+| Check | Résultat | Notes |
+|-------|----------|-------|
+| `SERVICE_HEALTH_ENDPOINTS is not defined` | **Corrigé** | `KNOWN_SERVICES` dans `docker.routes.js` |
+| Hotfix VPS metrics préprod+prod | **OK** | `/docker/services/all?light=1` → **200** |
+| Fiche user versions web/mobile | **Livré** | section Versions + build web `NEXT_PUBLIC_APP_VERSION` |
+| Build CI frontend version | **Livré** | `package.json` 1.0.2 passé en build-arg GHCR |
+
 ### Session 02/09 — Deploy git + VPS (après 1.0.50)
 
 | Check | Résultat | Notes |

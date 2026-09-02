@@ -23,6 +23,8 @@ import {
   CheckCircle,
   Clock,
   Send,
+  MonitorSmartphone,
+  Smartphone,
 } from "lucide-react";
 import Link from "next/link";
 import axios from "axios";
@@ -31,6 +33,22 @@ import { setUserAgentEnabled } from "@/lib/services/emailAgentService";
 const API_URL = FRONTEND_URLS.api;
 
 type UserRole = "USER" | "ADMIN" | "SUPER_ADMIN";
+
+type VersionRow = { appVersion: string; count: number };
+type DeviceRow = {
+  id: string;
+  platform?: string | null;
+  deviceModel?: string | null;
+  appVersion?: string | null;
+  osName?: string | null;
+  osVersion?: string | null;
+  lastSeen?: string | null;
+};
+
+type UserVersionsPayload = {
+  versionsByPlatform: Record<string, VersionRow[]>;
+  devices: DeviceRow[];
+};
 
 function toUserRole(role: string | undefined): UserRole {
   if (role === "ADMIN" || role === "SUPER_ADMIN" || role === "USER")
@@ -70,7 +88,12 @@ export default function UserDetailPage() {
   const [resendingVerification, setResendingVerification] = useState(false);
   const [togglingAgent, setTogglingAgent] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [clientVersions, setClientVersions] = useState<UserVersionsPayload | null>(null);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [versionsError, setVersionsError] = useState<string | null>(null);
   const isCreateMode = userId === "new";
+  const webBuildVersion =
+    process.env.NEXT_PUBLIC_APP_VERSION || "1.0.2";
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -85,11 +108,45 @@ export default function UserDetailPage() {
   useEffect(() => {
     if (token && userId && !isCreateMode) {
       loadUser();
+      loadClientVersions();
     } else if (isCreateMode) {
       setLoading(false);
       setUser(null);
     }
   }, [token, userId, isCreateMode]);
+
+  const loadClientVersions = async () => {
+    if (!token || !userId || isCreateMode) return;
+    setVersionsLoading(true);
+    setVersionsError(null);
+    try {
+      const res = await axios.get(
+        `${API_URL}/api/v1/analytics/stats/${userId}/versions?days=90`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          validateStatus: (s) => s < 500,
+        },
+      );
+      if (res.status === 200 && res.data?.success && res.data?.data) {
+        setClientVersions({
+          versionsByPlatform: res.data.data.versionsByPlatform || {},
+          devices: res.data.data.devices || [],
+        });
+      } else if (res.status === 404 || res.status === 403) {
+        setClientVersions({ versionsByPlatform: {}, devices: [] });
+      } else {
+        setVersionsError(
+          res.data?.error || "Impossible de charger les versions clients",
+        );
+      }
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error ? e.message : "Erreur chargement versions clients";
+      setVersionsError(msg);
+    } finally {
+      setVersionsLoading(false);
+    }
+  };
 
   const loadUser = async () => {
     try {
@@ -930,6 +987,128 @@ export default function UserDetailPage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Versions clients (web + mobile / toutes plateformes trackées) */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <MonitorSmartphone className="h-5 w-5" />
+              Versions des applications
+            </h2>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 font-medium">
+                Web build actuel : v{webBuildVersion}
+              </span>
+              <Link
+                href={`/backoffice/user-analytics?userId=${user.id}`}
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Analytics détaillé
+              </Link>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Versions web / mobile réellement utilisées par cet utilisateur
+            (télémétrie 90 derniers jours), plus le build web actuellement
+            déployé.
+          </p>
+          {versionsLoading ? (
+            <p className="text-sm text-gray-500">Chargement des versions…</p>
+          ) : versionsError ? (
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              {versionsError}
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                  Par plateforme
+                </h3>
+                {clientVersions &&
+                Object.keys(clientVersions.versionsByPlatform).length > 0 ? (
+                  <div className="space-y-3">
+                    {Object.entries(clientVersions.versionsByPlatform)
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([platform, versions]) => (
+                        <div
+                          key={platform}
+                          className="rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+                        >
+                          <div className="flex items-center gap-2 mb-2 font-medium text-gray-900 dark:text-gray-100">
+                            {platform.toLowerCase() === "web" ||
+                            platform.toLowerCase() === "browser" ? (
+                              <MonitorSmartphone className="h-4 w-4" />
+                            ) : (
+                              <Smartphone className="h-4 w-4" />
+                            )}
+                            {platform}
+                          </div>
+                          <ul className="space-y-1">
+                            {[...versions]
+                              .sort((a, b) => b.count - a.count)
+                              .map((v) => (
+                                <li
+                                  key={`${platform}-${v.appVersion}`}
+                                  className="flex justify-between text-sm text-gray-700 dark:text-gray-300"
+                                >
+                                  <span className="font-mono">
+                                    v{v.appVersion}
+                                  </span>
+                                  <span className="text-gray-500">
+                                    {v.count} evt
+                                  </span>
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Aucune version trackée pour l’instant (connexion web/mobile
+                    avec analytics). Le build web déployé reste{" "}
+                    <strong>v{webBuildVersion}</strong>.
+                  </p>
+                )}
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                  Appareils connus
+                </h3>
+                {clientVersions?.devices?.length ? (
+                  <ul className="space-y-2">
+                    {clientVersions.devices.slice(0, 8).map((d) => (
+                      <li
+                        key={d.id}
+                        className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-sm"
+                      >
+                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                          {d.platform || "?"}
+                          {d.deviceModel ? ` · ${d.deviceModel}` : ""}
+                        </div>
+                        <div className="text-gray-600 dark:text-gray-400">
+                          App {d.appVersion ? `v${d.appVersion}` : "—"}
+                          {(d.osName || d.osVersion) &&
+                            ` · ${[d.osName, d.osVersion].filter(Boolean).join(" ")}`}
+                        </div>
+                        {d.lastSeen && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Vu{" "}
+                            {new Date(d.lastSeen).toLocaleString("fr-FR")}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Aucun appareil enregistré.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Abonnement & facturation (pour cet utilisateur) */}
