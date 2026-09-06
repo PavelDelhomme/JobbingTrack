@@ -13,6 +13,8 @@
 
 ## En cours — MOB-METIER-OPS-01 (06/09/2026)
 
+> **Git** : merge **PR #31** → `dev` (06/09) · OTA prod/préprod/dev **1.0.54** déjà publié.
+
 | Zone | Check | Résultat | Suite |
 |------|-------|----------|-------|
 | Code | CallProvider + TTL Interview/Notif/Events | **OK** analyze | |
