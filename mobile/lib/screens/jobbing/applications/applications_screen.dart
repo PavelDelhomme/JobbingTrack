@@ -398,11 +398,63 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
 
   Widget _buildCandidaturesTab() {
     final appProvider = Provider.of<ApplicationProvider>(context);
-    var applications = appProvider.applications;
-    if (_statusFilter != null && _statusFilter!.isNotEmpty) {
+    final error = appProvider.lastError;
+    final statusChips = <({String? code, String label})>[
+      (code: null, label: 'Tous'),
+      (code: 'CANDIDATE_PENDING', label: 'En attente'),
+      (code: 'NO_RESPONSE', label: 'À relancer'),
+      (code: 'AWAITING_INTERVIEW', label: 'Entretien'),
+      (code: 'OFFER_RECEIVED', label: 'Offre'),
+      (code: 'REJECTED', label: 'Refus'),
+    ];
+
+    List<Application> applications = appProvider.applications;
+    if (_statusFilter == 'REJECTED') {
+      applications = applications
+          .where(
+            (a) =>
+                a.status == 'REJECTED' ||
+                a.status == 'REJECTED_WITHOUT_INTERVIEW' ||
+                a.status == 'REJECTED_AFTER_INTERVIEW',
+          )
+          .toList();
+    } else if (_statusFilter == 'AWAITING_INTERVIEW') {
+      applications = applications
+          .where(
+            (a) =>
+                a.status == 'AWAITING_INTERVIEW' ||
+                a.status == 'FIRST_INTERVIEW_PENDING' ||
+                a.status == 'OTHER_INTERVIEW_PENDING' ||
+                a.status == 'INTERVIEW_SOON' ||
+                a.status == 'INTERVIEW_PENDING',
+          )
+          .toList();
+    } else if (_statusFilter != null && _statusFilter!.isNotEmpty) {
       applications = applications.where((a) => a.status == _statusFilter).toList();
     }
-    final error = appProvider.lastError;
+
+    Widget filterBar() {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: statusChips.map((chip) {
+            final selected = _statusFilter == chip.code;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                label: Text(chip.label),
+                selected: selected,
+                onSelected: (_) {
+                  setState(() => _statusFilter = chip.code);
+                },
+              ),
+            );
+          }).toList(),
+        ),
+      );
+    }
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -410,47 +462,32 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
             ? const Center(child: CircularProgressIndicator(color: Colors.blue))
             : !appProvider.isOfflineData && error != null && error.isNotEmpty && applications.isEmpty
                 ? _buildErrorState(error)
-                : applications.isEmpty
-                ? Column(
+                : Column(
                     children: [
-                      if (_statusFilter != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: InputChip(
-                            label: Text('Filtre : ${applicationStatusLabel(_statusFilter!)}'),
-                            onDeleted: () => setState(() => _statusFilter = null),
-                          ),
-                        ),
-                      Expanded(child: _buildEmptyState()),
+                      filterBar(),
+                      Expanded(
+                        child: applications.isEmpty
+                            ? _buildEmptyState()
+                            : RefreshIndicator(
+                                onRefresh: _loadApplications,
+                                child: ListView.builder(
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  padding: EdgeInsets.only(bottom: shellBottomExtra(context) + 72),
+                                  itemCount: applications.length,
+                                  itemBuilder: (context, index) {
+                                    final application = applications[index];
+                                    return ApplicationCard(
+                                      application: application,
+                                      onTap: () => _openApplicationDetail(application),
+                                      onEdit: () => _openApplicationDetail(application),
+                                      onArchive: () => _archiveApplication(application),
+                                      onTrash: () => _trashApplication(application),
+                                    );
+                                  },
+                                ),
+                              ),
+                      ),
                     ],
-                  )
-                : RefreshIndicator(
-                    onRefresh: _loadApplications,
-                    child: ListView.builder(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsets.only(bottom: shellBottomExtra(context) + 72),
-                      itemCount: applications.length + (_statusFilter != null ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (_statusFilter != null && index == 0) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: InputChip(
-                              label: Text('Filtre : ${applicationStatusLabel(_statusFilter!)}'),
-                              onDeleted: () => setState(() => _statusFilter = null),
-                            ),
-                          );
-                        }
-                        final i = _statusFilter != null ? index - 1 : index;
-                        final application = applications[i];
-                        return ApplicationCard(
-                          application: application,
-                          onTap: () => _openApplicationDetail(application),
-                          onEdit: () => _openApplicationDetail(application),
-                          onArchive: () => _archiveApplication(application),
-                          onTrash: () => _trashApplication(application),
-                        );
-                      },
-                    ),
                   ),
       ),
     );

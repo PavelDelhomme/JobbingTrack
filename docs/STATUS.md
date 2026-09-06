@@ -9,7 +9,7 @@
 | **Phase** | Mobile — OTA + UX métier |
 | **Point** | **MOB-METIER-OPS-01** — FAB Relance/Appel/Entretien + CallProvider + calendrier |
 | **Branche** | `fix/mobile-application-create-ux` |
-| **APK** | `1.0.54+54` (flavors `dev` / `preprod` / `prod`) |
+| **APK** | `1.0.55+55` (branche `feat/mobile-metier-ops-v1055`) |
 | **UI suivi** | `/backoffice/pilotage` · source vive : [`pilotage/PILOTAGE.md`](pilotage/PILOTAGE.md) |
 
 ## Correctifs 06/09 (session suite métier)
