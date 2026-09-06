@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:jobbingtrack_mobile/services/mobile_update_controller.dart';
 import 'package:jobbingtrack_mobile/services/mobile_update_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 String _versionLabel(String raw) {
@@ -16,6 +17,7 @@ Future<bool> showMobileUpdateDialog(
   required MobileReleaseInfo release,
   required String currentVersion,
   required bool forceUpdate,
+  int buildsBehind = 0,
 }) async {
   var installing = false;
   double progress = 0;
@@ -37,7 +39,10 @@ Future<bool> showMobileUpdateDialog(
               if (Platform.isAndroid) {
                 final url = release.downloadUrl;
                 if (url == null || url.isEmpty) {
-                  throw Exception('URL de téléchargement APK absente côté serveur');
+                  throw Exception(
+                    'URL de téléchargement APK absente côté serveur. '
+                    'Republiez la release OTA (canal ${MobileUpdateService.releaseChannel}).',
+                  );
                 }
                 await MobileUpdateService.downloadAndInstallAndroid(
                   url,
@@ -67,8 +72,13 @@ Future<bool> showMobileUpdateDialog(
             }
           }
 
+          Future<void> later() async {
+            await MobileUpdateController.instance.snoozeLater();
+            if (context.mounted) Navigator.of(context).pop(true);
+          }
+
           return AlertDialog(
-            title: Text(forceUpdate ? 'Mise à jour obligatoire' : 'Mise à jour disponible'),
+            title: Text(forceUpdate ? 'Mise à jour obligatoire' : 'Nouvelle version disponible'),
             content: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,6 +86,21 @@ Future<bool> showMobileUpdateDialog(
                 children: [
                   Text('Installée : ${_versionLabel(currentVersion)}'),
                   Text('Disponible : ${_versionLabel(release.displayVersion)}'),
+                  if (buildsBehind > 1)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        buildsBehind >= MobileUpdateService.catchUpForceAfterBuilds
+                            ? 'Vous avez environ $buildsBehind versions de retard — mise à jour fortement recommandée (session conservée).'
+                            : 'Environ $buildsBehind versions de retard — vous pouvez rattraper en une seule installation.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: buildsBehind >= MobileUpdateService.catchUpForceAfterBuilds
+                              ? Colors.orange.shade800
+                              : Colors.grey[700],
+                        ),
+                      ),
+                    ),
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
@@ -83,6 +108,22 @@ Future<bool> showMobileUpdateDialog(
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  Text(
+                    Platform.isAndroid
+                        ? 'Téléchargement depuis le serveur JobbingTrack. '
+                            'Votre session est conservée (même application, pas de désinstallation).'
+                        : 'Données et session conservées.',
+                    style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                  ),
+                  if (!forceUpdate)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '« Plus tard » : rappel dans 2 heures.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ),
                   if (release.releaseNotes.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Text(release.releaseNotes),
@@ -101,6 +142,15 @@ Future<bool> showMobileUpdateDialog(
                   if (error != null) ...[
                     const SizedBox(height: 12),
                     Text(error!, style: const TextStyle(color: Colors.red)),
+                    if (error!.toLowerCase().contains('permission') ||
+                        error!.toLowerCase().contains('installer')) ...[
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: () => openAppSettings(),
+                        icon: const Icon(Icons.settings),
+                        label: const Text('Ouvrir les paramètres d’installation'),
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -108,12 +158,12 @@ Future<bool> showMobileUpdateDialog(
             actions: [
               if (!forceUpdate)
                 TextButton(
-                  onPressed: installing ? null : () => Navigator.of(context).pop(true),
-                  child: const Text('Plus tard'),
+                  onPressed: installing ? null : later,
+                  child: const Text('Plus tard (2 h)'),
                 ),
               FilledButton(
                 onPressed: installing ? null : install,
-                child: Text(Platform.isAndroid ? 'Télécharger et installer' : 'Ouvrir l’App Store'),
+                child: Text(Platform.isAndroid ? 'Installer maintenant' : 'Ouvrir l’App Store'),
               ),
             ],
           );

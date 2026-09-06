@@ -11,6 +11,51 @@
 
 ---
 
+## En cours — MOB-METIER-OPS-01 (06/09/2026)
+
+| Zone | Check | Résultat | Suite |
+|------|-------|----------|-------|
+| Code | CallProvider + TTL Interview/Notif/Events | **OK** analyze | |
+| FAB | Relance / Appel / Entretien hub + listes + calendrier | **OK** code | |
+| Contact | Ajouter lié → relance/entretien/appel prérempli | **OK** code | |
+| Calendrier | tap entretien/relance + FAB planifier | **OK** code | |
+| Devices | install **1.0.54** × 3 flavors | **OK** Samsung/Nothing/Blackview | |
+| Porteur | validation globale fin de lot | **reportée** | |
+
+## En cours — MOB-OTA-CATCHUP-01 (06/09/2026)
+
+| Zone | Check | Résultat | Suite |
+|------|-------|----------|-------|
+| Code | TTL listes même si vides (apps/companies/contacts/followups) | **OK** | |
+| Code | spinner seulement si `_lastLoadedAt == null` | **OK** | |
+| Code | OTA `buildsBehind` ; ≥5 → insist ; pas de prompt sans `downloadUrl` | **OK** | |
+| OTA | prod / préprod / dev **1.0.53** + downloadUrl | **OK** | |
+| Devices | Samsung + Nothing + Blackview × 3 flavors **1.0.53** | **OK** ADB | supersédé par 1.0.54 |
+| Porteur | listes vides sans boucle refresh | **reportée fin lot** | |
+| Porteur | catch-up multi-versions (message retard) | **reportée fin lot** | |
+
+## En cours — MOB-APP-CREATE-01 (06/09/2026)
+
+| Zone | Check | Résultat | Suite |
+|------|-------|----------|-------|
+| Mobile code | création payload + parse 200/201 + upsert local | **OK** analyze (infos only) | |
+| UX | labels Sur site / Distanciel / Hybride + autocomplete Nominatim | **OK** code | |
+| UX | statut à la création + switch auto/manuel (`statusEngineOptOut`) | **OK** mobile ; backend create à déployer | redeploy application-service |
+| Listes | TTL cache + refresh manuel (force) | **OK** code (renforcé 1.0.53) | |
+| Device | Samsung / Nothing / Blackview **1.0.53** | **OK** | test porteur création |
+
+### Session OTA alignée Gasoil/YTMusic — 06/09/2026
+
+| Zone | Check | Résultat |
+|------|-------|----------|
+| UX OTA | popup optionnelle + snooze 2 h + permissions install | **OK** code 1.0.52 |
+| Script | `scripts/mobile/setup/publish-ota-all-channels.sh` | **OK** |
+| Publish | `publish-apk-remote.sh` défaut → `api.jobbingtrack.com` | **OK** |
+| OTA | **1.0.53** multi-canaux + downloadUrl | **OK** |
+| Devices | 3 appareils × 3 flavors **1.0.53** | **OK** |
+
+---
+
 ## En cours — Phase B / B2
 
 ### Session tests agent — 19/08/2026

@@ -11,6 +11,7 @@ import 'package:jobbingtrack_mobile/providers/application_provider.dart';
 import 'package:jobbingtrack_mobile/providers/company_provider.dart';
 import 'package:jobbingtrack_mobile/providers/contact_provider.dart';
 import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
+import 'package:jobbingtrack_mobile/providers/call_provider.dart';
 import 'package:jobbingtrack_mobile/providers/notification_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/login_screen.dart';
@@ -147,6 +148,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CompanyProvider()),
         ChangeNotifierProvider(create: (_) => ContactProvider()),
         ChangeNotifierProvider(create: (_) => InterviewProvider()),
+        ChangeNotifierProvider(create: (_) => CallProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => FollowUpProvider()),
         ChangeNotifierProvider.value(value: ThemeController.instance),
@@ -301,14 +303,17 @@ class _SplashScreenState extends State<_SplashScreen> {
     _setStatus('Démarrage...');
     debugPrint('[SPLASH] Vérification API...');
 
-    // OTA en fond (sauf force bloquante plus tard via bandeau).
+    // OTA au démarrage (comme GasoilTracking) — popup si nouvelle version (force ou optionnelle non snoozée).
     unawaited(MobileUpdateController.instance.refresh(silent: true).then((update) async {
-      if (!mounted || update == null || !update.blocked) return;
+      if (!mounted || update == null) return;
+      final prompt = await MobileUpdateController.instance.shouldPrompt();
+      if (!mounted || !prompt) return;
       await showMobileUpdateDialog(
         context,
         release: update.release,
         currentVersion: update.current,
-        forceUpdate: true,
+        forceUpdate: update.blocked || update.release.forceUpdate,
+        buildsBehind: update.buildsBehind,
       );
     }).catchError((Object e, StackTrace st) {
       debugPrint('[SPLASH] evaluateUpdate skipped: $e\n$st');

@@ -74,6 +74,19 @@ Pourquoi le standard sépare ? Voir **[VERSIONNEMENT_EXPLICATION_PORTEUR.md](./V
 
 Les anciennes releases stockées en `1.0.0` + build `12` sont **normalisées à l’affichage** en `1.0.12` (API + backoffice).
 
+### Catch-up multi-versions (depuis 1.0.53)
+
+Un appareil très en retard (ex. `1.0.48` → `1.0.53`) **n’installe qu’une fois** la dernière release active du canal — pas besoin d’installer chaque build intermédiaire.
+
+| Règle | Comportement |
+|-------|----------------|
+| `downloadUrl` absent | pas de prompt OTA |
+| `buildsBehind` ≥ 2 | message « N versions de retard » |
+| `buildsBehind` ≥ **5** (`catchUpForceAfterBuilds`) | mise à jour **insistante** (même si snooze / optionnelle) |
+| Session | conservée après install |
+
+Publication : `bash scripts/mobile/setup/publish-ota-all-channels.sh` (prod + préprod + dev).
+
 ---
 
 ## Affichage

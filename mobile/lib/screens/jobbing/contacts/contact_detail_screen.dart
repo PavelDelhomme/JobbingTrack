@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/models/call.dart';
+import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
@@ -18,6 +19,9 @@ import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_detail_field.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_link_tile.dart';
+import 'package:jobbingtrack_mobile/widgets/followup_create_sheet.dart';
+import 'package:jobbingtrack_mobile/widgets/call_create_sheet.dart';
+import 'package:jobbingtrack_mobile/widgets/interview_create_sheet.dart';
 
 class ContactDetailScreen extends StatefulWidget {
   final Map<String, dynamic> contact;
@@ -143,13 +147,90 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
   }
 
   Future<void> _openLinkedApplicationForAdd() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(title: Text('Ajouter lié à ce contact')),
+            ListTile(
+              leading: const Icon(Icons.schedule_send_outlined),
+              title: const Text('Relance'),
+              onTap: () => Navigator.pop(ctx, 'relance'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.event_outlined),
+              title: const Text('Entretien'),
+              onTap: () => Navigator.pop(ctx, 'entretien'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.phone_outlined),
+              title: const Text('Appel'),
+              onTap: () => Navigator.pop(ctx, 'appel'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.assignment_outlined),
+              title: const Text('Ouvrir une candidature'),
+              onTap: () => Navigator.pop(ctx, 'candidature'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'candidature') {
+      await _openApplicationDetail();
+      return;
+    }
+    final app = await _pickLinkedApplication();
+    if (app == null || !mounted) return;
+    final c = _contact ?? widget.contact;
+    final contactId = c['id']?.toString();
+    final label = contactDisplayName(c);
+    switch (choice) {
+      case 'relance':
+        await showCreateFollowUpSheet(
+          context,
+          fixedApplication: app,
+          initialContactId: contactId,
+          initialContactLabel: label,
+        );
+      case 'entretien':
+        await showCreateInterviewSheet(
+          context,
+          fixedApplication: app,
+          initialContact: c,
+        );
+      case 'appel':
+        await showCreateCallSheet(
+          context,
+          fixedApplication: app,
+          initialContactId: contactId,
+          initialContactLabel: label,
+        );
+    }
+    if (mounted) _load();
+  }
+
+  Future<void> _openApplicationDetail() async {
+    final app = await _pickLinkedApplication();
+    if (app == null || !mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ApplicationDetailScreen(application: app)),
+    );
+    if (mounted) _load();
+  }
+
+  Future<Application?> _pickLinkedApplication() async {
     final c = _contact ?? widget.contact;
     final appMaps = parseNestedApplications(c['applications'] as List<dynamic>?);
     if (appMaps.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Liez d’abord une candidature à ce contact')),
       );
-      return;
+      return null;
     }
     Map<String, dynamic>? picked = appMaps.length == 1 ? appMaps.first : null;
     if (picked == null) {
@@ -160,7 +241,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
           child: ListView(
             shrinkWrap: true,
             children: [
-              const ListTile(title: Text('Ajouter depuis quelle candidature ?')),
+              const ListTile(title: Text('Quelle candidature ?')),
               ...appMaps.map((raw) {
                 final title = raw['position']?.toString() ?? 'Candidature';
                 return ListTile(
@@ -174,13 +255,8 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
         ),
       );
     }
-    if (picked == null || !mounted) return;
-    final app = applicationFromLinkedMap(picked);
-    if (app == null) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ApplicationDetailScreen(application: app)),
-    );
-    if (mounted) _load();
+    if (picked == null) return null;
+    return applicationFromLinkedMap(picked);
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/offline_entity_cache.dart';
@@ -9,6 +10,8 @@ class FollowUpProvider with ChangeNotifier {
   List<FollowUp> _followUps = [];
   bool _isLoading = false;
   bool _isOfflineData = false;
+  DateTime? _lastLoadedAt;
+  Future<void>? _inFlight;
 
   List<FollowUp> get followUps => _followUps;
   bool get isLoading => _isLoading;
@@ -18,25 +21,80 @@ class FollowUpProvider with ChangeNotifier {
 
   List<FollowUp> get completedFollowUps => filterPastFollowUps(_followUps);
 
+  static const _staleAfter = Duration(seconds: 45);
+
+  void _notifySafely() {
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.idle ||
+        phase == SchedulerPhase.postFrameCallbacks) {
+      notifyListeners();
+      return;
+    }
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (hasListeners) notifyListeners();
+    });
+  }
+
+  /// Charge la liste globale. Pour filtrer une candidature, utiliser [forApplication]
+  /// (évite d’écraser le cache global).
   Future<void> loadFollowUps({
     String? token,
     String? userId,
     String? applicationId,
+    bool force = false,
   }) async {
-    // Stale-while-revalidate : pas de spinner plein écran si cache déjà présent.
-    final showSpinner = _followUps.isEmpty;
-    if (showSpinner) {
-      _isLoading = true;
-      notifyListeners();
-    }
-    try {
-      if (applicationId != null && applicationId.isNotEmpty) {
-        _followUps = await ApiService.getFollowUps(
+    // Filtre par candidature : ne remplace pas le cache global.
+    if (applicationId != null && applicationId.isNotEmpty) {
+      try {
+        final scoped = await ApiService.getFollowUps(
           applicationId: applicationId,
           token: token,
         );
-        _isOfflineData = false;
-      } else {
+        for (final f in scoped) {
+          _followUps.removeWhere((x) => x.id == f.id);
+          _followUps.insert(0, f);
+        }
+        _notifySafely();
+      } catch (e) {
+        if (userId != null && userId.isNotEmpty) {
+          final cached = await OfflineEntityCache.instance.loadList(
+            userId,
+            OfflineEntityKeys.followUps,
+          );
+          if (cached != null && cached.isNotEmpty) {
+            final filtered = cached
+                .map(FollowUp.fromJson)
+                .where((f) => f.applicationId == applicationId)
+                .toList();
+            for (final f in filtered) {
+              _followUps.removeWhere((x) => x.id == f.id);
+              _followUps.insert(0, f);
+            }
+            _isOfflineData = true;
+            _notifySafely();
+            return;
+          }
+        }
+        rethrow;
+      }
+      return;
+    }
+
+    if (!force &&
+        _lastLoadedAt != null &&
+        DateTime.now().difference(_lastLoadedAt!) < _staleAfter) {
+      return;
+    }
+    if (_inFlight != null) return _inFlight!;
+
+    final showSpinner = _followUps.isEmpty && _lastLoadedAt == null;
+    if (showSpinner) {
+      _isLoading = true;
+      _notifySafely();
+    }
+
+    _inFlight = () async {
+      try {
         final result = await OfflineListLoader.load<FollowUp>(
           userId: userId,
           cacheKey: OfflineEntityKeys.followUps,
@@ -46,53 +104,49 @@ class FollowUpProvider with ChangeNotifier {
         );
         _followUps = result.items;
         _isOfflineData = result.fromCache;
-      }
-    } catch (e) {
-      if (applicationId != null &&
-          applicationId.isNotEmpty &&
-          userId != null &&
-          userId.isNotEmpty) {
-        final cached = await OfflineEntityCache.instance.loadList(
-          userId,
-          OfflineEntityKeys.followUps,
-        );
-        if (cached != null && cached.isNotEmpty) {
-          _followUps = cached
-              .map(FollowUp.fromJson)
-              .where((f) => f.applicationId == applicationId)
-              .toList();
-          _isOfflineData = true;
-          return;
+        _lastLoadedAt = DateTime.now();
+      } catch (e) {
+        if (_followUps.isEmpty) {
+          _isOfflineData = false;
+          rethrow;
         }
+        _isOfflineData = true;
+      } finally {
+        _isLoading = false;
+        _inFlight = null;
+        _notifySafely();
       }
-      _isOfflineData = false;
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    }();
+
+    return _inFlight!;
+  }
+
+  List<FollowUp> forApplication(String applicationId) {
+    return _followUps.where((f) => f.applicationId == applicationId).toList();
   }
 
   Future<void> addFollowUp(FollowUp followUp) async {
     _followUps.removeWhere((f) => f.id == followUp.id);
     _followUps.insert(0, followUp);
-    notifyListeners();
+    _lastLoadedAt = DateTime.now();
+    _notifySafely();
   }
 
   Future<FollowUp> createFollowUp({
     required String applicationId,
     required DateTime followUpDate,
     String? notes,
+    String? contactId,
     String? token,
   }) async {
     final created = await ApiService.createFollowUp(
       applicationId: applicationId,
       followUpDate: followUpDate,
       notes: notes,
+      contactId: contactId,
       token: token,
     );
-    _followUps.insert(0, created);
-    notifyListeners();
+    await addFollowUp(created);
     return created;
   }
 
@@ -100,7 +154,7 @@ class FollowUpProvider with ChangeNotifier {
     final index = _followUps.indexWhere((f) => f.id == id);
     if (index != -1) {
       _followUps[index] = followUp;
-      notifyListeners();
+      _notifySafely();
     }
   }
 
@@ -112,19 +166,21 @@ class FollowUpProvider with ChangeNotifier {
     } else {
       _followUps.insert(0, updated);
     }
-    notifyListeners();
+    _notifySafely();
   }
 
   Future<void> deleteFollowUp(String id, {String? token}) async {
     await ApiService.deleteFollowUp(id, token: token);
     _followUps.removeWhere((f) => f.id == id);
-    notifyListeners();
+    _notifySafely();
   }
 
   void clearUserCache() {
     _followUps = [];
     _isLoading = false;
     _isOfflineData = false;
-    notifyListeners();
+    _lastLoadedAt = null;
+    _inFlight = null;
+    _notifySafely();
   }
 }

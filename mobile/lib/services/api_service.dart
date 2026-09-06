@@ -693,9 +693,23 @@ class ApiService {
   static Exception _httpError(http.Response response, [String? fallback]) {
     final body = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
     if (body is Map) {
+      final errors = body['errors'];
+      if (errors is List && errors.isNotEmpty) {
+        final msgs = errors.map((e) {
+          if (e is Map) return (e['msg'] ?? e['message'] ?? e).toString();
+          return e.toString();
+        }).join(' · ');
+        return Exception(msgs);
+      }
       return Exception(body['message'] ?? body['error'] ?? fallback ?? 'Erreur HTTP ${response.statusCode}');
     }
     return Exception(fallback ?? 'Erreur HTTP ${response.statusCode}');
+  }
+
+  static Map<String, dynamic> _asJsonMap(dynamic data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    return <String, dynamic>{};
   }
 
   /// Création candidature avec payload complet (tous les champs backend).
@@ -707,11 +721,30 @@ class ApiService {
       body: payload,
       entityType: 'application',
       token: token,
-      successStatus: 201,
+      successStatuses: const {200, 201},
       send: () => _post(path, headers: _jsonHeaders(token), body: jsonEncode(payload)),
       onSuccess: (response) {
-        final data = jsonDecode(response.body);
-        return Application.fromJson(data['application'] ?? data);
+        final decoded = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
+        final root = _asJsonMap(decoded);
+        final nested = root['application'] ?? root['data'] ?? root;
+        final map = _asJsonMap(nested);
+        try {
+          return Application.fromJson(map.isNotEmpty ? map : root);
+        } catch (_) {
+          // Création OK côté API : construire un objet local pour ne pas bloquer l'UI.
+          return Application.fromJson({
+            ...payload,
+            'id': map['id']?.toString() ?? 'local-${DateTime.now().millisecondsSinceEpoch}',
+            'company': map['company'] ?? {
+              'id': payload['companyId']?.toString() ?? '',
+              'name': payload['companyName']?.toString() ?? '',
+            },
+            'status': map['status'] ?? payload['status'] ?? 'CANDIDATE_PENDING',
+            'applicationDate': map['applicationDate'] ?? payload['applicationDate'],
+            'createdAt': map['createdAt'] ?? DateTime.now().toIso8601String(),
+            'updatedAt': map['updatedAt'] ?? DateTime.now().toIso8601String(),
+          });
+        }
       },
       onHttpError: (response) => _httpError(response),
     );

@@ -13,6 +13,7 @@ import 'package:jobbingtrack_mobile/utils/app_snack.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_screen.dart';
+import 'package:jobbingtrack_mobile/widgets/followup_create_sheet.dart';
 
 class FollowUpsScreen extends StatefulWidget {
   const FollowUpsScreen({super.key});
@@ -77,6 +78,15 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_followups_screen',
+        tooltip: 'Nouvelle relance',
+        onPressed: () async {
+          final created = await showCreateFollowUpSheet(context);
+          if (created != null && mounted) await _loadFollowUps();
+        },
+        child: const Icon(Icons.schedule_send_outlined),
       ),
       body: DrawerBackScope(
         scaffoldKey: _scaffoldKey,

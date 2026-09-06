@@ -53,15 +53,15 @@ class _TelemetryLifecycleBridgeState extends State<TelemetryLifecycleBridge>
   Future<void> _checkOtaOnResume() async {
     final result = await MobileUpdateController.instance.refresh(silent: true);
     if (!mounted || result == null) return;
-    // Ne pas bloquer : le bandeau shell + Paramètres suffisent ; popup seulement si force.
-    if (result.blocked) {
-      await showMobileUpdateDialog(
-        context,
-        release: result.release,
-        currentVersion: result.current,
-        forceUpdate: true,
-      );
-    }
+    final prompt = await MobileUpdateController.instance.shouldPrompt();
+    if (!mounted || !prompt) return;
+    await showMobileUpdateDialog(
+      context,
+      release: result.release,
+      currentVersion: result.current,
+      forceUpdate: result.blocked || result.release.forceUpdate,
+      buildsBehind: result.buildsBehind,
+    );
   }
 
   Future<void> _syncPendingTelemetry() async {

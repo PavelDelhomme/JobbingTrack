@@ -1,6 +1,6 @@
 # TODOS — choses à faire (source de vérité)
 
-Dernière mise à jour : **28 août 2026**
+Dernière mise à jour : **6 septembre 2026**
 
 ## Process de suivi (obligatoire)
 
@@ -32,32 +32,14 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ---
 
-## ▶ En cours maintenant — MOB-PERF-UX-01 (unlock + liens + notifs)
+## ▶ En cours maintenant — MOB-METIER-OPS-01 (hubs métier mobile)
 
-> **Focus unique Kanban** : **MOB-PERF-UX-01** — APK **1.0.48** à tester (unlock rapide)
-> **Branche** : `feat/mobile-perf-drawer-theme`
-> **Appareils** : Nothing + Samsung + Blackview — **1.0.48** installé 02/09
-> **File** : B2-D.6 validation ; redeploy followup/interview (notifs STATUS_CHANGE) ; B2-D.7
->
-> *Section DEPLOY VPS ci-dessous = historique A→J (conservée).*
->
+> **Focus unique Kanban** : **MOB-METIER-OPS-01** — APK **1.0.54** (FAB Relance/Appel/Entretien, CallProvider, calendrier cliquable, contact → actions liées)
+> **Branche** : `fix/mobile-application-create-ux`
+> **Appareils** : Samsung + Nothing + Blackview — installer **1.0.54**
+> **Validation porteur** : reportée en fin de lot (demande explicite)
+> **File derrière** : MOB-OTA-CATCHUP-01 (déjà livré 1.0.53) · MOB-APP-CREATE-01 · polish filtres avancés
 
-> **État 29/08** :
-> - ✅ APKs `1.0.42+42` posés + OTA `downloadUrl` (local/dev, préprod/dev, prod/production)
-> - ⏳ Porteur : ouvrir les apps ; pour voir une MAJ, republier `>1.0.42` (ne pas forcer l’install)
-> - Script : `bash scripts/mobile/setup/install-three-channels-devices.sh`
-> **UI** : [Portainer](https://portainer.delhomme.ovh) · [NPM](https://nginx.delhomme.ovh) · VPS `95.111.227.204`  
-> **Guide miroir** : [`DEPLOY.md`](../../DEPLOY.md) (ne rien perdre — cette section = **copie opérationnelle** A→J + canaux mobile §15)  
-> **Stub mobile** : [`CANAL_DISTRIBUTION_MOBILE.md`](../deployment/CANAL_DISTRIBUTION_MOBILE.md) → pointe vers `DEPLOY.md` §15 (contenu recopié en **Étape J** ci-dessous)
-
-```
-État 28/08 (17h) :
-  ✅ Dev = local PC ; serveur = Portainer préprod + prod
-  ✅ Login admin préprod navigateur OK (fix API URL tablette)
-  ✅ Schéma BDD aligné (companyType, Application.isTestData…)
-  ✅ OTA API 200 — downloadUrl null (APK à publier)
-  ◀ Prochaine : build+publish APK canal dev (J) → Nothing Phone
-```
 
 ---
 

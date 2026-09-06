@@ -11,12 +11,14 @@ import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/application_picker_field.dart';
 import 'package:jobbingtrack_mobile/widgets/contact_picker_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/interview_calendar_offer.dart';
+import 'package:jobbingtrack_mobile/widgets/location_autocomplete_field.dart';
 import 'package:jobbingtrack_mobile/utils/meeting_place_policy.dart';
 
 /// Création d'un entretien avec candidature obligatoire (picker trié par date récente).
 Future<bool> showCreateInterviewSheet(
   BuildContext context, {
   Application? fixedApplication,
+  Map<String, dynamic>? initialContact,
 }) async {
   final appProvider = Provider.of<ApplicationProvider>(context, listen: false);
   final token = Provider.of<AuthProvider>(context, listen: false).token;
@@ -31,6 +33,7 @@ Future<bool> showCreateInterviewSheet(
     builder: (ctx) => _InterviewCreateSheetBody(
       applications: appProvider.applications,
       fixedApplication: fixedApplication,
+      initialContact: initialContact,
     ),
   );
   return result == true;
@@ -39,10 +42,12 @@ Future<bool> showCreateInterviewSheet(
 class _InterviewCreateSheetBody extends StatefulWidget {
   final List<Application> applications;
   final Application? fixedApplication;
+  final Map<String, dynamic>? initialContact;
 
   const _InterviewCreateSheetBody({
     required this.applications,
     this.fixedApplication,
+    this.initialContact,
   });
 
   @override
@@ -64,6 +69,9 @@ class _InterviewCreateSheetBodyState extends State<_InterviewCreateSheetBody> {
   void initState() {
     super.initState();
     _selectedApp = widget.fixedApplication;
+    if (widget.initialContact != null) {
+      _contacts = [widget.initialContact!];
+    }
   }
 
   @override
@@ -114,7 +122,7 @@ class _InterviewCreateSheetBodyState extends State<_InterviewCreateSheetBody> {
         contactIds: _contacts.map((c) => c['id']?.toString()).whereType<String>().toList(),
         token: token,
       );
-      await Provider.of<InterviewProvider>(context, listen: false).loadInterviews(token: token);
+      Provider.of<InterviewProvider>(context, listen: false).addInterview(created);
       if (!mounted) return;
       final nav = Navigator.of(context);
       await offerAddInterviewToCalendar(context, interview: created);
@@ -205,13 +213,10 @@ class _InterviewCreateSheetBodyState extends State<_InterviewCreateSheetBody> {
                 onChanged: (v) => setState(() => _style = v ?? _style),
               ),
               const SizedBox(height: 12),
-              TextField(
+              LocationAutocompleteField(
                 controller: _location,
-                decoration: InputDecoration(
-                  labelText: 'Lieu / tél (optionnel)',
-                  helperText: _locationHint(),
-                  border: const OutlineInputBorder(),
-                ),
+                labelText: 'Lieu / tél (optionnel)',
+                hintText: 'Adresse, ville ou numéro…',
                 onChanged: (_) => setState(() {
                   applyLocationAutoStyle(
                     location: _location.text,
@@ -220,6 +225,14 @@ class _InterviewCreateSheetBodyState extends State<_InterviewCreateSheetBody> {
                   );
                 }),
               ),
+              if (_locationHint() != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    _locationHint()!,
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                ),
               const SizedBox(height: 12),
               TextField(
                 controller: _videoLink,

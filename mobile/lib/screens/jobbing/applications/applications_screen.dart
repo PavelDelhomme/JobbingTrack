@@ -7,15 +7,12 @@ import 'package:jobbingtrack_mobile/providers/contact_provider.dart';
 import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/models/application.dart';
-import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/navigation/shell_list_refresh_mixin.dart';
 import 'package:jobbingtrack_mobile/navigation/shell_navigation.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/network_recovery_service.dart';
 import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
-import 'package:jobbingtrack_mobile/services/offline_entity_cache.dart';
-import 'package:jobbingtrack_mobile/services/offline_list_loader.dart';
 import 'package:jobbingtrack_mobile/widgets/offline_mode_banner.dart';
 import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
@@ -36,8 +33,12 @@ import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/widgets/application_card.dart';
 import 'package:jobbingtrack_mobile/widgets/company_create_dialog.dart';
 import 'package:jobbingtrack_mobile/widgets/contact_create_sheet.dart';
+import 'package:jobbingtrack_mobile/widgets/interview_create_sheet.dart';
+import 'package:jobbingtrack_mobile/widgets/followup_create_sheet.dart';
+import 'package:jobbingtrack_mobile/widgets/call_create_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/list_item_swipe_actions.dart';
 import 'package:jobbingtrack_mobile/utils/entity_swipe_confirm.dart';
+import 'package:jobbingtrack_mobile/providers/call_provider.dart';
 
 class ApplicationsScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -62,9 +63,6 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   late TabController _tabController;
   String? _statusFilter;
-  List<Call> _calls = [];
-  bool _callsLoading = false;
-  bool _callsOfflineData = false;
   bool _retrying = false;
 
   @override
@@ -129,7 +127,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     }
     if (!oldWidget.isShellVisible && widget.isShellVisible) {
       ShellTabRegistry.setCurrentTab(1, applicationsSubTab: _tabController.index);
-      _loadAll();
+      _loadAll(force: false);
     }
   }
 
@@ -143,33 +141,17 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
 
   @override
   void onShellListVisibleAgain() {
-    _loadAll();
+    _loadAll(force: false);
   }
 
-  Future<void> _loadCalls({String? userId, String? token}) async {
+  Future<void> _loadCalls({String? userId, String? token, bool force = false}) async {
     if (!mounted) return;
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final uid = userId ?? auth.user?.id;
-    final authToken = token ?? auth.token;
-    if (mounted) setState(() => _callsLoading = true);
-    try {
-      final result = await OfflineListLoader.load<Call>(
-        userId: uid,
-        cacheKey: OfflineEntityKeys.calls,
-        fetch: () => ApiService.getCalls(token: authToken),
-        fromJson: Call.fromJson,
-        toJson: (c) => c.toJson(),
-      );
-      if (mounted) {
-        setState(() {
-          _calls = result.items;
-          _callsOfflineData = result.fromCache;
-          _callsLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _callsLoading = false);
-    }
+    await Provider.of<CallProvider>(context, listen: false).loadCalls(
+      userId: userId ?? auth.user?.id,
+      token: token ?? auth.token,
+      force: force,
+    );
   }
 
   Future<void> _retryConnectionAndLoad() async {
@@ -181,7 +163,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
       final auth = Provider.of<AuthProvider>(context, listen: false);
       await auth.refreshSessionIfOnline();
       if (!mounted) return;
-      await _loadAll();
+      await _loadAll(force: true);
       if (!mounted) return;
       if (!await ApiService.isReachable()) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -195,7 +177,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     }
   }
 
-  Future<void> _loadAll() async {
+  Future<void> _loadAll({bool force = false}) async {
     if (!mounted || !widget.isShellVisible) return;
     final auth = Provider.of<AuthProvider>(context, listen: false);
     await auth.refreshSessionIfOnline();
@@ -207,13 +189,13 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     final contactProvider = Provider.of<ContactProvider>(context, listen: false);
     final interviewProvider = Provider.of<InterviewProvider>(context, listen: false);
     final followUpProvider = Provider.of<FollowUpProvider>(context, listen: false);
-
-    if (mounted) setState(() => _callsLoading = true);
+    final callProvider = Provider.of<CallProvider>(context, listen: false);
 
     await Future.wait([
       appProvider.loadApplications(
         token: token,
         userId: userId,
+        force: force,
         renewToken: () async {
           final ok = await auth.trySilentTokenRefresh();
           return ok ? auth.token : null;
@@ -221,13 +203,12 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
       ),
       companyProvider.loadCompanies(token: token, userId: userId).catchError((_) {}),
       contactProvider.loadContacts(token: token, userId: userId).catchError((_) {}),
-      interviewProvider.loadInterviews(token: token, userId: userId).catchError((_) {}),
-      followUpProvider.loadFollowUps(token: token, userId: userId).catchError((_) {}),
-      _loadCalls(userId: userId, token: token),
+      interviewProvider.loadInterviews(token: token, userId: userId, force: force).catchError((_) {}),
+      followUpProvider.loadFollowUps(token: token, userId: userId, force: force).catchError((_) {}),
+      callProvider.loadCalls(token: token, userId: userId, force: force).catchError((_) {}),
     ]);
 
     if (!mounted) return;
-    setState(() => _callsLoading = false);
 
     final names = {for (final c in companyProvider.companies) c.id: c.name};
     appProvider.enrichCompanies(names);
@@ -243,7 +224,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
   }
 
   Future<void> _loadApplications() async {
-    await _retryConnectionAndLoad();
+    await _loadAll(force: true);
   }
 
   bool _showOfflineBanner(BuildContext context) {
@@ -252,12 +233,13 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     final contact = context.watch<ContactProvider>();
     final interview = context.watch<InterviewProvider>();
     final followUp = context.watch<FollowUpProvider>();
+    final calls = context.watch<CallProvider>();
     return app.isOfflineData ||
         company.isOfflineData ||
         contact.isOfflineData ||
         interview.isOfflineData ||
         followUp.isOfflineData ||
-        _callsOfflineData;
+        calls.isOfflineData;
   }
 
   @override
@@ -280,7 +262,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
               IconButton(
                 tooltip: 'Actualiser',
                 icon: const Icon(Icons.refresh),
-                onPressed: _loadAll,
+                onPressed: () => _loadAll(force: true),
               ),
             ],
           ),
@@ -364,6 +346,42 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
         },
         backgroundColor: Colors.green[700],
         child: const Icon(Icons.person_add_outlined),
+      );
+    }
+    if (_tabController.index == 3) {
+      return FloatingActionButton(
+        heroTag: 'fab_interviews_tab',
+        tooltip: 'Nouvel entretien',
+        onPressed: () async {
+          final ok = await showCreateInterviewSheet(context);
+          if (ok == true && mounted) await _loadAll(force: true);
+        },
+        backgroundColor: Colors.orange[700],
+        child: const Icon(Icons.event_available_outlined),
+      );
+    }
+    if (_tabController.index == 4) {
+      return FloatingActionButton(
+        heroTag: 'fab_followups_tab',
+        tooltip: 'Nouvelle relance',
+        onPressed: () async {
+          final created = await showCreateFollowUpSheet(context);
+          if (created != null && mounted) await _loadAll(force: true);
+        },
+        backgroundColor: Colors.teal[700],
+        child: const Icon(Icons.schedule_send_outlined),
+      );
+    }
+    if (_tabController.index == 5) {
+      return FloatingActionButton(
+        heroTag: 'fab_calls_tab',
+        tooltip: 'Nouvel appel',
+        onPressed: () async {
+          final created = await showCreateCallSheet(context);
+          if (created != null && mounted) await _loadAll(force: true);
+        },
+        backgroundColor: Colors.indigo[700],
+        child: const Icon(Icons.phone_outlined),
       );
     }
     return FloatingActionButton(
@@ -859,10 +877,12 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
   }
 
   Widget _buildAppelsTab() {
-    if (_callsLoading) {
+    final callProvider = Provider.of<CallProvider>(context);
+    final calls = callProvider.calls;
+    if (callProvider.isLoading && calls.isEmpty) {
       return const Center(child: CircularProgressIndicator(color: Colors.blue));
     }
-    if (_calls.isEmpty) {
+    if (calls.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -875,13 +895,13 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
       );
     }
     return RefreshIndicator(
-      onRefresh: _loadCalls,
+      onRefresh: () => _loadCalls(force: true),
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
-        itemCount: _calls.length,
+        itemCount: calls.length,
         itemBuilder: (context, index) {
-          final c = _calls[index];
+          final c = calls[index];
           final label = c.subject.trim().isNotEmpty ? c.subject : 'Appel téléphonique';
           final apps = Provider.of<ApplicationProvider>(context, listen: false).applications;
           final offerLine = linkedOfferCompanyLine(
@@ -907,7 +927,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
             onArchive: () async {
               final auth = Provider.of<AuthProvider>(context, listen: false);
               await ApiService.archiveCall(c.id, token: auth.token);
-              await _loadCalls();
+              await _loadCalls(force: true);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appel archivé')));
               }
@@ -915,7 +935,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
             onTrash: () async {
               final auth = Provider.of<AuthProvider>(context, listen: false);
               await ApiService.deleteCall(c.id, token: auth.token);
-              await _loadCalls();
+              Provider.of<CallProvider>(context, listen: false).removeLocal(c.id);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appel mis à la corbeille')));
               }

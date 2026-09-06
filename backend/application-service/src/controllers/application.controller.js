@@ -130,10 +130,12 @@ const createApplication = async (req, res, next) => {
       salaryMax,
       salaryNegotiable = false,
       status = 'CANDIDATE_PENDING', // Statut (enum ApplicationStatus)
+      statusEngineOptOut = false, // true = pas de cascade auto statut
       applicationDate,
       jobUrl,
       notes
     } = req.body;
+    const optOut = statusEngineOptOut === true || statusEngineOptOut === 'true';
 
     // Utiliser le statut fourni ou le statut par défaut (code ApplicationStatus)
     const statusCode = status || 'CANDIDATE_PENDING';
@@ -175,12 +177,13 @@ const createApplication = async (req, res, next) => {
           description,
           location,
           contractType,
-          workMode,
+          workMode: workMode || null,
           applicationType,
           salaryMin,
           salaryMax,
           salaryNegotiable,
           statusId: statusRow.id,
+          statusEngineOptOut: optOut,
           applicationDate: applicationDate ? new Date(applicationDate) : new Date(),
           jobUrl,
           notes
@@ -206,7 +209,7 @@ const createApplication = async (req, res, next) => {
             description,
             location,
             contractType,
-            workMode,
+            workMode: workMode || null,
             applicationType,
             salaryMin,
             salaryMax,

@@ -6,6 +6,7 @@ import 'package:jobbingtrack_mobile/models/company.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/companies/company_detail_screen.dart';
@@ -60,15 +61,46 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
       var contacts = <Map<String, dynamic>>[];
       var followUps = <FollowUp>[];
       var calls = <Call>[];
+      final linkedContactIds = <String>{};
+      final rawContacts = raw['contacts'];
+      if (rawContacts is List) {
+        for (final item in rawContacts) {
+          if (item is Map) {
+            final id = item['id']?.toString();
+            if (id != null && id.isNotEmpty) linkedContactIds.add(id);
+          } else {
+            final id = item?.toString();
+            if (id != null && id.isNotEmpty) linkedContactIds.add(id);
+          }
+        }
+      }
+      final rawContactIds = raw['contactIds'];
+      if (rawContactIds is List) {
+        for (final id in rawContactIds) {
+          final s = id?.toString();
+          if (s != null && s.isNotEmpty) linkedContactIds.add(s);
+        }
+      }
       if (appId.isNotEmpty) {
         try {
           contacts = await ApiService.getContactsByApplication(appId, token: token);
+          if (linkedContactIds.isNotEmpty) {
+            contacts = contacts
+                .where((c) => linkedContactIds.contains(c['id']?.toString()))
+                .toList();
+          }
         } catch (_) {}
         try {
           followUps = await ApiService.getFollowUps(applicationId: appId, token: token);
         } catch (_) {}
         try {
           calls = await ApiService.getCallsByApplication(appId, token: token);
+          if (linkedContactIds.isNotEmpty) {
+            calls = calls
+                .where((c) =>
+                    c.contactId != null && linkedContactIds.contains(c.contactId))
+                .toList();
+          }
         } catch (_) {}
       }
       if (mounted) {
@@ -214,6 +246,7 @@ class _InterviewDetailScreenState extends State<InterviewDetailScreen> {
       final token = Provider.of<AuthProvider>(context, listen: false).token;
       await ApiService.deleteInterview(i.id, token: token);
       if (mounted) {
+        Provider.of<InterviewProvider>(context, listen: false).removeLocal(i.id);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Entretien mis à la corbeille'), duration: Duration(seconds: 3)),
         );

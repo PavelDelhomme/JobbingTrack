@@ -1,45 +1,41 @@
 {
-  "updatedAt": "2026-09-02",
-  "apk": "1.0.49+49",
+  "updatedAt": "2026-09-06",
+  "apk": "1.0.54",
   "phase": {
     "id": "B",
     "label": "Gate pré-prod mobile",
-    "step": "PERF",
-    "subStep": "ota-nothing-perf",
-    "point": "MOB-PERF-UX-01",
-    "title": "1.0.49 OTA Nothing + charge accélérée"
+    "step": "METIER",
+    "subStep": "ops-hubs",
+    "point": "MOB-METIER-OPS-01",
+    "title": "1.0.54 FAB + CallProvider + calendrier + contact lié"
   },
   "recentDone": [
     {
-      "id": "MOB-PERF-UX-01-49",
-      "label": "1.0.49 OTA Nothing 3 apps + perf splash/home"
+      "id": "MOB-METIER-OPS-01-code",
+      "label": "FAB Relance/Appel/Entretien + CallProvider + calendrier"
     },
     {
-      "id": "MOB-PERF-UX-01-code",
-      "label": "APK 1.0.48 unlock + liens + dashboard"
+      "id": "MOB-OTA-CATCHUP-01-code",
+      "label": "Catch-up ≥5 builds + TTL listes vides + install 3 appareils"
     },
     {
-      "id": "B2-D.6-code",
-      "label": "FAB Relance correctifs + APK 1.0.46 (PR #28)"
+      "id": "MOB-APP-CREATE-01-code",
+      "label": "Fix create + lieux + statut + cache listes"
     }
   ],
   "queue": [
     {
-      "id": "MOB-PERF-UX-01",
-      "label": "Test porteur Nothing : splash/bio/Accueil 1.0.49"
+      "id": "MOB-METIER-OPS-01",
+      "label": "Valider porteur hubs métier 1.0.54 (fin de lot)"
     },
     {
-      "id": "B2-D.6",
-      "label": "FAB Relance validation porteur"
+      "id": "MOB-OTA-CATCHUP-01",
+      "label": "Confirmer absence spam refresh listes vides"
     },
     {
-      "id": "B2-D.7",
-      "label": "FAB → Appel"
-    },
-    {
-      "id": "MAINT-OFF",
-      "label": "Désactiver maintenance prod"
+      "id": "MOB-APP-CREATE-01",
+      "label": "Valider création candidature"
     }
   ],
-  "focusId": "MOB-PERF-UX-01"
+  "focusId": "MOB-METIER-OPS-01"
 }

@@ -23,6 +23,7 @@ class MobileUpdateBanner extends StatelessWidget {
                 release: release,
                 currentVersion: ctrl.currentVersion ?? '?',
                 forceUpdate: ctrl.forceUpdate,
+                buildsBehind: ctrl.buildsBehind,
               );
               await ctrl.refresh(silent: true);
             },

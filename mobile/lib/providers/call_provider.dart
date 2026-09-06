@@ -1,21 +1,18 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:jobbingtrack_mobile/models/interview.dart';
+import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/offline_entity_cache.dart';
 import 'package:jobbingtrack_mobile/services/offline_list_loader.dart';
-import 'package:jobbingtrack_mobile/utils/upcoming_timeline.dart';
 
-class InterviewProvider with ChangeNotifier {
-  List<Interview> _interviews = [];
+class CallProvider with ChangeNotifier {
+  List<Call> _calls = [];
   bool _isLoading = false;
   bool _isOfflineData = false;
   DateTime? _lastLoadedAt;
   Future<void>? _inFlight;
 
-  List<Interview> get interviews => _interviews;
-  List<Interview> get upcomingInterviews => filterUpcomingInterviews(_interviews);
-  List<Interview> get pastInterviews => filterPastInterviews(_interviews);
+  List<Call> get calls => _calls;
   bool get isLoading => _isLoading;
   bool get isOfflineData => _isOfflineData;
 
@@ -33,7 +30,7 @@ class InterviewProvider with ChangeNotifier {
     });
   }
 
-  Future<void> loadInterviews({
+  Future<void> loadCalls({
     String? token,
     String? userId,
     bool force = false,
@@ -45,7 +42,7 @@ class InterviewProvider with ChangeNotifier {
     }
     if (_inFlight != null) return _inFlight!;
 
-    final showSpinner = _interviews.isEmpty && _lastLoadedAt == null;
+    final showSpinner = _calls.isEmpty && _lastLoadedAt == null;
     if (showSpinner) {
       _isLoading = true;
       _notifySafely();
@@ -53,18 +50,18 @@ class InterviewProvider with ChangeNotifier {
 
     _inFlight = () async {
       try {
-        final result = await OfflineListLoader.load<Interview>(
+        final result = await OfflineListLoader.load<Call>(
           userId: userId,
-          cacheKey: OfflineEntityKeys.interviews,
-          fetch: () => ApiService.getInterviews(token: token),
-          fromJson: Interview.fromJson,
-          toJson: (i) => i.toJson(),
+          cacheKey: OfflineEntityKeys.calls,
+          fetch: () => ApiService.getCalls(token: token),
+          fromJson: Call.fromJson,
+          toJson: (c) => c.toJson(),
         );
-        _interviews = result.items;
+        _calls = result.items;
         _isOfflineData = result.fromCache;
         _lastLoadedAt = DateTime.now();
       } catch (e) {
-        if (_interviews.isEmpty) {
+        if (_calls.isEmpty) {
           _isOfflineData = false;
           rethrow;
         }
@@ -79,20 +76,28 @@ class InterviewProvider with ChangeNotifier {
     return _inFlight!;
   }
 
-  void addInterview(Interview interview) {
-    _interviews.removeWhere((i) => i.id == interview.id);
-    _interviews.insert(0, interview);
+  void upsertLocal(Call call) {
+    _calls.removeWhere((c) => c.id == call.id);
+    _calls.insert(0, call);
     _lastLoadedAt = DateTime.now();
     _notifySafely();
   }
 
   void removeLocal(String id) {
-    _interviews.removeWhere((i) => i.id == id);
+    _calls.removeWhere((c) => c.id == id);
     _notifySafely();
   }
 
+  List<Call> forApplication(String applicationId) {
+    return _calls.where((c) => c.applicationId == applicationId).toList();
+  }
+
+  List<Call> forContact(String contactId) {
+    return _calls.where((c) => c.contactId == contactId).toList();
+  }
+
   void clearUserCache() {
-    _interviews = [];
+    _calls = [];
     _isLoading = false;
     _isOfflineData = false;
     _lastLoadedAt = null;

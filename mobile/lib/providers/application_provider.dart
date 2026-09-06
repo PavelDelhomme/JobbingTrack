@@ -11,11 +11,15 @@ class ApplicationProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _lastError;
   bool _isOfflineData = false;
+  DateTime? _lastLoadedAt;
+  Future<void>? _inFlight;
 
   List<Application> get applications => _applications;
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
   bool get isOfflineData => _isOfflineData;
+
+  static const _staleAfter = Duration(seconds: 45);
 
   void _notifySafely() {
     final phase = SchedulerBinding.instance.schedulerPhase;
@@ -33,8 +37,18 @@ class ApplicationProvider with ChangeNotifier {
     String? token,
     String? userId,
     Future<String?> Function()? renewToken,
+    bool force = false,
   }) async {
-    final showSpinner = _applications.isEmpty;
+    // Même compte vide : ne pas re-fetcher en boucle (Nothing / Samsung / Blackview).
+    if (!force &&
+        _lastLoadedAt != null &&
+        DateTime.now().difference(_lastLoadedAt!) < _staleAfter) {
+      return;
+    }
+    if (_inFlight != null) return _inFlight!;
+
+    // Spinner uniquement au premier chargement (jamais de données encore).
+    final showSpinner = _applications.isEmpty && _lastLoadedAt == null;
     if (showSpinner) {
       _isLoading = true;
       _lastError = null;
@@ -42,55 +56,70 @@ class ApplicationProvider with ChangeNotifier {
     } else {
       _lastError = null;
     }
-    try {
-      final result = await OfflineListLoader.load<Application>(
-        userId: userId,
-        cacheKey: OfflineEntityKeys.applications,
-        fetch: () => ApiService.getApplications(token: token),
-        fromJson: Application.fromJson,
-        toJson: (app) => app.toJson(),
-      );
-      _applications = result.items;
-      _isOfflineData = result.fromCache;
-      _isLoading = false;
-      _lastError = result.fromCache
-          ? 'Données en cache (hors ligne)'
-          : null;
-      _notifySafely();
-    } catch (e) {
-      final msg = e.toString().replaceAll('Exception: ', '');
-      final isAuth = msg.contains('Session expirée') || msg.contains('401') || msg.contains('403');
-      if (isAuth && renewToken != null) {
-        final fresh = await renewToken();
-        if (fresh != null && fresh.isNotEmpty) {
-          try {
-            final result = await OfflineListLoader.load<Application>(
-              userId: userId,
-              cacheKey: OfflineEntityKeys.applications,
-              fetch: () => ApiService.getApplications(token: fresh),
-              fromJson: Application.fromJson,
-              toJson: (app) => app.toJson(),
-            );
-            _applications = result.items;
-            _isOfflineData = result.fromCache;
-            _isLoading = false;
-            _lastError = result.fromCache ? 'Données en cache (hors ligne)' : null;
-            _notifySafely();
-            return;
-          } catch (retryErr) {
-            _lastError = retryErr.toString().replaceAll('Exception: ', '');
-            _isLoading = false;
-            _isOfflineData = false;
-            _notifySafely();
-            return;
+
+    _inFlight = () async {
+      try {
+        final result = await OfflineListLoader.load<Application>(
+          userId: userId,
+          cacheKey: OfflineEntityKeys.applications,
+          fetch: () => ApiService.getApplications(token: token),
+          fromJson: Application.fromJson,
+          toJson: (app) => app.toJson(),
+        );
+        _applications = result.items;
+        _isOfflineData = result.fromCache;
+        _isLoading = false;
+        _lastLoadedAt = DateTime.now();
+        _lastError = result.fromCache ? 'Données en cache (hors ligne)' : null;
+        _notifySafely();
+      } catch (e) {
+        final msg = e.toString().replaceAll('Exception: ', '');
+        final isAuth = msg.contains('Session expirée') || msg.contains('401') || msg.contains('403');
+        if (isAuth && renewToken != null) {
+          final fresh = await renewToken();
+          if (fresh != null && fresh.isNotEmpty) {
+            try {
+              final result = await OfflineListLoader.load<Application>(
+                userId: userId,
+                cacheKey: OfflineEntityKeys.applications,
+                fetch: () => ApiService.getApplications(token: fresh),
+                fromJson: Application.fromJson,
+                toJson: (app) => app.toJson(),
+              );
+              _applications = result.items;
+              _isOfflineData = result.fromCache;
+              _isLoading = false;
+              _lastLoadedAt = DateTime.now();
+              _lastError = result.fromCache ? 'Données en cache (hors ligne)' : null;
+              _notifySafely();
+              return;
+            } catch (retryErr) {
+              _lastError = retryErr.toString().replaceAll('Exception: ', '');
+              _isLoading = false;
+              if (_applications.isEmpty) _isOfflineData = false;
+              _notifySafely();
+              return;
+            }
           }
         }
+        _lastError = msg;
+        if (_applications.isEmpty) _isOfflineData = false;
+        _isLoading = false;
+        _notifySafely();
+      } finally {
+        _inFlight = null;
       }
-      _lastError = msg;
-      _isOfflineData = false;
-      _isLoading = false;
-      _notifySafely();
-    }
+    }();
+
+    return _inFlight!;
+  }
+
+  /// Insère / remplace localement sans attendre un rechargement réseau.
+  void upsertLocal(Application application) {
+    _applications.removeWhere((a) => a.id == application.id);
+    _applications.insert(0, application);
+    _lastLoadedAt = DateTime.now();
+    _notifySafely();
   }
 
   /// Complète le nom d'entreprise quand la liste API ne renvoie que companyId.
@@ -196,6 +225,8 @@ class ApplicationProvider with ChangeNotifier {
     _isLoading = false;
     _lastError = null;
     _isOfflineData = false;
+    _lastLoadedAt = null;
+    _inFlight = null;
     _notifySafely();
   }
 }

@@ -1,15 +1,14 @@
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
-import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/navigation/app_navigator.dart';
 import 'package:jobbingtrack_mobile/providers/application_provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/providers/call_provider.dart';
 import 'package:jobbingtrack_mobile/providers/company_provider.dart';
 import 'package:jobbingtrack_mobile/providers/contact_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
 import 'package:jobbingtrack_mobile/providers/notification_provider.dart';
-import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/offline_business_sync_queue.dart';
 
 /// Rafraîchit les listes métier après reprise réseau / retour premier plan (BL-26-15).
@@ -17,7 +16,7 @@ class ShellDataRefreshService {
   ShellDataRefreshService._();
 
   static DateTime? _lastRefreshAt;
-  static const _minInterval = Duration(seconds: 30);
+  static const _minInterval = Duration(minutes: 3);
 
   static Future<void> refreshIfStale({BuildContext? context, bool force = false}) async {
     final now = DateTime.now();
@@ -49,6 +48,7 @@ class ShellDataRefreshService {
     final contactProvider = ctx.read<ContactProvider>();
     final interviewProvider = ctx.read<InterviewProvider>();
     final followUpProvider = ctx.read<FollowUpProvider>();
+    final callProvider = ctx.read<CallProvider>();
     final notificationProvider = ctx.read<NotificationProvider>();
 
     try {
@@ -58,6 +58,7 @@ class ShellDataRefreshService {
         contactProvider.loadContacts(token: token, userId: userId).catchError((_) {}),
         interviewProvider.loadInterviews(token: token, userId: userId).catchError((_) {}),
         followUpProvider.loadFollowUps(token: token, userId: userId).catchError((_) {}),
+        callProvider.loadCalls(token: token, userId: userId).catchError((_) {}),
         notificationProvider.loadNotifications(token: token, auth: auth).catchError((_) {}),
       ]);
 
@@ -66,8 +67,6 @@ class ShellDataRefreshService {
       appProvider.enrichCompanies({
         for (final c in companyProvider.companies) c.id: c.name,
       });
-
-      await ApiService.getCalls(token: token).timeout(const Duration(seconds: 8)).catchError((_) => <Call>[]);
     } catch (e, st) {
       debugPrint('[ShellDataRefresh] $e\n$st');
     }
