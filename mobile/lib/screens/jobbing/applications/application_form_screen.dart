@@ -14,8 +14,10 @@ import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/widgets/company_picker_field.dart';
 import 'package:jobbingtrack_mobile/widgets/agency_picker_field.dart';
 import 'package:jobbingtrack_mobile/widgets/platform_picker_field.dart';
+import 'package:jobbingtrack_mobile/widgets/location_autocomplete_field.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
+import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 
 /// Écran formulaire complet pour créer ou modifier une candidature (tous les champs backend).
 class ApplicationFormScreen extends StatefulWidget {
@@ -83,11 +85,13 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   String _contractType = 'CDI';
   String? _workMode;
   String _applicationType = 'OFFRE';
+  String _status = 'CANDIDATE_PENDING';
+  /// true = cascade auto statut (relances / entretiens) ; false = suivi manuel.
+  bool _autoStatusUpdate = true;
   DateTime _applicationDate = DateTime.now();
   bool _salaryNegotiable = false;
 
   static const _contractTypes = ['CDI', 'CDD', 'ALTERNANCE', 'STAGE', 'FREELANCE', 'INTERIM', 'SAISONNIER'];
-  static const _workModes = ['ON_SITE', 'REMOTE', 'HYBRID'];
   static const _applicationTypes = ['OFFRE', 'SPONTANEE'];
 
   @override
@@ -104,6 +108,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       _agencyId = a.agencyId;
       _platformId = a.platformId;
       _applicationDate = a.appliedDate.toLocal();
+      if (a.status.isNotEmpty) _status = a.status;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadCompanies();
@@ -157,7 +162,9 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
   Future<void> _loadCompanies() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final companyProvider = Provider.of<CompanyProvider>(context, listen: false);
-    await companyProvider.loadCompanies(token: auth.token);
+    if (companyProvider.companies.isEmpty) {
+      await companyProvider.loadCompanies(token: auth.token, userId: auth.user?.id);
+    }
     if (mounted) {
       setState(() {
         _companies = companyProvider.companies;
@@ -184,12 +191,16 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       'jobUrl': _jobUrl.text.trim().isEmpty ? null : _jobUrl.text.trim(),
       'location': _location.text.trim().isEmpty ? null : _location.text.trim(),
       'contractType': _contractType,
-      'workMode': _workMode,
       'applicationType': _applicationType,
       'applicationDate': _applicationDateForSave().toUtc().toIso8601String(),
       'salaryNegotiable': _salaryNegotiable,
       'notes': _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+      'status': _status,
+      'statusEngineOptOut': !_autoStatusUpdate,
     };
+    if (_workMode != null && _workMode!.isNotEmpty) {
+      payload['workMode'] = _workMode;
+    }
     if (_companyId != null && _companyId!.isNotEmpty) {
       payload['companyId'] = _companyId;
     } else {
@@ -213,7 +224,9 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     final hasCompany = (_companyId != null && _companyId!.isNotEmpty) || _companyName.trim().isNotEmpty;
     if (!hasCompany) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Choisissez une entreprise ou saisissez son nom')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Choisissez une entreprise ou saisissez son nom')),
+      );
       return;
     }
     setState(() => _saving = true);
@@ -221,24 +234,21 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final token = auth.token;
       final payload = _buildPayload();
+      final appProvider = Provider.of<ApplicationProvider>(context, listen: false);
       if (widget.application == null) {
-        await ApiService.createApplicationFromPayload(payload, token: token);
-        if (mounted) {
-          await Provider.of<ApplicationProvider>(context, listen: false)
-              .loadApplications(token: token);
-          await Provider.of<CompanyProvider>(context, listen: false)
-              .loadCompanies(token: token);
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Candidature créée')));
-          Navigator.of(context).pop(true);
-        }
+        final created = await ApiService.createApplicationFromPayload(payload, token: token);
+        if (!mounted) return;
+        appProvider.upsertLocal(created);
+        // Soft refresh en arrière-plan (pas bloquant).
+        unawaitedSoftRefresh(token);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Candidature créée')));
+        Navigator.of(context).pop(true);
       } else {
         await ApiService.updateApplicationFromPayload(widget.application!.id, payload, token: token);
-        if (mounted) {
-          Provider.of<ApplicationProvider>(context, listen: false)
-              .loadApplications(token: token);
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Candidature mise à jour')));
-          Navigator.of(context).pop(true);
-        }
+        if (!mounted) return;
+        unawaitedSoftRefresh(token);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Candidature mise à jour')));
+        Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (e is OfflineMutationQueued) {
@@ -249,11 +259,20 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         return;
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+        final msg = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  void unawaitedSoftRefresh(String? token) {
+    final appProvider = Provider.of<ApplicationProvider>(context, listen: false);
+    final companyProvider = Provider.of<CompanyProvider>(context, listen: false);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    appProvider.loadApplications(token: token, userId: auth.user?.id, force: false);
+    companyProvider.loadCompanies(token: token, userId: auth.user?.id);
   }
 
   Future<void> _pickApplicationDateTime() async {
@@ -273,6 +292,15 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
     setState(() {
       _applicationDate = DateTime(d.year, d.month, d.day, time.hour, time.minute);
     });
+  }
+
+  Future<void> _pickStatus() async {
+    final picked = await showApplicationStatusPicker(
+      context,
+      current: _status,
+      manualOnly: false,
+    );
+    if (picked != null && mounted) setState(() => _status = picked);
   }
 
   Widget _positionField() {
@@ -302,6 +330,37 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         trailing: const Icon(Icons.chevron_right),
         onTap: _pickApplicationDateTime,
       ),
+    );
+  }
+
+  Widget _statusSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.flag_outlined, color: applicationStatusColor(_status)),
+            title: Text(applicationStatusLabel(_status)),
+            subtitle: const Text('Statut de la candidature'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _pickStatus,
+          ),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Mise à jour auto du statut'),
+          subtitle: Text(
+            _autoStatusUpdate
+                ? 'Relances / entretiens mettent à jour le statut'
+                : 'Suivi manuel uniquement',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+          ),
+          value: _autoStatusUpdate,
+          onChanged: (v) => setState(() => _autoStatusUpdate = v),
+        ),
+      ],
     );
   }
 
@@ -350,10 +409,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         decoration: const InputDecoration(labelText: 'URL de l\'offre', border: OutlineInputBorder()),
       ),
       const SizedBox(height: 12),
-      TextFormField(
-        controller: _location,
-        decoration: const InputDecoration(labelText: 'Lieu', border: OutlineInputBorder()),
-      ),
+      LocationAutocompleteField(controller: _location),
       const SizedBox(height: 12),
       DropdownButtonFormField<String>(
         value: _contractType,
@@ -362,19 +418,18 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         onChanged: (v) => setState(() => _contractType = v ?? 'CDI'),
       ),
       const SizedBox(height: 12),
-      DropdownButtonFormField<String>(
-        value: _workMode,
-        decoration: const InputDecoration(labelText: 'Mode de travail', border: OutlineInputBorder()),
-        items: _workModes.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-        onChanged: (v) => setState(() => _workMode = v),
-      ),
+      _workModeDropdown(),
       const SizedBox(height: 12),
       DropdownButtonFormField<String>(
         value: _applicationType,
         decoration: const InputDecoration(labelText: 'Type candidature', border: OutlineInputBorder()),
-        items: _applicationTypes.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+        items: _applicationTypes
+            .map((s) => DropdownMenuItem(value: s, child: Text(applicationTypeLabel(s))))
+            .toList(),
         onChanged: (v) => setState(() => _applicationType = v ?? 'OFFRE'),
       ),
+      const SizedBox(height: 12),
+      _statusSection(),
       if (!modalCreate) ...[
         const SizedBox(height: 12),
         _applicationDateTile(),
@@ -414,36 +469,6 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       ),
     ];
 
-    if (modalCreate) {
-      return [
-        company,
-        const SizedBox(height: 12),
-        _positionField(),
-        const SizedBox(height: 12),
-        _applicationDateTile(),
-        const SizedBox(height: 16),
-        Text(
-          'Options (optionnel)',
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.grey.shade700),
-        ),
-        const SizedBox(height: 8),
-        ...optionalFields,
-        const SizedBox(height: 20),
-        FilledButton.icon(
-          onPressed: _saving ? null : _save,
-          icon: _saving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
-              : const Icon(Icons.check),
-          label: Text(_saving ? 'Enregistrement…' : 'Créer la candidature'),
-        ),
-        const SizedBox(height: 8),
-      ];
-    }
-
     return [
       company,
       const SizedBox(height: 12),
@@ -455,6 +480,145 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
             ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2))
             : Text(widget.application == null ? 'Créer' : 'Enregistrer'),
       ),
+    ];
+  }
+
+  Widget _workModeDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _workMode ?? '',
+      decoration: const InputDecoration(
+        labelText: 'Mode de travail',
+        border: OutlineInputBorder(),
+      ),
+      items: [
+        const DropdownMenuItem(value: '', child: Text('Non précisé')),
+        ...kWorkModeCodes.map(
+          (s) => DropdownMenuItem(value: s, child: Text(workModeLabel(s))),
+        ),
+      ],
+      onChanged: (v) => setState(() => _workMode = (v == null || v.isEmpty) ? null : v),
+    );
+  }
+
+  List<Widget> _buildModalCreateFields() {
+    final company = CompanyPickerField(
+      companies: _companies,
+      selectedCompanyId: _companyId,
+      companyName: _companyName,
+      validator: (v) => (v == null || v.trim().isEmpty) ? 'Choisir ou saisir une entreprise' : null,
+      onChanged: (sel) => setState(() {
+        _companyId = sel.companyId;
+        _companyName = sel.name;
+      }),
+    );
+
+    return [
+      company,
+      const SizedBox(height: 12),
+      _positionField(),
+      const SizedBox(height: 12),
+      _applicationDateTile(),
+      const SizedBox(height: 12),
+      _statusSection(),
+      const SizedBox(height: 16),
+      Text(
+        'Options (optionnel)',
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.grey.shade700),
+      ),
+      const SizedBox(height: 8),
+      if (_interimMode) ...[
+        AgencyPickerField(
+          agencies: _agencies,
+          selectedAgencyId: _agencyId,
+          onChanged: (id) => setState(() => _agencyId = id),
+          onAgencyCreated: _loadAgencies,
+        ),
+        const SizedBox(height: 12),
+      ],
+      PlatformPickerField(
+        selectedPlatformId: _platformId,
+        platforms: _platforms,
+        onChanged: (id) => setState(() => _platformId = id),
+        onPlatformsChanged: _loadPlatforms,
+      ),
+      const SizedBox(height: 12),
+      TextFormField(
+        controller: _description,
+        maxLines: 3,
+        decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+      ),
+      const SizedBox(height: 12),
+      TextFormField(
+        controller: _jobUrl,
+        keyboardType: TextInputType.url,
+        decoration: const InputDecoration(labelText: 'URL de l\'offre', border: OutlineInputBorder()),
+      ),
+      const SizedBox(height: 12),
+      LocationAutocompleteField(controller: _location),
+      const SizedBox(height: 12),
+      DropdownButtonFormField<String>(
+        value: _contractType,
+        decoration: const InputDecoration(labelText: 'Type de contrat', border: OutlineInputBorder()),
+        items: _contractTypes.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+        onChanged: (v) => setState(() => _contractType = v ?? 'CDI'),
+      ),
+      const SizedBox(height: 12),
+      _workModeDropdown(),
+      const SizedBox(height: 12),
+      DropdownButtonFormField<String>(
+        value: _applicationType,
+        decoration: const InputDecoration(labelText: 'Type candidature', border: OutlineInputBorder()),
+        items: _applicationTypes
+            .map((s) => DropdownMenuItem(value: s, child: Text(applicationTypeLabel(s))))
+            .toList(),
+        onChanged: (v) => setState(() => _applicationType = v ?? 'OFFRE'),
+      ),
+      const SizedBox(height: 12),
+      Row(
+        children: [
+          Expanded(
+            child: TextFormField(
+              controller: _salaryMin,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Salaire min (€/an)', border: OutlineInputBorder()),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextFormField(
+              controller: _salaryMax,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Salaire max (€/an)', border: OutlineInputBorder()),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
+      CheckboxListTile(
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Salaire négociable'),
+        value: _salaryNegotiable,
+        onChanged: (v) => setState(() => _salaryNegotiable = v ?? false),
+      ),
+      const SizedBox(height: 12),
+      TextFormField(
+        controller: _notes,
+        maxLines: 3,
+        decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder()),
+      ),
+      const SizedBox(height: 20),
+      FilledButton.icon(
+        onPressed: _saving ? null : _save,
+        icon: _saving
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              )
+            : const Icon(Icons.check),
+        label: Text(_saving ? 'Enregistrement…' : 'Créer la candidature'),
+      ),
+      const SizedBox(height: 8),
     ];
   }
 
@@ -489,11 +653,11 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
-                  'Entreprise, poste et date en haut — faites défiler pour le reste.',
+                  'Entreprise, poste, date et statut en haut — options plus bas.',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                 ),
               ),
-            ..._buildFormFields(modalCreate: isModalCreate),
+            ...(isModalCreate ? _buildModalCreateFields() : _buildFormFields()),
           ],
         ),
       );

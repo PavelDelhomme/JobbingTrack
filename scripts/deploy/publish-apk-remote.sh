@@ -15,17 +15,31 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
 if [[ -f "$ROOT/.env" ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source "$ROOT/.env" 2>/dev/null || true
-  set +a
+  # Charge .env sans glob zsh (évite les échecs sur motifs type */6 dans cron).
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    if [[ "$line" == *=* ]]; then
+      key="${line%%=*}"
+      val="${line#*=}"
+      key="$(echo "$key" | tr -d '[:space:]')"
+      case "$key" in
+        ADMIN_EMAIL|ADMIN_PASSWORD|ADMIN_TOKEN|APP_URL|API_BASE_URL|DEPLOY_URL|MOBILE_PROD_API_URL|MOBILE_PREPROD_API_URL)
+          export "$key=$val"
+          ;;
+      esac
+    fi
+  done < "$ROOT/.env"
 fi
 
-DEPLOY_URL="${DEPLOY_URL:-${APP_URL:-https://jobbingtrack.example.com}}"
+DEPLOY_URL="${DEPLOY_URL:-${API_BASE_URL:-${MOBILE_PROD_API_URL:-https://api.jobbingtrack.com}}}"
 DEPLOY_URL="${DEPLOY_URL%/}"
+# Si APP_URL pointe vers le front (pas l’API), forcer l’API prod.
+if [[ "$DEPLOY_URL" == *"jobbingtrack.example.com"* ]] || [[ "$DEPLOY_URL" == "https://jobbingtrack.com" ]] || [[ "$DEPLOY_URL" == "https://www.jobbingtrack.com" ]]; then
+  DEPLOY_URL="${MOBILE_PROD_API_URL:-https://api.jobbingtrack.com}"
+fi
 API_BASE_URL="${API_BASE_URL:-$DEPLOY_URL}"
 API_BASE_URL="${API_BASE_URL%/}"
-CHANNEL="${MOBILE_RELEASE_CHANNEL:-dev}"
+CHANNEL="${MOBILE_RELEASE_CHANNEL:-production}"
 NOTES="${MOBILE_RELEASE_NOTES:-Publication depuis publish-apk-remote.sh}"
 BUILD_FIRST="${BUILD_FIRST:-1}"
 FLAVOR="${FLAVOR:-}"

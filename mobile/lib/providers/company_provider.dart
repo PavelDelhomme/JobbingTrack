@@ -9,10 +9,14 @@ class CompanyProvider with ChangeNotifier {
   List<Company> _companies = [];
   bool _isLoading = false;
   bool _isOfflineData = false;
+  DateTime? _lastLoadedAt;
+  Future<void>? _inFlight;
 
   List<Company> get companies => _companies;
   bool get isLoading => _isLoading;
   bool get isOfflineData => _isOfflineData;
+
+  static const _staleAfter = Duration(seconds: 45);
 
   void _notifySafely() {
     final phase = SchedulerBinding.instance.schedulerPhase;
@@ -26,27 +30,50 @@ class CompanyProvider with ChangeNotifier {
     });
   }
 
-  Future<void> loadCompanies({String? token, String? userId}) async {
-    _isLoading = true;
-    _notifySafely();
-    try {
-      final result = await OfflineListLoader.load<Company>(
-        userId: userId,
-        cacheKey: OfflineEntityKeys.companies,
-        fetch: () => ApiService.getCompanies(token: token),
-        fromJson: Company.fromJson,
-        toJson: (c) => c.toJson(),
-      );
-      _companies = result.items;
-      _isOfflineData = result.fromCache;
-      _isLoading = false;
-      _notifySafely();
-    } catch (e) {
-      _isLoading = false;
-      _isOfflineData = false;
-      _notifySafely();
-      rethrow;
+  Future<void> loadCompanies({
+    String? token,
+    String? userId,
+    bool force = false,
+  }) async {
+    if (!force &&
+        _lastLoadedAt != null &&
+        DateTime.now().difference(_lastLoadedAt!) < _staleAfter) {
+      return;
     }
+    if (_inFlight != null) return _inFlight!;
+
+    final showSpinner = _companies.isEmpty && _lastLoadedAt == null;
+    if (showSpinner) {
+      _isLoading = true;
+      _notifySafely();
+    }
+
+    _inFlight = () async {
+      try {
+        final result = await OfflineListLoader.load<Company>(
+          userId: userId,
+          cacheKey: OfflineEntityKeys.companies,
+          fetch: () => ApiService.getCompanies(token: token),
+          fromJson: Company.fromJson,
+          toJson: (c) => c.toJson(),
+        );
+        _companies = result.items;
+        _isOfflineData = result.fromCache;
+        _lastLoadedAt = DateTime.now();
+      } catch (e) {
+        if (_companies.isEmpty) {
+          _isOfflineData = false;
+          rethrow;
+        }
+        _isOfflineData = true;
+      } finally {
+        _isLoading = false;
+        _inFlight = null;
+        _notifySafely();
+      }
+    }();
+
+    return _inFlight!;
   }
 
   Future<Company> createCompany({
@@ -68,6 +95,7 @@ class CompanyProvider with ChangeNotifier {
       token: token,
     );
     _companies.insert(0, created);
+    _lastLoadedAt = DateTime.now();
     notifyListeners();
     return created;
   }
@@ -76,6 +104,8 @@ class CompanyProvider with ChangeNotifier {
     _companies = [];
     _isLoading = false;
     _isOfflineData = false;
+    _lastLoadedAt = null;
+    _inFlight = null;
     _notifySafely();
   }
 }

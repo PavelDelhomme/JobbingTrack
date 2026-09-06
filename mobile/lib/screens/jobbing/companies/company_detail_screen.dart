@@ -19,6 +19,9 @@ import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_detail_field.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_link_tile.dart';
+import 'package:jobbingtrack_mobile/widgets/followup_create_sheet.dart';
+import 'package:jobbingtrack_mobile/widgets/call_create_sheet.dart';
+import 'package:jobbingtrack_mobile/widgets/interview_create_sheet.dart';
 
 /// Fiche entreprise : infos + candidatures, contacts, relances, entretiens, appels liés.
 class CompanyDetailScreen extends StatefulWidget {
@@ -217,6 +220,86 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
     }
   }
 
+  Future<Application?> _pickCompanyApplication() async {
+    if (_apps.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Créez d’abord une candidature pour cette entreprise')),
+      );
+      return null;
+    }
+    if (_apps.length == 1) return _apps.first;
+    return showModalBottomSheet<Application>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const ListTile(title: Text('Quelle candidature ?')),
+            ..._apps.map(
+              (a) => ListTile(
+                leading: const Icon(Icons.assignment_outlined),
+                title: Text(a.position.isNotEmpty ? a.position : 'Candidature'),
+                subtitle: Text(applicationStatusLabel(a.status)),
+                onTap: () => Navigator.pop(ctx, a),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showAddMenu() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person_add_outlined),
+              title: const Text('Contact'),
+              onTap: () => Navigator.pop(ctx, 'contact'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.schedule_send_outlined),
+              title: const Text('Relance'),
+              onTap: () => Navigator.pop(ctx, 'relance'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.event_outlined),
+              title: const Text('Entretien'),
+              onTap: () => Navigator.pop(ctx, 'entretien'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.phone_outlined),
+              title: const Text('Appel'),
+              onTap: () => Navigator.pop(ctx, 'appel'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'contact') {
+      await _createContactDialog();
+      return;
+    }
+    final app = await _pickCompanyApplication();
+    if (app == null || !mounted) return;
+    switch (choice) {
+      case 'relance':
+        await showCreateFollowUpSheet(context, fixedApplication: app);
+      case 'entretien':
+        await showCreateInterviewSheet(context, fixedApplication: app);
+      case 'appel':
+        await showCreateCallSheet(context, fixedApplication: app);
+    }
+    if (mounted) _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = _company ?? widget.company;
@@ -236,6 +319,12 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
             },
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_company_detail_add',
+        onPressed: _showAddMenu,
+        icon: const Icon(Icons.add),
+        label: const Text('Ajouter'),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -363,6 +452,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                         ),
                       ),
                     ),
+                  const SizedBox(height: 72),
                 ],
               ),
             ),

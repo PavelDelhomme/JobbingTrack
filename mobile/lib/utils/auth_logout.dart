@@ -7,6 +7,7 @@ import 'package:jobbingtrack_mobile/providers/company_provider.dart';
 import 'package:jobbingtrack_mobile/providers/contact_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
+import 'package:jobbingtrack_mobile/providers/call_provider.dart';
 import 'package:jobbingtrack_mobile/providers/notification_provider.dart';
 
 /// Déconnexion volontaire : purge locale + navigation login (sans fermer l'app).
@@ -70,6 +71,7 @@ class AuthLogout {
     context.read<ContactProvider>().clearUserCache();
     context.read<InterviewProvider>().clearUserCache();
     context.read<FollowUpProvider>().clearUserCache();
+    context.read<CallProvider>().clearUserCache();
     context.read<NotificationProvider>().clearUserCache();
   }
 }

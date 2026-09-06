@@ -4,6 +4,7 @@ import 'package:jobbingtrack_mobile/models/company.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/providers/company_provider.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
+import 'package:jobbingtrack_mobile/widgets/location_autocomplete_field.dart';
 
 /// Dialogue partagé « Nouvelle entreprise » (liste dédiée + onglet Candidatures).
 Future<Company?> showCreateCompanyDialog(
@@ -46,9 +47,10 @@ Future<Company?> showCreateCompanyDialog(
                 controller: industryCtrl,
                 decoration: const InputDecoration(labelText: 'Secteur'),
               ),
-              TextField(
+              const SizedBox(height: 8),
+              LocationAutocompleteField(
                 controller: locationCtrl,
-                decoration: const InputDecoration(labelText: 'Localisation'),
+                labelText: 'Localisation',
               ),
               if (interimMode && !forceInterimType) ...[
                 const SizedBox(height: 8),

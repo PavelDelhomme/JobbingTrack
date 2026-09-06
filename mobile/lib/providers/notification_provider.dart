@@ -13,6 +13,8 @@ class NotificationProvider with ChangeNotifier {
   bool _isLoading = false;
   bool _isOfflineData = false;
   String? _lastError;
+  DateTime? _lastLoadedAt;
+  Future<void>? _inFlight;
 
   List<AppNotification> get notifications => _notifications;
   bool get isLoading => _isLoading;
@@ -20,6 +22,8 @@ class NotificationProvider with ChangeNotifier {
   String? get lastError => _lastError;
 
   int get unreadCount => _notifications.where((n) => !n.read).length;
+
+  static const _staleAfter = Duration(seconds: 45);
 
   bool _looksLikeAuthError(Object error) {
     final s = error.toString().toLowerCase();
@@ -41,10 +45,26 @@ class NotificationProvider with ChangeNotifier {
     return filterInAppNotifications(raw, (n) => n.type);
   }
 
-  Future<void> loadNotifications({String? token, AuthProvider? auth}) async {
-    _isLoading = true;
-    _lastError = null;
-    notifyListeners();
+  Future<void> loadNotifications({
+    String? token,
+    AuthProvider? auth,
+    bool force = false,
+  }) async {
+    if (!force &&
+        _lastLoadedAt != null &&
+        DateTime.now().difference(_lastLoadedAt!) < _staleAfter) {
+      return;
+    }
+    if (_inFlight != null) return _inFlight!;
+
+    final showSpinner = _notifications.isEmpty && _lastLoadedAt == null;
+    if (showSpinner) {
+      _isLoading = true;
+      _lastError = null;
+      notifyListeners();
+    } else {
+      _lastError = null;
+    }
 
     var activeToken = token ?? auth?.token;
     final userId = auth?.user?.id;
@@ -52,6 +72,7 @@ class NotificationProvider with ChangeNotifier {
     Future<void> fail(Object e) async {
       _lastError = friendlyNotificationLoadError(e, apiBaseUrl: ApiService.baseUrl);
       _isLoading = false;
+      _inFlight = null;
       notifyListeners();
     }
 
@@ -66,10 +87,13 @@ class NotificationProvider with ChangeNotifier {
       _notifications = filterInAppNotifications(parsed, (n) => n.type);
       _isOfflineData = true;
       _isLoading = false;
+      _lastLoadedAt = DateTime.now();
+      _inFlight = null;
       notifyListeners();
       return true;
     }
 
+    _inFlight = () async {
     try {
       final result = await OfflineListLoader.load<AppNotification>(
         userId: userId,
@@ -81,6 +105,8 @@ class NotificationProvider with ChangeNotifier {
       _notifications = result.items;
       _isOfflineData = result.fromCache;
       _isLoading = false;
+      _lastLoadedAt = DateTime.now();
+      _inFlight = null;
       notifyListeners();
       return;
     } catch (e) {
@@ -99,6 +125,8 @@ class NotificationProvider with ChangeNotifier {
             _notifications = result.items;
             _isOfflineData = result.fromCache;
             _isLoading = false;
+            _lastLoadedAt = DateTime.now();
+            _inFlight = null;
             notifyListeners();
             return;
           } catch (retryErr) {
@@ -124,6 +152,8 @@ class NotificationProvider with ChangeNotifier {
           _notifications = result.items;
           _isOfflineData = result.fromCache;
           _isLoading = false;
+          _lastLoadedAt = DateTime.now();
+          _inFlight = null;
           notifyListeners();
           return;
         } catch (retryErr) {
@@ -137,6 +167,9 @@ class NotificationProvider with ChangeNotifier {
       await fail(e);
       rethrow;
     }
+    }();
+
+    return _inFlight!;
   }
 
   void _applyReadLocal(String id) {
@@ -209,6 +242,8 @@ class NotificationProvider with ChangeNotifier {
     _isLoading = false;
     _isOfflineData = false;
     _lastError = null;
+    _lastLoadedAt = null;
+    _inFlight = null;
     notifyListeners();
   }
 }

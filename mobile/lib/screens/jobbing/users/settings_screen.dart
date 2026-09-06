@@ -288,8 +288,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           title: const Text('Contacts du téléphone'),
                           subtitle: Text(
                             _localPhoneContactsCount > 0
-                                ? '$_localPhoneContactsCount contact(s)${_phoneContactsSyncedAt != null ? ' · ${_formatSyncDate(_phoneContactsSyncedAt!)}' : ''}'
-                                : 'Import local — proposés dans le picker contact (pas créés automatiquement)',
+                                ? '$_localPhoneContactsCount contact(s) sur cet appareil · proposés au picker (création JobbingTrack manuelle)'
+                                : 'Import local uniquement — pas de création auto dans JobbingTrack',
                           ),
                           trailing: _phoneSyncing
                               ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
@@ -360,6 +360,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           release: result.release,
                                           currentVersion: result.current,
                                           forceUpdate: result.blocked,
+                                          buildsBehind: result.buildsBehind,
                                         );
                                         await ctrl.refresh(silent: true);
                                       } else if (ctrl.lastError != null) {
@@ -464,7 +465,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _phoneContactsSyncedAt = DateTime.now();
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$count contact(s) importé(s) localement')),
+        SnackBar(
+          content: Text(
+            count == 0
+                ? 'Aucun contact téléphone (permission ou carnet vide)'
+                : '$count contact(s) prêt(s) sur cet appareil — '
+                    'ils seront proposés quand vous ajoutez un contact à une candidature '
+                    '(pas créés automatiquement dans JobbingTrack).',
+          ),
+          duration: const Duration(seconds: 6),
+        ),
       );
     } catch (e) {
       if (mounted) {

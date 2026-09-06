@@ -235,3 +235,30 @@ String? applicationListSubtitle(Application app) {
   if (position.isNotEmpty && company.isNotEmpty) return company;
   return null;
 }
+
+/// Mode de travail (enum backend → libellé FR).
+String workModeLabel(String? code) {
+  switch (code) {
+    case 'ON_SITE':
+      return 'Sur site';
+    case 'REMOTE':
+      return 'Distanciel';
+    case 'HYBRID':
+      return 'Hybride';
+    default:
+      return code == null || code.isEmpty ? '—' : code;
+  }
+}
+
+const kWorkModeCodes = ['ON_SITE', 'REMOTE', 'HYBRID'];
+
+String applicationTypeLabel(String? code) {
+  switch (code) {
+    case 'OFFRE':
+      return 'Réponse à une offre';
+    case 'SPONTANEE':
+      return 'Candidature spontanée';
+    default:
+      return code ?? '—';
+  }
+}

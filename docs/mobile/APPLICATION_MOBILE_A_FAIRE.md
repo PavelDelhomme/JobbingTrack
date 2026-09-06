@@ -6,7 +6,11 @@ Document de référence pour le développement et la validation de l’applicati
 
 ## 📌 Par où commencer maintenant
 
-- **Validation manuelle vérification email** puis **suite sur l’app Flutter** : voir **[PROCHAINES_ETAPES.md](PROCHAINES_ETAPES.md)** (étapes précises à faire à la main, puis priorités Flutter).
+- **Focus actif (06/09)** : **MOB-METIER-OPS-01** APK **1.0.54** — FAB Relance/Appel/Entretien, CallProvider, calendrier cliquable, contact → actions liées (`docs/pilotage/PILOTAGE.md`).
+- **Validation porteur** : reportée en fin de lot (demande explicite).
+- **Parcours auth email** : voir **[PROCHAINES_ETAPES.md](PROCHAINES_ETAPES.md)** si besoin de revalider inscription → vérif → login.
+
+**État écrans métier (Flutter `mobile/`)** : listes + détail + **création globale** (candidatures, entreprises, contacts, entretiens, relances, appels) ; calendrier navigable ; notifs TTL ; hubs contact/entreprise/entretien avec historiques liés.
 
 ---
 

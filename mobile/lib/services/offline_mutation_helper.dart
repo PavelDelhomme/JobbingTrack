@@ -13,15 +13,25 @@ class OfflineMutationHelper {
     Map<String, dynamic>? body,
     required String entityType,
     String? token,
-    required int successStatus,
+    int? successStatus,
+    Set<int>? successStatuses,
     required Future<http.Response> Function() send,
     required T Function(http.Response response) onSuccess,
     required Exception Function(http.Response response) onHttpError,
   }) async {
+    final okCodes = successStatuses ??
+        (successStatus != null ? {successStatus} : <int>{200, 201});
     try {
       final response = await send();
-      if (response.statusCode == successStatus) {
-        return onSuccess(response);
+      if (okCodes.contains(response.statusCode)) {
+        try {
+          return onSuccess(response);
+        } catch (parseErr) {
+          // Réponse HTTP OK mais corps inattendu — ne pas mettre en file offline.
+          throw Exception(
+            'Réponse serveur illisible: ${parseErr.toString().replaceAll('Exception: ', '')}',
+          );
+        }
       }
       if (OfflineBusinessSyncQueue.isRetriableHttpStatus(response.statusCode) &&
           OfflineBusinessSyncQueue.isSyncablePath(path)) {
@@ -48,7 +58,7 @@ class OfflineMutationHelper {
         throw OfflineMutationQueued();
       }
       if (e is Exception) rethrow;
-      throw Exception('Erreur réseau: $e');
+      throw Exception('Erreur: $e');
     }
   }
 
@@ -58,7 +68,8 @@ class OfflineMutationHelper {
     Map<String, dynamic>? body,
     required String entityType,
     String? token,
-    required int successStatus,
+    int? successStatus,
+    Set<int>? successStatuses,
     required Future<http.Response> Function() send,
     String? errorMessage,
   }) {
@@ -69,11 +80,20 @@ class OfflineMutationHelper {
       entityType: entityType,
       token: token,
       successStatus: successStatus,
+      successStatuses: successStatuses,
       send: send,
       onSuccess: (_) {},
       onHttpError: (response) {
         final parsed = response.body.isNotEmpty ? jsonDecode(response.body) : <String, dynamic>{};
         if (parsed is Map) {
+          final errors = parsed['errors'];
+          if (errors is List && errors.isNotEmpty) {
+            final msgs = errors.map((e) {
+              if (e is Map) return (e['msg'] ?? e['message'] ?? e).toString();
+              return e.toString();
+            }).join(' · ');
+            return Exception(msgs);
+          }
           return Exception(
             parsed['message'] ?? parsed['error'] ?? errorMessage ?? 'Erreur HTTP ${response.statusCode}',
           );

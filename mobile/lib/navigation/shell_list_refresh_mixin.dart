@@ -37,6 +37,7 @@ mixin ShellListRefreshMixin<T extends StatefulWidget> on State<T>, RouteAware {
 
   /// Surcharger pour recharger la liste locale ; par défaut refresh providers partagés.
   void onShellListVisibleAgain() {
-    ShellDataRefreshService.refreshIfStale(context: context, force: true);
+    // Cache local prioritaire — refresh réseau seulement si stale (pas force).
+    ShellDataRefreshService.refreshIfStale(context: context, force: false);
   }
 }

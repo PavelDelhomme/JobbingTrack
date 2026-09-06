@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:jobbingtrack_mobile/models/followup.dart';
+import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
+import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/offline_entity_cache.dart';
@@ -13,6 +19,8 @@ import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/navigation/shell_list_refresh_mixin.dart';
 import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
+import 'package:jobbingtrack_mobile/widgets/followup_create_sheet.dart';
+import 'package:jobbingtrack_mobile/widgets/interview_create_sheet.dart';
 
 /// Calendrier — vue Planning (défaut) ou liste événements.
 class EventsScreen extends StatefulWidget {
@@ -34,6 +42,8 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
   CalendarFilters _filters = const CalendarFilters();
   DateTime _selectedDay = DateTime.now();
   DateTime _weekAnchor = DateTime.now();
+  DateTime? _lastLoadedAt;
+  static const _staleAfter = Duration(seconds: 45);
 
   @override
   void initState() {
@@ -72,11 +82,21 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
     });
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool force = false}) async {
+    if (!force &&
+        _lastLoadedAt != null &&
+        DateTime.now().difference(_lastLoadedAt!) < _staleAfter) {
+      return;
+    }
+    final showSpinner = _events.isEmpty && _lastLoadedAt == null;
+    if (showSpinner) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    } else {
+      setState(() => _error = null);
+    }
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final result = await OfflineListLoader.loadMaps(
@@ -88,6 +108,7 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
         setState(() {
           _events = result.items;
           _fromCache = result.fromCache;
+          _lastLoadedAt = DateTime.now();
         });
       }
     } catch (e) {
@@ -99,6 +120,87 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
       }
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _openEvent(Map<String, dynamic> e) async {
+    final interviewId = e['interviewId']?.toString();
+    final followUpId = e['followUpId']?.toString();
+    if (interviewId != null && interviewId.isNotEmpty) {
+      final interviews = Provider.of<InterviewProvider>(context, listen: false).interviews;
+      Interview? found;
+      for (final i in interviews) {
+        if (i.id == interviewId) {
+          found = i;
+          break;
+        }
+      }
+      found ??= Interview(
+        id: interviewId,
+        applicationId: e['applicationId']?.toString() ?? '',
+        interviewDate: _parseStart(e),
+        location: e['location']?.toString(),
+        notes: e['description']?.toString(),
+        applicationPosition: e['title']?.toString(),
+        companyName: e['companyName']?.toString(),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => InterviewDetailScreen(interview: found!)),
+      );
+      return;
+    }
+    if (followUpId != null && followUpId.isNotEmpty) {
+      final followUps = Provider.of<FollowUpProvider>(context, listen: false).followUps;
+      FollowUp? found;
+      for (final f in followUps) {
+        if (f.id == followUpId) {
+          found = f;
+          break;
+        }
+      }
+      if (found != null) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => FollowupDetailScreen(followUp: found!)),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Relance introuvable localement — tirez pour rafraîchir')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showCreateMenu() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.event_outlined),
+              title: const Text('Planifier un entretien'),
+              onTap: () => Navigator.pop(ctx, 'entretien'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.schedule_send_outlined),
+              title: const Text('Planifier une relance'),
+              onTap: () => Navigator.pop(ctx, 'relance'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'entretien') {
+      final ok = await showCreateInterviewSheet(context);
+      if (ok && mounted) await _load(force: true);
+    } else if (choice == 'relance') {
+      final created = await showCreateFollowUpSheet(context);
+      if (created != null && mounted) await _load(force: true);
     }
   }
 
@@ -169,6 +271,12 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
         onViewModeChanged: (m) => setState(() => _viewMode = m),
         onFiltersChanged: (f) => setState(() => _filters = f),
       ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_calendar_plan',
+        tooltip: 'Planifier',
+        onPressed: _showCreateMenu,
+        child: const Icon(Icons.add),
+      ),
       appBar: AppBar(
         leading: const AppDrawerLeadingButton(),
         automaticallyImplyLeading: false,
@@ -212,12 +320,12 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
                         padding: const EdgeInsets.all(16),
                         child: Text(_error!, textAlign: TextAlign.center),
                       ),
-                      FilledButton(onPressed: _load, child: const Text('Réessayer')),
+                      FilledButton(onPressed: () => _load(force: true), child: const Text('Réessayer')),
                     ],
                   ),
                 )
               : RefreshIndicator(
-                  onRefresh: _load,
+                  onRefresh: () => _load(force: true),
                   child: _viewMode == CalendarViewMode.planner ? _buildPlanner() : _buildList(),
                 ),
       ),
@@ -340,6 +448,7 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
     final isInterim = colorHex != null &&
         (colorHex.toUpperCase().contains('F59E0B') || colorHex.toUpperCase().contains('F59'));
     final accent = isInterim ? Colors.amber.shade700 : Colors.blue.shade700;
+    final canOpen = e['interviewId'] != null || e['followUpId'] != null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -362,23 +471,26 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
             Expanded(
               child: Card(
                 margin: EdgeInsets.zero,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      if (e['description']?.toString().isNotEmpty == true)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            e['description'].toString(),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                child: InkWell(
+                  onTap: canOpen ? () => _openEvent(e) : null,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        if (e['description']?.toString().isNotEmpty == true)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              e['description'].toString(),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                            ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -425,11 +537,14 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
         final isInterim = colorHex != null &&
             (colorHex.toUpperCase().contains('F59E0B') || colorHex.toUpperCase().contains('F59'));
         final iconColor = isInterim ? Colors.amber.shade700 : Colors.blue.shade700;
+        final canOpen = e['interviewId'] != null || e['followUpId'] != null;
         return Card(
           child: ListTile(
             leading: Icon(Icons.event, color: iconColor),
             title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
             subtitle: start != null ? Text(formatUserLocalDateTime(start)) : null,
+            trailing: canOpen ? const Icon(Icons.chevron_right) : null,
+            onTap: canOpen ? () => _openEvent(e) : null,
           ),
         );
       },

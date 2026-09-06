@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/providers/application_provider.dart';
-import 'package:jobbingtrack_mobile/models/call.dart';
-import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/providers/call_provider.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer.dart';
 import 'package:jobbingtrack_mobile/widgets/app_drawer_leading.dart';
 import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
+import 'package:jobbingtrack_mobile/widgets/call_create_sheet.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
@@ -20,8 +20,6 @@ class CallsScreen extends StatefulWidget {
 
 class _CallsScreenState extends State<CallsScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
-  List<Call> _calls = [];
-  bool _loading = true;
 
   @override
   void initState() {
@@ -29,29 +27,34 @@ class _CallsScreenState extends State<CallsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool force = false}) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    setState(() => _loading = true);
-    try {
-      await Provider.of<ApplicationProvider>(context, listen: false)
-          .loadApplications(token: auth.token);
-      final list = await ApiService.getCalls(token: auth.token);
-      if (mounted) {
-        setState(() {
-          _calls = list;
-          _loading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
+    await Provider.of<ApplicationProvider>(context, listen: false)
+        .loadApplications(token: auth.token);
+    await Provider.of<CallProvider>(context, listen: false).loadCalls(
+      token: auth.token,
+      userId: auth.user?.id,
+      force: force,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final callProvider = Provider.of<CallProvider>(context);
+    final calls = callProvider.calls;
+
     return Scaffold(
       key: _scaffoldKey,
       drawer: AppDrawer(),
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_calls_screen',
+        tooltip: 'Nouvel appel',
+        onPressed: () async {
+          final created = await showCreateCallSheet(context);
+          if (created != null && mounted) await _load(force: true);
+        },
+        child: const Icon(Icons.phone_outlined),
+      ),
       appBar: AppBar(
         leading: const AppDrawerLeadingButton(),
         automaticallyImplyLeading: false,
@@ -60,9 +63,9 @@ class _CallsScreenState extends State<CallsScreen> {
       ),
       body: DrawerBackScope(
         scaffoldKey: _scaffoldKey,
-        child: _loading
+        child: callProvider.isLoading && calls.isEmpty
             ? const Center(child: CircularProgressIndicator())
-            : _calls.isEmpty
+            : calls.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -74,13 +77,13 @@ class _CallsScreenState extends State<CallsScreen> {
                     ),
                   )
                 : RefreshIndicator(
-                    onRefresh: _load,
+                    onRefresh: () => _load(force: true),
                     child: ListView.builder(
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.all(16),
-                      itemCount: _calls.length,
+                      itemCount: calls.length,
                       itemBuilder: (context, index) {
-                        final c = _calls[index];
+                        final c = calls[index];
                         final apps =
                             Provider.of<ApplicationProvider>(context, listen: false).applications;
                         final offerLine = linkedOfferCompanyLine(

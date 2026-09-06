@@ -79,6 +79,26 @@ class AppVersionParts {
     }
     return build < other.build;
   }
+
+  /// Écart de builds (approx.) pour message « X versions de retard ».
+  int buildsBehind(AppVersionParts latest) {
+    if (!isOlderThan(latest)) return 0;
+    if (build > 0 && latest.build > build) {
+      final delta = latest.build - build;
+      if (delta > 0) return delta;
+    }
+    // Fallback semver : compter les segments différentiels grossièrement.
+    var score = 0;
+    final maxLen = parts.length > latest.parts.length ? parts.length : latest.parts.length;
+    for (var i = 0; i < maxLen; i++) {
+      final left = i < parts.length ? parts[i] : 0;
+      final right = i < latest.parts.length ? latest.parts[i] : 0;
+      if (right > left) {
+        score += (right - left) * (i == 0 ? 100 : i == 1 ? 10 : 1);
+      }
+    }
+    return score < 1 ? 1 : score;
+  }
 }
 
 class MobileUpdateService {
@@ -107,10 +127,19 @@ class MobileUpdateService {
 
   static Future<String> readCurrentVersion() => AppVersionInfo.get();
 
-  static Future<({MobileReleaseInfo release, String current, bool optional, bool blocked})?> evaluateUpdate() async {
+  /// Seuil : au-delà, on insiste (force soft) même si le serveur n'a pas forceUpdate.
+  static const catchUpForceAfterBuilds = 5;
+
+  static Future<({MobileReleaseInfo release, String current, bool optional, bool blocked, int buildsBehind})?> evaluateUpdate() async {
     final release = await fetchLatestRelease();
     if (release == null) {
       debugPrint('[OTA] latest null (channel=$releaseChannel base=${ApiService.baseUrl})');
+      return null;
+    }
+
+    // Sans URL de téléchargement Android, impossible de catch-up — ne pas bloquer l'app.
+    if (!Platform.isIOS && (release.downloadUrl == null || release.downloadUrl!.trim().isEmpty)) {
+      debugPrint('[OTA] latest sans downloadUrl — skip prompt');
       return null;
     }
 
@@ -118,18 +147,26 @@ class MobileUpdateService {
     final currentParts = AppVersionParts.parse(current);
     final latestParts = AppVersionParts.parse('${release.version}+${release.buildNumber}');
     final minParts = AppVersionParts.parse('${release.minVersion}+${release.minBuild}');
+    final behind = currentParts.buildsBehind(latestParts);
 
     debugPrint(
       '[OTA] channel=$releaseChannel current=$current '
-      'latest=${release.version}+${release.buildNumber} '
+      'latest=${release.version}+${release.buildNumber} behind=$behind '
       'download=${release.downloadUrl != null}',
     );
 
     if (currentParts.isOlderThan(minParts)) {
-      return (release: release, current: current, optional: false, blocked: true);
+      return (release: release, current: current, optional: false, blocked: true, buildsBehind: behind);
     }
     if (currentParts.isOlderThan(latestParts)) {
-      return (release: release, current: current, optional: !release.forceUpdate, blocked: release.forceUpdate);
+      final hardForce = release.forceUpdate || behind >= catchUpForceAfterBuilds;
+      return (
+        release: release,
+        current: current,
+        optional: !hardForce,
+        blocked: hardForce,
+        buildsBehind: behind,
+      );
     }
     return null;
   }
@@ -175,9 +212,10 @@ class MobileUpdateService {
 
     final installPerm = await Permission.requestInstallPackages.request();
     if (installPerm.isDenied || installPerm.isPermanentlyDenied) {
+      await openAppSettings();
       throw Exception(
         'Permission d’installer des apps refusée. '
-        'Autorisez JobbingTrack dans Paramètres Android → Installer des apps inconnues.',
+        'Autorisez JobbingTrack dans Paramètres → Installer des apps inconnues, puis réessayez.',
       );
     }
 
