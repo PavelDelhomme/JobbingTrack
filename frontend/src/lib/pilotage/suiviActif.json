@@ -1,41 +1,37 @@
 {
   "updatedAt": "2026-09-06",
-  "apk": "1.0.54",
+  "apk": "1.0.55",
   "phase": {
     "id": "B",
     "label": "Gate pré-prod mobile",
     "step": "METIER",
-    "subStep": "ops-hubs",
-    "point": "MOB-METIER-OPS-01",
-    "title": "1.0.54 FAB + CallProvider + calendrier + contact lié"
+    "subStep": "filters-quickcreate",
+    "point": "MOB-METIER-OPS-02",
+    "title": "1.0.55 filtres + quick-create Accueil"
   },
   "recentDone": [
     {
-      "id": "MOB-METIER-OPS-01-code",
-      "label": "FAB Relance/Appel/Entretien + CallProvider + calendrier"
+      "id": "MOB-METIER-OPS-01",
+      "label": "FAB hubs + CallProvider + calendrier + merge PR#31"
     },
     {
       "id": "MOB-OTA-CATCHUP-01-code",
-      "label": "Catch-up ≥5 builds + TTL listes vides + install 3 appareils"
+      "label": "Catch-up OTA + TTL listes vides 1.0.53/54"
     },
     {
       "id": "MOB-APP-CREATE-01-code",
-      "label": "Fix create + lieux + statut + cache listes"
+      "label": "Création candidature lieux/statut"
     }
   ],
   "queue": [
     {
+      "id": "MOB-METIER-OPS-02",
+      "label": "Livrer et valider 1.0.55 filtres/quick-create"
+    },
+    {
       "id": "MOB-METIER-OPS-01",
-      "label": "Valider porteur hubs métier 1.0.54 (fin de lot)"
-    },
-    {
-      "id": "MOB-OTA-CATCHUP-01",
-      "label": "Confirmer absence spam refresh listes vides"
-    },
-    {
-      "id": "MOB-APP-CREATE-01",
-      "label": "Valider création candidature"
+      "label": "Validation porteur hubs 1.0.54 (fin de lot)"
     }
   ],
-  "focusId": "MOB-METIER-OPS-01"
+  "focusId": "MOB-METIER-OPS-02"
 }

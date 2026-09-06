@@ -1,0 +1,66 @@
+{
+  "title": "Récap journée Dev JobbingTrack — 6 septembre 2026",
+  "subtitle": "Mobile métier + OTA + merge dev (sans PR main)",
+  "sessionDate": "2026-09-06",
+  "highlights": [
+    "APK 1.0.53 → 1.0.54 (livré/installé) puis branche feat/mobile-metier-ops-v1055 pour 1.0.55",
+    "Stop refresh spam listes vides (TTL même sans données) sur tous les appareils",
+    "OTA catch-up multi-versions (≥5 builds insist) + publish multi-canaux prod/préprod/dev",
+    "FAB Relance / Appel / Entretien globaux + calendrier cliquable + contact/entreprise liés",
+    "Merge PR #31 + #32 dans dev ; pas de merge main (écart ~1557 commits)",
+    "Suite 1.0.55 : quick-create Accueil étendu + filtres statut candidatures + FAB entreprise"
+  ],
+  "done": [
+    {
+      "title": "Refresh & providers",
+      "items": [
+        "TTL empty-list Application / Company / Contact / FollowUp / Interview / Notification / CallProvider / Events",
+        "ShellDataRefreshService 3 min + CallProvider branché",
+        "FollowUpProvider : load applicationId ne vide plus le cache global"
+      ]
+    },
+    {
+      "title": "Création métier mobile",
+      "items": [
+        "Sheets followup_create / call_create ; interview avec contact prérempli",
+        "FAB hub onglets Entretiens/Relances/Appels + écrans listes + calendrier",
+        "Contact « Ajouter lié » → relance / entretien / appel",
+        "Entreprise FAB Ajouter (contact / relance / entretien / appel)",
+        "Création candidature : lieux Nominatim, labels Sur site/Distanciel/Hybride, statut + statusEngineOptOut"
+      ]
+    },
+    {
+      "title": "OTA & appareils",
+      "items": [
+        "scripts/mobile/setup/publish-ota-all-channels.sh",
+        "1.0.54 publié + installé Samsung / Nothing / Blackview × 3 flavors",
+        "Catch-up : message N versions de retard ; downloadUrl obligatoire"
+      ]
+    },
+    {
+      "title": "Git / pilotage",
+      "items": [
+        "Branche fix/mobile-application-create-ux → PR #31 mergée dans dev",
+        "PR #32 docs pilotage mergée",
+        "Nouvelle branche feat/mobile-metier-ops-v1055 depuis dev (travail 1.0.55+)",
+        "Docs STATUS / PILOTAGE / TODOS / suivi-actif / VERSIONNEMENT mis à jour",
+        "Pas de PR/merge vers main (demande porteur : rester sur flux feat → dev)"
+      ]
+    }
+  ],
+  "next": [
+    "Finaliser / publier APK 1.0.55 (filtres + quick-create Accueil)",
+    "Validation porteur fin de lot (création globale, calendrier, listes vides)",
+    "Redeploy application-service pour statusEngineOptOut création",
+    "Plus tard seulement : release contrôlée dev → main"
+  ],
+  "risks": [
+    "Compte JT porteur login 401 encore à résoudre pour tests métier prod réels",
+    "Stack Docker JobbingTrack locale parfois arrêtée (email récap via SMTP direct si besoin)",
+    "main très en retard vs dev — ne pas merger sans plan release"
+  ],
+  "links": [
+    { "label": "PR #31", "url": "https://github.com/PavelDelhomme/JobbingTrack/pull/31" },
+    { "label": "PR #32", "url": "https://github.com/PavelDelhomme/JobbingTrack/pull/32" }
+  ]
+}

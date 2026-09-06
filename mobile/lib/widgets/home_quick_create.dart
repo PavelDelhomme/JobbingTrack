@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/applications/application_form_screen.dart';
 import 'package:jobbingtrack_mobile/widgets/contact_create_sheet.dart';
+import 'package:jobbingtrack_mobile/widgets/followup_create_sheet.dart';
+import 'package:jobbingtrack_mobile/widgets/call_create_sheet.dart';
+import 'package:jobbingtrack_mobile/widgets/interview_create_sheet.dart';
 
-enum HomeQuickCreateAction { application, contact }
+enum HomeQuickCreateAction { application, contact, followUp, interview, call }
 
 Future<HomeQuickCreateAction?> showHomeQuickCreateSheet(BuildContext context) {
   return showModalBottomSheet<HomeQuickCreateAction>(
@@ -30,6 +33,33 @@ Future<HomeQuickCreateAction?> showHomeQuickCreateSheet(BuildContext context) {
             subtitle: const Text('Nom + entreprise (nouvelle ou existante)'),
             onTap: () => Navigator.pop(ctx, HomeQuickCreateAction.contact),
           ),
+          ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Colors.teal.shade100,
+              child: Icon(Icons.schedule_send_outlined, color: Colors.teal.shade800),
+            ),
+            title: const Text('Nouvelle relance'),
+            subtitle: const Text('Choisir une candidature puis planifier'),
+            onTap: () => Navigator.pop(ctx, HomeQuickCreateAction.followUp),
+          ),
+          ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Colors.orange.shade100,
+              child: Icon(Icons.event_available_outlined, color: Colors.orange.shade800),
+            ),
+            title: const Text('Nouvel entretien'),
+            subtitle: const Text('Date, lieu / visio, contacts'),
+            onTap: () => Navigator.pop(ctx, HomeQuickCreateAction.interview),
+          ),
+          ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Colors.indigo.shade100,
+              child: Icon(Icons.phone_outlined, color: Colors.indigo.shade800),
+            ),
+            title: const Text('Nouvel appel'),
+            subtitle: const Text('Objet + candidature liée'),
+            onTap: () => Navigator.pop(ctx, HomeQuickCreateAction.call),
+          ),
           const SizedBox(height: 8),
         ],
       ),
@@ -53,5 +83,13 @@ Future<bool> handleHomeQuickCreate(BuildContext context) async {
         return true;
       }
       return false;
+    case HomeQuickCreateAction.followUp:
+      final created = await showCreateFollowUpSheet(context);
+      return created != null;
+    case HomeQuickCreateAction.interview:
+      return showCreateInterviewSheet(context);
+    case HomeQuickCreateAction.call:
+      final created = await showCreateCallSheet(context);
+      return created != null;
   }
 }
