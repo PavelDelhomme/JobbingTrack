@@ -11,6 +11,21 @@
 
 ---
 
+## En cours — BO-OVERVIEW-KPI-MEM-01 (07/09/2026)
+
+> Cartes santé vue d’ensemble → liste services filtrée ; budget mémoire JT (plus de ~100 Go).  
+> **Deploy auto** : `scripts/deploy/force-refresh-jt-services.sh` (+ `admin-deploy-dev.sh`). Pas de recreate manuel.
+
+| Zone | Check | Résultat | Suite |
+|------|-------|----------|-------|
+| Code | KPI → `/backoffice/services?status=…` | **OK** | |
+| Code | Agrégat = stack 8192 MB ; HostConfig hôte rejetée | **OK** tests | |
+| Script | `force-refresh-jt-services.sh` local/preprod/prod | **à exécuter** | |
+| Local | recreate aggregator + limit ≈ 8192 | **à faire** | |
+| Préprod | push `dev` → GHCR `:dev` → force-refresh | **à faire** | |
+| Prod | workflow `channel=prod` depuis `dev` (pas merge main) → force-refresh | **à faire** | |
+| Porteur | clic cartes + libellé `X / 8.0 GB` | **à valider** | |
+
 ## En cours — MOB-METIER-OPS-01 (06/09/2026)
 
 > **Git** : merge **PR #31** → `dev` (06/09) · OTA prod/préprod/dev **1.0.54** déjà publié.

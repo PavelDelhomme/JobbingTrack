@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   summarizeDockerServiceHealth,
   type DockerServiceRow,
@@ -13,6 +14,14 @@ export interface ServiceHealthKpiCardsProps {
   className?: string;
 }
 
+const HEALTH_KPI_LINKS = {
+  healthy: "/backoffice/services?status=healthy",
+  degraded: "/backoffice/services?status=degraded",
+  running: "/backoffice/services?status=running",
+  stopped: "/backoffice/services?status=stopped",
+  not_deployed: "/backoffice/services?status=not_deployed",
+} as const;
+
 export function ServiceHealthKpiCards({
   dockerServices,
   hint,
@@ -24,23 +33,36 @@ export function ServiceHealthKpiCards({
   return (
     <div className={className}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <HealthCard label="Sains" value={summary.healthy} tone="green" />
-        <HealthCard label="Dégradés" value={summary.degraded} tone="yellow" />
+        <HealthCard
+          label="Sains"
+          value={summary.healthy}
+          tone="green"
+          href={HEALTH_KPI_LINKS.healthy}
+        />
+        <HealthCard
+          label="Dégradés"
+          value={summary.degraded}
+          tone="yellow"
+          href={HEALTH_KPI_LINKS.degraded}
+        />
         <HealthCard
           label="Actifs"
           value={summary.totalRunning}
           suffix={`/${summary.expectedTotal}`}
           tone="blue"
+          href={HEALTH_KPI_LINKS.running}
         />
         <HealthCard
           label="Arrêtés"
           value={Math.max(0, summary.stopped - summary.notDeployed)}
           tone="red"
+          href={HEALTH_KPI_LINKS.stopped}
         />
         <HealthCard
           label="Non déployés"
           value={summary.notDeployed}
           tone="red"
+          href={HEALTH_KPI_LINKS.not_deployed}
         />
       </div>
       {!hideHint && (
@@ -58,11 +80,13 @@ function HealthCard({
   value,
   suffix,
   tone,
+  href,
 }: {
   label: string;
   value: number;
   suffix?: string;
   tone: "green" | "yellow" | "blue" | "red";
+  href: string;
 }) {
   const shell: Record<typeof tone, string> = {
     green: "bg-green-50 dark:bg-green-900/20",
@@ -78,7 +102,11 @@ function HealthCard({
   };
 
   return (
-    <div className={`p-4 rounded-lg ${shell[tone]}`}>
+    <Link
+      href={href}
+      className={`block p-4 rounded-lg ${shell[tone]} transition hover:ring-2 hover:ring-offset-1 hover:ring-gray-300 dark:hover:ring-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500`}
+      title={`Voir les services : ${label}`}
+    >
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
           {label}
@@ -92,6 +120,6 @@ function HealthCard({
           ) : null}
         </span>
       </div>
-    </div>
+    </Link>
   );
 }

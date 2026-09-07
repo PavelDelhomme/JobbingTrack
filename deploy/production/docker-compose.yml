@@ -115,6 +115,8 @@ services:
       ENABLE_METRICS_COLLECTION: ${ENABLE_METRICS_COLLECTION:-true}
       FRONTEND_URL: ${FRONTEND_URL:?set FRONTEND_URL}
       STACK_SLUG: ${STACK_SLUG:-jobbingtrack}
+      # Budget projet (vue d’ensemble) — pas la somme des RAM hôte Docker
+      JOBBINGTRACK_STACK_MEMORY_LIMIT_MB: ${JOBBINGTRACK_STACK_MEMORY_LIMIT_MB:-8192}
       NODE_ENV: production
       PORT: "3014"
 

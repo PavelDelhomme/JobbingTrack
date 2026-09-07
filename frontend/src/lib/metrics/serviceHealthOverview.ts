@@ -18,6 +18,7 @@ export interface DockerServiceRow {
   is_running?: boolean;
   is_healthy?: boolean;
   health_status?: string;
+  deployment_state?: string;
   health?: {
     status?: string;
     health_status_docker?: string;
@@ -126,10 +127,7 @@ export function countNotDeployedDockerServices(
   return dedupeDockerServices(services).filter((service) => {
     if (isServiceRunning(service)) return false;
     const status = String(service.status || "").toLowerCase();
-    const deploymentState = String(
-      (service as DockerServiceRow & { deployment_state?: string })
-        .deployment_state || "",
-    ).toLowerCase();
+    const deploymentState = String(service.deployment_state || "").toLowerCase();
     return status === "not_deployed" || deploymentState === "not_created";
   }).length;
 }

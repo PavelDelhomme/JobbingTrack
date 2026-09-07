@@ -52,7 +52,10 @@ if [[ "$REDEPLOY" == "1" ]]; then
   echo "==> Redeploy VPS préprod…"
   IMAGE_TAG=dev \
     PORTAINER_STACK_NAME="${PORTAINER_STACK_NAME_PREPROD:-jobbingtrack-preprod}" \
+    DEPLOY_SSH="${DEPLOY_SSH:-pavel-server}" \
     bash "$ROOT/scripts/deploy/redeploy-vps.sh" preprod
+  echo "==> Force-refresh metrics-aggregator + frontend (pull + recreate)…"
+  bash "$ROOT/scripts/deploy/force-refresh-jt-services.sh" preprod
 else
   echo "==> Redeploy ignoré (--no-redeploy). Watchtower ou Portainer manuel."
 fi

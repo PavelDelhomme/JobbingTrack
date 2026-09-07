@@ -92,10 +92,12 @@ function normalizeContainerMemoryMb({
   let limitMb = serviceBudgetMb;
   let limitSource = 'jobbingtrack-budget';
 
-  if (configured > 0) {
+  // Ne jamais prendre une limite « hôte » (souvent 16–64 Go) : Docker HostConfig
+  // ou stats.limit sans mem_limit explicite = capacité machine, pas budget JT.
+  if (configured > 0 && !looksLikeHostMemoryLimit(configured, stackLimitMb)) {
     limitMb = configured;
     limitSource = 'docker-hostconfig';
-  } else if (!looksLikeHostMemoryLimit(observed, stackLimitMb)) {
+  } else if (observed > 0 && !looksLikeHostMemoryLimit(observed, stackLimitMb)) {
     limitMb = observed;
     limitSource = 'docker-stats';
   }

@@ -1,6 +1,6 @@
 # TODOS — choses à faire (source de vérité)
 
-Dernière mise à jour : **6 septembre 2026**
+Dernière mise à jour : **7 septembre 2026**
 
 ## Process de suivi (obligatoire)
 
@@ -32,13 +32,19 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ---
 
-## ▶ En cours maintenant — MOB-METIER-OPS-01 (hubs métier mobile)
+## ▶ En cours maintenant — BO-OVERVIEW-KPI-MEM-01 (backoffice mémoire + KPI)
 
-> **Focus unique Kanban** : **MOB-METIER-OPS-01** — APK **1.0.54** (FAB Relance/Appel/Entretien, CallProvider, calendrier cliquable, contact → actions liées)
-> **Branche** : `fix/mobile-application-create-ux`
-> **Appareils** : Samsung + Nothing + Blackview — installer **1.0.54**
-> **Validation porteur** : reportée en fin de lot (demande explicite)
-> **File derrière** : MOB-OTA-CATCHUP-01 (déjà livré 1.0.53) · MOB-APP-CREATE-01 · polish filtres avancés
+> **Demande porteur 07/09** : cartes santé cliquables + budget mémoire JT correct en local **et** prod, **sans** recreate manuel.  
+> **Script** : `bash scripts/deploy/force-refresh-jt-services.sh local|preprod|prod`  
+> **Prod** : images `:latest` via workflow `channel=prod` depuis `dev` — **ne pas** merger tout `dev`→`main` (écart ~1561 commits).  
+> File mobile (MOB-METIER-OPS-02 / 1.0.55) inchangée derrière.
+
+---
+
+## File — MOB-METIER-OPS-01 (hubs métier mobile)
+
+> **APK** : **1.0.54** / **1.0.55** · validation porteur reportée fin de lot  
+> **Branche historique** : `fix/mobile-application-create-ux` / `feat/mobile-metier-ops-v1055`
 
 
 ---

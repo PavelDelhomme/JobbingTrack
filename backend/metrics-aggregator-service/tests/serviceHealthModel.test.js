@@ -104,4 +104,16 @@ describe('serviceHealthModel', () => {
     expect(normalized.limitSource).toBe('docker-hostconfig');
     expect(normalized.percent).toBe(25);
   });
+
+  it('rejette une HostConfig égale à la RAM hôte', () => {
+    const normalized = normalizeContainerMemoryMb({
+      containerName: 'jobbingtrack-api-gateway',
+      usageMb: 192,
+      observedLimitMb: 48046,
+      configuredLimitMb: 48046,
+    });
+
+    expect(normalized.limitMb).toBe(getServiceMemoryBudgetMb('jobbingtrack-api-gateway'));
+    expect(normalized.limitSource).toBe('jobbingtrack-budget');
+  });
 });

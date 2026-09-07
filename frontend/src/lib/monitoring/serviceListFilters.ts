@@ -1,3 +1,9 @@
+import {
+  classifyRunningServiceHealth,
+  isServiceRunning,
+  type DockerServiceRow,
+} from "@/lib/metrics/serviceHealthOverview";
+
 export type ServiceListFilterMetrics = {
   cpu_percent: number;
   memory_percent: number;
@@ -6,6 +12,10 @@ export type ServiceListFilterMetrics = {
 export type ServiceListFilterRow = {
   is_running: boolean;
   is_healthy: boolean;
+  status?: string;
+  health_status?: string;
+  deployment_state?: string;
+  health?: DockerServiceRow["health"];
   metrics: ServiceListFilterMetrics | null;
 };
 
@@ -22,8 +32,11 @@ export const DEFAULT_SERVICE_LIST_FILTERS: ServiceListFilters = {
 };
 
 export const SERVICE_STATUS_FILTER_OPTIONS = [
+  { value: "healthy", label: "Sains" },
+  { value: "degraded", label: "Dégradés" },
   { value: "running", label: "Actifs" },
   { value: "stopped", label: "Arrêtés" },
+  { value: "not_deployed", label: "Non déployés" },
   { value: "unhealthy", label: "Non sains" },
 ] as const;
 
@@ -38,6 +51,23 @@ export const SERVICE_MEMORY_FILTER_OPTIONS = [
   { value: "medium", label: "Mémoire moyenne (40–80 %)" },
   { value: "low", label: "Mémoire faible (< 40 %)" },
 ] as const;
+
+function isNotDeployedService(service: ServiceListFilterRow): boolean {
+  const status = String(service.status || "").toLowerCase();
+  const deploymentState = String(service.deployment_state || "").toLowerCase();
+  return status === "not_deployed" || deploymentState === "not_created";
+}
+
+function asDockerRow(service: ServiceListFilterRow): DockerServiceRow {
+  return {
+    is_running: service.is_running,
+    is_healthy: service.is_healthy,
+    status: service.status,
+    health_status: service.health_status,
+    health: service.health,
+    deployment_state: service.deployment_state,
+  };
+}
 
 export function buildServiceListFiltersFromSearchParams(
   searchParams: URLSearchParams,
@@ -64,11 +94,27 @@ export function matchesServiceListFilters(
   service: ServiceListFilterRow,
   filters: ServiceListFilters,
 ): boolean {
-  if (filters.status === "running" && !service.is_running) return false;
-  if (filters.status === "stopped" && service.is_running) return false;
+  const running = isServiceRunning(asDockerRow(service));
+  const notDeployed = isNotDeployedService(service);
+
+  if (filters.status === "running" && !running) return false;
+  if (filters.status === "stopped" && (running || notDeployed)) return false;
+  if (filters.status === "not_deployed" && !notDeployed) return false;
+  if (filters.status === "healthy") {
+    if (!running) return false;
+    if (classifyRunningServiceHealth(asDockerRow(service)) !== "healthy") {
+      return false;
+    }
+  }
+  if (filters.status === "degraded") {
+    if (!running) return false;
+    if (classifyRunningServiceHealth(asDockerRow(service)) !== "degraded") {
+      return false;
+    }
+  }
   if (
     filters.status === "unhealthy" &&
-    (service.is_healthy || !service.is_running)
+    (service.is_healthy || !running)
   ) {
     return false;
   }

@@ -71,6 +71,7 @@ interface Service {
   name: string;
   status: string;
   health_status: string;
+  deployment_state?: string;
   is_running: boolean;
   is_healthy: boolean;
   created: string;
@@ -246,6 +247,7 @@ export default function ServicesPage() {
           status: s.status || (s.is_running ? "running" : "stopped"),
           health_status:
             s.health_status || (s.is_healthy ? "healthy" : "unknown"),
+          deployment_state: s.deployment_state || undefined,
           is_running: Boolean(s.is_running),
           is_healthy: Boolean(s.is_healthy),
           created: s.created || "",

@@ -13,7 +13,10 @@ const si = require('systeminformation')
 const axios = require('axios')
 const Docker = require('dockerode')
 const jwt = require('jsonwebtoken')
-const { normalizeContainerMemoryMb } = require('./services/memoryBudget')
+const {
+  getStackMemoryLimitMb,
+  normalizeContainerMemoryMb,
+} = require('./services/memoryBudget')
 const dockerService = require('./services/docker.service')
 const {
   blockIoFromContainerPayload,
@@ -990,12 +993,15 @@ async function collectAllMetrics() {
         cpuValues.push(metrics.cpu.percentage)
         containerCount++
       }
-      if (metrics.memory?.usage && metrics.memory?.limit) {
-        totalMemoryUsed += metrics.memory.usage
-        totalMemoryLimit += metrics.memory.limit
-        memoryValues.push(metrics.memory.usage)
+      if (metrics.memory?.usage != null) {
+        totalMemoryUsed += Number(metrics.memory.usage) || 0
+        memoryValues.push(Number(metrics.memory.usage) || 0)
       }
     })
+
+    // Budget projet = plafond stack JT (défaut 8 Go), pas la somme des limites
+    // Docker (souvent = RAM hôte × N conteneurs → ~100 Go absurdes).
+    totalMemoryLimit = getStackMemoryLimitMb()
     
     // ✅ Calculer les moyennes pour plus de précision
     const avgCpuPercent = cpuValues.length > 0 ? totalCpuPercent / cpuValues.length : 0
