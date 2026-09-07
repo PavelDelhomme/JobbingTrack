@@ -20,10 +20,10 @@
 |------|-------|----------|-------|
 | Code | KPI → `/backoffice/services?status=…` | **OK** | |
 | Code | Agrégat = stack 8192 MB ; HostConfig hôte rejetée | **OK** tests | |
-| Script | `force-refresh-jt-services.sh` local/preprod/prod | **à exécuter** | |
-| Local | recreate aggregator + limit ≈ 8192 | **à faire** | |
-| Préprod | push `dev` → GHCR `:dev` → force-refresh | **à faire** | |
-| Prod | workflow `channel=prod` depuis `dev` (pas merge main) → force-refresh | **à faire** | |
+| Script | `force-refresh-jt-services.sh` local/preprod/prod | **OK** | branché `admin-deploy-dev` |
+| Local | recreate aggregator + limit | **OK** used≈1987 / **8192** | |
+| Préprod | GHCR `:dev` + force-refresh agg+frontend | **OK** limit **8192** | |
+| Prod | workflow `channel=prod` depuis `dev` + force-refresh | **OK** limit **8192** (sans merge main) | |
 | Porteur | clic cartes + libellé `X / 8.0 GB` | **à valider** | |
 
 ## En cours — MOB-METIER-OPS-01 (06/09/2026)

@@ -50,14 +50,22 @@ echo "==> Push dev OK — GitHub Actions build ghcr.io/…/jobbingtrack-*:dev"
 
 if [[ "$REDEPLOY" == "1" ]]; then
   echo "==> Redeploy VPS préprod…"
+  # Ne pas forcer DEPLOY_SSH sans DEPLOY_SSH_CMD (sinon redeploy-vps quitte en erreur).
+  # Le recreate réel des services critiques = force-refresh-jt-services.sh (SSH compose).
+  set +e
   IMAGE_TAG=dev \
     PORTAINER_STACK_NAME="${PORTAINER_STACK_NAME_PREPROD:-jobbingtrack-preprod}" \
-    DEPLOY_SSH="${DEPLOY_SSH:-pavel-server}" \
     bash "$ROOT/scripts/deploy/redeploy-vps.sh" preprod
+  redeploy_rc=$?
+  set -e
+  if [[ "$redeploy_rc" -ne 0 ]]; then
+    echo "==> redeploy-vps.sh rc=$redeploy_rc (souvent Portainer/SSH non configuré) — on enchaîne force-refresh"
+  fi
   echo "==> Force-refresh metrics-aggregator + frontend (pull + recreate)…"
   bash "$ROOT/scripts/deploy/force-refresh-jt-services.sh" preprod
 else
-  echo "==> Redeploy ignoré (--no-redeploy). Watchtower ou Portainer manuel."
+  echo "==> Redeploy ignoré (--no-redeploy). Watchtower ou :"
+  echo "    bash scripts/deploy/force-refresh-jt-services.sh preprod"
 fi
 
 echo "==> Terminé (dev / préprod)"

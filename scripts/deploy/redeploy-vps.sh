@@ -46,24 +46,32 @@ wait_for_ghcr_build() {
   fi
   if command -v gh >/dev/null 2>&1; then
     echo "==> Attente GitHub Actions (build-push-images / branche $GIT_BRANCH)…"
-    local run_id
-    run_id="$(
-      gh run list --repo "$GITHUB_REPO" --branch "$GIT_BRANCH" --limit 5 \
-        --json databaseId,name,status \
-        --jq '[.[] | select(.name|test("Build and Push";"i"))][0].databaseId // empty' 2>/dev/null || true
-    )"
-    if [[ -z "$run_id" ]]; then
+    local run_id=""
+    local i
+    # Attendre qu’un run *récent* (< 15 min) apparaisse / tourne, pas un succès stale.
+    for i in $(seq 1 30); do
       run_id="$(
-        gh run list --repo "$GITHUB_REPO" --branch "$GIT_BRANCH" --limit 1 \
-          --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true
+        gh run list --repo "$GITHUB_REPO" --branch "$GIT_BRANCH" --limit 8 \
+          --json databaseId,name,status,createdAt \
+          --jq '
+            [ .[]
+              | select(.name|test("Build and Push";"i"))
+              | select((now - (.createdAt|fromdateiso8601)) < 900)
+            ][0].databaseId // empty
+          ' 2>/dev/null || true
       )"
-    fi
+      if [[ -n "$run_id" ]]; then
+        break
+      fi
+      echo "    … pas encore de run récent ($i/30)"
+      sleep 10
+    done
     if [[ -n "$run_id" ]]; then
       gh run watch "$run_id" --exit-status
       echo "==> Images GHCR à jour (run $run_id)"
       return 0
     fi
-    echo "==> Pas de run GH trouvé — attente fixe ${WAIT_SECS}s"
+    echo "==> Pas de run GH récent — attente fixe ${WAIT_SECS}s"
   else
     echo "==> gh CLI absent — attente fixe ${WAIT_SECS}s (build GHCR)"
   fi
@@ -188,10 +196,13 @@ main() {
   echo "==> Redeploy VPS [$TARGET] stack=$STACK_NAME tag=$IMAGE_TAG branch=$GIT_BRANCH"
   wait_for_ghcr_build
 
-  if [[ -n "${DEPLOY_SSH:-}" ]]; then
+  if [[ -n "${DEPLOY_SSH:-}" && -n "${DEPLOY_SSH_CMD:-}" ]]; then
     redeploy_ssh
     echo "==> OK (SSH)"
     return 0
+  fi
+  if [[ -n "${DEPLOY_SSH:-}" && -z "${DEPLOY_SSH_CMD:-}" ]]; then
+    echo "==> DEPLOY_SSH défini sans DEPLOY_SSH_CMD — skip SSH, essai Portainer / force-refresh"
   fi
   if [[ -n "${PORTAINER_URL:-}" && -n "${PORTAINER_API_KEY:-}" ]]; then
     redeploy_portainer_api

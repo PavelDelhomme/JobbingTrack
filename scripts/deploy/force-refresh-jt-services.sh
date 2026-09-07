@@ -95,17 +95,19 @@ refresh_vps() {
 
   echo "==> VPS ($SSH_HOST) : pull + force-recreate [$target] tag=:$image_tag services=${SERVICES[*]}"
 
+  local joined
+  joined="$(IFS=','; echo "${SERVICES[*]}")"
+
   # shellcheck disable=SC2029
   ssh -o BatchMode=yes -o ConnectTimeout=20 "$SSH_HOST" bash -s -- \
-    "$STACK_REPO" "$project" "$env_file" "$REGISTRY" "$image_tag" "${SERVICES[*]}" <<'REMOTE'
+    "$STACK_REPO" "$project" "$env_file" "$REGISTRY" "$image_tag" "$joined" <<'REMOTE'
 set -euo pipefail
 STACK_REPO="$1"
 PROJECT="$2"
 ENV_FILE="$3"
 REGISTRY="$4"
 IMAGE_TAG="$5"
-# shellcheck disable=SC2206
-SERVICES=($6)
+IFS=',' read -r -a SERVICES <<< "$6"
 
 if [[ ! -d "$STACK_REPO" ]]; then
   echo "Stack repo introuvable: $STACK_REPO" >&2
@@ -148,7 +150,7 @@ verify_memory_budget() {
       limit="$(
         curl -fsS -H "X-API-Key: $key" -H "Accept: application/json" \
           "http://127.0.0.1:5004/api/v1/metrics" \
-          | python3 -c 'import json,sys; d=json.load(sys.stdin); m=((d.get("systemMetrics") or d.get("system") or {}).get("jobbingtrack") or {}).get("containers",{}).get("memory",{}); print(m.get("limit",""))'
+          | python3 -c 'import json,sys; d=json.load(sys.stdin); sm=d.get("system") or d.get("systemMetrics") or {}; m=((sm.get("jobbingtrack") or {}).get("containers") or {}).get("memory") or {}; print(m.get("limit",""))'
       )"
       echo "    limit MB = $limit (attendu ≈ 8192)"
       python3 -c "import sys; lim=float(sys.argv[1] or 0); sys.exit(0 if 1000 <= lim <= 20000 else 1)" "$limit"
@@ -169,7 +171,8 @@ const key = process.env.METRICS_API_KEY || "";
 fetch("http://127.0.0.1:3014/api/v1/metrics", { headers: { "X-API-Key": key, Accept: "application/json" } })
   .then((r) => r.json())
   .then((d) => {
-    const m = (((d.systemMetrics || d.system || {}).jobbingtrack || {}).containers || {}).memory || {};
+    const sm = d.system || d.systemMetrics || {};
+    const m = (((sm.jobbingtrack || {}).containers || {}).memory) || {};
     process.stdout.write(String(m.limit ?? ""));
   })
   .catch((e) => { console.error(e); process.exit(2); });
