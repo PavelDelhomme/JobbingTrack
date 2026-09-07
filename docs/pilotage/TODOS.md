@@ -23,29 +23,25 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ## Récemment terminé (max 1 catégorie + 3 sous-items)
 
-### Déploiement — Portainer préprod+prod (28/08)
+### Backoffice — KPI + budget mémoire (07/09)
 
-1. **OK** stacks Portainer `jobbingtrack-preprod` + `jobbingtrack-prod` (Git, **aucun port hôte**)  
-2. **OK** NPM : preprod / api-preprod / apex+www / api + Let's Encrypt  
-3. **OK** GHCR `:dev` + `:latest` (`workflow_dispatch` channel=prod)  
-4. **À finir** : login admin (F) + OTA Nothing (J)
-
----
-
-## ▶ En cours maintenant — BO-OVERVIEW-KPI-MEM-01 (backoffice mémoire + KPI)
-
-> **Demande porteur 07/09** : cartes santé cliquables + budget mémoire JT correct en local **et** prod, **sans** recreate manuel.  
-> **Script** : `bash scripts/deploy/force-refresh-jt-services.sh local|preprod|prod`  
-> **Prod** : images `:latest` via workflow `channel=prod` depuis `dev` — **ne pas** merger tout `dev`→`main` (écart ~1561 commits).  
-> File mobile (MOB-METIER-OPS-02 / 1.0.55) inchangée derrière.
+1. **OK** cartes Sains/Dégradés/Actifs/Arrêtés/Non déployés → `/backoffice/services?status=…`  
+2. **OK** budget JT = **8192 MB** (plus ~101 Go) local + préprod + **prod**  
+3. **OK** deploy auto `scripts/deploy/force-refresh-jt-services.sh` (+ `admin-deploy-dev.sh`)
 
 ---
 
-## File — MOB-METIER-OPS-01 (hubs métier mobile)
+## ▶ En cours maintenant — MOB-NAV-01 (retours système mobile)
 
-> **APK** : **1.0.54** / **1.0.55** · validation porteur reportée fin de lot  
-> **Branche historique** : `fix/mobile-application-create-ux` / `feat/mobile-metier-ops-v1055`
+> **Focus** : retour Android depuis chaque détail (candidature, contact, entreprise, relance, entretien, appel) sans casser le shell.  
+> **Doc** : `docs/mobile/NAVIGATION_RETOUR_MOBILE.md`  
+> **APK courant** : **1.0.55** (OTA déjà publiée) · validation lot reportée fin de lot.
 
+---
+
+## File — MOB-LOT-VALID-01 (validation porteur 1.0.53→1.0.55)
+
+> Hubs FAB, OTA catch-up, création, filtres, quick-create — **code livré** ; porteur valide en fin de lot.
 
 ---
 

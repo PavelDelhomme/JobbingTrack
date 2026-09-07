@@ -11,20 +11,27 @@
 
 ---
 
-## En cours — BO-OVERVIEW-KPI-MEM-01 (07/09/2026)
+## En cours — BO-OVERVIEW-KPI-MEM-01 (07/09/2026) — **CLOS**
 
-> Cartes santé vue d’ensemble → liste services filtrée ; budget mémoire JT (plus de ~100 Go).  
-> **Deploy auto** : `scripts/deploy/force-refresh-jt-services.sh` (+ `admin-deploy-dev.sh`). Pas de recreate manuel.
+> Cartes santé → liste filtrée ; budget mémoire JT ; deploy auto. **OK porteur 07/09** · prod vérifié limit **8192**.
 
 | Zone | Check | Résultat | Suite |
 |------|-------|----------|-------|
 | Code | KPI → `/backoffice/services?status=…` | **OK** | |
-| Code | Agrégat = stack 8192 MB ; HostConfig hôte rejetée | **OK** tests | |
-| Script | `force-refresh-jt-services.sh` local/preprod/prod | **OK** | branché `admin-deploy-dev` |
-| Local | recreate aggregator + limit | **OK** used≈1987 / **8192** | |
-| Préprod | GHCR `:dev` + force-refresh agg+frontend | **OK** limit **8192** | |
-| Prod | workflow `channel=prod` depuis `dev` + force-refresh | **OK** limit **8192** (sans merge main) | |
-| Porteur | clic cartes + libellé `X / 8.0 GB` | **à valider** | |
+| Code / deploy | Agrégat 8192 + `force-refresh-jt-services.sh` | **OK** local/préprod/**prod** | |
+| Porteur | libellé ~8 Go + clics cartes | **OK** | → DONE |
+
+## En cours — MOB-NAV-01 (07/09/2026)
+
+> Retours système depuis détails — `docs/mobile/NAVIGATION_RETOUR_MOBILE.md`
+
+| Zone | Check | Résultat | Suite |
+|------|-------|----------|-------|
+| Code | Un seul `PopScope` shell + `appNavigatorKey.canPop()` avant onglets | **OK** audit | |
+| Code | Détails via `Navigator.of(context).push` (pas de Navigator imbriqué listes) | **OK** | |
+| Devices | Samsung : liste → détail candidature → retour système = liste | **OK** ADB | Blackview / chaînes liées à faire |
+| Note | Flavor prod affiche « Mode hors ligne » (cache) | **observé** | vérifier API_BASE_URL / réseau appareil |
+| Porteur | matrice A–E doc nav + chaînes détail liées | **à valider** | fin de lot |
 
 ## En cours — MOB-METIER-OPS-01 (06/09/2026)
 
@@ -57,7 +64,7 @@
 |------|-------|----------|-------|
 | Mobile code | création payload + parse 200/201 + upsert local | **OK** analyze (infos only) | |
 | UX | labels Sur site / Distanciel / Hybride + autocomplete Nominatim | **OK** code | |
-| UX | statut à la création + switch auto/manuel (`statusEngineOptOut`) | **OK** mobile ; backend create à déployer | redeploy application-service |
+| UX | statut à la création + switch auto/manuel (`statusEngineOptOut`) | **OK** mobile + **prod** application-service (image `:latest` 07/09) | |
 | Listes | TTL cache + refresh manuel (force) | **OK** code (renforcé 1.0.53) | |
 | Device | Samsung / Nothing / Blackview **1.0.53** | **OK** | test porteur création |
 

@@ -2,40 +2,36 @@
   "updatedAt": "2026-09-07",
   "apk": "1.0.55",
   "phase": {
-    "id": "D",
-    "label": "Backoffice ops",
-    "step": "OVERVIEW",
-    "subStep": "kpi-mem-deploy",
-    "point": "BO-OVERVIEW-KPI-MEM-01",
-    "title": "KPI cliquables + budget mémoire 8 Go + deploy auto"
+    "id": "B",
+    "label": "Gate pré-prod mobile",
+    "step": "NAV",
+    "subStep": "system-back",
+    "point": "MOB-NAV-01",
+    "title": "Retours système depuis chaque détail"
   },
   "recentDone": [
+    {
+      "id": "BO-OVERVIEW-KPI-MEM-01",
+      "label": "KPI cliquables + budget 8 Go + deploy auto prod"
+    },
     {
       "id": "MOB-METIER-OPS-02-code",
       "label": "1.0.55 filtres + quick-create Accueil"
     },
     {
       "id": "MOB-METIER-OPS-01",
-      "label": "FAB hubs + CallProvider + calendrier + merge PR#31"
-    },
-    {
-      "id": "MOB-OTA-CATCHUP-01-code",
-      "label": "Catch-up OTA + TTL listes vides 1.0.53/54"
+      "label": "FAB hubs + CallProvider + calendrier"
     }
   ],
   "queue": [
     {
-      "id": "BO-OVERVIEW-KPI-MEM-01",
-      "label": "Deploy préprod/prod + vérif budget ≈ 8 Go"
+      "id": "MOB-NAV-01",
+      "label": "Retours système détail → liste / chaînes liées"
     },
     {
-      "id": "MOB-METIER-OPS-02",
-      "label": "Valider 1.0.55 filtres/quick-create (fin de lot)"
-    },
-    {
-      "id": "MOB-METIER-OPS-01",
-      "label": "Validation porteur hubs 1.0.54 (fin de lot)"
+      "id": "MOB-LOT-VALID-01",
+      "label": "Validation porteur lot 1.0.53→1.0.55 (fin de lot)"
     }
   ],
-  "focusId": "BO-OVERVIEW-KPI-MEM-01"
+  "focusId": "MOB-NAV-01"
 }

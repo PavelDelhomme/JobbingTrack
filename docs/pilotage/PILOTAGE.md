@@ -4,15 +4,14 @@ Dernière mise à jour : **7 septembre 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : MOB-METIER-OPS-02** — filtres candidatures + quick-create Accueil + polish hubs  
+**Focus (1 seule) : MOB-NAV-01** — retours système depuis chaque écran détail  
 **Git** : branche `feat/mobile-metier-ops-v1055` (depuis `dev`) · APK **1.0.55**  
-**Appareils** : Samsung + Nothing + Blackview — installer **1.0.55**  
-**OTA** : republier prod / préprod / dev  
+**Appareils** : Samsung + Blackview en **1.0.55** (3 flavors) — Nothing à rebrancher  
 
-**Hors focus (porteur 07/09)** : **BO-OVERVIEW-KPI-MEM-01** — cartes santé cliquables + fix budget mémoire JT.  
-**Déploiement auto** : `bash scripts/deploy/force-refresh-jt-services.sh local|preprod|prod` (pull GHCR + recreate) — branché aussi dans `admin-deploy-dev.sh`. **Pas** de recreate manuel Portainer.  
-**Prod** : images `:latest` via `gh workflow run build-push-images.yml --ref dev -f channel=prod` (**sans** merge massif `dev`→`main`, écart ~1561 commits).
+**Clôturé 07/09 (porteur OK)** : **BO-OVERVIEW-KPI-MEM-01** — KPI cliquables + budget **8 Go** prod/préprod/local + `force-refresh-jt-services.sh`.  
 
-**Prochaine action** : déployer BO-OVERVIEW-KPI-MEM-01 (préprod + prod images ciblées) ; vérifier budget ≈ 8 Go ; suite mobile 1.0.55.
+**File porteur** : validation lot mobile 1.0.53→1.0.55 (hubs, filtres, OTA, TTL) — reportée fin de lot.
+
+**Prochaine action** : MOB-NAV-01 (retours système) ; puis checklist porteur lot mobile.
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist : [`TODOS.md`](TODOS.md) ▶ En cours  
