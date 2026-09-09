@@ -31,6 +31,7 @@
 | Code | Détails via `Navigator.of(context).push` (pas de Navigator imbriqué listes) | **OK** | |
 | Devices | Samsung : liste → détail → entreprise → BACK → détail → BACK → liste | **OK** ADB | |
 | Devices | Blackview : même chaîne nested back | **OK** ADB 08/09 | |
+| Devices | Samsung : chaînes contact/relance | **en cours** | 429 auth prod + token expiré offline bloquent création FAB ; smoke `smoke-mobile-nav-contact-relance-back-adb.js` ajouté |
 | Prod | `ApplicationStatus` vide → create KO `CANDIDATE_PENDING` | **OK** seed SQL prod+préprod | auto-upsert code aussi |
 | Smoke | `smoke-mobile-nav-nested-back-adb.js` + 429/login Blackview | **OK** | |
 | Note | Taps entreprise près bottom bar Blackview mangés → centrer cible avant tap | **OK** smoke | |
