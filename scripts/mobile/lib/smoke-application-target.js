@@ -280,6 +280,7 @@ module.exports = {
   findApplicationCardNode,
   findCompanyCardNode,
   loginSmokeToken,
+  listApplications,
   ensureSmokeApplication,
   ensureApplicationsListTab,
   waitApplicationTargetVisible,

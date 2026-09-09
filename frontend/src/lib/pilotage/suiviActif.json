@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-07",
+  "updatedAt": "2026-09-08",
   "apk": "1.0.55",
   "phase": {
     "id": "B",
@@ -11,22 +11,22 @@
   },
   "recentDone": [
     {
+      "id": "MOB-NAV-01-nested-adb",
+      "label": "Nested back candidature↔entreprise Samsung+Blackview"
+    },
+    {
       "id": "BO-OVERVIEW-KPI-MEM-01",
       "label": "KPI cliquables + budget 8 Go + deploy auto prod"
     },
     {
       "id": "MOB-METIER-OPS-02-code",
       "label": "1.0.55 filtres + quick-create Accueil"
-    },
-    {
-      "id": "MOB-METIER-OPS-01",
-      "label": "FAB hubs + CallProvider + calendrier"
     }
   ],
   "queue": [
     {
       "id": "MOB-NAV-01",
-      "label": "Retours système détail → liste / chaînes liées"
+      "label": "Retours système — chaînes contact/relance/entretien/appel"
     },
     {
       "id": "MOB-LOT-VALID-01",

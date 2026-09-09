@@ -21,7 +21,7 @@
 | Code / deploy | Agrégat 8192 + `force-refresh-jt-services.sh` | **OK** local/préprod/**prod** | |
 | Porteur | libellé ~8 Go + clics cartes | **OK** | → DONE |
 
-## En cours — MOB-NAV-01 (07/09/2026)
+## En cours — MOB-NAV-01 (07–08/09/2026)
 
 > Retours système depuis détails — `docs/mobile/NAVIGATION_RETOUR_MOBILE.md`
 
@@ -29,9 +29,12 @@
 |------|-------|----------|-------|
 | Code | Un seul `PopScope` shell + `appNavigatorKey.canPop()` avant onglets | **OK** audit | |
 | Code | Détails via `Navigator.of(context).push` (pas de Navigator imbriqué listes) | **OK** | |
-| Devices | Samsung : liste → détail candidature → retour système = liste | **OK** ADB | Blackview / chaînes liées à faire |
-| Note | Flavor prod affiche « Mode hors ligne » (cache) | **observé** | vérifier API_BASE_URL / réseau appareil |
-| Porteur | matrice A–E doc nav + chaînes détail liées | **à valider** | fin de lot |
+| Devices | Samsung : liste → détail → entreprise → BACK → détail → BACK → liste | **OK** ADB | |
+| Devices | Blackview : même chaîne nested back | **OK** ADB 08/09 | |
+| Prod | `ApplicationStatus` vide → create KO `CANDIDATE_PENDING` | **OK** seed SQL prod+préprod | auto-upsert code aussi |
+| Smoke | `smoke-mobile-nav-nested-back-adb.js` + 429/login Blackview | **OK** | |
+| Note | Taps entreprise près bottom bar Blackview mangés → centrer cible avant tap | **OK** smoke | |
+| Porteur | matrice A–E doc nav + chaînes contact/relance | **à valider** | fin de lot |
 
 ## En cours — MOB-METIER-OPS-01 (06/09/2026)
 

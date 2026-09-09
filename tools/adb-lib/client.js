@@ -400,11 +400,16 @@ class AdbClient {
   async setFlutterPrefBool(key, value) {
     const prefsPath = 'shared_prefs/FlutterSharedPreferences.xml';
     const fullKey = key.startsWith('flutter.') ? key : `flutter.${key}`;
-    const pkg = 'com.example.jobbingtrack_mobile';
+    const pkg = process.env.MOBILE_APP_PACKAGE || 'com.example.jobbingtrack_mobile';
     let xml = '';
     try {
       xml = await this.shellCommand(`run-as ${pkg} cat ${prefsPath}`);
-    } catch {
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (msg.includes('not debuggable') || msg.includes('package not debuggable')) {
+        this._log(`pref skip (APK release non débogable): ${fullKey}`);
+        return false;
+      }
       xml = "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map>\n</map>";
     }
     const boolTag = `<boolean name="${fullKey}" value="${value ? 'true' : 'false'}" />`;
@@ -422,9 +427,18 @@ class AdbClient {
       execSync(`adb -s ${this.deviceId} push ${JSON.stringify(tmpFile)} /data/local/tmp/flutter_prefs.xml`, {
         stdio: ['ignore', 'pipe', 'pipe'],
       });
-      await this.shellCommand(
-        `run-as ${pkg} cp /data/local/tmp/flutter_prefs.xml ${prefsPath}`,
-      );
+      try {
+        await this.shellCommand(
+          `run-as ${pkg} cp /data/local/tmp/flutter_prefs.xml ${prefsPath}`,
+        );
+      } catch (err) {
+        const msg = String(err?.message || err);
+        if (msg.includes('not debuggable') || msg.includes('package not debuggable')) {
+          this._log(`pref skip write (APK release): ${fullKey}`);
+          return false;
+        }
+        throw err;
+      }
     } finally {
       try {
         fs.unlinkSync(tmpFile);
@@ -432,6 +446,7 @@ class AdbClient {
     }
     this._log(`pref ${fullKey}=${value}`);
     this._invalidateUi();
+    return true;
   }
 
   async tapByIndex(index) {

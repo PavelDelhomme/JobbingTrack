@@ -68,6 +68,12 @@ async function probeLogin(email, password) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
+  if (res.status === 429) {
+    const err = new Error('rate_limited');
+    err.code = 'RATE_LIMITED';
+    err.retryAfter = Number(res.headers.get('retry-after') || 60);
+    throw err;
+  }
   if (!res.ok) return false;
   const data = await res.json();
   return Boolean(data.token || data.accessToken);
@@ -94,9 +100,48 @@ async function resolveWorkingAdminCredentials() {
   if (candidates.length === 0) {
     throw new Error('TEST_ADMIN_* ou ADMIN_* requis dans .env');
   }
+  const skipProbe = ['1', 'true', 'yes'].includes(
+    String(process.env.SMOKE_SKIP_CREDENTIAL_PROBE || '').toLowerCase(),
+  );
+  if (skipProbe) {
+    return candidates[0];
+  }
+  let rateLimited = false;
+  let retryAfter = 60;
   for (const candidate of candidates) {
-    if (await probeLogin(candidate.email, candidate.password)) {
-      return candidate;
+    try {
+      if (await probeLogin(candidate.email, candidate.password)) {
+        return candidate;
+      }
+    } catch (err) {
+      if (err && err.code === 'RATE_LIMITED') {
+        rateLimited = true;
+        retryAfter = err.retryAfter || 60;
+        break;
+      }
+      throw err;
+    }
+  }
+  if (rateLimited) {
+    const waitMs = Math.min(Math.max(retryAfter, 15), 90) * 1000;
+    console.warn(
+      `[resolve-admin] gateway 429 — attente ${Math.round(waitMs / 1000)}s puis retry 1×`,
+    );
+    await new Promise((r) => setTimeout(r, waitMs));
+    for (const candidate of candidates) {
+      try {
+        if (await probeLogin(candidate.email, candidate.password)) {
+          return candidate;
+        }
+      } catch (err) {
+        if (err && err.code === 'RATE_LIMITED') {
+          console.warn(
+            '[resolve-admin] toujours 429 — fallback UI avec premier couple .env (sans probe)',
+          );
+          return candidates[0];
+        }
+        throw err;
+      }
     }
   }
   throw new Error(

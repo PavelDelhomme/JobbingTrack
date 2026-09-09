@@ -1,6 +1,6 @@
 # TODOS — choses à faire (source de vérité)
 
-Dernière mise à jour : **7 septembre 2026**
+Dernière mise à jour : **8 septembre 2026**
 
 ## Process de suivi (obligatoire)
 
@@ -35,7 +35,9 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 > **Focus** : retour Android depuis chaque détail (candidature, contact, entreprise, relance, entretien, appel) sans casser le shell.  
 > **Doc** : `docs/mobile/NAVIGATION_RETOUR_MOBILE.md`  
-> **APK courant** : **1.0.55** (OTA déjà publiée) · validation lot reportée fin de lot.
+> **APK courant** : **1.0.55** · **Samsung + Blackview** nested back candidature↔entreprise **OK** ADB (08/09).  
+> **Suite** : chaînes contact / relance / entretien / appel ; seed `ApplicationStatus` prod déjà appliqué.  
+> Validation lot 1.0.53→1.0.55 reportée fin de lot.
 
 ---
 

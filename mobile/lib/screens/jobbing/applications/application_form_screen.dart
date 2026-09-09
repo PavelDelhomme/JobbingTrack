@@ -512,20 +512,7 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
       }),
     );
 
-    return [
-      company,
-      const SizedBox(height: 12),
-      _positionField(),
-      const SizedBox(height: 12),
-      _applicationDateTile(),
-      const SizedBox(height: 12),
-      _statusSection(),
-      const SizedBox(height: 16),
-      Text(
-        'Options (optionnel)',
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.grey.shade700),
-      ),
-      const SizedBox(height: 8),
+    final optionalChildren = <Widget>[
       if (_interimMode) ...[
         AgencyPickerField(
           agencies: _agencies,
@@ -606,7 +593,18 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
         maxLines: 3,
         decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder()),
       ),
-      const SizedBox(height: 20),
+    ];
+
+    return [
+      company,
+      const SizedBox(height: 12),
+      _positionField(),
+      const SizedBox(height: 12),
+      _applicationDateTile(),
+      const SizedBox(height: 12),
+      _statusSection(),
+      const SizedBox(height: 16),
+      // CTA visible sans scroller (le sheet drag consomme les swipes ADB).
       FilledButton.icon(
         onPressed: _saving ? null : _save,
         icon: _saving
@@ -617,6 +615,19 @@ class _ApplicationFormScreenState extends State<ApplicationFormScreen> {
               )
             : const Icon(Icons.check),
         label: Text(_saving ? 'Enregistrement…' : 'Créer la candidature'),
+      ),
+      const SizedBox(height: 8),
+      Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: const EdgeInsets.only(bottom: 8),
+          title: Text(
+            'Options (optionnel)',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.grey.shade700),
+          ),
+          children: optionalChildren,
+        ),
       ),
       const SizedBox(height: 8),
     ];

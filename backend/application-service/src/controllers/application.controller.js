@@ -137,14 +137,51 @@ const createApplication = async (req, res, next) => {
     } = req.body;
     const optOut = statusEngineOptOut === true || statusEngineOptOut === 'true';
 
-    // Utiliser le statut fourni ou le statut par défaut (code ApplicationStatus)
+    // Utiliser le statut fourni ou le statut par défaut (code ApplicationStatus).
+    // Si la table n'a pas été seedée (prod fraîche / migration), upsert minimal du code demandé.
     const statusCode = status || 'CANDIDATE_PENDING';
-    const statusRow = await prisma.applicationStatus.findFirst({ where: { code: statusCode } });
+    let statusRow = await prisma.applicationStatus.findFirst({ where: { code: statusCode } });
     if (!statusRow) {
-      return res.status(400).json({
-        success: false,
-        error: `Statut inconnu: ${statusCode}. Exécuter le seed des statuts (scripts/db/seed-status-tables.sql) si besoin.`
-      });
+      const defaults = {
+        CANDIDATE_PENDING: {
+          name: 'Candidaté',
+          description: 'Candidaté et en attente',
+          order: 1,
+          color: '#3B82F6',
+          icon: 'Clock',
+        },
+      };
+      const meta = defaults[statusCode] || {
+        name: statusCode,
+        description: `Statut auto (${statusCode})`,
+        order: 99,
+        color: '#6B7280',
+        icon: 'Circle',
+      };
+      try {
+        statusRow = await prisma.applicationStatus.create({
+          data: {
+            code: statusCode,
+            name: meta.name,
+            description: meta.description,
+            order: meta.order,
+            color: meta.color,
+            icon: meta.icon,
+            userId: null,
+            isPredefined: true,
+            isActive: true,
+          },
+        });
+        logger.warn(`ApplicationStatus manquant — créé automatiquement: ${statusCode}`);
+      } catch (seedErr) {
+        statusRow = await prisma.applicationStatus.findFirst({ where: { code: statusCode } });
+        if (!statusRow) {
+          return res.status(400).json({
+            success: false,
+            error: `Statut inconnu: ${statusCode}. Exécuter le seed des statuts (scripts/db/seed-status-tables.sql) si besoin.`,
+          });
+        }
+      }
     }
 
     // Entreprise toujours scoped au user du token (évite liste Entreprises vide).
