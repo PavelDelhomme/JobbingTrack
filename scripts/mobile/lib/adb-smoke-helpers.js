@@ -371,6 +371,97 @@ async function waitForCompaniesListReady(phone, companyNameHint = '', timeoutMs 
   return false;
 }
 
+/**
+ * Sort du mode hors ligne (bandeau + Réessayer / Actualiser).
+ * @returns {Promise<boolean>} true si hors ligne disparu
+ */
+async function recoverFromOfflineMode(phone, { attempts = 2 } = {}) {
+  for (let i = 0; i < attempts; i++) {
+    const offline =
+      (await phone.uiContains('Mode hors ligne')) ||
+      (await phone.uiContains('données en cache')) ||
+      (await phone.uiContains('Données en cache'));
+    if (!offline) return true;
+    console.warn(`[smoke] Mode hors ligne détecté — Réessayer/Actualiser (${i + 1}/${attempts})`);
+    for (const label of ['Réessayer', 'Actualiser']) {
+      if (await phone.uiContains(label)) {
+        try {
+          await phone.tap(label);
+          await phone.wait(3500);
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    await phone.scrollUp(900);
+    await phone.wait(2500);
+  }
+  return !(
+    (await phone.uiContains('Mode hors ligne')) ||
+    (await phone.uiContains('données en cache'))
+  );
+}
+
+/**
+ * Ouvre la première carte candidature visible (utile hors ligne / cache).
+ */
+async function openFirstVisibleApplicationCard(phone, preferredPosition = '') {
+  const exclude = [
+    'Tab ',
+    'Menu',
+    'Actualiser',
+    'Réessayer',
+    'Ajouter',
+    'Créer ma première',
+    'Nouvelle candidature',
+    'Mode hors ligne',
+  ];
+  const nodes = await phone.uiNodes();
+  const cards = nodes.filter((n) => {
+    if (!n.clickable || !n.bounds) return false;
+    const m = n.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+    if (!m) return false;
+    const h = +m[4] - +m[2];
+    const w = +m[3] - +m[1];
+    if (h < 120 || w < 500 || +m[2] < 450) return false;
+    const label = `${n.contentDesc || ''}\n${n.text || ''}`;
+    return !exclude.some((s) => label.includes(s));
+  });
+  const card =
+    (preferredPosition &&
+      cards.find((n) =>
+        `${n.contentDesc || ''}\n${n.text || ''}`.includes(preferredPosition),
+      )) ||
+    cards[0];
+  if (!card) throw new Error('Aucune carte candidature visible');
+  const m = card.bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+  console.log(
+    '  carte:',
+    (card.contentDesc || card.text || '').replace(/\n|&#10;/g, ' | ').slice(0, 80),
+  );
+  await phone.tapXY(
+    Math.floor((+m[1] + +m[3]) / 2),
+    Math.floor((+m[2] + +m[4]) / 2),
+  );
+  await phone.wait(2500);
+}
+
+/** Serial ADB prioritaire (shell export > env). */
+function resolvePreferredAdbDevice() {
+  return (
+    process.env.MOBILE_ADB_DEVICE ||
+    process.env.ADB_DEVICE_ID ||
+    process.env.DEVICE_SERIAL ||
+    ''
+  ).trim();
+}
+
+/** Connexion ADB forcée sur le serial préféré si défini. */
+async function connectSmokePhone() {
+  const preferred = resolvePreferredAdbDevice();
+  return preferred ? adbLib.connect(preferred) : adbLib.connect();
+}
+
 module.exports = {
   nodeLabel,
   boundsCenter,
@@ -389,5 +480,9 @@ module.exports = {
   waitForAdminShell,
   waitForUserShell,
   waitForCompaniesListReady,
+  recoverFromOfflineMode,
+  openFirstVisibleApplicationCard,
+  resolvePreferredAdbDevice,
+  connectSmokePhone,
   ...smokeApp,
 };

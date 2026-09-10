@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -82,21 +83,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 48),
-                  Icon(Icons.lock_reset, size: 64, color: Colors.blue[600]),
+                  Icon(Icons.lock_reset, size: 64, color: context.cs.primary),
                   const SizedBox(height: 24),
                   Text(
                     'Réinitialiser le mot de passe',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue[800],
+                      color: context.cs.primary,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Saisissez votre adresse email. Nous vous enverrons un lien pour réinitialiser votre mot de passe.',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 14, color: context.textSecondary),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
@@ -104,9 +105,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.green[50],
+                        color: Colors.green.withValues(alpha: context.isDark ? 0.2 : 0.12),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.green[200]!),
+                        border: Border.all(color: Colors.green.withValues(alpha: 0.45)),
                       ),
                       child: Row(
                         children: [
@@ -115,7 +116,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           Expanded(
                             child: Text(
                               'Email envoyé. Consultez votre boîte de réception (et les spams).',
-                              style: TextStyle(color: Colors.green[800], fontSize: 14),
+                              style: TextStyle(color: context.textPrimary, fontSize: 14),
                             ),
                           ),
                         ],
@@ -130,7 +131,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         prefixIcon: const Icon(Icons.email),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: context.fieldFillColor,
                       ),
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.done,
@@ -151,7 +152,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _sendResetLink,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[600],
+                          backgroundColor: context.cs.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -167,7 +168,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Text('Retour à la connexion', style: TextStyle(color: Colors.blue[600], fontWeight: FontWeight.w600)),
+                    child: Text('Retour à la connexion', style: TextStyle(color: context.cs.primary, fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),

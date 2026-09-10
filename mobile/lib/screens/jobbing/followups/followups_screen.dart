@@ -14,6 +14,7 @@ import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_screen.dart';
 import 'package:jobbingtrack_mobile/widgets/followup_create_sheet.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 class FollowUpsScreen extends StatefulWidget {
   const FollowUpsScreen({super.key});
@@ -115,7 +116,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
             Icon(
               isPending ? Icons.event_available : Icons.history,
               size: 80,
-              color: Colors.grey[400],
+              color: context.textSecondary,
             ),
             const SizedBox(height: 16),
             Text(
@@ -123,7 +124,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
+                color: context.textSecondary,
               ),
             ),
           ],
@@ -171,15 +172,15 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
       child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.panelColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isOverdue ? Colors.red[200]! : Colors.grey[200]!,
+          color: isOverdue ? context.cs.error.withValues(alpha: 0.55) : context.borderSubtle,
           width: isOverdue ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -196,7 +197,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: typeColor.withOpacity(0.1),
+                    color: typeColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(typeIcon, color: typeColor, size: 20),
@@ -211,7 +212,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey[800],
+                          color: context.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -220,14 +221,14 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
                           Icon(
                             Icons.calendar_today,
                             size: 14,
-                            color: isOverdue ? Colors.red[600] : Colors.grey[600],
+                            color: isOverdue ? context.cs.error : context.textSecondary,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             formatSmartEventDate(followUp.scheduledDate),
                             style: TextStyle(
                               fontSize: 12,
-                              color: isOverdue ? Colors.red[600] : Colors.grey[600],
+                              color: isOverdue ? context.cs.error : context.textSecondary,
                               fontWeight: isOverdue ? FontWeight.w600 : FontWeight.normal,
                             ),
                           ),
@@ -236,7 +237,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: Colors.red[50],
+                                color: context.cs.errorContainer,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -244,7 +245,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.red[700],
+                                  color: context.cs.onErrorContainer,
                                 ),
                               ),
                             ),
@@ -257,7 +258,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
                           metaLine,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                          style: TextStyle(fontSize: 12, color: context.textSecondary),
                         ),
                       ],
                     ],
@@ -276,13 +277,13 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit, color: Colors.blue),
-                            SizedBox(width: 8),
-                            Text('Modifier'),
+                            Icon(Icons.edit, color: context.cs.primary),
+                            const SizedBox(width: 8),
+                            const Text('Modifier'),
                           ],
                         ),
                       ),
@@ -303,7 +304,11 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
                           _showCompleteDialog(followUp);
                           break;
                         case 'edit':
-                          // TODO: Implement edit
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => FollowupDetailScreen(followUp: followUp),
+                            ),
+                          );
                           break;
                         case 'delete':
                           _deleteFollowUp(followUp.id);
@@ -319,14 +324,14 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: context.softSurface,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   followUp.notes!,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey[700],
+                    color: context.textSecondary,
                   ),
                 ),
               ),
@@ -337,25 +342,26 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.green[50],
+                  color: context.cs.tertiaryContainer.withValues(alpha: 0.45),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green[200]!),
+                  border: Border.all(
+                    color: context.cs.tertiary.withValues(alpha: 0.45),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.check_circle, 
-                            color: Colors.green[700], 
-                            size: 16),
+                        Icon(Icons.check_circle,
+                            color: context.cs.tertiary, size: 16),
                         const SizedBox(width: 4),
                         Text(
                           'Réponse :',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: Colors.green[700],
+                            color: context.cs.onTertiaryContainer,
                           ),
                         ),
                       ],
@@ -365,7 +371,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
                       followUp.response!,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[700],
+                        color: context.textSecondary,
                       ),
                     ),
                   ],
@@ -382,13 +388,13 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
   Color _getTypeColor(String type) {
     switch (type) {
       case 'EMAIL':
-        return Colors.blue;
+        return context.cs.primary;
       case 'PHONE':
         return Colors.green;
       case 'IN_PERSON':
         return Colors.orange;
       default:
-        return Colors.grey;
+        return context.textSecondary;
     }
   }
 

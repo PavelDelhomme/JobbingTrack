@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { AdminLayout } from "@/components/features";
+import { isMailhogUiAvailable } from "@/lib/backoffice/mailhogAvailability";
 
 const TABS = [
   { href: "/backoffice/emails", label: "Dashboard" },
@@ -11,7 +12,11 @@ const TABS = [
   { href: "/backoffice/emails/templates", label: "Templates" },
   { href: "/backoffice/emails/settings", label: "Configuration" },
   { href: "/backoffice/emails/deliverability", label: "Déliverabilité" },
-  { href: "/backoffice/emails/mailhog", label: "MailHog" },
+  {
+    href: "/backoffice/emails/mailhog",
+    label: "MailHog",
+    disableWhenUnavailable: true,
+  },
 ] as const;
 
 function isEmailTabActive(pathname: string, href: string): boolean {
@@ -23,14 +28,32 @@ function isEmailTabActive(pathname: string, href: string): boolean {
 
 export function EmailBackofficeSubNav() {
   const pathname = usePathname() || "";
+  const mailhogOk = isMailhogUiAvailable();
 
   return (
     <nav
       className="flex flex-wrap gap-2 border-b border-gray-200 pb-3 dark:border-gray-700"
       aria-label="Sous-sections Gestion des emails"
     >
-      {TABS.map(({ href, label }) => {
+      {TABS.map((tab) => {
+        const { href, label } = tab;
+        const disabled =
+          "disableWhenUnavailable" in tab &&
+          tab.disableWhenUnavailable &&
+          !mailhogOk;
         const isActive = isEmailTabActive(pathname, href);
+        if (disabled) {
+          return (
+            <span
+              key={href}
+              title="MailHog réservé au développement local"
+              aria-disabled="true"
+              className="cursor-not-allowed rounded-md px-3 py-1.5 text-sm font-medium text-gray-400 line-through opacity-70 dark:text-gray-600"
+            >
+              {label}
+            </span>
+          );
+        }
         return (
           <Link
             key={href}
@@ -51,6 +74,7 @@ export function EmailBackofficeSubNav() {
 
 export function EmailBackofficePageShell({
   title,
+  description,
   actions,
   children,
 }: {
@@ -69,6 +93,11 @@ export function EmailBackofficePageShell({
               <h1 className="text-2xl font-bold tracking-tight text-gray-950 dark:text-gray-100">
                 {title}
               </h1>
+              {description ? (
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  {description}
+                </p>
+              ) : null}
             </div>
             {actions ? (
               <div className="flex min-w-0 w-full flex-wrap items-center gap-2 xl:max-w-3xl xl:justify-end">

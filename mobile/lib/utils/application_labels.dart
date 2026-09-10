@@ -146,14 +146,52 @@ String followUpStatusLabel(String status) {
   switch (status) {
     case 'PENDING':
     case 'SCHEDULED':
+    case 'PLANNED':
       return 'À faire';
     case 'COMPLETED':
+    case 'POSITIVE_RESPONSE':
       return 'Terminée';
+    case 'NEGATIVE_RESPONSE':
+      return 'Réponse négative';
+    case 'NO_RESPONSE':
+      return 'Sans réponse';
     case 'CANCELLED':
       return 'Annulée';
     default:
       return status;
   }
+}
+
+/// Statuts « clos » (plus dans l’onglet À faire / timeline à venir).
+bool isFollowUpClosedStatus(String status) {
+  switch (status) {
+    case 'COMPLETED':
+    case 'CANCELLED':
+    case 'POSITIVE_RESPONSE':
+    case 'NEGATIVE_RESPONSE':
+    case 'NO_RESPONSE':
+      return true;
+    default:
+      return false;
+  }
+}
+
+/// Valeurs envoyables à l’API followup (`sanitizeStatus`).
+const kFollowUpApiStatuses = <String>[
+  'PENDING',
+  'PLANNED',
+  'POSITIVE_RESPONSE',
+  'NEGATIVE_RESPONSE',
+  'NO_RESPONSE',
+];
+
+/// Normalise un statut legacy (`COMPLETED`) vers un code API.
+String normalizeFollowUpStatusForApi(String status) {
+  if (status == 'COMPLETED' || status == 'SCHEDULED') {
+    return status == 'SCHEDULED' ? 'PLANNED' : 'POSITIVE_RESPONSE';
+  }
+  if (kFollowUpApiStatuses.contains(status)) return status;
+  return 'PENDING';
 }
 
 /// Statut appel créé depuis le FAB : passé ou imminent → terminé, sinon planifié.

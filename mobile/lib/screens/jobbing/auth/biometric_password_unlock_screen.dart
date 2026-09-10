@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/biometric_credential_store.dart';
 import 'package:jobbingtrack_mobile/utils/post_auth_navigation.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 /// Saisie du mot de passe JobbingTrack (écran plein, pas une popup).
 class BiometricPasswordUnlockScreen extends StatefulWidget {
@@ -74,25 +75,28 @@ class _BiometricPasswordUnlockScreenState extends State<BiometricPasswordUnlockS
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(Icons.lock_outline, size: 56, color: Colors.blue.shade700),
+                Icon(Icons.lock_outline, size: 56, color: context.cs.primary),
                 const SizedBox(height: 16),
                 Text(
                   'Mot de passe JobbingTrack',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: context.textPrimary,
+                      ),
                 ),
                 const SizedBox(height: 8),
                 if (email.isNotEmpty)
                   Text(
                     email,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey.shade700),
+                    style: TextStyle(color: context.textSecondary),
                   ),
                 const SizedBox(height: 8),
                 Text(
                   'Utilisez le mot de passe de votre compte. Si vous l\'avez changé par email, saisissez le nouveau.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4),
+                  style: TextStyle(color: context.textSecondary, fontSize: 13, height: 1.4),
                 ),
                 const SizedBox(height: 24),
                 TextFormField(

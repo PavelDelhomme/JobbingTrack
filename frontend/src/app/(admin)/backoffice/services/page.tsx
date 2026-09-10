@@ -654,7 +654,7 @@ export default function ServicesPage() {
       actions={
         <>
           <Link
-            href="/backoffice/services/logs"
+            href="/backoffice/services/service-logs"
             className="flex w-full items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors sm:w-auto"
           >
             <FileText className="w-4 h-4" />
@@ -945,7 +945,7 @@ export default function ServicesPage() {
                         <div className="flex items-center gap-2">
                           {/* ✅ NOUVEAU : Bouton "Voir les logs" */}
                           <Link
-                            href={`/backoffice/services/logs?service=${encodeURIComponent(service.name.replace("jobbingtrack-", ""))}`}
+                            href={`/backoffice/services/service-logs?service=${encodeURIComponent(service.name.replace("jobbingtrack-", ""))}`}
                             onClick={(e) => e.stopPropagation()}
                             className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                           >

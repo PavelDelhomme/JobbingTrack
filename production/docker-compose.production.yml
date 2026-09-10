@@ -93,7 +93,8 @@ services:
       # 🔒 Configuration WAF et Rate Limiting
       - WAF_ENABLED=true
       - RATE_LIMIT_ENABLED=true
-      - RATE_LIMIT_REQUESTS=100
+      - RATE_LIMIT_REQUESTS=120
+      - RATE_LIMIT_REQUESTS_AUTH=400
       - RATE_LIMIT_WINDOW=60
       # 🔒 Configuration des IPs autorisées pour l'administration
       - ADMIN_WHITELIST_IPS=${ADMIN_WHITELIST_IPS:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}

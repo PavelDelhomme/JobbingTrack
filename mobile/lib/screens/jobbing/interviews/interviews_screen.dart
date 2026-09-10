@@ -12,6 +12,7 @@ import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
 import 'package:jobbingtrack_mobile/widgets/interview_create_sheet.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 class InterviewsScreen extends StatefulWidget {
   const InterviewsScreen({super.key});
@@ -107,12 +108,12 @@ class _InterviewsScreenState extends State<InterviewsScreen> with SingleTickerPr
                 Icon(
                   upcoming ? Icons.event_available : Icons.history,
                   size: 64,
-                  color: Colors.grey[400],
+                  color: context.textSecondary,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   upcoming ? 'Aucun entretien à venir' : 'Aucun entretien passé',
-                  style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 16, color: context.textSecondary),
                 ),
               ],
             ),
@@ -146,7 +147,7 @@ class _InterviewsScreenState extends State<InterviewsScreen> with SingleTickerPr
             ),
             leading: Icon(
               Icons.calendar_today,
-              color: upcoming ? Colors.orange : Colors.grey,
+              color: upcoming ? Colors.orange : context.textSecondary,
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(

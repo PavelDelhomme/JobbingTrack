@@ -12,6 +12,8 @@ import 'package:jobbingtrack_mobile/services/biometric_credential_store.dart';
 import 'package:jobbingtrack_mobile/config/debug_test_accounts.dart';
 import 'package:jobbingtrack_mobile/utils/post_auth_navigation.dart';
 import 'package:jobbingtrack_mobile/services/app_version_info.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
+import 'package:jobbingtrack_mobile/widgets/theme_light_dark_toggle_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -120,18 +122,18 @@ class _LoginScreenState extends State<LoginScreen> {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Colors.grey[700],
+            color: context.textPrimary,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           email,
-          style: TextStyle(fontSize: 12, color: Colors.grey[800]),
+          style: TextStyle(fontSize: 12, color: context.textPrimary),
         ),
         const SizedBox(height: 2),
         Text(
           'Mot de passe : $password',
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 12, color: context.textSecondary),
         ),
         const SizedBox(height: 8),
         Align(
@@ -333,6 +335,9 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(
         title: const Text('Connexion'),
         centerTitle: true,
+        actions: const [
+          ThemeLightDarkToggleButton(size: 40, padding: EdgeInsets.only(right: 8)),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -363,7 +368,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue[800],
+                    color: context.cs.primary,
                   ),
                 ),
 
@@ -373,7 +378,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   'Suivez vos candidatures facilement',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.grey[600],
+                    color: context.textSecondary,
                   ),
                 ),
 
@@ -384,9 +389,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
+                      color: context.softPrimary,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.blue.shade100),
+                      border: Border.all(color: context.cs.primary.withValues(alpha: 0.35)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -394,8 +399,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         Row(
                           children: [
                             CircleAvatar(
-                              backgroundColor: Colors.blue.shade100,
-                              child: Icon(Icons.person, color: Colors.blue.shade800),
+                              backgroundColor: context.cs.primaryContainer,
+                              child: Icon(Icons.person, color: context.cs.primary),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -404,11 +409,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                 children: [
                                   Text(
                                     _savedAccountEmail!,
-                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                    style: TextStyle(fontWeight: FontWeight.w600, color: context.textPrimary),
                                   ),
                                   Text(
                                     'Compte enregistré sur cet appareil',
-                                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                                    style: TextStyle(fontSize: 12, color: context.textSecondary),
                                   ),
                                 ],
                               ),
@@ -448,22 +453,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         TextButton(
                           onPressed: _isLoading ? null : _forgetSavedAccount,
-                          child: Text('Oublier ce compte', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                          child: Text('Oublier ce compte', style: TextStyle(color: context.textSecondary, fontSize: 13)),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24),
-                  Text('Ou connexion manuelle', style: TextStyle(color: Colors.grey.shade600)),
+                  Text('Ou connexion manuelle', style: TextStyle(color: context.textSecondary)),
                   const SizedBox(height: 16),
                 ],
 
                 // Formulaire de connexion (toujours visible — mot de passe si empreinte indisponible)
                 Material(
-                  color: Colors.white,
+                  color: context.panelColor,
                   borderRadius: BorderRadius.circular(16),
                   elevation: 2,
-                  shadowColor: Colors.black.withOpacity(0.1),
+                  shadowColor: Colors.black.withValues(alpha: 0.1),
                   child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
@@ -479,7 +484,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           filled: true,
-                          fillColor: Colors.grey[50],
+                          fillColor: context.fieldFillColor,
                         ),
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
@@ -502,7 +507,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           filled: true,
-                          fillColor: Colors.grey[50],
+                          fillColor: context.fieldFillColor,
                         ),
                         obscureText: _obscurePassword,
                         textInputAction: TextInputAction.done,
@@ -518,7 +523,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           onPressed: () => Navigator.of(context).pushNamed('/forgot-password'),
                           child: Text(
                             'Mot de passe oublié ?',
-                            style: TextStyle(fontSize: 14, color: Colors.blue[600]),
+                            style: TextStyle(fontSize: 14, color: context.cs.primary),
                           ),
                         ),
                       ),
@@ -559,7 +564,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _login,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[600],
+                            backgroundColor: context.cs.primary,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -605,9 +610,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.amber.shade50,
+                      color: Colors.amber.withValues(alpha: context.isDark ? 0.18 : 0.2),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.amber.shade200),
+                      border: Border.all(color: Colors.amber.withValues(alpha: 0.45)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -617,7 +622,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey[800],
+                            color: context.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -674,12 +679,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      color: context.softSurface,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       'Comptes de test : lancez node scripts/mobile/setup/generate-debug-test-accounts.js (TEST_USER_* / TEST_ADMIN_* dans .env).',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: context.textSecondary),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -694,7 +699,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       'Pas encore de compte ? ',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[600],
+                        color: context.textSecondary,
                       ),
                     ),
                     GestureDetector(
@@ -706,7 +711,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Colors.blue[600],
+                          color: context.cs.primary,
                         ),
                       ),
                     ),
@@ -720,7 +725,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   onTap: () => _showApiUrlDialog(context),
                   child: Text(
                     'API: ${ApiService.baseUrl}',
-                    style: TextStyle(fontSize: 10, color: Colors.grey[400], decoration: TextDecoration.underline),
+                    style: TextStyle(fontSize: 10, color: context.textSecondary, decoration: TextDecoration.underline),
                   ),
                 ),
 
@@ -728,7 +733,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'Version $_appVersionLabel',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    style: TextStyle(fontSize: 11, color: context.textSecondary),
                   ),
                 ],
 

@@ -31,13 +31,11 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ---
 
-## ▶ En cours maintenant — MOB-NAV-01 (retours système mobile)
+## ▶ En cours maintenant — MOB-DARK-01 + MOB-LOT-VALID-01 (Blackview)
 
-> **Focus** : retour Android depuis chaque détail (candidature, contact, entreprise, relance, entretien, appel) sans casser le shell.  
-> **Doc** : `docs/mobile/NAVIGATION_RETOUR_MOBILE.md`  
-> **APK courant** : **1.0.55** · **Samsung + Blackview** nested back candidature↔entreprise **OK** ADB (08/09).  
-> **Suite** : chaînes contact / relance / entretien / appel ; seed `ApplicationStatus` prod déjà appliqué.  
-> Validation lot 1.0.53→1.0.55 reportée fin de lot.
+> **Appareil** : Blackview `EEA9700PRO0014587` **uniquement** (Samsung réservé autre projet).  
+> Toggle ☀️/🌙 à côté de « Bonjour » + ellipsis · dark mode tokens · fix relance statuts API + calendrier appel.  
+> File porteur lot 1.0.53→1.0.55.
 
 ---
 

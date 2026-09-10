@@ -1,5 +1,6 @@
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/models/interview.dart';
+import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 
 enum UpcomingKind { interview, followUp }
 
@@ -38,7 +39,7 @@ List<Interview> filterPastInterviews(List<Interview> interviews, {DateTime? now}
 
 List<FollowUp> filterUpcomingFollowUps(List<FollowUp> followUps, {DateTime? now}) {
   final list = followUps.where((f) {
-    if (f.status == 'COMPLETED' || f.status == 'CANCELLED') return false;
+    if (isFollowUpClosedStatus(f.status)) return false;
     return isUpcomingDate(f.scheduledDate, now: now);
   }).toList()
     ..sort((a, b) => a.scheduledDate.compareTo(b.scheduledDate));
@@ -47,8 +48,7 @@ List<FollowUp> filterUpcomingFollowUps(List<FollowUp> followUps, {DateTime? now}
 
 List<FollowUp> filterPastFollowUps(List<FollowUp> followUps, {DateTime? now}) {
   final list = followUps.where((f) {
-    if (f.status == 'COMPLETED') return true;
-    if (f.status == 'CANCELLED') return true;
+    if (isFollowUpClosedStatus(f.status)) return true;
     return !isUpcomingDate(f.scheduledDate, now: now);
   }).toList()
     ..sort((a, b) => b.scheduledDate.compareTo(a.scheduledDate));

@@ -606,7 +606,7 @@ export default function StatisticsLogStatsPage() {
               ← Vue d’ensemble
             </Link>
             <Link
-              href="/backoffice/services/logs"
+              href="/backoffice/services/service-logs"
               className="text-sm font-medium text-violet-600 hover:text-violet-800 dark:text-violet-400"
             >
               Logs centralisés services →

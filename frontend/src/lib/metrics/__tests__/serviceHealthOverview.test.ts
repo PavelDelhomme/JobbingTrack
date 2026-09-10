@@ -192,11 +192,19 @@ describe("serviceHealthOverview", () => {
 
   it("identifie les services prioritaires P1B et formate les temps de réponse", () => {
     expect(isPriorityResponseService("jobbingtrack-auth-service")).toBe(true);
+    expect(isPriorityResponseService("jobbingtrack-prod-auth-service")).toBe(
+      true,
+    );
+    expect(isPriorityResponseService("jobbingtrack-preprod-auth-service")).toBe(
+      true,
+    );
+    expect(isPriorityResponseService("prod-auth-service")).toBe(true);
     expect(isPriorityResponseService("jobbingtrack-postgres")).toBe(false);
     expect(isPriorityResponseService("jobbingtrack-company-service")).toBe(
       false,
     );
     expect(isNonHttpDependency("jobbingtrack-postgres")).toBe(true);
+    expect(isNonHttpDependency("jobbingtrack-prod-postgres")).toBe(true);
     expect(formatServiceResponseTime(7.4, "notification-service")).toBe("7ms");
     expect(formatServiceResponseTime(0, "auth-service")).toBe("N/A");
     expect(formatServiceResponseTime(0, "postgres")).toBe("Santé Docker");
@@ -216,5 +224,12 @@ describe("serviceHealthOverview", () => {
         { name: "jobbingtrack-call-service", responseTime: 0 },
       ]),
     ).toBe(15);
+    expect(
+      averagePriorityResponseTimeMs([
+        { name: "jobbingtrack-prod-auth-service", responseTime: 10 },
+        { name: "jobbingtrack-prod-application-service", responseTime: 30 },
+        { name: "jobbingtrack-prod-company-service", responseTime: 999 },
+      ]),
+    ).toBe(20);
   });
 });

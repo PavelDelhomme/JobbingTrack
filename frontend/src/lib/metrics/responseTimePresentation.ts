@@ -11,11 +11,17 @@ export const PRIORITY_RESPONSE_SERVICES = [
 export const RESPONSE_TIME_SOURCE_NOTE =
   "Instantané : sonde HTTP metrics-aggregator (réseau Docker). Historique agrégé : monitoring-agent-rs / persistance système. Postgres = santé Docker, pas de latence HTTP.";
 
+/** Suffixe Compose (auth-service) depuis jobbingtrack / prod / preprod. */
 export function normalizeServiceShortName(name: string): string {
-  return (name || "")
+  const raw = (name || "").trim().toLowerCase();
+  if (!raw) return "";
+  return raw
+    .replace(/^jobbingtrack-prod-/, "")
+    .replace(/^jobbingtrack-preprod-/, "")
     .replace(/^jobbingtrack-/, "")
-    .trim()
-    .toLowerCase();
+    .replace(/^prod-/, "")
+    .replace(/^preprod-/, "")
+    .trim();
 }
 
 export function isNonHttpDependency(serviceName: string): boolean {

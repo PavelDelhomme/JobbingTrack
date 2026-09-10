@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 class EntityDetailField extends StatelessWidget {
   final String label;
@@ -22,13 +23,20 @@ class EntityDetailField extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: context.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 6),
             Text(
               display,
               style: TextStyle(
                 fontSize: 15,
-                color: Colors.grey.shade900,
+                color: context.textPrimary,
                 height: multiline ? 1.4 : 1.2,
               ),
             ),

@@ -10,6 +10,7 @@ import 'package:jobbingtrack_mobile/widgets/call_create_sheet.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/utils/list_item_meta.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 class CallsScreen extends StatefulWidget {
   const CallsScreen({super.key});
@@ -70,9 +71,9 @@ class _CallsScreenState extends State<CallsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.phone_in_talk, size: 64, color: Colors.grey[400]),
+                        Icon(Icons.phone_in_talk, size: 64, color: context.textSecondary),
                         const SizedBox(height: 16),
-                        Text('Aucun appel', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+                        Text('Aucun appel', style: TextStyle(fontSize: 16, color: context.textSecondary)),
                       ],
                     ),
                   )

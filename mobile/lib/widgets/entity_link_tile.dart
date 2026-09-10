@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 class EntityLinkSectionHeader extends StatelessWidget {
   final String title;
@@ -9,7 +10,14 @@ class EntityLinkSectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 4),
-      child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          color: context.textPrimary,
+        ),
+      ),
     );
   }
 }
@@ -33,12 +41,24 @@ class EntityLinkTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(icon, color: Colors.blue.shade700),
-        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        leading: Icon(icon, color: context.cs.primary),
+        title: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: context.textPrimary),
+        ),
         subtitle: subtitle.isNotEmpty
-            ? Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis)
+            ? Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: context.textSecondary),
+              )
             : null,
-        trailing: onTap != null ? const Icon(Icons.chevron_right) : null,
+        trailing: onTap != null
+            ? Icon(Icons.chevron_right, color: context.textSecondary)
+            : null,
         onTap: onTap,
       ),
     );
@@ -54,7 +74,7 @@ class EntityLinksEmptyHint extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(message, style: TextStyle(color: Colors.grey.shade600)),
+      child: Text(message, style: context.mutedStyle),
     );
   }
 }

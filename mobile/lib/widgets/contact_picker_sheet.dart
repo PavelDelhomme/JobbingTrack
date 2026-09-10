@@ -4,6 +4,7 @@ import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/contact_name_utils.dart';
 import 'package:jobbingtrack_mobile/utils/contact_picker_utils.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 /// Résultat spécial : appel sans contact (entreprise / candidature seulement).
 const String kCallWithoutContactFlag = '__call_without_contact__';
@@ -285,7 +286,7 @@ class _ContactPickerBodyState extends State<_ContactPickerBody> {
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: Colors.grey.shade700,
+          color: context.textSecondary,
           letterSpacing: 0.4,
         ),
       ),
@@ -338,7 +339,7 @@ class _ContactPickerBodyState extends State<_ContactPickerBody> {
             _searchController.text.trim().isEmpty
                 ? 'Aucun contact enregistré.'
                 : 'Aucun contact pour « ${_searchController.text.trim()} ».',
-            style: TextStyle(color: Colors.grey.shade600),
+            style: TextStyle(color: context.textSecondary),
           ),
         ),
       );
@@ -367,7 +368,7 @@ class _ContactPickerBodyState extends State<_ContactPickerBody> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
+                          color: context.borderSubtle,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -392,7 +393,7 @@ class _ContactPickerBodyState extends State<_ContactPickerBody> {
                     const SizedBox(height: 8),
                     if (widget.allowWithoutContact)
                       ListTile(
-                        leading: Icon(Icons.phone_in_talk_outlined, color: Colors.blue.shade700),
+                        leading: Icon(Icons.phone_in_talk_outlined, color: context.cs.primary),
                         title: Text(widget.withoutContactLabel ?? 'Appel sans contact'),
                         subtitle: const Text('Lié à la candidature / entreprise uniquement'),
                         onTap: () => Navigator.pop(context, {kCallWithoutContactFlag: true}),

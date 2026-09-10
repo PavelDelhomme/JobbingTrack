@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:jobbingtrack_mobile/models/call.dart';
 import 'package:jobbingtrack_mobile/models/followup.dart';
 import 'package:jobbingtrack_mobile/models/interview.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/providers/call_provider.dart';
 import 'package:jobbingtrack_mobile/providers/followup_provider.dart';
 import 'package:jobbingtrack_mobile/providers/interview_provider.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
@@ -21,6 +24,7 @@ import 'package:jobbingtrack_mobile/navigation/shell_list_refresh_mixin.dart';
 import 'package:jobbingtrack_mobile/widgets/shell_app_bar_menu.dart';
 import 'package:jobbingtrack_mobile/widgets/followup_create_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/interview_create_sheet.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 /// Calendrier — vue Planning (défaut) ou liste événements.
 class EventsScreen extends StatefulWidget {
@@ -126,6 +130,7 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
   Future<void> _openEvent(Map<String, dynamic> e) async {
     final interviewId = e['interviewId']?.toString();
     final followUpId = e['followUpId']?.toString();
+    final callId = e['callId']?.toString();
     if (interviewId != null && interviewId.isNotEmpty) {
       final interviews = Provider.of<InterviewProvider>(context, listen: false).interviews;
       Interview? found;
@@ -169,6 +174,30 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
           const SnackBar(content: Text('Relance introuvable localement — tirez pour rafraîchir')),
         );
       }
+      return;
+    }
+    if (callId != null && callId.isNotEmpty) {
+      final calls = Provider.of<CallProvider>(context, listen: false).calls;
+      Call? found;
+      for (final c in calls) {
+        if (c.id == callId) {
+          found = c;
+          break;
+        }
+      }
+      found ??= Call(
+        id: callId,
+        applicationId: e['applicationId']?.toString() ?? '',
+        callDate: _parseStart(e),
+        subject: e['title']?.toString() ?? 'Appel',
+        notes: e['description']?.toString(),
+        companyName: e['companyName']?.toString(),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => CallDetailScreen(call: found!)),
+      );
     }
   }
 
@@ -288,7 +317,7 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
             Text(
               _fromCache ? '$viewLabel · hors ligne' : viewLabel,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white70,
+                    color: context.textSecondary,
                     fontWeight: FontWeight.normal,
                   ),
             ),
@@ -371,10 +400,10 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isSelected ? Colors.blue.shade600 : Colors.transparent,
+                      color: isSelected ? context.cs.primary : Colors.transparent,
                       borderRadius: BorderRadius.circular(12),
                       border: isToday && !isSelected
-                          ? Border.all(color: Colors.blue.shade300)
+                          ? Border.all(color: context.cs.primary.withValues(alpha: 0.45))
                           : null,
                     ),
                     child: Column(
@@ -384,14 +413,14 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
                           DateFormat('EEE', 'fr_FR').format(d).replaceAll('.', ''),
                           style: TextStyle(
                             fontSize: 11,
-                            color: isSelected ? Colors.white : Colors.grey.shade600,
+                            color: isSelected ? Colors.white : context.textSecondary,
                           ),
                         ),
                         Text(
                           '${d.day}',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: isSelected ? Colors.white : Colors.black87,
+                            color: isSelected ? Colors.white : context.textPrimary,
                           ),
                         ),
                         if (count > 0)
@@ -400,7 +429,7 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
                             width: 6,
                             height: 6,
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.white : Colors.blue.shade400,
+                              color: isSelected ? Colors.white : context.cs.primary,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -424,11 +453,11 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
             padding: const EdgeInsets.all(32),
             child: Column(
               children: [
-                Icon(Icons.event_available, size: 48, color: Colors.grey.shade400),
+                Icon(Icons.event_available, size: 48, color: context.textSecondary),
                 const SizedBox(height: 12),
                 Text(
                   'Rien de prévu ce jour',
-                  style: TextStyle(color: Colors.grey.shade600),
+                  style: TextStyle(color: context.textSecondary),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -447,8 +476,10 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
     final colorHex = e['color']?.toString();
     final isInterim = colorHex != null &&
         (colorHex.toUpperCase().contains('F59E0B') || colorHex.toUpperCase().contains('F59'));
-    final accent = isInterim ? Colors.amber.shade700 : Colors.blue.shade700;
-    final canOpen = e['interviewId'] != null || e['followUpId'] != null;
+    final accent = isInterim ? Colors.amber.shade700 : context.cs.primary;
+    final canOpen = e['interviewId'] != null ||
+        e['followUpId'] != null ||
+        e['callId'] != null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -460,7 +491,7 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
               width: 52,
               child: Text(
                 DateFormat('HH:mm', 'fr_FR').format(start),
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 13, color: context.textSecondary, fontWeight: FontWeight.w600),
               ),
             ),
             Container(
@@ -486,7 +517,7 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
                               e['description'].toString(),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                              style: TextStyle(fontSize: 13, color: context.textSecondary),
                             ),
                           ),
                       ],
@@ -510,14 +541,14 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           const SizedBox(height: 80),
-          Icon(Icons.event_note, size: 64, color: Colors.blue.shade300),
+          Icon(Icons.event_note, size: 64, color: context.cs.primary.withValues(alpha: 0.55)),
           const SizedBox(height: 16),
           const Center(child: Text('Aucun événement à venir')),
           const SizedBox(height: 8),
           Center(
             child: Text(
               'Les entretiens et relances planifiés apparaîtront ici.',
-              style: TextStyle(color: Colors.grey.shade600),
+              style: TextStyle(color: context.textSecondary),
               textAlign: TextAlign.center,
             ),
           ),
@@ -536,8 +567,10 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
         final colorHex = e['color']?.toString();
         final isInterim = colorHex != null &&
             (colorHex.toUpperCase().contains('F59E0B') || colorHex.toUpperCase().contains('F59'));
-        final iconColor = isInterim ? Colors.amber.shade700 : Colors.blue.shade700;
-        final canOpen = e['interviewId'] != null || e['followUpId'] != null;
+        final iconColor = isInterim ? Colors.amber.shade700 : context.cs.primary;
+        final canOpen = e['interviewId'] != null ||
+        e['followUpId'] != null ||
+        e['callId'] != null;
         return Card(
           child: ListTile(
             leading: Icon(Icons.event, color: iconColor),

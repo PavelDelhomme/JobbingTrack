@@ -85,8 +85,8 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
     DateTime date = f.scheduledDate;
     final notesController = TextEditingController(text: f.notes ?? '');
     final responseController = TextEditingController(text: f.response ?? '');
-    String status = f.status;
-    const statuses = ['PENDING', 'COMPLETED', 'CANCELLED'];
+    String status = normalizeFollowUpStatusForApi(f.status);
+    final statuses = kFollowUpApiStatuses;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -125,7 +125,7 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
                   },
                 ),
                 DropdownButtonFormField<String>(
-                  value: status,
+                  value: statuses.contains(status) ? status : 'PENDING',
                   decoration: const InputDecoration(labelText: 'Statut', border: OutlineInputBorder()),
                   items: statuses
                       .map((s) => DropdownMenuItem(value: s, child: Text(followUpStatusLabel(s))))
@@ -166,7 +166,7 @@ class _FollowupDetailScreenState extends State<FollowupDetailScreen> {
         followUpDate: date,
         notes: notesController.text.trim(),
         response: responseController.text.trim(),
-        status: status,
+        status: normalizeFollowUpStatusForApi(status),
         token: token,
       );
       try {

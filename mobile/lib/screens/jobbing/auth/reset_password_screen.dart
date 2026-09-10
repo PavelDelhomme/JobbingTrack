@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
 import 'package:jobbingtrack_mobile/services/biometric_credential_store.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String token;
@@ -84,7 +85,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   const SizedBox(height: 24),
                   Text('Mot de passe réinitialisé', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green[800])),
                   const SizedBox(height: 8),
-                  Text('Redirection vers la connexion...', style: TextStyle(color: Colors.grey[600])),
+                  Text('Redirection vers la connexion...', style: TextStyle(color: context.textSecondary)),
                 ],
               ),
             ),
@@ -105,7 +106,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 24),
-                  Text('Choisissez un nouveau mot de passe (minimum 8 caractères).', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                  Text('Choisissez un nouveau mot de passe (minimum 8 caractères).', style: TextStyle(fontSize: 14, color: context.textSecondary)),
                   const SizedBox(height: 24),
                   TextFormField(
                     controller: _passwordController,
@@ -119,7 +120,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       ),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
-                      fillColor: Colors.grey[50],
+                      fillColor: context.fieldFillColor,
                     ),
                     obscureText: _obscurePassword,
                     textInputAction: TextInputAction.next,
@@ -142,7 +143,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       ),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       filled: true,
-                      fillColor: Colors.grey[50],
+                      fillColor: context.fieldFillColor,
                     ),
                     obscureText: _obscureConfirm,
                     textInputAction: TextInputAction.done,
@@ -159,7 +160,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _submit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue[600],
+                        backgroundColor: context.cs.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),

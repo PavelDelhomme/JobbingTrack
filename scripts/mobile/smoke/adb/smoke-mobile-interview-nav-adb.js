@@ -2,23 +2,62 @@
 /**
  * Smoke navigation entretien → candidature (Lot D ligne 325).
  *
+ * Crée un entretien via API si la liste est vide, puis ouvre le détail
+ * et suit le lien « Candidature liée ».
+ *
+ *   SMOKE_USE_ADMIN=1 MOBILE_ADB_DEVICE=R5CT7263YJL ADB_FAST=1 \
+ *   SMOKE_API_GATEWAY_URL=https://api.jobbingtrack.com \
  *   node scripts/mobile/smoke/adb/smoke-mobile-interview-nav-adb.js
  */
 
 const adbLib = require('../../../../tools/adb-lib');
-const { ensureUserShell } = require('../../lib/adb-smoke-helpers');
+require('../../lib/smoke-runtime');
+const { ensureUserShell, connectSmokePhone, recoverFromOfflineMode } = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
-const { loadRootEnv } = require('../../lib/resolve-admin-credentials');
+const {
+  loadRootEnv,
+  resolveWorkingAdminCredentials,
+  listAdminCredentialCandidates,
+  getGatewayUrl,
+} = require('../../lib/resolve-admin-credentials');
+const {
+  loginSmokeToken,
+  ensureSmokeApplication,
+} = require('../../lib/smoke-application-target');
 
 loadRootEnv();
+
+async function resolveSmokeCredentials() {
+  if (process.env.SMOKE_USE_ADMIN === '1') {
+    try {
+      return await resolveWorkingAdminCredentials();
+    } catch (err) {
+      console.warn('probe admin KO — fallback .env:', err.message);
+      return listAdminCredentialCandidates()[0];
+    }
+  }
+  try {
+    return await resolveWorkingUserCredentials();
+  } catch (err) {
+    console.warn('TEST_USER KO — fallback ADMIN:', err.message);
+    return resolveWorkingAdminCredentials();
+  }
+}
 
 function nodeLabel(n) {
   return `${n.text || ''}\n${n.contentDesc || ''}`.trim();
 }
 
 async function ensureLoggedIn(phone, email, password) {
-  await ensureUserShell(phone, email, password);
-  await phone.assertVisible('Bonjour');
+  console.log(await adbLib.flows.loginFresh(phone, email, password));
+  await adbLib.flows.dismissBiometricUnlock(phone, { password });
+  const ok =
+    (await phone.uiContains('Bonjour')) ||
+    (await phone.uiContains('Tab 1 of 4')) ||
+    (await phone.uiContains('Accueil'));
+  if (!ok) {
+    throw new Error('Shell utilisateur introuvable après login');
+  }
 }
 
 async function openDrawerEntretiens(phone) {
@@ -38,16 +77,62 @@ async function openDrawerEntretiens(phone) {
   await phone.wait(2500);
 }
 
+async function ensureInterviewExists(token) {
+  const base = getGatewayUrl();
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  };
+  const listRes = await fetch(`${base}/api/v1/interviews?limit=50`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const listData = await listRes.json().catch(() => ({}));
+  const interviews = listData.interviews || listData.data || [];
+  if (interviews.length > 0) {
+    return interviews[0];
+  }
+  const app = await ensureSmokeApplication(token, { forceNew: true });
+  const when = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  const createRes = await fetch(`${base}/api/v1/interviews`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      applicationId: app.id,
+      interviewDate: when,
+      location: 'Paris — smoke MOB-NAV',
+      notes: '[Format: Présentiel]\nSmoke ADB entretien nav',
+    }),
+  });
+  const created = await createRes.json().catch(() => ({}));
+  if (createRes.status !== 201 && createRes.status !== 200) {
+    throw new Error(
+      `Création entretien API KO (${createRes.status}) ${JSON.stringify(created).slice(0, 160)}`,
+    );
+  }
+  console.log('Entretien créé via API pour', app.position);
+  return created.interview || created.data || created;
+}
+
 (async () => {
-  const { email, password } = await resolveWorkingUserCredentials();
-  const phone = await adbLib.connect();
+  const { email, password } = await resolveSmokeCredentials();
+  const token = await loginSmokeToken(email, password);
+  await ensureInterviewExists(token);
+
+  const phone = await connectSmokePhone();
   console.log('User:', email);
 
   await ensureLoggedIn(phone, email, password);
+  await recoverFromOfflineMode(phone);
   await openDrawerEntretiens(phone);
+  await recoverFromOfflineMode(phone);
 
+  // Pull-to-refresh si liste encore vide après création API
   if (await phone.uiContains('Aucun entretien')) {
-    throw new Error('Aucun entretien — données insuffisantes pour test navigation');
+    await phone.scrollUp(900);
+    await phone.wait(2500);
+  }
+  if (await phone.uiContains('Aucun entretien')) {
+    throw new Error('Aucun entretien — création API non visible sur l’appareil');
   }
 
   const nodes = await phone.uiNodes();
@@ -60,6 +145,8 @@ async function openDrawerEntretiens(phone) {
       !nodeLabel(n).includes('Open navigation') &&
       (nodeLabel(n).includes('Entretien') ||
         nodeLabel(n).includes('Présentiel') ||
+        nodeLabel(n).includes('smoke') ||
+        nodeLabel(n).includes('Paris') ||
         /\d/.test(nodeLabel(n))),
   );
   if (tile) {
@@ -90,7 +177,9 @@ async function openDrawerEntretiens(phone) {
   );
   let linkTile = null;
   if (headerIdx >= 0) {
-    const hm = nodesAfter[headerIdx].bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+    const hm = nodesAfter[headerIdx].bounds.match(
+      /\[(\d+),(\d+)\]\[(\d+),(\d+)\]/,
+    );
     const headerY2 = hm ? +hm[4] : 0;
     linkTile = nodesAfter.find((n) => {
       if (!n.clickable) return false;

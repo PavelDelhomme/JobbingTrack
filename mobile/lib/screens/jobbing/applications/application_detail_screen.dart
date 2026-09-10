@@ -24,6 +24,7 @@ import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/contact_picker_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_detail_field.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 /// Détail complet d'une candidature : entreprise, contacts, relances, entretiens, appels.
 class ApplicationDetailScreen extends StatefulWidget {
@@ -332,7 +333,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                   if (_contacts.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text('Aucun contact lié', style: TextStyle(color: Colors.grey.shade600)),
+                      child: Text('Aucun contact lié', style: TextStyle(color: context.textSecondary)),
                     )
                   else
                     ..._contacts.map((c) => _contactTile(c)),
@@ -341,7 +342,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                   if (_followUps.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text('Aucune relance', style: TextStyle(color: Colors.grey.shade600)),
+                      child: Text('Aucune relance', style: TextStyle(color: context.textSecondary)),
                     )
                   else
                     ..._followUps.map((f) => _linkTile(
@@ -362,7 +363,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                   if (_interviews.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text('Aucun entretien', style: TextStyle(color: Colors.grey.shade600)),
+                      child: Text('Aucun entretien', style: TextStyle(color: context.textSecondary)),
                     )
                   else
                     ..._interviews.map((i) => _linkTile(
@@ -378,7 +379,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                   if (_calls.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text('Aucun appel', style: TextStyle(color: Colors.grey.shade600)),
+                      child: Text('Aucun appel', style: TextStyle(color: context.textSecondary)),
                     )
                   else
                     ..._calls.map((c) => _linkTile(
@@ -506,7 +507,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(Icons.person_outline, color: Colors.blue.shade700),
+        leading: Icon(Icons.person_outline, color: context.cs.primary),
         title: Text(contactDisplayName(c), maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(
           c['email']?.toString() ?? c['phone']?.toString() ?? '',
@@ -537,7 +538,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(icon, color: Colors.blue.shade700),
+        leading: Icon(icon, color: context.cs.primary),
         title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: subtitle.isNotEmpty ? Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis) : null,
         trailing: onTap != null ? const Icon(Icons.chevron_right) : null,

@@ -26,6 +26,15 @@ class ThemeController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Comme le bouton ☀️/🌙 du login web : bascule clair ↔ sombre
+  /// (si mode système, part du thème effectif courant).
+  Future<void> toggleLightDark({required Brightness effectiveBrightness}) async {
+    final next = effectiveBrightness == Brightness.dark
+        ? ThemeMode.light
+        : ThemeMode.dark;
+    await setMode(next);
+  }
+
   static ThemeMode _parse(String raw) {
     switch (raw) {
       case 'light':

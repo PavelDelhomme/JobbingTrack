@@ -4,6 +4,7 @@ import 'package:jobbingtrack_mobile/widgets/contact_create_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/followup_create_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/call_create_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/interview_create_sheet.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 enum HomeQuickCreateAction { application, contact, followUp, interview, call }
 
@@ -11,14 +12,17 @@ Future<HomeQuickCreateAction?> showHomeQuickCreateSheet(BuildContext context) {
   return showModalBottomSheet<HomeQuickCreateAction>(
     context: context,
     showDragHandle: true,
-    builder: (ctx) => SafeArea(
+    builder: (ctx) {
+      final soft = ctx.softPrimary;
+      final accent = ctx.cs.primary;
+      return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
             leading: CircleAvatar(
-              backgroundColor: Colors.blue.shade100,
-              child: Icon(Icons.assignment_outlined, color: Colors.blue.shade800),
+              backgroundColor: soft,
+              child: Icon(Icons.assignment_outlined, color: accent),
             ),
             title: const Text('Nouvelle candidature'),
             subtitle: const Text('Poste, entreprise, statut…'),
@@ -26,8 +30,8 @@ Future<HomeQuickCreateAction?> showHomeQuickCreateSheet(BuildContext context) {
           ),
           ListTile(
             leading: CircleAvatar(
-              backgroundColor: Colors.green.shade100,
-              child: Icon(Icons.person_add_outlined, color: Colors.green.shade800),
+              backgroundColor: soft,
+              child: Icon(Icons.person_add_outlined, color: accent),
             ),
             title: const Text('Nouveau contact'),
             subtitle: const Text('Nom + entreprise (nouvelle ou existante)'),
@@ -35,8 +39,8 @@ Future<HomeQuickCreateAction?> showHomeQuickCreateSheet(BuildContext context) {
           ),
           ListTile(
             leading: CircleAvatar(
-              backgroundColor: Colors.teal.shade100,
-              child: Icon(Icons.schedule_send_outlined, color: Colors.teal.shade800),
+              backgroundColor: soft,
+              child: Icon(Icons.schedule_send_outlined, color: accent),
             ),
             title: const Text('Nouvelle relance'),
             subtitle: const Text('Choisir une candidature puis planifier'),
@@ -44,8 +48,8 @@ Future<HomeQuickCreateAction?> showHomeQuickCreateSheet(BuildContext context) {
           ),
           ListTile(
             leading: CircleAvatar(
-              backgroundColor: Colors.orange.shade100,
-              child: Icon(Icons.event_available_outlined, color: Colors.orange.shade800),
+              backgroundColor: soft,
+              child: Icon(Icons.event_available_outlined, color: accent),
             ),
             title: const Text('Nouvel entretien'),
             subtitle: const Text('Date, lieu / visio, contacts'),
@@ -53,8 +57,8 @@ Future<HomeQuickCreateAction?> showHomeQuickCreateSheet(BuildContext context) {
           ),
           ListTile(
             leading: CircleAvatar(
-              backgroundColor: Colors.indigo.shade100,
-              child: Icon(Icons.phone_outlined, color: Colors.indigo.shade800),
+              backgroundColor: soft,
+              child: Icon(Icons.phone_outlined, color: accent),
             ),
             title: const Text('Nouvel appel'),
             subtitle: const Text('Objet + candidature liée'),
@@ -63,7 +67,8 @@ Future<HomeQuickCreateAction?> showHomeQuickCreateSheet(BuildContext context) {
           const SizedBox(height: 8),
         ],
       ),
-    ),
+    );
+    },
   );
 }
 

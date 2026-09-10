@@ -8,7 +8,10 @@ const persistenceService = require('../services/persistence.service');
 
 const {
   buildKnownServicesMap,
+  composeServiceSuffix,
+  dockerNameFilterForStack,
   isNonHttpProbe,
+  matchesStackContainerName,
   resolveProbeHost,
 } = require('../config/serviceHealthEndpoints');
 
@@ -29,6 +32,13 @@ const FIVE_MINUTES_IN_MINUTES = 5;
 const SERVICES_ALL_CACHE_TTL_MS = Number(process.env.DOCKER_SERVICES_ALL_CACHE_TTL_MS || 60000);
 let servicesAllCache = null;
 
+/** Absents du compose Portainer prod/préprod — ne pas polluer en not_deployed sauf opt-in. */
+const PORTAINER_ABSENT_CATALOG_SUFFIXES = [
+  'deployment-service',
+  'monitoring-agent-rs',
+  'log-collector-rs',
+];
+
 const OPTIONAL_SERVICE_SUFFIXES = [
   'workflow-service',
   'notification-service',
@@ -36,15 +46,25 @@ const OPTIONAL_SERVICE_SUFFIXES = [
   'profile-service',
   'event-service',
   'security-service',
+  'monitoring-agent-rs',
+  'log-collector-rs',
 ];
 
 function normalizeCatalogServiceKey(name = '') {
-  return String(name).replace(/^jobbingtrack-/, '').trim().toLowerCase();
+  return composeServiceSuffix(name);
 }
 
 function shouldIncludeExpectedCatalogService(fullName, { includeOptional }) {
-  if (includeOptional !== false) return true;
   const short = normalizeCatalogServiceKey(fullName);
+  const expectAgents =
+    String(process.env.METRICS_EXPECT_AGENT_CATALOG || '').toLowerCase() === 'true';
+  if (
+    !expectAgents &&
+    PORTAINER_ABSENT_CATALOG_SUFFIXES.includes(short)
+  ) {
+    return false;
+  }
+  if (includeOptional !== false) return true;
   return !OPTIONAL_SERVICE_SUFFIXES.includes(short);
 }
 
@@ -698,14 +718,21 @@ router.get('/services/all', async (req, res) => {
 
     console.log('[DOCKER ROUTES] 📋 Récupération de tous les services...');
     
-    // Lister TOUS les conteneurs (même arrêtés)
-    const { stdout } = await execAsync('docker ps -a --filter "name=jobbingtrack" --format "{{json .}}"');
+    // Lister les conteneurs de la stack courante uniquement (prod ≠ préprod sur le même hôte)
+    const nameFilter = dockerNameFilterForStack();
+    const { stdout } = await execAsync(
+      `docker ps -a --filter "name=${nameFilter}" --format "{{json .}}"`,
+    );
     const allContainers = stdout.trim().split('\n')
       .filter(line => line.length > 0)
       .map(line => JSON.parse(line))
       .filter(container => {
         const name = normalizeDockerPsName(container.Names);
         container.canonicalName = name;
+
+        if (!matchesStackContainerName(name)) {
+          return false;
+        }
 
         // Optionnel: exclure MailHog si demandé explicitement
         if (!includeMailhog && name.toLowerCase().includes('mailhog')) {
@@ -719,12 +746,13 @@ router.get('/services/all', async (req, res) => {
           'deployment-service',
           'profile-service',
           'event-service',
-          'security-service'
+          'security-service',
+          'monitoring-agent-rs',
+          'log-collector-rs',
         ];
         if (!includeOptional) {
-          return !optionalServices.some(service => {
-            return name === `jobbingtrack-${service}` || name === service || name.includes(service);
-          });
+          const short = composeServiceSuffix(name);
+          return !optionalServices.includes(short);
         }
 
         return true;

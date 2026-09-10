@@ -16,6 +16,7 @@ import 'package:jobbingtrack_mobile/utils/linked_entity_parsers.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_detail_field.dart';
 import 'package:jobbingtrack_mobile/widgets/entity_link_tile.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 String _callStatusLabel(String? status) {
   switch (status) {
@@ -186,8 +187,8 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           CircleAvatar(
-                            backgroundColor: Colors.green.shade100,
-                            child: Icon(Icons.phone, color: Colors.green.shade800),
+                            backgroundColor: context.cs.primaryContainer,
+                            child: Icon(Icons.phone, color: context.cs.primary),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -196,12 +197,16 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                               children: [
                                 Text(
                                   call.subject.trim().isNotEmpty ? call.subject : 'Appel téléphonique',
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: context.textPrimary,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   formatSmartEventDate(call.callDate),
-                                  style: TextStyle(color: Colors.grey.shade700),
+                                  style: TextStyle(color: context.textSecondary),
                                 ),
                               ],
                             ),

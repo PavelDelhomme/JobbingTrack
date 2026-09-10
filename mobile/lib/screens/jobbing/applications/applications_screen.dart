@@ -39,6 +39,7 @@ import 'package:jobbingtrack_mobile/widgets/call_create_sheet.dart';
 import 'package:jobbingtrack_mobile/widgets/list_item_swipe_actions.dart';
 import 'package:jobbingtrack_mobile/utils/entity_swipe_confirm.dart';
 import 'package:jobbingtrack_mobile/providers/call_provider.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 class ApplicationsScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -270,9 +271,9 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          labelColor: Colors.blue[700],
-          unselectedLabelColor: Colors.grey[600],
-          indicatorColor: Colors.blue[700],
+          labelColor: context.cs.primary,
+          unselectedLabelColor: context.textSecondary,
+          indicatorColor: context.cs.primary,
           tabs: const [
             Tab(icon: Icon(Icons.assignment, size: 20), text: 'Candidatures'),
             Tab(icon: Icon(Icons.business, size: 20), text: 'Entreprises'),
@@ -391,7 +392,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
         final result = await ApplicationFormScreen.showCreateSheet(context);
         if (result == true) _loadAll();
       },
-      backgroundColor: Colors.blue[600],
+      backgroundColor: context.cs.primary,
       child: const Icon(Icons.add),
     );
   }
@@ -459,7 +460,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: appProvider.isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.blue))
+            ? Center(child: CircularProgressIndicator(color: context.cs.primary))
             : !appProvider.isOfflineData && error != null && error.isNotEmpty && applications.isEmpty
                 ? _buildErrorState(error)
                 : Column(
@@ -558,7 +559,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
             SwipeListAction(
               icon: Icons.edit_outlined,
               label: 'Modifier',
-              color: Colors.blue.shade600,
+              color: context.cs.primary,
               onPressed: onEdit,
             ),
           SwipeListAction(
@@ -593,16 +594,16 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     final companyProvider = Provider.of<CompanyProvider>(context);
     final companies = companyProvider.companies;
     if (companyProvider.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Colors.blue));
+      return Center(child: CircularProgressIndicator(color: context.cs.primary));
     }
     if (companies.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.business, size: 64, color: Colors.grey[400]),
+            Icon(Icons.business, size: 64, color: context.textSecondary),
             const SizedBox(height: 16),
-            Text('Aucune entreprise', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+            Text('Aucune entreprise', style: TextStyle(fontSize: 16, color: context.textSecondary)),
           ],
         ),
       );
@@ -659,16 +660,16 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     final contactProvider = Provider.of<ContactProvider>(context);
     final contacts = contactProvider.contacts;
     if (contactProvider.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Colors.blue));
+      return Center(child: CircularProgressIndicator(color: context.cs.primary));
     }
     if (contacts.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.people, size: 64, color: Colors.grey[400]),
+            Icon(Icons.people, size: 64, color: context.textSecondary),
             const SizedBox(height: 16),
-            Text('Aucun contact', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+            Text('Aucun contact', style: TextStyle(fontSize: 16, color: context.textSecondary)),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: () async {
@@ -739,16 +740,16 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     final interviews = interviewProvider.interviews;
     // Stale-while-revalidate : garder la liste visible pendant le reload.
     if (interviewProvider.isLoading && interviews.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: Colors.blue));
+      return Center(child: CircularProgressIndicator(color: context.cs.primary));
     }
     if (interviews.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.event_busy, size: 64, color: Colors.grey[400]),
+            Icon(Icons.event_busy, size: 64, color: context.textSecondary),
             const SizedBox(height: 16),
-            Text('Aucun entretien', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+            Text('Aucun entretien', style: TextStyle(fontSize: 16, color: context.textSecondary)),
           ],
         ),
       );
@@ -818,16 +819,16 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     final pending = followUpProvider.pendingFollowUps;
     final completed = followUpProvider.completedFollowUps;
     if (followUpProvider.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Colors.blue));
+      return Center(child: CircularProgressIndicator(color: context.cs.primary));
     }
     if (pending.isEmpty && completed.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.schedule_send, size: 64, color: Colors.grey[400]),
+            Icon(Icons.schedule_send, size: 64, color: context.textSecondary),
             const SizedBox(height: 16),
-            Text('Aucune relance', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+            Text('Aucune relance', style: TextStyle(fontSize: 16, color: context.textSecondary)),
           ],
         ),
       );
@@ -838,7 +839,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
         if (pending.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Text('À venir', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[800])),
+            child: Text('À venir', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.textPrimary)),
           ),
           ...pending.map((f) => _relanceTile(f)),
           const SizedBox(height: 16),
@@ -846,7 +847,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
         if (completed.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Text('Terminées', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[800])),
+            child: Text('Terminées', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.textPrimary)),
           ),
           ...completed.map((f) => _relanceTile(f)),
         ],
@@ -917,16 +918,16 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
     final callProvider = Provider.of<CallProvider>(context);
     final calls = callProvider.calls;
     if (callProvider.isLoading && calls.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: Colors.blue));
+      return Center(child: CircularProgressIndicator(color: context.cs.primary));
     }
     if (calls.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.phone_in_talk, size: 64, color: Colors.grey[400]),
+            Icon(Icons.phone_in_talk, size: 64, color: context.textSecondary),
             const SizedBox(height: 16),
-            Text('Aucun appel', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+            Text('Aucun appel', style: TextStyle(fontSize: 16, color: context.textSecondary)),
           ],
         ),
       );
@@ -999,11 +1000,11 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
         children: [
           Icon(Icons.cloud_off, size: 72, color: Colors.red.shade300),
           const SizedBox(height: 16),
-          Text('Impossible de charger les candidatures', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.grey.shade800)),
+          Text('Impossible de charger les candidatures', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: context.textPrimary)),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(message, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+            child: Text(message, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: context.textSecondary)),
           ),
           const SizedBox(height: 20),
           ElevatedButton.icon(
@@ -1027,11 +1028,11 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inbox, size: 80, color: Colors.grey[400]),
+          Icon(Icons.inbox, size: 80, color: context.textSecondary),
           const SizedBox(height: 16),
-          Text('Aucune candidature', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey[600])),
+          Text('Aucune candidature', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: context.textSecondary)),
           const SizedBox(height: 8),
-          Text('Les candidatures apparaîtront ici', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
+          Text('Les candidatures apparaîtront ici', style: TextStyle(fontSize: 14, color: context.textSecondary)),
           const SizedBox(height: 20),
           ElevatedButton.icon(
             onPressed: () async {
@@ -1040,7 +1041,7 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
             },
             icon: const Icon(Icons.add),
             label: const Text('Créer ma première candidature'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[600]),
+            style: ElevatedButton.styleFrom(backgroundColor: context.cs.primary),
           ),
         ],
       ),

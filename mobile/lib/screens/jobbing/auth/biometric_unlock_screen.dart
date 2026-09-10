@@ -7,6 +7,7 @@ import 'package:jobbingtrack_mobile/services/biometric_auth_service.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/utils/auth_logout.dart';
 import 'package:jobbingtrack_mobile/utils/post_auth_navigation.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 /// Écran de déverrouillage : biométrie / code appareil puis session JWT (tous appareils).
 class BiometricUnlockScreen extends StatefulWidget {
@@ -115,20 +116,21 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Icon(Icons.fingerprint, size: 80, color: Colors.blue.shade700),
+                  Icon(Icons.fingerprint, size: 80, color: context.cs.primary),
                   const SizedBox(height: 24),
                   Text(
                     'Déverrouiller',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
+                          color: context.textPrimary,
                         ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     user != null ? 'Bonjour ${user.firstName}' : 'Session enregistrée',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey.shade700, fontSize: 15),
+                    style: TextStyle(color: context.textSecondary, fontSize: 15),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -136,7 +138,7 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> {
                         ? 'Confirmez votre identité pour continuer'
                         : _biometricLabel,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    style: TextStyle(color: context.textSecondary, fontSize: 13),
                   ),
                   const SizedBox(height: 32),
                   if (_checkingDevice || _unlocking)

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:jobbingtrack_mobile/services/global_search.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 /// Barre de recherche globale (accueil, listes…) — ouvre l'écran de recherche unifié.
 class GlobalSearchEntryBar extends StatelessWidget {
@@ -12,7 +13,7 @@ class GlobalSearchEntryBar extends StatelessWidget {
     return Padding(
       padding: margin ?? EdgeInsets.zero,
       child: Material(
-        color: Colors.grey.shade100,
+        color: context.softSurface,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           onTap: () => openGlobalSearch(context),
@@ -21,12 +22,15 @@ class GlobalSearchEntryBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             child: Row(
               children: [
-                Icon(Icons.search, color: Colors.grey.shade600),
+                Icon(Icons.search, color: context.textSecondary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Rechercher candidatures, entreprises, contacts…',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+                    style: TextStyle(
+                      color: context.textSecondary,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ],

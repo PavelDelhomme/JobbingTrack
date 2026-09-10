@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:jobbingtrack_mobile/services/app_permissions_service.dart';
 import 'package:jobbingtrack_mobile/utils/post_auth_navigation.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 /// Bloque l'accès à l'app tant que les notifications système ne sont pas autorisées.
 class PermissionsGateScreen extends StatefulWidget {
@@ -63,12 +64,15 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(Icons.notifications_active_outlined, size: 72, color: Colors.blue.shade700),
+                Icon(Icons.notifications_active_outlined, size: 72, color: context.cs.primary),
                 const SizedBox(height: 20),
                 Text(
                   'Notifications sur le téléphone',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: context.textPrimary,
+                      ),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -76,7 +80,7 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen> {
                   'Sans cette autorisation, l\'application ne peut pas fonctionner correctement.\n\n'
                   'Les notifications dans l\'app (cloche) restent disponibles, mais vous ne recevrez pas '
                   'd\'alerte sur l\'écran de verrouillage.',
-                  style: TextStyle(color: Colors.grey.shade700, height: 1.45),
+                  style: TextStyle(color: context.textSecondary, height: 1.45),
                 ),
                 if (_status != null) ...[
                   const SizedBox(height: 16),

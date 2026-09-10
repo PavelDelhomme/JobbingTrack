@@ -153,6 +153,7 @@ const authenticateMetrics = (req, res, next) => {
 const {
   buildKnownServicesMap,
   isNonHttpProbe,
+  matchesStackContainerName,
   resolveProbeHost,
   resolveStackSlug,
 } = require('./config/serviceHealthEndpoints')
@@ -167,21 +168,9 @@ let servicesMetrics = {}
 let systemMetrics = {}
 let containerMetrics = {}
 
-// Conteneurs considérés comme "JobbingTrack" (nom complet ou court, selon source bas niveau)
+// Conteneurs de la stack courante uniquement (prod BO ≠ préprod sur le même docker.sock)
 function isJobbingTrackContainer(name) {
-  if (!name || typeof name !== 'string') return false
-  const n = name.toLowerCase().trim().replace(/^\//, '')
-  if (n.includes('jobbingtrack')) return true
-  if (KNOWN_SERVICES[n]) return true
-  const withPrefix = 'jobbingtrack-' + n
-  if (KNOWN_SERVICES[withPrefix]) return true
-  const withSlug = `${STACK_SLUG}-${n}`
-  if (KNOWN_SERVICES[withSlug]) return true
-  // service compose court (api-gateway) vu depuis docker.sock
-  for (const cfg of Object.values(KNOWN_SERVICES)) {
-    if (cfg.composeService && cfg.composeService === n) return true
-  }
-  return false
+  return matchesStackContainerName(name)
 }
 // Payload complet pour le backoffice (source bas niveau → aggregator → frontend)
 let lastMetricsData = null
@@ -561,8 +550,22 @@ async function collectContainerMetrics() {
         memoryLimitMB = normalizedMemory.limitMb
         const memoryPercent = normalizedMemory.percent
         
-        // ✅ Récupérer les statistiques réseau
-        const networkStats = await getContainerNetworkStats(pid)
+        // Réseau : /host/proc si monté, sinon stats Docker (networks)
+        let networkStats = await getContainerNetworkStats(pid)
+        if ((!networkStats.rx && !networkStats.tx) && stats.networks) {
+          let rx = 0
+          let tx = 0
+          for (const iface of Object.values(stats.networks)) {
+            rx += Number(iface?.rx_bytes || 0)
+            tx += Number(iface?.tx_bytes || 0)
+          }
+          networkStats = {
+            rx,
+            tx,
+            rx_mb: rx / 1024 / 1024,
+            tx_mb: tx / 1024 / 1024,
+          }
+        }
         const blkioEntries = Array.isArray(stats.blkio_stats?.io_service_bytes_recursive)
           ? stats.blkio_stats.io_service_bytes_recursive
           : []
@@ -1016,17 +1019,17 @@ async function collectAllMetrics() {
     let jobbingtrackNetworkTx = 0;
     
     allContainers.forEach(([name, metrics]) => {
-      if (metrics.network?.rx && metrics.network?.tx) {
-        totalNetworkRx += metrics.network.rx;
-        totalNetworkTx += metrics.network.tx;
-      }
+      const rx = Number(metrics.network?.rx ?? 0);
+      const tx = Number(metrics.network?.tx ?? 0);
+      if (Number.isFinite(rx)) totalNetworkRx += rx;
+      if (Number.isFinite(tx)) totalNetworkTx += tx;
     });
     
     jobbingtrackContainers.forEach(([name, metrics]) => {
-      if (metrics.network?.rx && metrics.network?.tx) {
-        jobbingtrackNetworkRx += metrics.network.rx;
-        jobbingtrackNetworkTx += metrics.network.tx;
-      }
+      const rx = Number(metrics.network?.rx ?? 0);
+      const tx = Number(metrics.network?.tx ?? 0);
+      if (Number.isFinite(rx)) jobbingtrackNetworkRx += rx;
+      if (Number.isFinite(tx)) jobbingtrackNetworkTx += tx;
     });
 
     // Ajouter les métriques agrégées au systemMetrics
@@ -1204,13 +1207,27 @@ async function collectAllMetrics() {
         total_last_5m: 0,
         rate_per_min: 0
       },
-      // Ajouter le réseau depuis la source bas niveau en priorité, puis containersAggregate.
-      network: monitoringCData?.network || 
-               systemMetrics.containersAggregate?.network || {
-        total_rx_mb: 0,
-        total_tx_mb: 0,
-        total_mb: 0
-      },
+      // Réseau : ne pas laisser un monitoringC à 0 masquer les stats Docker stack.
+      network: (() => {
+        const candidates = [
+          monitoringCData?.network,
+          systemMetrics.jobbingtrack?.containers?.network,
+          systemMetrics.containersAggregate?.network,
+        ];
+        for (const candidate of candidates) {
+          if (!candidate || typeof candidate !== 'object') continue;
+          const rx = Number(candidate.total_rx_mb ?? candidate.total_rx ?? 0);
+          const tx = Number(candidate.total_tx_mb ?? candidate.total_tx ?? 0);
+          if ((Number.isFinite(rx) && rx > 0) || (Number.isFinite(tx) && tx > 0)) {
+            return candidate;
+          }
+        }
+        return {
+          total_rx_mb: 0,
+          total_tx_mb: 0,
+          total_mb: 0,
+        };
+      })(),
       // ✅ Ajouter la liste des services pour compatibilité frontend
       servicesList: Object.values(servicesMetrics),
       timestamp: new Date().toISOString()

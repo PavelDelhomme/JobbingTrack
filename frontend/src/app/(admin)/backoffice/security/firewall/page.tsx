@@ -119,6 +119,15 @@ export default function FirewallPage() {
     byOrigin?: Record<string, number>;
     count?: number;
   } | null>(null);
+  const [riskIps, setRiskIps] = useState<
+    Array<{
+      ip: string;
+      threatCount: number;
+      maxSeverity: string;
+      sampleType: string;
+      blocked: boolean;
+    }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddRule, setShowAddRule] = useState(false);
@@ -195,15 +204,105 @@ export default function FirewallPage() {
     }
   }, [blockedPage]);
 
+  const loadRiskIps = useCallback(async () => {
+    try {
+      const [threatsRes, blockedRes] = await Promise.all([
+        axios.get(`${API_GATEWAY_URL}/api/v1/security/firewall/threats`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          params: { limit: 200 },
+        }),
+        axios.get(`${API_GATEWAY_URL}/api/v1/security/firewall/blocked-ips`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          params: { page: 1, limit: 200 },
+        }),
+      ]);
+      const threats = Array.isArray(threatsRes.data?.data)
+        ? threatsRes.data.data
+        : [];
+      const blockedSet = new Set(
+        (Array.isArray(blockedRes.data?.data) ? blockedRes.data.data : [])
+          .map((item: string | BlockedIp) =>
+            typeof item === "string" ? item : item?.ip,
+          )
+          .filter(Boolean)
+          .map((ip: string) => String(ip).trim()),
+      );
+
+      const severityRank: Record<string, number> = {
+        CRITICAL: 4,
+        HIGH: 3,
+        MEDIUM: 2,
+        LOW: 1,
+      };
+      const byIp = new Map<
+        string,
+        {
+          ip: string;
+          threatCount: number;
+          maxSeverity: string;
+          sampleType: string;
+        }
+      >();
+
+      for (const t of threats) {
+        const ip = String(t?.sourceIp || t?.ip || "").trim();
+        if (!ip) continue;
+        // Réseaux Docker / RFC1918 : surveiller mais marquer plus bas côté UI
+        const existing = byIp.get(ip);
+        const sev = String(t?.severity || "MEDIUM").toUpperCase();
+        if (!existing) {
+          byIp.set(ip, {
+            ip,
+            threatCount: 1,
+            maxSeverity: sev,
+            sampleType: String(t?.threatType || t?.eventType || "threat"),
+          });
+        } else {
+          existing.threatCount += 1;
+          if (
+            (severityRank[sev] || 0) >
+            (severityRank[existing.maxSeverity] || 0)
+          ) {
+            existing.maxSeverity = sev;
+            existing.sampleType = String(
+              t?.threatType || t?.eventType || existing.sampleType,
+            );
+          }
+        }
+      }
+
+      setRiskIps(
+        Array.from(byIp.values())
+          .map((row) => ({
+            ...row,
+            blocked: blockedSet.has(row.ip),
+          }))
+          .sort((a, b) => {
+            if (a.blocked !== b.blocked) return a.blocked ? 1 : -1;
+            const sr =
+              (severityRank[b.maxSeverity] || 0) -
+              (severityRank[a.maxSeverity] || 0);
+            if (sr !== 0) return sr;
+            return b.threatCount - a.threatCount;
+          })
+          .slice(0, 40),
+      );
+    } catch (err) {
+      console.error("Erreur chargement IPs à risque:", err);
+    }
+  }, []);
+
   useEffect(() => {
     loadRules();
     loadBlockedIps();
+    loadRiskIps();
     const interval = setInterval(() => {
       loadRules(false);
       loadBlockedIps();
+      loadRiskIps();
     }, 30000); // Rafraîchir les blocs données sans remettre la page en skeleton.
     return () => clearInterval(interval);
-  }, [loadRules, loadBlockedIps]);
+  }, [loadRules, loadBlockedIps, loadRiskIps]);
 
   const handleCreateRule = async () => {
     const formError = validateFirewallRuleForm(newRule);
@@ -377,6 +476,7 @@ export default function FirewallPage() {
           onClick={() => {
             loadRules();
             loadBlockedIps();
+            loadRiskIps();
           }}
           className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
@@ -811,6 +911,120 @@ export default function FirewallPage() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* IPs à risque (menaces) — blocage direct */}
+        <div
+          id="liste-ips-a-risque"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 scroll-mt-24"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                IPs à risque
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Sources issues des menaces firewall — bloquer ici sans quitter
+                la page. Les IP{" "}
+                <code className="text-xs">172.16/12</code> /{" "}
+                <code className="text-xs">10/8</code> sont souvent du trafic
+                Docker interne.
+              </p>
+            </div>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {riskIps.length} IP(s)
+            </span>
+          </div>
+          {riskIps.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Aucune IP source dans les menaces récentes.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                    <th className="py-2 pr-3">IP</th>
+                    <th className="py-2 pr-3">Sévérité</th>
+                    <th className="py-2 pr-3">Menaces</th>
+                    <th className="py-2 pr-3">Type</th>
+                    <th className="py-2 pr-3">État</th>
+                    <th className="py-2">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {riskIps.map((row) => {
+                    const privateIp =
+                      /^(10\.|172\.(1[6-9]|2\d|3[0-1])\.|192\.168\.)/.test(
+                        row.ip,
+                      );
+                    return (
+                      <tr
+                        key={row.ip}
+                        className="border-b border-gray-100 dark:border-gray-700/80"
+                      >
+                        <td className="py-2 pr-3 font-mono">
+                          {row.ip}
+                          {privateIp ? (
+                            <span className="ml-2 text-xs text-amber-700 dark:text-amber-300">
+                              interne
+                            </span>
+                          ) : null}
+                        </td>
+                        <td className="py-2 pr-3">{row.maxSeverity}</td>
+                        <td className="py-2 pr-3">{row.threatCount}</td>
+                        <td className="py-2 pr-3 truncate max-w-[12rem]">
+                          {row.sampleType}
+                        </td>
+                        <td className="py-2 pr-3">
+                          {row.blocked ? (
+                            <span className="text-red-600 dark:text-red-400">
+                              Bloquée
+                            </span>
+                          ) : (
+                            <span className="text-amber-700 dark:text-amber-300">
+                              À surveiller
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2">
+                          {row.blocked ? (
+                            <button
+                              type="button"
+                              onClick={() => handleUnblockIp(row.ip)}
+                              className="px-2 py-1 text-xs rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
+                            >
+                              Débloquer
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await handleBlockIp(
+                                  row.ip,
+                                  `Blocage depuis IPs à risque (${row.sampleType})`,
+                                );
+                                await loadRiskIps();
+                              }}
+                              className="px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700"
+                              disabled={privateIp}
+                              title={
+                                privateIp
+                                  ? "IP privée Docker — vérifier avant blocage"
+                                  : "Bloquer cette IP"
+                              }
+                            >
+                              Bloquer
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -72,12 +72,20 @@ function findCompanyCardNode(nodes, companyName) {
 }
 
 async function loginSmokeToken(email, password) {
+  const headers = { 'Content-Type': 'application/json' };
+  const bypass =
+    process.env.AUTH_RATE_LIMIT_BYPASS_TOKEN ||
+    process.env.JT_SMOKE_BYPASS_TOKEN;
+  if (bypass) headers['x-jt-smoke-bypass'] = bypass;
   const res = await fetch(`${GATEWAY_URL}/api/v1/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ email, password }),
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 429) {
+    throw new Error('Login smoke KO (429 rate-limit)');
+  }
   if (res.status !== 200 || !data.token) {
     throw new Error(`Login smoke KO (${res.status})`);
   }
@@ -218,9 +226,66 @@ async function refreshApplicationsList(phone) {
   }
 }
 
+async function recoverListFromOffline(phone, { attempts = 2 } = {}) {
+  for (let i = 0; i < attempts; i++) {
+    const offline =
+      (await phone.uiContains('Mode hors ligne')) ||
+      (await phone.uiContains('données en cache')) ||
+      (await phone.uiContains('Données en cache'));
+    if (!offline) return true;
+    console.warn(
+      `[smoke] Mode hors ligne — Réessayer/Actualiser (${i + 1}/${attempts})`,
+    );
+    for (const label of ['Réessayer', 'Actualiser']) {
+      if (await phone.uiContains(label)) {
+        try {
+          await phone.tap(label);
+          await phone.wait(3500);
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    await phone.scrollUp(900);
+    await phone.wait(2500);
+  }
+  return !(
+    (await phone.uiContains('Mode hors ligne')) ||
+    (await phone.uiContains('données en cache'))
+  );
+}
+
 async function openSmokeApplicationDetail(phone, target) {
   await ensureApplicationsListTab(phone);
   await phone.wait(1200);
+  await recoverListFromOffline(phone);
+
+  // Recherche UI si dispo (évite timeout quand la liste est longue)
+  const pos = target?.position || '';
+  if (pos && (await phone.uiContains('Rechercher'))) {
+    try {
+      await phone.tap('Rechercher');
+      await phone.wait(600);
+      const edits = (await phone.uiNodes()).filter(
+        (n) => String(n.className || '').includes('EditText'),
+      );
+      if (edits[0]?.bounds) {
+        const m = edits[0].bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+        if (m) {
+          await phone.tapXY(
+            Math.floor((+m[1] + +m[3]) / 2),
+            Math.floor((+m[2] + +m[4]) / 2),
+          );
+          await phone.wait(300);
+        }
+      }
+      await phone.type(pos);
+      await phone.wait(1500);
+    } catch {
+      /* fallback scroll */
+    }
+  }
+
   let state = await waitApplicationTargetVisible(phone, target, 15000);
   if (state !== 'list') {
     await refreshApplicationsList(phone);
@@ -235,6 +300,7 @@ async function openSmokeApplicationDetail(phone, target) {
       await phone.wait(4000);
     }
     await ensureApplicationsListTab(phone);
+    await recoverListFromOffline(phone);
     await refreshApplicationsList(phone);
     state = await waitApplicationTargetVisible(phone, target, 30000);
   }

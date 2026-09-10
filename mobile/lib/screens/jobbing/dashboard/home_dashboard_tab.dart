@@ -18,6 +18,7 @@ import 'package:jobbingtrack_mobile/widgets/drawer_back_scope.dart';
 import 'package:jobbingtrack_mobile/widgets/home_quick_create.dart';
 import 'package:jobbingtrack_mobile/utils/shell_layout.dart';
 import 'package:jobbingtrack_mobile/widgets/offline_mode_banner.dart';
+import 'package:jobbingtrack_mobile/widgets/theme_light_dark_toggle_button.dart';
 import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 /// Contenu onglet Accueil (sans barre de navigation bas — gérée par [MainShellScreen]).
@@ -95,6 +96,14 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
     final offline = appProvider.isOfflineData ||
         interviewProvider.isOfflineData ||
         followUpProvider.isOfflineData;
+    final userName = [
+      user?.firstName,
+      user?.lastName,
+    ]
+        .map((s) => (s ?? '').trim())
+        .where((s) => s.isNotEmpty)
+        .join(' ');
+    final greeting = userName.isEmpty ? 'Bonjour' : 'Bonjour $userName';
 
     return Scaffold(
       key: _scaffoldKey,
@@ -102,8 +111,22 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
       appBar: AppBar(
         leading: const AppDrawerLeadingButton(),
         automaticallyImplyLeading: false,
-        title: Text('Bonjour ${user?.firstName ?? ''}'),
-        centerTitle: true,
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                greeting,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const ThemeLightDarkToggleButton(
+              size: 36,
+              padding: EdgeInsets.only(left: 6),
+            ),
+          ],
+        ),
+        centerTitle: false,
         actions: const [
           ShellAppBarActions(),
         ],
@@ -149,7 +172,11 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
                           ],
                           Text(
                             'Actions rapides',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey[800]),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: context.textPrimary,
+                            ),
                           ),
                           const SizedBox(height: 16),
                           GridView.count(

@@ -18,6 +18,11 @@ import { BackofficeLink } from "./BackofficeLink";
 import { BackofficeRefreshControls } from "./BackofficeRefreshControls";
 import { AdminActionToast } from "./AdminActionToast";
 import { showAdminActionFeedback } from "@/lib/adminActionFeedback";
+import {
+  isServicesTabActive,
+  pathMatchesHref,
+} from "@/lib/backoffice/navPath";
+import { isMailhogUiAvailable } from "@/lib/backoffice/mailhogAvailability";
 
 const BACKOFFICE_API_URL = FRONTEND_URLS.api;
 
@@ -35,6 +40,9 @@ interface NavItem {
   sectionLabel?: boolean;
   /** Si true, ouvre le lien dans un nouvel onglet (pour liens externes ex. MailHog) */
   external?: boolean;
+  /** Lien visible mais non cliquable (ex. MailHog hors local) */
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
 interface NavSection {
@@ -47,7 +55,16 @@ interface NavSection {
 
 /** Correspondance pathname sur un item ou un sous-arbre (sous-menus imbriqués, ex. Analytics → Application). */
 function navItemMatchesPath(pathname: string, item: NavItem): boolean {
-  if (item.href && !item.external && pathname === item.href) return true;
+  if (item.href && !item.external) {
+    if (
+      item.href === "/backoffice/services" ||
+      item.href.startsWith("/backoffice/services/")
+    ) {
+      if (isServicesTabActive(pathname, item.href)) return true;
+    } else if (pathMatchesHref(pathname, item.href)) {
+      return true;
+    }
+  }
   if (item.subItems?.length) {
     return item.subItems.some((sub) => navItemMatchesPath(pathname, sub));
   }
@@ -130,6 +147,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [pathname]);
+
+  // Scroll drawer vers l’entrée active (sous-pages profondes)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const active = document.querySelector<HTMLElement>(
+      '[data-nav-active="true"]',
+    );
+    if (!active) return;
+    // Laisse le dépliage des sections se stabiliser
+    const t = window.setTimeout(() => {
+      active.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [pathname, expandedSections]);
 
   // Auto-expand sections qui contiennent l'élément actif (seulement si pas explicitement fermé)
   useEffect(() => {
@@ -435,7 +466,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             },
             {
               name: "Services & Logs",
-              href: "/backoffice/services/logs",
+              href: "/backoffice/services/service-logs",
               icon: "📜",
             },
           ],
@@ -642,6 +673,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           name: "MailHog (interface)",
           href: "/backoffice/emails/mailhog",
           icon: "📬",
+          disabled: !isMailhogUiAvailable(),
+          disabledReason:
+            "MailHog est réservé au développement local — lien désactivé ici.",
         },
       ],
     },
@@ -788,11 +822,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   {showSectionItems && (
                     <div className="pl-4 space-y-1 border-l border-gray-200 dark:border-gray-700 ml-2">
                       {section.items.map((item) => {
-                        const isActive = !!(
-                          item.href &&
-                          !item.external &&
-                          pathname === item.href
-                        );
                         const hasSubItems = !!(
                           item.subItems && item.subItems.length > 0
                         );
@@ -801,6 +830,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                           item.subItems!.some((sub) =>
                             navItemMatchesPath(pathname, sub),
                           );
+                        const isActive = !!(
+                          item.href &&
+                          !item.external &&
+                          !item.disabled &&
+                          (hasSubItems
+                            ? pathMatchesHref(pathname, item.href) &&
+                              !isSubItemActive
+                            : navItemMatchesPath(pathname, item))
+                        );
                         const itemKey = `item-${item.name}-${section.id}`;
                         const routeNeedsSubmenuOpen =
                           hasSubItems && (isSubItemActive || isActive);
@@ -853,6 +891,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             {item.onClick ? (
                               <button
                                 onClick={item.onClick}
+                                data-nav-active={
+                                  isActive || isSubItemActive
+                                    ? "true"
+                                    : undefined
+                                }
                                 className={`
                                 flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all relative group w-full text-left
                                 ${
@@ -864,12 +907,31 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                               >
                                 {content}
                               </button>
+                            ) : item.disabled ? (
+                              <div
+                                title={item.disabledReason || "Indisponible"}
+                                aria-disabled="true"
+                                className="flex items-center px-3 py-2 rounded-lg text-sm font-medium text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-70"
+                              >
+                                <span className="mr-3 text-base">
+                                  {item.icon}
+                                </span>
+                                <span className="truncate">{item.name}</span>
+                                <span className="ml-auto text-[10px] uppercase tracking-wide">
+                                  off
+                                </span>
+                              </div>
                             ) : item.href ? (
                               <div>
                                 <div className="flex items-center">
                                   <BackofficeLink
                                     href={item.href}
                                     prefetch={false}
+                                    data-nav-active={
+                                      isActive || isSubItemActive
+                                        ? "true"
+                                        : undefined
+                                    }
                                     onMouseEnter={() =>
                                       prefetchInternalRoute(
                                         item.href,
@@ -933,6 +995,27 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                           </div>
                                         );
                                       }
+                                      if (subItem.disabled) {
+                                        return (
+                                          <div
+                                            key={subItem.name}
+                                            title={
+                                              subItem.disabledReason ||
+                                              "Indisponible"
+                                            }
+                                            aria-disabled="true"
+                                            className="flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-70"
+                                          >
+                                            <span className="mr-2 text-sm">
+                                              {subItem.icon}
+                                            </span>
+                                            <span>{subItem.name}</span>
+                                            <span className="ml-auto text-[10px] uppercase">
+                                              off
+                                            </span>
+                                          </div>
+                                        );
+                                      }
                                       const isSubActive =
                                         !subItem.external &&
                                         navItemMatchesPath(pathname, subItem);
@@ -951,6 +1034,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                             href={subItem.href}
                                             target="_blank"
                                             rel="noopener noreferrer"
+                                            data-nav-active={
+                                              isSubActive ? "true" : undefined
+                                            }
                                             className={linkClass}
                                           >
                                             <span className="mr-2 text-sm">
@@ -963,6 +1049,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                             key={subItem.name}
                                             href={subItem.href}
                                             prefetch={false}
+                                            data-nav-active={
+                                              isSubActive ? "true" : undefined
+                                            }
                                             onMouseEnter={() =>
                                               prefetchInternalRoute(
                                                 subItem.href,

@@ -89,6 +89,58 @@ function resolveProbeHost(containerOrServiceName, knownMap) {
   return containerOrServiceName;
 }
 
+/**
+ * Nom conteneur Docker normalisé (sans slash initial).
+ */
+function normalizeContainerName(name) {
+  if (!name || typeof name !== 'string') return '';
+  return name.toLowerCase().trim().replace(/^\//, '');
+}
+
+/**
+ * True si le conteneur appartient à la stack courante (STACK_SLUG).
+ * Sur un VPS partagé, évite de mélanger jobbingtrack-prod-* et jobbingtrack-preprod-*.
+ */
+function matchesStackContainerName(name) {
+  const n = normalizeContainerName(name);
+  if (!n) return false;
+  const slug = resolveStackSlug().toLowerCase();
+
+  if (n === slug || n.startsWith(`${slug}-`)) {
+    // STACK_SLUG=jobbingtrack (dev) : exclure explicitement les stacks VPS
+    if (slug === 'jobbingtrack') {
+      if (n.startsWith('jobbingtrack-prod-') || n.startsWith('jobbingtrack-preprod-')) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Suffixe service Compose depuis un nom catalogue / conteneur
+ * (jobbingtrack-prod-auth-service → auth-service).
+ */
+function composeServiceSuffix(name) {
+  const n = normalizeContainerName(name);
+  if (!n) return '';
+  const slug = resolveStackSlug().toLowerCase();
+  if (n.startsWith(`${slug}-`)) return n.slice(slug.length + 1);
+  if (n.startsWith('jobbingtrack-prod-')) return n.slice('jobbingtrack-prod-'.length);
+  if (n.startsWith('jobbingtrack-preprod-')) return n.slice('jobbingtrack-preprod-'.length);
+  if (n.startsWith('jobbingtrack-')) return n.slice('jobbingtrack-'.length);
+  return n;
+}
+
+/**
+ * Filtre docker CLI : sous-chaîne assez stricte pour la stack courante.
+ * Toujours compléter par matchesStackContainerName (filtre name Docker = substring).
+ */
+function dockerNameFilterForStack() {
+  return resolveStackSlug();
+}
+
 module.exports = {
   SERVICE_HEALTH_DEFS,
   SERVICE_HEALTH_ENDPOINTS,
@@ -96,4 +148,8 @@ module.exports = {
   isNonHttpProbe,
   buildKnownServicesMap,
   resolveProbeHost,
+  normalizeContainerName,
+  matchesStackContainerName,
+  composeServiceSuffix,
+  dockerNameFilterForStack,
 };

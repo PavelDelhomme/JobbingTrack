@@ -1,37 +1,33 @@
 {
-  "updatedAt": "2026-09-08",
+  "updatedAt": "2026-09-10",
   "apk": "1.0.55",
   "phase": {
     "id": "B",
     "label": "Gate pré-prod mobile",
-    "step": "NAV",
-    "subStep": "system-back",
-    "point": "MOB-NAV-01",
-    "title": "Retours système depuis chaque détail"
+    "step": "UX",
+    "subStep": "dark-mode",
+    "point": "MOB-DARK-01",
+    "title": "Dark mode mobile aligné web"
   },
   "recentDone": [
     {
-      "id": "MOB-NAV-01-nested-adb",
-      "label": "Nested back candidature↔entreprise Samsung+Blackview"
+      "id": "MOB-DARK-01-tokens",
+      "label": "Tokens thème + login/listes/formulaires sans Colors.white"
     },
     {
-      "id": "BO-OVERVIEW-KPI-MEM-01",
-      "label": "KPI cliquables + budget 8 Go + deploy auto prod"
+      "id": "BO-BOFFICE-NAV-RL-01",
+      "label": "Nav service-logs + scroll + RL 400 auth + MailHog off prod"
     },
     {
-      "id": "MOB-METIER-OPS-02-code",
-      "label": "1.0.55 filtres + quick-create Accueil"
+      "id": "MOB-NAV-01-samsung-adb",
+      "label": "Samsung: nested + contact/relance + FAB + interview nav OK"
     }
   ],
   "queue": [
-    {
-      "id": "MOB-NAV-01",
-      "label": "Retours système — chaînes contact/relance/entretien/appel"
-    },
     {
       "id": "MOB-LOT-VALID-01",
       "label": "Validation porteur lot 1.0.53→1.0.55 (fin de lot)"
     }
   ],
-  "focusId": "MOB-NAV-01"
+  "focusId": "MOB-DARK-01"
 }

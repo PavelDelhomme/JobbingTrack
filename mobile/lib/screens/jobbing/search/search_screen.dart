@@ -16,10 +16,12 @@ import 'package:jobbingtrack_mobile/screens/jobbing/companies/company_detail_scr
 import 'package:jobbingtrack_mobile/screens/jobbing/contacts/contact_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/followups/followup_detail_screen.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/interviews/interview_detail_screen.dart';
+import 'package:jobbingtrack_mobile/screens/jobbing/calls/call_detail_screen.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
 import 'package:jobbingtrack_mobile/services/crash_reporter.dart';
 import 'package:jobbingtrack_mobile/services/global_search.dart';
 import 'package:jobbingtrack_mobile/widgets/mobile_notification_center.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -139,7 +141,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     : null,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                 filled: true,
-                fillColor: Colors.grey.shade100,
+                fillColor: context.fieldFillColor,
               ),
             ),
           ),
@@ -177,7 +179,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               children: [
                                 Text(
                                   '${hits.length} résultat${hits.length > 1 ? 's' : ''}',
-                                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+                                  style: TextStyle(fontSize: 13, color: context.textSecondary, fontWeight: FontWeight.w600),
                                 ),
                                 const SizedBox(height: 8),
                                 if (_filter == GlobalSearchCategory.all)
@@ -204,18 +206,18 @@ class _SearchScreenState extends State<SearchScreen> {
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        Icon(Icons.travel_explore, size: 56, color: Colors.grey.shade400),
+        Icon(Icons.travel_explore, size: 56, color: context.textSecondary),
         const SizedBox(height: 16),
         Text(
           'Recherche dans toute l\'application',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.grey.shade800),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: context.textPrimary),
         ),
         const SizedBox(height: 8),
         Text(
           'Une seule barre pour retrouver candidatures, entreprises, contacts, entretiens, relances et appels.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.4),
+          style: TextStyle(fontSize: 14, color: context.textSecondary, height: 1.4),
         ),
         const SizedBox(height: 24),
         Wrap(
@@ -245,12 +247,12 @@ class _SearchScreenState extends State<SearchScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.search_off, size: 48, color: Colors.grey.shade400),
+          Icon(Icons.search_off, size: 48, color: context.textSecondary),
           const SizedBox(height: 12),
-          Text('Aucun résultat pour « $query »', style: TextStyle(color: Colors.grey.shade700)),
+          Text('Aucun résultat pour « $query »', style: TextStyle(color: context.textSecondary)),
           const SizedBox(height: 6),
           Text('Essayez un autre mot-clé ou élargissez le filtre « Tout »',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+              style: TextStyle(color: context.textSecondary, fontSize: 13)),
         ],
       ),
     );
@@ -280,9 +282,9 @@ class _SearchScreenState extends State<SearchScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (hit.subtitle.isNotEmpty)
-              Text(hit.subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              Text(hit.subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: context.textSecondary)),
             if (hit.meta != null)
-              Text(hit.meta!, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+              Text(hit.meta!, style: TextStyle(fontSize: 11, color: context.textSecondary)),
           ],
         ),
         trailing: const Icon(Icons.chevron_right),
@@ -323,10 +325,11 @@ class _SearchScreenState extends State<SearchScreen> {
         );
         break;
       case GlobalSearchCategory.call:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Détail appel — ouvrez la candidature liée depuis Appels')),
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CallDetailScreen(call: hit.payload as Call),
+          ),
         );
-        Navigator.of(context).pushNamed('/calls');
         break;
       case GlobalSearchCategory.all:
         break;

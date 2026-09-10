@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:jobbingtrack_mobile/services/api_service.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 /// Écran affiché après une inscription réussie : indique à l'utilisateur de vérifier
 /// son email via le lien envoyé, avant de pouvoir se connecter.
@@ -56,23 +57,23 @@ class _PendingVerificationScreenState extends State<PendingVerificationScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 48),
-                Icon(Icons.mark_email_unread_outlined, size: 80, color: Colors.blue[600]),
+                Icon(Icons.mark_email_unread_outlined, size: 80, color: context.cs.primary),
                 const SizedBox(height: 24),
                 Text(
                   'Vérifiez votre email',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue[800]),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: context.cs.primary),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'Un lien de vérification a été envoyé à :',
-                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                  style: TextStyle(fontSize: 16, color: context.textSecondary),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   widget.email,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.blue[700]),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: context.cs.primary),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -81,7 +82,7 @@ class _PendingVerificationScreenState extends State<PendingVerificationScreen> {
                   '2. Cliquez sur le lien de vérification\n'
                   '3. L\'application s\'ouvrira (ou rouvrez-la) pour confirmer\n'
                   '4. Revenez ici pour vous connecter',
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5),
+                  style: TextStyle(fontSize: 14, color: context.textSecondary, height: 1.5),
                   textAlign: TextAlign.center,
                 ),
                 if (_resendMessage != null) ...[
@@ -114,7 +115,7 @@ class _PendingVerificationScreenState extends State<PendingVerificationScreen> {
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[600],
+                      backgroundColor: context.cs.primary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

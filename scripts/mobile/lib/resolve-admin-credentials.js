@@ -26,7 +26,18 @@ function loadRootEnv() {
       ) {
         value = value.slice(1, -1);
       }
-      if (!process.env[key]) process.env[key] = value;
+      // Ne pas écraser une valeur déjà exportée (shell: export MOBILE_ADB_DEVICE=… puis source .env)
+      if (process.env[key]) continue;
+      // Ne pas poser de serial ADB vide → sinon auto-detect (souvent Blackview)
+      if (
+        (key === 'MOBILE_ADB_DEVICE' ||
+          key === 'ADB_DEVICE_ID' ||
+          key === 'DEVICE_SERIAL') &&
+        !value
+      ) {
+        continue;
+      }
+      process.env[key] = value;
     }
   }
   const emuEnv = path.resolve(__dirname, '../../../.env.mobile-emulator');
@@ -63,9 +74,12 @@ function getGatewayUrl() {
 
 async function probeLogin(email, password) {
   const base = getGatewayUrl();
+  const headers = { 'Content-Type': 'application/json' };
+  const bypass = process.env.AUTH_RATE_LIMIT_BYPASS_TOKEN || process.env.JT_SMOKE_BYPASS_TOKEN;
+  if (bypass) headers['x-jt-smoke-bypass'] = bypass;
   const res = await fetch(`${base}/api/v1/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ email, password }),
   });
   if (res.status === 429) {

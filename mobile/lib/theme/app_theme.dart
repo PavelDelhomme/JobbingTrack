@@ -18,8 +18,8 @@ abstract final class AppTheme {
 
     final scheme = isDark
         ? base.copyWith(
-            surface: const Color(0xFF121820),
-            surfaceContainerLowest: const Color(0xFF0B0F14),
+            surface: const Color(0xFF111827),
+            surfaceContainerLowest: const Color(0xFF030712),
             surfaceContainerLow: const Color(0xFF141B26),
             surfaceContainer: const Color(0xFF1A2230),
             surfaceContainerHigh: const Color(0xFF232D3F),

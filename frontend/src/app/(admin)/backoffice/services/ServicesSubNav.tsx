@@ -5,19 +5,12 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { AdminLayout } from "@/components/features";
 
+import { isServicesTabActive } from "@/lib/backoffice/navPath";
+
 const TABS = [
   { href: "/backoffice/services", label: "Liste des services" },
-  { href: "/backoffice/services/logs", label: "Services & Logs" },
+  { href: "/backoffice/services/service-logs", label: "Services & Logs" },
 ] as const;
-
-function isServicesTabActive(pathname: string, href: string): boolean {
-  if (href === "/backoffice/services") {
-    return (
-      pathname === href || /^\/backoffice\/services\/[^/]+$/.test(pathname)
-    );
-  }
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
 
 export function ServicesSubNav() {
   const pathname = usePathname() || "";

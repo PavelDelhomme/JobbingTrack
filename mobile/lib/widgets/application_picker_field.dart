@@ -3,6 +3,7 @@ import 'package:jobbingtrack_mobile/models/application.dart';
 import 'package:jobbingtrack_mobile/utils/application_labels.dart';
 import 'package:jobbingtrack_mobile/utils/datetime_display.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 /// Sélection d'une candidature (tri : date de candidature la plus récente en premier).
 class ApplicationPickerField extends StatelessWidget {
@@ -84,7 +85,7 @@ class ApplicationPickerField extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: Text(
                             'Aucune candidature. Créez-en une depuis l’accueil.',
-                            style: TextStyle(color: Colors.grey.shade600),
+                            style: TextStyle(color: context.textSecondary),
                           ),
                         ),
                       ...filtered.map(
@@ -141,7 +142,7 @@ class ApplicationPickerField extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                color: selected == null ? Colors.grey.shade600 : null,
+                color: selected == null ? context.textSecondary : null,
                 fontWeight: selected != null ? FontWeight.w600 : FontWeight.normal,
               ),
             ),

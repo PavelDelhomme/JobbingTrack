@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:jobbingtrack_mobile/models/company.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
 import 'package:jobbingtrack_mobile/widgets/company_create_dialog.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 /// Sélection ou création d'une boîte d'intérim (TEMP_AGENCY).
 class AgencyPickerField extends StatelessWidget {
@@ -111,7 +112,7 @@ class AgencyPickerField extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: Text(
                             'Aucune agence enregistrée. Créez-en une ci-dessus.',
-                            style: TextStyle(color: Colors.grey.shade600),
+                            style: TextStyle(color: context.textSecondary),
                           ),
                         ),
                     ],
@@ -165,7 +166,7 @@ class AgencyPickerField extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: selected != null || selectedAgencyId == null ? null : Colors.grey.shade600,
+            color: selected != null || selectedAgencyId == null ? null : context.textSecondary,
             fontWeight: selected != null ? FontWeight.w600 : FontWeight.normal,
           ),
         ),

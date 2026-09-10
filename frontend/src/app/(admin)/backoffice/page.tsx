@@ -43,7 +43,6 @@ import { DashboardLayoutRegion } from "@/lib/ui";
 import { ServiceHealthKpiCards } from "@/components/monitoring/ServiceHealthKpiCards";
 import {
   buildStatisticsServicesFromDocker,
-  filterMetricsListToActive,
   summarizeDockerServiceHealth,
   type DockerServiceRow,
 } from "@/lib/metrics/serviceHealthOverview";
@@ -361,14 +360,26 @@ export default function BackofficePage() {
     () =>
       buildStatisticsServicesFromDocker(
         dockerServicesSnapshot,
-        filterMetricsListToActive(servicesWithMetrics),
+        // Ne pas filtrer trop strictement : le hub a souvent status=running
+        // alors que l’agrégateur expose healthy + responseTimeMs.
+        Array.isArray(servicesWithMetrics) ? servicesWithMetrics : [],
       ),
     [dockerServicesSnapshot, servicesWithMetrics],
   );
-  const priorityAverageResponseTimeMs = useMemo(
-    () => averagePriorityResponseTimeMs(priorityStatisticsServices),
-    [priorityStatisticsServices],
-  );
+  const priorityAverageResponseTimeMs = useMemo(() => {
+    const fromPriority = averagePriorityResponseTimeMs(
+      priorityStatisticsServices,
+    );
+    if (fromPriority != null) return fromPriority;
+    const fallback = Number(
+      (systemMetrics as { responseTime?: { average_ms?: number } })
+        ?.responseTime?.average_ms ??
+        (systemMetrics as { monitoringC?: { avg_response_time_ms?: number } })
+          ?.monitoringC?.avg_response_time_ms ??
+        null,
+    );
+    return Number.isFinite(fallback) && fallback > 0 ? fallback : null;
+  }, [priorityStatisticsServices, systemMetrics]);
 
   /** Instantané par conteneur `jobbingtrack-*` (CPU % / mémoire % / RAM MB) — source `fetchMetrics().containers`. */
   const jobbingtrackContainerRows = useMemo(() => {
@@ -430,6 +441,11 @@ export default function BackofficePage() {
                   ...allMetrics.system,
                   monitoringC: allMetrics.monitoringC,
                   jobbingtrack: allMetrics.system.jobbingtrack,
+                  network:
+                    allMetrics.network ||
+                    allMetrics.system?.jobbingtrack?.containers?.network ||
+                    allMetrics.system?.network,
+                  responseTime: allMetrics.responseTime,
                 };
               }
 
@@ -479,7 +495,7 @@ export default function BackofficePage() {
                       ?.percent || 0),
                 ) > 0.1;
 
-              // Si pas de changement significatif, retourner l'objet précédent (évite re-render)
+              // Si pas de changement significatif CPU/RAM, fusionner quand même réseau / latence
               if (
                 !cpuChanged &&
                 !memChanged &&
@@ -487,7 +503,25 @@ export default function BackofficePage() {
                 !projectMemChanged &&
                 prev
               ) {
-                return prev;
+                const nextNetwork =
+                  allMetrics.network ||
+                  allMetrics.system?.jobbingtrack?.containers?.network ||
+                  prev.network;
+                const nextRt = allMetrics.responseTime || prev.responseTime;
+                const netChanged =
+                  Number(nextNetwork?.total_rx_mb ?? 0) !==
+                    Number(prev.network?.total_rx_mb ?? 0) ||
+                  Number(nextNetwork?.total_tx_mb ?? 0) !==
+                    Number(prev.network?.total_tx_mb ?? 0);
+                const rtChanged =
+                  Number(nextRt?.average_ms ?? 0) !==
+                  Number(prev.responseTime?.average_ms ?? 0);
+                if (!netChanged && !rtChanged) return prev;
+                return {
+                  ...prev,
+                  network: nextNetwork,
+                  responseTime: nextRt,
+                };
               }
 
               return {
@@ -495,6 +529,11 @@ export default function BackofficePage() {
                 ...allMetrics.system,
                 // ✅ CORRECTION : Préserver monitoringC et jobbingtrack
                 monitoringC: allMetrics.monitoringC || prev.monitoringC,
+                network:
+                  allMetrics.network ||
+                  allMetrics.system?.jobbingtrack?.containers?.network ||
+                  prev.network,
+                responseTime: allMetrics.responseTime || prev.responseTime,
                 // Préserver les sous-objets en les fusionnant aussi
                 cpu: prev?.cpu
                   ? { ...prev.cpu, ...allMetrics.system.cpu }
@@ -1960,7 +1999,7 @@ export default function BackofficePage() {
                 </h3>
               </div>
               <Link
-                href="/backoffice/services/logs"
+                href="/backoffice/services/service-logs"
                 className="text-sm text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
               >
                 Services &amp; logs →

@@ -37,4 +37,16 @@ describe('serviceHealthEndpoints STACK_SLUG', () => {
     expect(Object.keys(map).every((k) => k.startsWith('jobbingtrack-prod-'))).toBe(true);
     expect(resolveProbeHost('jobbingtrack-prod-auth-service', map)).toBe('auth-service');
   });
+
+  it('matchesStackContainerName isole prod vs préprod', () => {
+    process.env.STACK_SLUG = 'jobbingtrack-prod';
+    const {
+      matchesStackContainerName: match,
+      composeServiceSuffix: suffix,
+    } = require('../src/config/serviceHealthEndpoints');
+    expect(match('jobbingtrack-prod-auth-service')).toBe(true);
+    expect(match('jobbingtrack-preprod-auth-service')).toBe(false);
+    expect(match('jobbingtrack-auth-service')).toBe(false);
+    expect(suffix('jobbingtrack-prod-auth-service')).toBe('auth-service');
+  });
 });

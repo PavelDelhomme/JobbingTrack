@@ -41,7 +41,11 @@ export interface ServiceHealthCounts {
 
 export function normalizeDockerServiceKey(name: string): string {
   return (name || "")
+    .replace(/^jobbingtrack-prod-/, "")
+    .replace(/^jobbingtrack-preprod-/, "")
     .replace(/^jobbingtrack-/, "")
+    .replace(/^prod-/, "")
+    .replace(/^preprod-/, "")
     .trim()
     .toLowerCase();
 }

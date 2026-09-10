@@ -3,6 +3,10 @@ const { exec } = require('child_process');
 const { promisify } = require('util');
 const { decorateContainerHealth, summarizeContainersForBackoffice } = require('./serviceHealthModel');
 const { normalizeDockerMemoryBytes } = require('./memoryBudget');
+const {
+  dockerNameFilterForStack,
+  matchesStackContainerName,
+} = require('../config/serviceHealthEndpoints');
 
 const execAsync = promisify(exec);
 
@@ -34,7 +38,7 @@ class DockerService {
   }
 
   /**
-   * Conteneurs JobbingTrack en cours d'exécution (préfixe jobbingtrack-).
+   * Conteneurs de la stack courante (STACK_SLUG), en cours d'exécution.
    */
   async getJobbingTrackContainers() {
     const containers = await this.listContainers();
@@ -50,7 +54,7 @@ class DockerService {
           labels: row.Labels || row.labels || null,
         };
       })
-      .filter((container) => container.name && container.name.startsWith('jobbingtrack-'));
+      .filter((container) => matchesStackContainerName(container.name));
   }
 
   /**
@@ -148,8 +152,9 @@ class DockerService {
    */
   async getJobbingTrackContainersStats() {
     try {
+      const nameFilter = dockerNameFilterForStack();
       const { stdout: psOut } = await execAsync(
-        'docker ps -q --filter "name=jobbingtrack"',
+        `docker ps -q --filter "name=${nameFilter}"`,
       );
       const ids = psOut.trim().split('\n').filter(Boolean);
       if (ids.length === 0) return [];
@@ -162,7 +167,8 @@ class DockerService {
         .split('\n')
         .filter((line) => line.length > 0)
         .map((line) => JSON.parse(line))
-        .map((stats) => this.mapStatsRow(stats));
+        .map((stats) => this.mapStatsRow(stats))
+        .filter((stat) => matchesStackContainerName(stat.name));
     } catch (error) {
       console.error('[Docker] Erreur getJobbingTrackContainersStats:', error.message);
       return [];

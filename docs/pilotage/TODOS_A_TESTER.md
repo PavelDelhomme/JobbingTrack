@@ -11,6 +11,21 @@
 
 ---
 
+## En cours — MOB-DARK-01 (10/09/2026)
+
+> Alignement dark mode mobile sur tokens web. **Tests ADB = Blackview uniquement** (Samsung réservé).
+
+| Zone | Check | Résultat | Suite |
+|------|-------|----------|-------|
+| Code | `theme_extensions` + surface `#111827` / `#030712` | **OK** analyze | |
+| Code | login / register / forgot / reset / bio sans fond blanc | **OK** | |
+| Code | toggle ☀️/🌙 Accueil « Bonjour… » + login (ellipsis nom) | **OK** | |
+| Code | search → CallDetail ; relance menu Modifier → détail | **OK** | |
+| Code | Relance statuts API + timeline ; calendrier `callId` | **OK** | |
+| Code | `EntityDetailField` / listes entretiens / relances / recherche | **OK** | |
+| Devices | Blackview nested / FAB | **KO smoke** | entreprise détail / sheet + clavier — rejouer après rebuild APK |
+| Device | Samsung | **interdit** | autre projet |
+
 ## En cours — BO-OVERVIEW-KPI-MEM-01 (07/09/2026) — **CLOS**
 
 > Cartes santé → liste filtrée ; budget mémoire JT ; deploy auto. **OK porteur 07/09** · prod vérifié limit **8192**.
@@ -31,7 +46,10 @@
 | Code | Détails via `Navigator.of(context).push` (pas de Navigator imbriqué listes) | **OK** | |
 | Devices | Samsung : liste → détail → entreprise → BACK → détail → BACK → liste | **OK** ADB | |
 | Devices | Blackview : même chaîne nested back | **OK** ADB 08/09 | |
-| Devices | Samsung : chaînes contact/relance | **en cours** | 429 auth prod + token expiré offline bloquent création FAB ; smoke `smoke-mobile-nav-contact-relance-back-adb.js` ajouté |
+| Devices | Samsung : chaînes contact/relance | **OK** ADB 10/09 | |
+| Devices | Samsung : FAB appel/entretien (labels UI réels) | **OK** ADB 10/09 | `smoke-mobile-fab-call-entretien-adb.js` EXIT 0 |
+| Devices | Samsung : entretien → candidature liée | **OK** ADB 10/09 | `smoke-mobile-interview-nav-adb.js` EXIT 0 |
+| Smoke | cible ADB : ne pas écraser serial Samsung via `.env` vide ; bypass rate-limit + `loginFresh` | **OK** | |
 | Prod | `ApplicationStatus` vide → create KO `CANDIDATE_PENDING` | **OK** seed SQL prod+préprod | auto-upsert code aussi |
 | Smoke | `smoke-mobile-nav-nested-back-adb.js` + 429/login Blackview | **OK** | |
 | Note | Taps entreprise près bottom bar Blackview mangés → centrer cible avant tap | **OK** smoke | |

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 /// Écran affiché quand l'utilisateur ouvre le lien de vérification d'email (deep link ou route avec token).
 /// Appelle l'API verify-email puis affiche succès ou erreur et propose d'aller vers la connexion.
@@ -65,13 +66,13 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
               if (_isLoading) ...[
                 const CircularProgressIndicator(),
                 const SizedBox(height: 24),
-                Text('Vérification de votre email...', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+                Text('Vérification de votre email...', style: TextStyle(fontSize: 16, color: context.textSecondary)),
               ] else if (_success) ...[
                 Icon(Icons.mark_email_read, size: 80, color: Colors.green[600]),
                 const SizedBox(height: 24),
                 Text('Email vérifié', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green[800])),
                 const SizedBox(height: 8),
-                Text('Votre compte est actif. Vous pouvez vous connecter.', style: TextStyle(fontSize: 14, color: Colors.grey[600]), textAlign: TextAlign.center),
+                Text('Votre compte est actif. Vous pouvez vous connecter.', style: TextStyle(fontSize: 14, color: context.textSecondary), textAlign: TextAlign.center),
                 const SizedBox(height: 32),
                 SizedBox(
                   width: double.infinity,
@@ -79,7 +80,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[600],
+                      backgroundColor: context.cs.primary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -91,7 +92,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                 const SizedBox(height: 24),
                 Text('Échec de la vérification', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.red[800])),
                 const SizedBox(height: 8),
-                Text(_errorMessage ?? 'Lien invalide ou expiré.', style: TextStyle(fontSize: 14, color: Colors.grey[700]), textAlign: TextAlign.center),
+                Text(_errorMessage ?? 'Lien invalide ou expiré.', style: TextStyle(fontSize: 14, color: context.textSecondary), textAlign: TextAlign.center),
                 const SizedBox(height: 32),
                 SizedBox(
                   width: double.infinity,
@@ -99,8 +100,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.blue[600],
-                      side: BorderSide(color: Colors.blue[600]!),
+                      foregroundColor: context.cs.primary,
+                      side: BorderSide(color: context.cs.primary),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: const Text('Retour à la connexion', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),

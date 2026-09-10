@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:jobbingtrack_mobile/providers/auth_provider.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 import 'package:jobbingtrack_mobile/services/api_config_store.dart';
 import 'package:jobbingtrack_mobile/services/mobile_analytics_service.dart';
 import 'package:jobbingtrack_mobile/screens/jobbing/auth/pending_verification_screen.dart';
@@ -132,7 +133,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: Colors.blue[600],
+                      color: context.cs.primary,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -150,7 +151,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue[800],
+                      color: context.cs.primary,
                     ),
                   ),
 
@@ -160,7 +161,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     'Commencez à suivre vos candidatures',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.grey[600],
+                      color: context.textSecondary,
                     ),
                   ),
 
@@ -170,11 +171,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.panelColor,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -193,7 +194,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             filled: true,
-                            fillColor: Colors.grey[50],
+                            fillColor: context.fieldFillColor,
                           ),
                           textInputAction: TextInputAction.next,
                           validator: (value) {
@@ -217,7 +218,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             filled: true,
-                            fillColor: Colors.grey[50],
+                            fillColor: context.fieldFillColor,
                           ),
                           textInputAction: TextInputAction.next,
                           validator: (value) {
@@ -241,7 +242,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             filled: true,
-                            fillColor: Colors.grey[50],
+                            fillColor: context.fieldFillColor,
                           ),
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
@@ -285,7 +286,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             filled: true,
-                            fillColor: Colors.grey[50],
+                            fillColor: context.fieldFillColor,
                           ),
                           obscureText: _obscurePassword,
                           textInputAction: TextInputAction.next,
@@ -326,7 +327,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             filled: true,
-                            fillColor: Colors.grey[50],
+                            fillColor: context.fieldFillColor,
                           ),
                           obscureText: _obscureConfirmPassword,
                           textInputAction: TextInputAction.done,
@@ -372,7 +373,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     'J\'accepte les conditions d\'utilisation et la politique de confidentialité',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey[700],
+                                      color: context.textSecondary,
                                     ),
                                   ),
                                 ),
@@ -412,7 +413,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   'Obligatoire pour créer un compte.',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey[700],
+                                    color: context.textSecondary,
                                     height: 1.35,
                                   ),
                                 ),
@@ -452,7 +453,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   'depuis Paramètres ou l\'espace Agent après connexion.',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey[700],
+                                    color: context.textSecondary,
                                     height: 1.35,
                                   ),
                                 ),
@@ -473,7 +474,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : _register,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue[600],
+                              backgroundColor: context.cs.primary,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -512,7 +513,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         'Vous avez déjà un compte ? ',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[600],
+                          color: context.textSecondary,
                         ),
                       ),
                       GestureDetector(
@@ -524,7 +525,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Colors.blue[600],
+                            color: context.cs.primary,
                           ),
                         ),
                       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:jobbingtrack_mobile/models/company.dart';
 import 'package:jobbingtrack_mobile/utils/scroll_padding.dart';
+import 'package:jobbingtrack_mobile/theme/theme_extensions.dart';
 
 /// Sélection d'une entreprise existante ou saisie d'un nouveau nom (sans liste déroulante au focus).
 class CompanyPickerField extends StatelessWidget {
@@ -93,7 +94,7 @@ class CompanyPickerField extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: Text(
                             'Aucune entreprise enregistrée. Utilisez la recherche pour en créer une.',
-                            style: TextStyle(color: Colors.grey.shade600),
+                            style: TextStyle(color: context.textSecondary),
                           ),
                         ),
                     ],
@@ -145,7 +146,7 @@ class CompanyPickerField extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                color: hasSelection ? null : Colors.grey.shade600,
+                color: hasSelection ? null : context.textSecondary,
                 fontWeight: hasSelection ? FontWeight.w600 : FontWeight.normal,
               ),
             ),

@@ -96,15 +96,29 @@ app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting spécifique à l'auth - UNIQUEMENT EN PRODUCTION
 if (process.env.NODE_ENV === 'production') {
+  const windowMs = Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000);
+  const max = Number(process.env.AUTH_RATE_LIMIT_MAX || 300);
   const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 50, // 50 requêtes max en production
+    windowMs: Number.isFinite(windowMs) && windowMs > 0 ? windowMs : 15 * 60 * 1000,
+    max: Number.isFinite(max) && max > 0 ? max : 300,
     message: 'Trop de tentatives de connexion, veuillez réessayer plus tard.',
     standardHeaders: true,
     legacyHeaders: false,
+    // Derrière api-gateway / NPM : trust proxy global est nécessaire, mais
+    // express-rate-limit v7 refuse validate.trustProxy par défaut.
+    validate: { trustProxy: false },
+    skip: (req) => {
+      // Health / probes ne doivent pas consommer le quota login
+      const path = String(req.path || '');
+      if (path.endsWith('/health') || path.includes('/health')) return true;
+      // Bypass smokes / ops (header + secret partagé)
+      const bypass = process.env.AUTH_RATE_LIMIT_BYPASS_TOKEN || '';
+      if (bypass && req.get('x-jt-smoke-bypass') === bypass) return true;
+      return false;
+    },
   });
   app.use('/api/v1/auth', authLimiter);
-  logger.info('✅ Rate limiting activé en production (50 req/15min)');
+  logger.info(`✅ Rate limiting activé en production (${max} req / ${Math.round(windowMs / 60000)} min)`);
 } else {
   logger.info('⚠️  Rate limiting COMPLÈTEMENT DÉSACTIVÉ en développement');
 }

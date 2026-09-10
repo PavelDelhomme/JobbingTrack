@@ -319,9 +319,27 @@ app.use((err, req, res, next) => {
 app.use(wafCheck);
 
 // 3. Configuration du rate limiting
+// Backoffice SPA : une navigation peut facilement dépasser 100 req/min (sécurité,
+// emails, métriques en parallèle). On garde une limite stricte pour l’anonyme,
+// et une limite plus haute si un Bearer JWT est présent (vol de token ≠ brute-force).
+function resolveApiRateLimitMax(req) {
+  const hasBearer = Boolean(
+    String(req.get?.('Authorization') || req.headers?.authorization || '')
+      .match(/^Bearer\s+\S+/i),
+  );
+  if (hasBearer) {
+    const authMax = parseInt(process.env.RATE_LIMIT_REQUESTS_AUTH || '', 10);
+    if (Number.isFinite(authMax) && authMax > 0) return authMax;
+    return 400;
+  }
+  const anonMax = parseInt(process.env.RATE_LIMIT_REQUESTS || '', 10);
+  if (Number.isFinite(anonMax) && anonMax > 0) return anonMax;
+  return 120;
+}
+
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: parseInt(process.env.RATE_LIMIT_REQUESTS) || 100,
+  max: resolveApiRateLimitMax,
   message: {
     success: false,
     error: 'Trop de requêtes',
@@ -339,11 +357,18 @@ const apiLimiter = rateLimit({
     }
     return isDevTestBypassRequest(req);
   },
-  handler: (req, res) => {
+  handler: (req, res, _next, options) => {
+    const limit = typeof options?.limit === 'number'
+      ? options.limit
+      : resolveApiRateLimitMax(req);
     logger.warn('Rate limit général dépassé', {
       ip: req.ip,
       url: req.url,
-      userAgent: req.get('User-Agent')
+      userAgent: req.get('User-Agent'),
+      limit,
+      authenticated: Boolean(
+        String(req.get('Authorization') || '').match(/^Bearer\s+\S+/i),
+      ),
     });
     res.status(429).json({
       success: false,
