@@ -108,7 +108,7 @@ async function ensureLoggedIn(phone, email, password) {
   }
   try {
     await phone.shellCommand(
-      'am start -n com.example.jobbingtrack_mobile/.MainActivity',
+      `am start -n ${process.env.MOBILE_APP_PACKAGE || 'com.example.jobbingtrack_mobile'}/.MainActivity`,
     );
   } catch {
     await adbLib.flows.restartApp(phone);

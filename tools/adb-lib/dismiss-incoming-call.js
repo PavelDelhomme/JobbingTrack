@@ -4,7 +4,8 @@
  * (voir scripts/mobile/lib/smoke-runtime.js) — jamais via .env produit.
  */
 
-const JOBINGTRACK_PKG = 'com.example.jobbingtrack_mobile';
+const JOBINGTRACK_PKG =
+  process.env.MOBILE_APP_PACKAGE || 'com.example.jobbingtrack_mobile';
 
 const INCOMING_PACKAGES = [
   'com.android.incallui',

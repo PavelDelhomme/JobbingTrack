@@ -85,12 +85,75 @@ String applicationStatusLabel(String status) {
 }
 
 Color applicationStatusColor(String status) {
-  if (status.contains('ACCEPTED') || status == 'OFFER_RECEIVED') return Colors.teal;
-  if (status.contains('REJECTED') || status.contains('NO_RESPONSE')) return Colors.red;
-  if (status.contains('INTERVIEW') || status.contains('PENDING')) return Colors.purple;
-  if (status == 'WITHDRAWN') return Colors.grey;
-  if (status == 'CANDIDATE_PENDING') return Colors.blue;
-  return Colors.grey;
+  switch (status) {
+    case 'ACCEPTED_AFTER_INTERVIEW':
+    case 'ACCEPTED':
+    case 'OFFER_RECEIVED':
+      return const Color(0xFF0D9488); // teal
+    case 'REJECTED_WITHOUT_INTERVIEW':
+    case 'REJECTED_AFTER_INTERVIEW':
+    case 'REJECTED':
+    case 'NO_RESPONSE_NO_INTERVIEW':
+      return const Color(0xFFDC2626); // rouge refus
+    case 'NO_RESPONSE':
+    case 'NO_RESPONSE_AFTER_FIRST_FOLLOWUP':
+    case 'NO_RESPONSE_AFTER_SECOND_FOLLOWUP':
+    case 'NO_RESPONSE_AFTER_FOLLOWUP':
+      return const Color(0xFFD97706); // ambre — à relancer / silence
+    case 'FIRST_INTERVIEW_PENDING':
+    case 'OTHER_INTERVIEW_PENDING':
+    case 'AWAITING_INTERVIEW':
+    case 'INTERVIEW_SOON':
+    case 'INTERVIEW_PENDING':
+    case 'INTERVIEW_SCHEDULED':
+    case 'INTERVIEW':
+    case 'INTERVIEW_DONE':
+    case 'POST_INTERVIEW_FEEDBACK':
+    case 'TECHNICAL_TEST_PENDING':
+      return const Color(0xFF7C3AED); // violet entretien
+    case 'RELANCED_PENDING':
+      return const Color(0xFF2563EB); // bleu relance
+    case 'CANDIDATE_PENDING':
+    case 'SENT':
+    case 'APPLIED':
+    case 'IN_PROGRESS':
+      return const Color(0xFF3B82F6); // bleu candidature
+    case 'WITHDRAWN':
+      return const Color(0xFF64748B);
+    default:
+      if (status.contains('REJECTED')) return const Color(0xFFDC2626);
+      if (status.contains('NO_RESPONSE')) return const Color(0xFFD97706);
+      if (status.contains('INTERVIEW') || status.contains('TEST')) {
+        return const Color(0xFF7C3AED);
+      }
+      if (status.contains('RELANC')) return const Color(0xFF2563EB);
+      if (status.contains('PENDING') || status.contains('ACCEPTED')) {
+        return status.contains('ACCEPTED')
+            ? const Color(0xFF0D9488)
+            : const Color(0xFF3B82F6);
+      }
+      return const Color(0xFF64748B);
+  }
+}
+
+Color followUpStatusColor(String status) {
+  switch (status) {
+    case 'PENDING':
+    case 'PLANNED':
+    case 'SCHEDULED':
+      return const Color(0xFF2563EB);
+    case 'POSITIVE_RESPONSE':
+    case 'COMPLETED':
+      return const Color(0xFF16A34A);
+    case 'NEGATIVE_RESPONSE':
+      return const Color(0xFFDC2626);
+    case 'NO_RESPONSE':
+      return const Color(0xFFD97706);
+    case 'CANCELLED':
+      return const Color(0xFF64748B);
+    default:
+      return const Color(0xFF64748B);
+  }
 }
 
 Future<String?> showApplicationStatusPicker(BuildContext context, {String? current, bool manualOnly = true}) {

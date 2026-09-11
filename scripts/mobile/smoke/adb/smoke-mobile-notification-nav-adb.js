@@ -13,9 +13,24 @@ const {
   isNotificationSheetOpen,
 } = require('../../lib/adb-smoke-helpers');
 const { resolveWorkingUserCredentials } = require('../../lib/resolve-user-credentials');
-const { loadRootEnv } = require('../../lib/resolve-admin-credentials');
+const {
+  loadRootEnv,
+  resolveWorkingAdminCredentials,
+} = require('../../lib/resolve-admin-credentials');
 
 loadRootEnv();
+
+async function resolveSmokeCredentials() {
+  if (process.env.SMOKE_USE_ADMIN === '1') {
+    return resolveWorkingAdminCredentials();
+  }
+  try {
+    return await resolveWorkingUserCredentials();
+  } catch (err) {
+    console.warn('TEST_USER KO — fallback ADMIN:', err.message);
+    return resolveWorkingAdminCredentials();
+  }
+}
 
 async function ensureLoggedIn(phone, email, password) {
   await ensureUserShell(phone, email, password);
@@ -57,9 +72,14 @@ async function tapFirstNotificationTile(phone) {
 }
 
 (async () => {
-  const { email, password } = await resolveWorkingUserCredentials();
-  const phone = await adbLib.connect();
-  console.log(`Device: ${(await phone.listDevices()).map((d) => d.id).join(', ')}`);
+  const { email, password } = await resolveSmokeCredentials();
+  const phone = await adbLib.connect(
+    process.env.MOBILE_ADB_DEVICE ||
+      process.env.ADB_DEVICE_ID ||
+      process.env.DEVICE_SERIAL ||
+      undefined,
+  );
+  console.log(`Device: ${phone.deviceId}`);
   console.log(`User: ${email}`);
 
   await ensureLoggedIn(phone, email, password);

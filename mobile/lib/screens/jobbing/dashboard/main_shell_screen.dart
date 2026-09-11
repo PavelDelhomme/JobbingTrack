@@ -255,7 +255,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                   _mountedTabs.contains(1)
                       ? ApplicationsScreen(
                           key: ValueKey(
-                            'apps-$_applicationsResetEpoch-$_applicationsTabIndex-${_applicationStatusFilter ?? ''}',
+                            'apps-$_applicationsResetEpoch-${_applicationStatusFilter ?? ''}',
                           ),
                           initialTabIndex: _applicationsTabIndex,
                           statusFilter: _applicationStatusFilter,

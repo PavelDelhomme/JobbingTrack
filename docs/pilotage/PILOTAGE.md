@@ -1,15 +1,15 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **10 septembre 2026**
+Dernière mise à jour : **11 septembre 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : MOB-DARK-01 / MOB-LOT-VALID-01** — dark mode + validation lot  
-**Git** : branche `feat/mobile-metier-ops-v1055` (depuis `dev`) · APK **1.0.55**  
-**Appareils** : **Blackview seul** (`EEA9700PRO0014587`) — Samsung **interdit** (autre projet / batterie)  
+**Focus (1 seule) : MOB-UX-PERF-01 → validation porteur**  
+**Git** : branche `feat/mobile-metier-ops-v1055` (depuis `dev`) · APK **1.0.55** (JT Dev)  
+**Appareils** : **Blackview seul** (`EEA9700PRO0014587`) — Samsung **interdit** (autre projet / batterie)
 
-**Livré 10/09** : toggle ☀️/🌙 à côté de « Bonjour » (ellipsis) · dark tokens · relance statuts API · calendrier `callId` · smokes MOB-NAV Samsung OK (avant bascule Blackview).  
+**Livré 11/09** : stop remount Entreprises/Contacts/Appels · TTL listes 3 min · calendrier cache · libellé sync « À jour » · dark défaut + toggle 🌙 · build debug `--flavor dev` (anti `!zip.isFile`).  
 
-**Prochaine action** : smokes Blackview + validation porteur lot mobile.
+**Prochaine action** : validation porteur UX Blackview puis **MOB-LOT-VALID-01**.
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist : [`TODOS.md`](TODOS.md) ▶ En cours  

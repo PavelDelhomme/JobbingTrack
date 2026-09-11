@@ -19,7 +19,7 @@ class InterviewProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isOfflineData => _isOfflineData;
 
-  static const _staleAfter = Duration(seconds: 45);
+  static const _staleAfter = Duration(minutes: 3);
 
   void _notifySafely() {
     final phase = SchedulerBinding.instance.schedulerPhase;

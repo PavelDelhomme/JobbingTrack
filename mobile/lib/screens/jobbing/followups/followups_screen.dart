@@ -155,7 +155,6 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
     final metaLine = joinListMeta([
       offerLine,
       followUp.contactDisplayName,
-      followUpStatusLabel(followUp.status),
     ]);
 
     Color typeColor = _getTypeColor(followUp.type);
@@ -215,7 +214,29 @@ class _FollowUpsScreenState extends State<FollowUpsScreen>
                           color: context.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: followUpStatusColor(followUp.status).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: followUpStatusColor(followUp.status).withValues(alpha: 0.45),
+                            ),
+                          ),
+                          child: Text(
+                            followUpStatusLabel(followUp.status),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: followUpStatusColor(followUp.status),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
                           Icon(

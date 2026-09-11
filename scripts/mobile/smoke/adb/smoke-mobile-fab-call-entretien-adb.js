@@ -115,7 +115,7 @@ async function assertAnyLabel(phone, labels, context) {
     ['Date et heure (jour)', 'Date et heure'],
     'Entretien date',
   );
-  await assertAnyLabel(phone, ['Lieu (optionnel)', 'Lieu'], 'Entretien lieu');
+  await assertAnyLabel(phone, ['Lieu / tél (optionnel)', 'Lieu (optionnel)', 'Lieu'], 'Entretien lieu');
   await assertAnyLabel(phone, ['Notes'], 'Entretien notes');
   console.log('✅ FAB → Entretien : champs OK');
   await phone.tap('Annuler');

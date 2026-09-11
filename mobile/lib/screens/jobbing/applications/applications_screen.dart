@@ -202,8 +202,8 @@ class _ApplicationsScreenState extends State<ApplicationsScreen>
           return ok ? auth.token : null;
         },
       ),
-      companyProvider.loadCompanies(token: token, userId: userId).catchError((_) {}),
-      contactProvider.loadContacts(token: token, userId: userId).catchError((_) {}),
+      companyProvider.loadCompanies(token: token, userId: userId, force: force).catchError((_) {}),
+      contactProvider.loadContacts(token: token, userId: userId, force: force).catchError((_) {}),
       interviewProvider.loadInterviews(token: token, userId: userId, force: force).catchError((_) {}),
       followUpProvider.loadFollowUps(token: token, userId: userId, force: force).catchError((_) {}),
       callProvider.loadCalls(token: token, userId: userId, force: force).catchError((_) {}),

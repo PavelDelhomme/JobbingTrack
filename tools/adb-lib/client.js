@@ -10,7 +10,9 @@
  *   await adb.typeInField('Email', 'admin@jobbingtrack.test');
  */
 
-const CONTROLLER_URL = process.env.EMULATOR_CONTROLLER_URL || 'http://localhost:5055';
+// 127.0.0.1 (pas localhost) : Node/undici tente ::1 d'abord et échoue si le
+// contrôleur n'écoute que sur IPv4 → « fetch failed » immédiat dans les smokes.
+const CONTROLLER_URL = process.env.EMULATOR_CONTROLLER_URL || 'http://127.0.0.1:5055';
 const UI_CACHE_MS = Number(process.env.ADB_UI_CACHE_MS || 280);
 const WAIT_FOR_POLL_MS = Number(process.env.ADB_WAIT_POLL_MS || 320);
 const ADB_FAST = ['1', 'true', 'yes'].includes(String(process.env.ADB_FAST || '').toLowerCase());
@@ -390,10 +392,21 @@ class AdbClient {
   }
 
   async shellCommand(command) {
-    const r = await this._post('/adb-shell', { command });
-    if (!r.success) throw new Error(r.error || 'Shell command failed');
-    this._log(`shell: ${command.substring(0, 60)}`);
-    return r.stdout || '';
+    const run = this._post('/adb-shell', { command }).then((r) => {
+      if (!r.success) throw new Error(r.error || 'Shell command failed');
+      this._log(`shell: ${command.substring(0, 60)}`);
+      return r.stdout || '';
+    });
+    // run-as peut bloquer longtemps sur certains appareils (Blackview) → timeout court
+    if (/\brun-as\b/.test(String(command))) {
+      return Promise.race([
+        run,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('run-as shell timeout')), 3000),
+        ),
+      ]);
+    }
+    return run;
   }
 
   /** Écrit un booléen dans FlutterSharedPreferences (smokes ADB uniquement). */
@@ -475,14 +488,20 @@ class AdbClient {
     }
   }
 
-  async returnToApp(packageName = 'com.example.jobbingtrack_mobile') {
+  async returnToApp(packageName = process.env.MOBILE_APP_PACKAGE || 'com.example.jobbingtrack_mobile') {
     try {
       return await this.shellCommand(`am start -n ${packageName}/.MainActivity`);
     } catch {
-      await this.back();
-      await this.wait(500);
-      await this.back();
-      return 'Retour via back';
+      try {
+        return await this.shellCommand(
+          `monkey -p ${packageName} -c android.intent.category.LAUNCHER 1`,
+        );
+      } catch {
+        await this.back();
+        await this.wait(500);
+        await this.back();
+        return 'Retour via back';
+      }
     }
   }
 

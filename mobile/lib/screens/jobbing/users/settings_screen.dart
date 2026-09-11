@@ -46,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _phoneSyncing = false;
   String _appVersionLine = '…';
   int _offlinePending = 0;
-  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode _themeMode = ThemeMode.dark;
 
   @override
   void initState() {
@@ -382,7 +382,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               subtitle: Text(
                                 _offlinePending > 0
                                     ? '$_offlinePending modification(s) en attente'
-                                    : 'File vide — sync au retour réseau automatique',
+                                    : 'À jour — rien à synchroniser',
                               ),
                               trailing: const Icon(Icons.play_arrow),
                               onTap: () async {
@@ -397,7 +397,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   SnackBar(
                                     content: Text(
                                       ok
-                                          ? 'Sync terminée ($_offlinePending restant(s))'
+                                          ? (_offlinePending == 0
+                                              ? 'Synchronisation terminée — tout est à jour'
+                                              : 'Sync partielle — $_offlinePending encore en attente')
                                           : 'Réseau indisponible — les actions restent en file',
                                     ),
                                   ),

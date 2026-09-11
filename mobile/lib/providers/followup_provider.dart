@@ -21,7 +21,7 @@ class FollowUpProvider with ChangeNotifier {
 
   List<FollowUp> get completedFollowUps => filterPastFollowUps(_followUps);
 
-  static const _staleAfter = Duration(seconds: 45);
+  static const _staleAfter = Duration(minutes: 3);
 
   void _notifySafely() {
     final phase = SchedulerBinding.instance.schedulerPhase;

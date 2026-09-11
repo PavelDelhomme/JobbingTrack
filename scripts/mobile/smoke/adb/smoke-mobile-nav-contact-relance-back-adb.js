@@ -93,7 +93,9 @@ async function ensureLoggedIn(phone, email, password) {
     }
   }
   await phone.shellCommand(
-    'am start -n com.example.jobbingtrack_mobile/.MainActivity',
+    await phone.shellCommand(
+      `am start -n ${process.env.MOBILE_APP_PACKAGE || 'com.example.jobbingtrack_mobile'}/.MainActivity`,
+    );
   );
   await phone.wait(3500);
   await adbLib.flows.dismissBiometricUnlock(phone, { password });

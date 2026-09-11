@@ -6,7 +6,7 @@ class ThemeController extends ChangeNotifier {
   ThemeController._();
   static final ThemeController instance = ThemeController._();
 
-  ThemeMode _mode = ThemeMode.system;
+  ThemeMode _mode = ThemeMode.dark;
   bool _loaded = false;
 
   ThemeMode get mode => _mode;
@@ -39,10 +39,11 @@ class ThemeController extends ChangeNotifier {
     switch (raw) {
       case 'light':
         return ThemeMode.light;
-      case 'dark':
-        return ThemeMode.dark;
-      default:
+      case 'system':
         return ThemeMode.system;
+      case 'dark':
+      default:
+        return ThemeMode.dark;
     }
   }
 

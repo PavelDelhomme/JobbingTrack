@@ -52,7 +52,9 @@ const SNACK_TEXT = 'Appuyez à nouveau pour mettre l\'application en arrière-pl
     console.log('✅ 2e BACK : app en arrière-plan (ou écran système)');
   }
 
-  await phone.shellCommand('am start -n com.example.jobbingtrack_mobile/.MainActivity');
+  await phone.shellCommand(
+    `am start -n ${process.env.MOBILE_APP_PACKAGE || 'com.example.jobbingtrack_mobile'}/.MainActivity`,
+  );
   await phone.wait(2000);
   await ensureHomeTab(phone);
   if (!(await phone.uiContains('Bonjour'))) {

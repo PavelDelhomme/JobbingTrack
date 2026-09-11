@@ -7,16 +7,36 @@
 
 const adbLib = require('../../../../tools/adb-lib');
 const { resolveWorkingUserCredentials, GATEWAY_URL } = require('../../lib/resolve-user-credentials');
-const { loadRootEnv } = require('../../lib/resolve-admin-credentials');
+const {
+  loadRootEnv,
+  resolveWorkingAdminCredentials,
+  getGatewayUrl,
+} = require('../../lib/resolve-admin-credentials');
 
 loadRootEnv();
+
+async function resolveSmokeCredentials() {
+  if (process.env.SMOKE_USE_ADMIN === '1') {
+    return resolveWorkingAdminCredentials();
+  }
+  try {
+    return await resolveWorkingUserCredentials();
+  } catch (err) {
+    console.warn('TEST_USER KO — fallback ADMIN:', err.message);
+    return resolveWorkingAdminCredentials();
+  }
+}
+
+function gatewayUrl() {
+  return getGatewayUrl() || GATEWAY_URL;
+}
 
 function nodeLabel(n) {
   return `${n.text || ''}\n${n.contentDesc || ''}`.trim();
 }
 
 async function api(method, path, body, token) {
-  const res = await fetch(`${GATEWAY_URL}${path}`, {
+  const res = await fetch(`${gatewayUrl()}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -103,8 +123,8 @@ async function ensureLoggedIn(phone, email, password) {
 }
 
 (async () => {
-  const { email, password } = await resolveWorkingUserCredentials();
-  const loginRes = await fetch(`${GATEWAY_URL}/api/v1/auth/login`, {
+  const { email, password } = await resolveSmokeCredentials();
+  const loginRes = await fetch(`${gatewayUrl()}/api/v1/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -115,7 +135,13 @@ async function ensureLoggedIn(phone, email, password) {
 
   const eventTitle = await seedInterimCalendarEvent(token);
 
-  const phone = await adbLib.connect();
+  const phone = await adbLib.connect(
+    process.env.MOBILE_ADB_DEVICE ||
+      process.env.ADB_DEVICE_ID ||
+      process.env.DEVICE_SERIAL ||
+      undefined,
+  );
+  console.log('Device:', phone.deviceId);
   console.log('User:', email);
 
   await ensureLoggedIn(phone, email, password);

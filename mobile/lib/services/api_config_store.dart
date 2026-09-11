@@ -211,7 +211,8 @@ class ApiConfigStore {
 
   static Future<String> loadThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyThemeMode) ?? 'system';
+    // Défaut sombre (aligné produit) si jamais choisi.
+    return prefs.getString(_keyThemeMode) ?? 'dark';
   }
 
   static Future<void> saveThemeMode(String mode) async {

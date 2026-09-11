@@ -1,26 +1,26 @@
 {
-  "updatedAt": "2026-09-10",
+  "updatedAt": "2026-09-11",
   "apk": "1.0.55",
   "phase": {
     "id": "B",
     "label": "Gate pré-prod mobile",
     "step": "UX",
-    "subStep": "dark-mode",
-    "point": "MOB-DARK-01",
-    "title": "Dark mode mobile aligné web"
+    "subStep": "perf-reload-theme",
+    "point": "MOB-UX-PERF-01",
+    "title": "Stop reloads + calendrier + dark — à valider porteur"
   },
   "recentDone": [
     {
+      "id": "MOB-UX-PERF-01-apk",
+      "label": "APK 1.0.55 Blackview + sync « À jour » + nested-back OK"
+    },
+    {
+      "id": "MOB-UX-PERF-01",
+      "label": "ValueKey sous-onglets + TTL 3min + calendar cache + dark défaut"
+    },
+    {
       "id": "MOB-DARK-01-tokens",
       "label": "Tokens thème + login/listes/formulaires sans Colors.white"
-    },
-    {
-      "id": "BO-BOFFICE-NAV-RL-01",
-      "label": "Nav service-logs + scroll + RL 400 auth + MailHog off prod"
-    },
-    {
-      "id": "MOB-NAV-01-samsung-adb",
-      "label": "Samsung: nested + contact/relance + FAB + interview nav OK"
     }
   ],
   "queue": [
@@ -29,5 +29,5 @@
       "label": "Validation porteur lot 1.0.53→1.0.55 (fin de lot)"
     }
   ],
-  "focusId": "MOB-DARK-01"
+  "focusId": "MOB-UX-PERF-01"
 }

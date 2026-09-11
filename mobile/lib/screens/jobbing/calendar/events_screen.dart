@@ -39,6 +39,7 @@ class EventsScreen extends StatefulWidget {
 class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListRefreshMixin {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   List<Map<String, dynamic>> _events = [];
+  Map<String, List<Map<String, dynamic>>> _eventsByDayKey = {};
   bool _loading = true;
   bool _fromCache = false;
   String? _error;
@@ -47,7 +48,7 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
   DateTime _selectedDay = DateTime.now();
   DateTime _weekAnchor = DateTime.now();
   DateTime? _lastLoadedAt;
-  static const _staleAfter = Duration(seconds: 45);
+  static const _staleAfter = Duration(minutes: 3);
 
   @override
   void initState() {
@@ -83,6 +84,7 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
         showEvents: f.events,
         showInterim: f.interim,
       );
+      _rebuildDayIndex();
     });
   }
 
@@ -92,40 +94,72 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
         DateTime.now().difference(_lastLoadedAt!) < _staleAfter) {
       return;
     }
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final uid = (auth.user?.id ?? '').trim();
+
+    // Afficher le cache immédiatement (évite le spinner long au 1er ouverture).
+    if (_events.isEmpty && uid.isNotEmpty) {
+      final cached = await OfflineEntityCache.instance.loadList(uid, OfflineEntityKeys.events);
+      if (cached != null && cached.isNotEmpty && mounted) {
+        setState(() {
+          _events = cached.map((e) => Map<String, dynamic>.from(e)).toList();
+          _fromCache = true;
+          _loading = false;
+          _rebuildDayIndex();
+        });
+      }
+    }
+
     final showSpinner = _events.isEmpty && _lastLoadedAt == null;
     if (showSpinner) {
       setState(() {
         _loading = true;
         _error = null;
       });
-    } else {
+    } else if (mounted) {
       setState(() => _error = null);
     }
     try {
-      final auth = Provider.of<AuthProvider>(context, listen: false);
       final result = await OfflineListLoader.loadMaps(
         userId: auth.user?.id,
         cacheKey: OfflineEntityKeys.events,
-        fetch: () => ApiService.getCalendarEvents(token: auth.token, limit: 200),
+        fetch: () => ApiService.getCalendarEvents(token: auth.token, limit: 120),
       );
       if (mounted) {
         setState(() {
           _events = result.items;
           _fromCache = result.fromCache;
           _lastLoadedAt = DateTime.now();
+          _loading = false;
+          _rebuildDayIndex();
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString().replaceAll('Exception: ', '');
-          _fromCache = false;
+          _error = e.toString();
+          _loading = false;
         });
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && _loading) setState(() => _loading = false);
     }
   }
+
+  void _rebuildDayIndex() {
+    final map = <String, List<Map<String, dynamic>>>{};
+    for (final e in _events.where(_matchesFilters)) {
+      final d = _parseStart(e);
+      final key = _dayKey(d);
+      map.putIfAbsent(key, () => []).add(e);
+    }
+    for (final list in map.values) {
+      list.sort((a, b) => _parseStart(a).compareTo(_parseStart(b)));
+    }
+    _eventsByDayKey = map;
+  }
+
+  String _dayKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
 
   Future<void> _openEvent(Map<String, dynamic> e) async {
     final interviewId = e['interviewId']?.toString();
@@ -244,7 +278,12 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
     if (isInterim && !_filters.showInterim) return false;
     if (e['interviewId'] != null && !_filters.showInterviews) return false;
     if (e['followUpId'] != null && !_filters.showFollowups) return false;
-    if (e['interviewId'] == null && e['followUpId'] == null && !isInterim && !_filters.showEvents) {
+    final hasCall = e['callId'] != null;
+    if (e['interviewId'] == null &&
+        e['followUpId'] == null &&
+        !hasCall &&
+        !isInterim &&
+        !_filters.showEvents) {
       return false;
     }
     return true;
@@ -272,13 +311,9 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
   }
 
   List<Map<String, dynamic>> _eventsForDay(DateTime day) {
-    final start = DateTime(day.year, day.month, day.day);
-    final end = start.add(const Duration(days: 1));
-    return _filteredEvents.where((e) {
-      final dt = _parseStart(e);
-      return !dt.isBefore(start) && dt.isBefore(end);
-    }).toList()
-      ..sort((a, b) => _parseStart(a).compareTo(_parseStart(b)));
+    return List<Map<String, dynamic>>.from(
+      _eventsByDayKey[_dayKey(day)] ?? const <Map<String, dynamic>>[],
+    );
   }
 
   void _shiftWeek(int delta) {
@@ -298,7 +333,10 @@ class _EventsScreenState extends State<EventsScreen> with RouteAware, ShellListR
         viewMode: _viewMode,
         filters: _filters,
         onViewModeChanged: (m) => setState(() => _viewMode = m),
-        onFiltersChanged: (f) => setState(() => _filters = f),
+        onFiltersChanged: (f) => setState(() {
+          _filters = f;
+          _rebuildDayIndex();
+        }),
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'fab_calendar_plan',

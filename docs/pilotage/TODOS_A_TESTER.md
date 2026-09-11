@@ -11,6 +11,22 @@
 
 ---
 
+## En cours — MOB-UX-PERF-01 (11/09/2026)
+
+> Stop reloads sous-onglets, calendrier, sync UX, dark défaut, couleurs. **Blackview only**.
+
+| Zone | Check | Résultat | Suite |
+|------|-------|----------|-------|
+| Build | `build-apk-debug.sh --flavor dev` (fix `!zip.isFile` multi-flavor) | **OK** APK 151 Mo | |
+| Install | Blackview `EEA9700PRO0014587` JT Dev 1.0.55 | **OK** | |
+| Code | ValueKey sans `_applicationsTabIndex` · TTL 3 min | **OK** | |
+| UI | Sous-onglets Entreprises/Contacts/Appels : `loading=false` (pas de remount) | **OK** BV | |
+| UI | Sync « À jour — rien à synchroniser » | **OK** BV | |
+| UI | Apparence Clair/Sombre + toggle 🌙 à côté Bonjour | **OK** BV | |
+| Smoke | nested-back | **OK** | |
+| Smoke | FAB appel/entretien · interview-nav | **KO/timeout** | package `.dev` + run-as — outillage |
+| Notifs | Push FCM réel | **N/A** (dev token) | in-app FOLLOWUP_DUE / INTERVIEW via API |
+
 ## En cours — MOB-DARK-01 (10/09/2026)
 
 > Alignement dark mode mobile sur tokens web. **Tests ADB = Blackview uniquement** (Samsung réservé).

@@ -31,11 +31,12 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ---
 
-## ▶ En cours maintenant — MOB-DARK-01 + MOB-LOT-VALID-01 (Blackview)
+## ▶ En cours maintenant — MOB-UX-PERF-01 (Blackview) — **à valider porteur**
 
-> **Appareil** : Blackview `EEA9700PRO0014587` **uniquement** (Samsung réservé autre projet).  
-> Toggle ☀️/🌙 à côté de « Bonjour » + ellipsis · dark mode tokens · fix relance statuts API + calendrier appel.  
-> File porteur lot 1.0.53→1.0.55.
+> **Appareil** : Blackview `EEA9700PRO0014587` **uniquement**.  
+> Livré APK **1.0.55** (JT Dev) : stop remount sous-onglets · TTL 3 min · calendrier cache · sync « À jour » · dark défaut · couleurs statuts.  
+> Smokes : nested-back **OK** · FAB/interview flaky (run-as / package) · sync + thème **OK** UI.  
+> Suite : validation porteur → **MOB-LOT-VALID-01**.
 
 ---
 
