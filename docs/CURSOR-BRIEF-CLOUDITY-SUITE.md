@@ -151,3 +151,13 @@ Recommandations Cursor/ops :
 - identity-sdk réel.
 
 **Fin du brief — garder ce fichier à jour si la structure `products/` évolue.**
+
+---
+
+## Mise à jour 15/09/2026
+
+Décisions à trancher **avant code** : repo Cloudity  
+`docs/ecosystem/EMAIL-PORTEUR-DECISIONS-SUITE-2026-09-15.md`  
+(+ `ARCHITECTURE-CURSOR-PORTAINER-SUITE.md`).
+
+Volumes JT confirmés sur VPS — **ne pas** `down -v`.

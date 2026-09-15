@@ -1,17 +1,15 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **7 septembre 2026**
+Dernière mise à jour : **15 septembre 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : MOB-NAV-01** — retours système depuis chaque écran détail  
-**Git** : branche `feat/mobile-metier-ops-v1055` (depuis `dev`) · APK **1.0.55**  
-**Appareils** : Samsung + Blackview en **1.0.55** (3 flavors) — Nothing à rebrancher  
+**Focus** : hygiene docs + intégration **Cloudity Suite** (submodule) sans perte de données  
+**Git** : branche `dev` · APK **1.0.55**  
+**Appareil tests** : Blackview `EEA9700PRO0014587` (Samsung interdit si autre projet)
 
-**Clôturé 07/09 (porteur OK)** : **BO-OVERVIEW-KPI-MEM-01** — KPI cliquables + budget **8 Go** prod/préprod/local + `force-refresh-jt-services.sh`.  
+**Suite Cloudity** : [`../SUITE-ECOSYSTEM-LINK.md`](../SUITE-ECOSYSTEM-LINK.md) + email décisions dans le repo Cloudity.
 
-**File porteur** : validation lot mobile 1.0.53→1.0.55 (hubs, filtres, OTA, TTL) — reportée fin de lot.
-
-**Prochaine action** : MOB-NAV-01 (retours système) ; puis checklist porteur lot mobile.
+**File produit** : validation UX mobile Blackview (`MOB-UX-PERF-01` / `MOB-LOT-VALID-01`).
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist : [`TODOS.md`](TODOS.md) ▶ En cours  
