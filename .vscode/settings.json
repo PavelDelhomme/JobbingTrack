@@ -1,4 +1,11 @@
 {
     "makefile.configureOnOpen": false,
-    "java.compile.nullAnalysis.mode": "automatic"
+    "java.compile.nullAnalysis.mode": "automatic",
+    "git.enabled": true,
+    "git.autoRepositoryDetection": true,
+    "git.openRepositoryInParentFolders": "always",
+    "git.detectSubmodules": true,
+    "scm.alwaysShowRepositories": true,
+    "scm.repositories.visible": 10,
+    "scm.providerCountBadge": "auto"
 }

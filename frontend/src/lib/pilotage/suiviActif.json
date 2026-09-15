@@ -1,18 +1,18 @@
 {
-  "updatedAt": "2026-09-11",
+  "updatedAt": "2026-09-15",
   "apk": "1.0.55",
   "phase": {
     "id": "B",
     "label": "Gate pré-prod mobile",
-    "step": "UX",
-    "subStep": "perf-reload-theme",
-    "point": "MOB-UX-PERF-01",
-    "title": "Stop reloads + calendrier + dark — à valider porteur"
+    "step": "Structure",
+    "subStep": "triage-inventory",
+    "point": "DOCS-TRIAGE-01",
+    "title": "Inventaire architecture tampon + tri repo"
   },
   "recentDone": [
     {
       "id": "MOB-UX-PERF-01-apk",
-      "label": "APK 1.0.55 Blackview + sync « À jour » + nested-back OK"
+      "label": "APK 1.0.55 Blackview + sync « À jour » + nested-back OK (e9b01550)"
     },
     {
       "id": "MOB-UX-PERF-01",
@@ -25,9 +25,17 @@
   ],
   "queue": [
     {
+      "id": "MOB-UX-PERF-01",
+      "label": "Validation porteur UX Blackview"
+    },
+    {
       "id": "MOB-LOT-VALID-01",
       "label": "Validation porteur lot 1.0.53→1.0.55 (fin de lot)"
+    },
+    {
+      "id": "CHORE-STRUCTURE-01",
+      "label": "Appliquer décisions triage (chore/repo-structure-cleanup)"
     }
   ],
-  "focusId": "MOB-UX-PERF-01"
+  "focusId": "DOCS-TRIAGE-01"
 }

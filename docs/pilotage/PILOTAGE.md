@@ -1,15 +1,16 @@
 # Pilotage JobbingTrack
 
-Dernière mise à jour : **11 septembre 2026**
+Dernière mise à jour : **15 septembre 2026**
 
 ## ▶ Où on en est
 
-**Focus (1 seule) : MOB-UX-PERF-01 → validation porteur**  
-**Git** : branche `feat/mobile-metier-ops-v1055` (depuis `dev`) · APK **1.0.55** (JT Dev)  
-**Appareils** : **Blackview seul** (`EEA9700PRO0014587`) — Samsung **interdit** (autre projet / batterie)
+**Focus (1 seule) : docs/architecture-triage-inventory** — inventaire tampon + tri structure repo  
+**Git** : branche `docs/architecture-triage-inventory` (depuis `feat/mobile-metier-ops-v1055`) · APK **1.0.55**  
+**Appareils** : **Blackview seul** (`EEA9700PRO0014587`) — Samsung **interdit**
 
-**Livré 11/09** : stop remount Entreprises/Contacts/Appels · TTL listes 3 min · calendrier cache · libellé sync « À jour » · dark défaut + toggle 🌙 · build debug `--flavor dev` (anti `!zip.isFile`).  
+**Contexte** : lot mobile UX (`MOB-UX-PERF-01`, commit `e9b01550`) livré ; validation porteur + `MOB-LOT-VALID-01` restent en file.  
+**Tampon triage** : [`triage-temp/README.md`](triage-temp/README.md) + inventaire complet [`triage-temp/ARCHITECTURE_TRIAGE_INVENTORY.md`](triage-temp/ARCHITECTURE_TRIAGE_INVENTORY.md) (**à supprimer** après décisions).
 
-**Prochaine action** : validation porteur UX Blackview puis **MOB-LOT-VALID-01**.
+**Prochaine action** : annoter le tampon (priorités 1–8) → branche `chore/repo-structure-cleanup` pour appliquer suppressions/déplacements.
 
 Guide : **[`DEPLOY.md`](../../DEPLOY.md)** · Checklist : [`TODOS.md`](TODOS.md) ▶ En cours  

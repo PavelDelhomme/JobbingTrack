@@ -1,8 +1,8 @@
 # 🎯 JobbingTrack - Plateforme de Suivi de Candidatures
 
-> **Version 1.0.1** | **Architecture Microservices** | **Next.js 14** | **Flutter** | **PostgreSQL** | **Docker**
+> **Version 1.0.55** | **Architecture Microservices** | **Next.js 14** | **Flutter** | **PostgreSQL** | **Docker**
 
-[![Version](https://img.shields.io/badge/Version-v1.0.1-green.svg)](https://github.com/OWNER/JobbingTrack)
+[![Version](https://img.shields.io/badge/Version-v1.0.55-green.svg)](https://github.com/PavelDelhomme/JobbingTrack)
 [![Status](https://img.shields.io/badge/Status-BETA-blue.svg)]()
 [![Backend](https://img.shields.io/badge/Backend-Node.js_20-green.svg)]()
 [![Frontend](https://img.shields.io/badge/Frontend-Next.js_14-black.svg)]()
@@ -18,19 +18,21 @@
 
 | Fichier | Rôle |
 |---------|------|
-| **README.md** | Présentation, démarrage rapide, liens docs. C’est le seul Markdown conservé à la racine. |
+| **README.md** | Présentation, démarrage rapide, liens docs. C’est le seul Markdown « vitrine » à la racine (avec `DEPLOY.md`). |
 | **[docs/pilotage/PILOTAGE.md](docs/pilotage/PILOTAGE.md)** | Point d’entrée obligatoire — flux porteur / agent |
-| **[docs/pilotage/TODOS_A_VALIDER.md](docs/pilotage/TODOS_A_VALIDER.md)** | Validations porteur bloquantes |
-| **[docs/pilotage/TODOS_A_VERIFIER.md](docs/pilotage/TODOS_A_VERIFIER.md)** | Preuves techniques agent |
+| **[docs/pilotage/TODOS_A_VALIDER.md](docs/pilotage/TODOS_A_VALIDER.md)** | Validations porteur bloquantes (phase active) |
+| **[docs/pilotage/TODOS_A_TESTER.md](docs/pilotage/TODOS_A_TESTER.md)** | Preuves / résultats de tests agent |
 | **[docs/STATUS.md](docs/STATUS.md)** | **État courant** — priorités, journal, hub doc |
 | **[docs/pilotage/TODOS.md](docs/pilotage/TODOS.md)** | Backlog technique (cases à cocher) |
+| **[docs/pilotage/triage-temp/README.md](docs/pilotage/triage-temp/README.md)** | **Tampon triage** structure (temporaire) |
 | **[docs/project/PLAN.md](docs/project/PLAN.md)** | Plan lots A–H |
 | **[docs/project/BACKLOG.md](docs/project/BACKLOG.md)** | Backlog agile (reporté, dettes) |
 | **[docs/project/FONCTIONNALITES.md](docs/project/FONCTIONNALITES.md)** | Liste complète des fonctionnalités |
 | **[docs/project/RESOLUTIONS.md](docs/project/RESOLUTIONS.md)** | Correctifs actés |
 | **[docs/troubleshooting/ERRORS.md](docs/troubleshooting/ERRORS.md)** | Erreurs connues actives |
 
-Pour savoir **ce qu’il faut faire** → **[docs/STATUS.md](docs/STATUS.md)** et **[docs/mobile/PROCHAINES_ETAPES.md](docs/mobile/PROCHAINES_ETAPES.md)**. Chantier structuré → **[docs/project/PLAN.md](docs/project/PLAN.md)** et **[docs/pilotage/TODOS.md](docs/pilotage/TODOS.md)**.
+Pour savoir **ce qu’il faut faire** → **[docs/pilotage/PILOTAGE.md](docs/pilotage/PILOTAGE.md)** et **[docs/pilotage/TODOS.md](docs/pilotage/TODOS.md)**.  
+Tri structure en cours → **[docs/pilotage/triage-temp/README.md](docs/pilotage/triage-temp/README.md)**.
 
 ### 📚 Documentation détaillée
 

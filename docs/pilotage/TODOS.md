@@ -1,6 +1,6 @@
 # TODOS — choses à faire (source de vérité)
 
-Dernière mise à jour : **8 septembre 2026**
+Dernière mise à jour : **15 septembre 2026**
 
 ## Process de suivi (obligatoire)
 
@@ -31,18 +31,17 @@ Détail règles : [`PILOTAGE.md`](PILOTAGE.md) · branches : [`../development/BR
 
 ---
 
-## ▶ En cours maintenant — MOB-UX-PERF-01 (Blackview) — **à valider porteur**
+## ▶ En cours maintenant — docs/architecture-triage-inventory
 
-> **Appareil** : Blackview `EEA9700PRO0014587` **uniquement**.  
-> Livré APK **1.0.55** (JT Dev) : stop remount sous-onglets · TTL 3 min · calendrier cache · sync « À jour » · dark défaut · couleurs statuts.  
-> Smokes : nested-back **OK** · FAB/interview flaky (run-as / package) · sync + thème **OK** UI.  
-> Suite : validation porteur → **MOB-LOT-VALID-01**.
+> Inventaire tampon + décisions de tri (doublons, archives, déplacements).  
+> Entrée : [`triage-temp/README.md`](triage-temp/README.md).  
+> File produit : validation `MOB-UX-PERF-01` / `MOB-LOT-VALID-01` (APK 1.0.55 Blackview).
 
 ---
 
-## File — MOB-LOT-VALID-01 (validation porteur 1.0.53→1.0.55)
+## File — MOB-UX-PERF-01 / MOB-LOT-VALID-01
 
-> Hubs FAB, OTA catch-up, création, filtres, quick-create — **code livré** ; porteur valide en fin de lot.
+> UX mobile livrée (`e9b01550`) — **à valider porteur** sur Blackview, puis lot 1.0.53→1.0.55.
 
 ---
 

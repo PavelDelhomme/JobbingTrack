@@ -11,6 +11,17 @@
 
 ---
 
+## En cours — DOCS-TRIAGE-01 (15/09/2026)
+
+> Inventaire tampon structure. Branche `docs/architecture-triage-inventory`.
+
+| Zone | Check | Résultat | Suite |
+|------|-------|----------|-------|
+| Doc | `triage-temp/ARCHITECTURE_TRIAGE_INVENTORY.md` (2907 fichiers) | **OK** généré | Annoter porteur |
+| Doc | `triage-temp/README.md` priorités 1–8 | **OK** | Décisions |
+| Git Cursor | settings SCM workspace + user | **OK** posé | Reload Window |
+| Push | `feat/mobile-metier-ops-v1055` `e9b01550` | **OK** | |
+
 ## En cours — MOB-UX-PERF-01 (11/09/2026)
 
 > Stop reloads sous-onglets, calendrier, sync UX, dark défaut, couleurs. **Blackview only**.

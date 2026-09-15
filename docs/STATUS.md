@@ -1,16 +1,24 @@
 # JobbingTrack - Statut du projet
 
-**Dernière mise à jour** : **6 septembre 2026**
+**Dernière mise à jour** : **15 septembre 2026**
 
 ## ▶ Où on en est
 
 | | |
 |---|---|
-| **Phase** | Mobile — OTA + UX métier |
-| **Point** | **MOB-METIER-OPS-01** — FAB Relance/Appel/Entretien + CallProvider + calendrier |
-| **Branche** | `fix/mobile-application-create-ux` |
-| **APK** | `1.0.55+55` (branche `feat/mobile-metier-ops-v1055`) |
+| **Phase** | Tri structure repo + file validation mobile |
+| **Point** | **DOCS-TRIAGE-01** — inventaire tampon architecture |
+| **Branche** | `docs/architecture-triage-inventory` (depuis `feat/mobile-metier-ops-v1055`) |
+| **APK** | `1.0.55+55` |
 | **UI suivi** | `/backoffice/pilotage` · source vive : [`pilotage/PILOTAGE.md`](pilotage/PILOTAGE.md) |
+| **Tampon** | [`pilotage/triage-temp/README.md`](pilotage/triage-temp/README.md) |
+
+## Correctifs 11/09 (MOB-UX-PERF-01)
+
+- Stop remount sous-onglets Entreprises/Contacts/Appels · TTL listes 3 min
+- Calendrier cache-first · sync « À jour — rien à synchroniser »
+- Dark défaut + toggle 🌙 · build APK `--flavor dev`
+- Commit `e9b01550` poussé sur `feat/mobile-metier-ops-v1055`
 
 ## Correctifs 06/09 (session suite métier)
 
