@@ -25,7 +25,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        resValue("string", "app_name", "JobbingTrack")
+        resValue("string", "app_name", "Hubera Jobs")
     }
 
     // Trois apps côte à côte (dev / préprod / prod) + OTA par canal API.
@@ -34,16 +34,16 @@ android {
         create("dev") {
             dimension = "env"
             applicationIdSuffix = ".dev"
-            resValue("string", "app_name", "JT Dev")
+            resValue("string", "app_name", "Hubera Jobs Dev")
         }
         create("preprod") {
             dimension = "env"
             applicationIdSuffix = ".preprod"
-            resValue("string", "app_name", "JT Préprod")
+            resValue("string", "app_name", "Hubera Jobs Preprod")
         }
         create("prod") {
             dimension = "env"
-            resValue("string", "app_name", "JobbingTrack")
+            resValue("string", "app_name", "Hubera Jobs")
         }
     }
 
