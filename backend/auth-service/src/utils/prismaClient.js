@@ -71,9 +71,33 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
+/** Login par email principal ou alias (Hubera ID), sans Prisma schema change. */
+async function findUserByLoginEmail(email) {
+  const e = String(email || '')
+    .toLowerCase()
+    .trim();
+  if (!e) return null;
+  const primary = await prisma.user.findUnique({ where: { email: e } });
+  if (primary) return primary;
+  try {
+    const rows = await prisma.$queryRaw`
+      SELECT u.id FROM "User" u
+      JOIN user_email_aliases a ON a.user_id = u.id
+      WHERE a.email = ${e}
+      LIMIT 1
+    `;
+    const id = rows?.[0]?.id;
+    if (id) return prisma.user.findUnique({ where: { id } });
+  } catch {
+    /* table absente */
+  }
+  return null;
+}
+
 module.exports = {
   prisma,
   initializePrisma,
-  testConnection
+  testConnection,
+  findUserByLoginEmail,
 };
 

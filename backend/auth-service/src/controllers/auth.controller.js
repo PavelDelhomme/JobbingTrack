@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const axios = require('axios');
 const logger = require('../utils/logger');
 const emailService = require('../services/emailService');
-const { prisma } = require('../utils/prismaClient');
+const { prisma, findUserByLoginEmail } = require('../utils/prismaClient');
 
 const register = async (req, res, next) => {
   try {
@@ -35,9 +35,7 @@ const register = async (req, res, next) => {
     // Vérifier si l'utilisateur existe déjà (avec gestion d'erreur P2021)
     let existingUser = null;
     try {
-      existingUser = await prisma.user.findUnique({
-        where: { email: email.toLowerCase() }
-      });
+      existingUser = await findUserByLoginEmail(email);
     } catch (error) {
       // Si la table User n'existe pas (P2021), on considère qu'aucun utilisateur n'existe
       if (error.code === 'P2021' || error.message?.includes('does not exist')) {
@@ -206,9 +204,7 @@ const login = async (req, res, next) => {
     } else {
       try {
         // Essayer de récupérer l'utilisateur depuis la base de données
-        user = await prisma.user.findUnique({
-          where: { email: email.toLowerCase() }
-        });
+        user = await findUserByLoginEmail(email);
       } catch (error) {
         // Fallback si table User n'existe pas (P2021) - Mode développement
         // Capturer TOUTES les erreurs Prisma liées à la table manquante
@@ -1157,9 +1153,7 @@ const forgotPassword = async (req, res, next) => {
     // Trouver l'utilisateur (version temporaire pour contourner le problème de schéma)
     let user;
     try {
-      user = await prisma.user.findUnique({
-        where: { email: email.toLowerCase() }
-      });
+      user = await findUserByLoginEmail(email);
     } catch (schemaError) {
       // Si erreur de schéma, retourner un utilisateur mock pour le développement
       if (schemaError.code === 'P2022' && schemaError.meta?.column?.includes('roles')) {
@@ -1939,9 +1933,7 @@ const resendVerificationEmail = async (req, res, next) => {
     }
 
     // Trouver l'utilisateur
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() }
-    });
+    const user = await findUserByLoginEmail(email);
 
     if (!user) {
       // Ne pas révéler si l'utilisateur existe ou non pour la sécurité
