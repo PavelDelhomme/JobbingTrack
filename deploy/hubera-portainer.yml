@@ -1,0 +1,15 @@
+# Overlay Hubera — documentation exécutable (extension Compose).
+# NE PAS créer une nouvelle stack. NE PAS down -v.
+# NE PAS renommer postgres prod ni jobbingtrack-prod_postgres_data.
+# Updates: https://hubera.cloud/updates/jobs.json
+
+x-hubera:
+  slug: jobs
+  update_channel: jobs
+  update_url: https://hubera.cloud/updates/jobs.json
+  immutable_volumes:
+    - jobbingtrack-prod_postgres_data
+    - jobbingtrack-preprod_postgres_data
+  live_containers:
+    - jobbingtrack-prod-frontend
+    - jobbingtrack-prod-api-gateway
