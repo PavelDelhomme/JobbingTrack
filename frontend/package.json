@@ -1,7 +1,7 @@
 {
-  "name": "jobbingtrack-frontend",
+  "name": "@hubera/jobs-web",
   "version": "1.0.2",
-  "description": "JobbingTrack Dashboard Admin - Interface Next.js v1.0.2",
+  "description": "Hubera Jobs (JobbingTrack) — dashboard admin Next.js v1.0.2",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack -H 0.0.0.0",
