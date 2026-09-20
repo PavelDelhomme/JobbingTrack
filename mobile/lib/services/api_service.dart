@@ -22,15 +22,46 @@ class ApiService {
 
   static bool lastRequestWasNetworkFailure = false;
   static String? _resolvedBaseUrl;
+  static DateTime? lastSuccessfulHttpAt;
+
+  static String get _apiRoot {
+    const fromEnv = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    final raw = (fromEnv.isNotEmpty ? fromEnv : baseUrl).trim();
+    return raw.endsWith('/') ? raw.substring(0, raw.length - 1) : raw;
+  }
 
   /// Indique si l'API répond (sans consommer le JWT métier).
+  ///
+  /// Un GET `/health` trop court (3 s) sur Android 9 concurrent aux appels
+  /// métier donnait un faux « hors ligne » alors que refresh JWT + listes
+  /// passaient. On s'aligne sur les mêmes chemins que la gateway et on
+  /// considère un HTTP métier récent comme preuve de connectivité.
   static Future<bool> isReachable() async {
-    try {
-      final res = await http.get(Uri.parse('$baseUrl/health')).timeout(const Duration(seconds: 3));
-      return res.statusCode == 200;
-    } catch (_) {
-      return false;
+    final recent = lastSuccessfulHttpAt;
+    if (recent != null &&
+        !lastRequestWasNetworkFailure &&
+        DateTime.now().difference(recent) < const Duration(seconds: 45)) {
+      return true;
     }
+    final root = _apiRoot;
+    for (final path in const ['/api/v1/health', '/health']) {
+      try {
+        final res = await http
+            .get(
+              Uri.parse('$root$path'),
+              headers: const {'Accept': 'application/json'},
+            )
+            .timeout(const Duration(seconds: 8));
+        debugPrint('[API] isReachable $path -> ${res.statusCode}');
+        if (res.statusCode >= 200 && res.statusCode < 500) {
+          lastSuccessfulHttpAt = DateTime.now();
+          return true;
+        }
+      } catch (e) {
+        debugPrint('[API] isReachable $path fail: $e');
+      }
+    }
+    return false;
   }
 
   static bool _isExemptAuthRevokePath(String path) {
@@ -64,18 +95,25 @@ class ApiService {
   }
 
   static Future<bool> _probeHealth(String url) async {
-    try {
-      debugPrint('[API] Test: $url/health');
-      final res = await http
-          .get(Uri.parse('$url/health'))
-          .timeout(const Duration(seconds: 2));
-      if (res.statusCode == 200) {
-        _resolvedBaseUrl = url;
-        debugPrint('[API] OK: $url');
-        return true;
+    final root = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+    for (final path in const ['/api/v1/health', '/health']) {
+      try {
+        debugPrint('[API] Test: $root$path');
+        final res = await http
+            .get(
+              Uri.parse('$root$path'),
+              headers: const {'Accept': 'application/json'},
+            )
+            .timeout(const Duration(seconds: 8));
+        if (res.statusCode >= 200 && res.statusCode < 500) {
+          _resolvedBaseUrl = root;
+          lastSuccessfulHttpAt = DateTime.now();
+          debugPrint('[API] OK: $root$path (${res.statusCode})');
+          return true;
+        }
+      } catch (e) {
+        debugPrint('[API] Echec: $root$path ($e)');
       }
-    } catch (_) {
-      debugPrint('[API] Echec: $url');
     }
     return false;
   }
@@ -176,6 +214,7 @@ class ApiService {
         cb(path, response.statusCode, sw.elapsedMilliseconds);
       }
       if (response.statusCode >= 200 && response.statusCode < 500) {
+        lastSuccessfulHttpAt = DateTime.now();
         unawaited(AnalyticsTelemetryQueue.instance.flush());
         unawaited(OfflineBusinessSyncQueue.instance.flush());
       }
