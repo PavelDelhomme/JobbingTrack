@@ -14,6 +14,7 @@ export const VITRINE_HOSTS = [
   "jobbingtrack.com",
   "www.jobbingtrack.com",
   "preprod.jobbingtrack.com",
+  "jobs.hubera.cloud",
   "jobbingtrack.localhost",
   "localhost",
 ] as const;

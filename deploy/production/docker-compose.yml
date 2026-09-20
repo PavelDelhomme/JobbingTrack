@@ -10,6 +10,7 @@
 # Domaines :
 #   préprod : preprod.jobbingtrack.com / api-preprod.jobbingtrack.com
 #   prod    : jobbingtrack.com (+ www) / api.jobbingtrack.com
+#   dual Hubera : jobs.hubera.cloud (front) / api.jobs.hubera.cloud (gateway, DNS nested à part)
 # Dev local = docker-compose.yml sur le PC (pas cette stack).
 
 name: jobbingtrack

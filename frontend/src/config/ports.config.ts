@@ -127,6 +127,10 @@ function publicApiUrlFromHost(hostname: string): string | undefined {
   ) {
     return "https://api.jobbingtrack.com";
   }
+  // Dual alias Hubera : même API que jobbingtrack.com (CORS ALLOWED_ORIGINS).
+  if (h === "jobs.hubera.cloud" || h === "api.jobs.hubera.cloud") {
+    return "https://api.jobbingtrack.com";
+  }
   return undefined;
 }
 

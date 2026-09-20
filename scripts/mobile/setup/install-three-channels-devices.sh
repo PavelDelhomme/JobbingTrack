@@ -27,7 +27,7 @@ fi
 LAN_IP="${LAN_IP:-192.168.1.134}"
 LOCAL_API="http://${LAN_IP}:5002"
 PREPROD_API="${MOBILE_PREPROD_API_URL:-https://api-preprod.jobbingtrack.com}"
-PROD_API="${MOBILE_PROD_API_URL:-https://api.jobbingtrack.com}"
+PROD_API="${MOBILE_PROD_API_URL:-https://jobs.hubera.cloud}"
 
 # Cibles appareils : Nothing Phone + Samsung (pas Blackview).
 NOTHING_ID="${NOTHING_DEVICE_ID:-}"

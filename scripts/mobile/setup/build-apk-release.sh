@@ -12,7 +12,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$ROOT/scripts/mobile/setup/resolve-flutter.sh"
 
 MOBILE_DIR="$ROOT/mobile"
-API_URL="${API_BASE_URL:-${MOBILE_PROD_API_URL:-https://api.jobbingtrack.com}}"
+API_URL="${API_BASE_URL:-${MOBILE_PROD_API_URL:-https://jobs.hubera.cloud}}"
 FLAVOR="${FLAVOR:-prod}"
 CHANNEL="${MOBILE_RELEASE_CHANNEL:-}"
 
