@@ -159,7 +159,7 @@ class JobbingTrackMobileApp extends StatelessWidget {
           builder: (context, _) => MaterialApp(
         navigatorKey: appNavigatorKey,
         scaffoldMessengerKey: rootScaffoldMessengerKey,
-        title: 'JobbingTrack Mobile',
+        title: 'Hubera Jobs',
         debugShowCheckedModeBanner: false,
         builder: (context, child) => ImpersonationBanner(
           child: TelemetryDevStatusBanner(child: child),
@@ -377,11 +377,11 @@ class _SplashScreenState extends State<_SplashScreen> {
                   width: 72,
                   height: 72,
                   fit: BoxFit.cover,
-                  semanticLabel: 'Logo JobbingTrack',
+                  semanticLabel: 'Logo Hubera Jobs',
                 ),
               ),
               const SizedBox(height: 16),
-              Text('JobbingTrack', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue[800])),
+              Text('Hubera Jobs', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue[800])),
               const SizedBox(height: 24),
               if (_error == null) ...[
                 const CircularProgressIndicator(),
