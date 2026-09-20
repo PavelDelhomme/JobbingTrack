@@ -99,11 +99,11 @@ export function VitrinePage({ backofficeCanonical }: VitrinePageProps) {
         </section>
 
         <section className="mt-16 rounded-2xl border border-dashed border-slate-300/80 bg-white/50 p-8 text-center dark:border-slate-700 dark:bg-slate-900/30">
-          <h2 className="text-xl font-semibold">Site vitrine en construction</h2>
+          <h2 className="text-xl font-semibold">Vitrine JobbingTrack</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm text-slate-600 dark:text-slate-400">
-            Cette page présente JobbingTrack. L&apos;application candidat et
-            l&apos;inscription en ligne arriveront ici. En attendant, la
-            plateforme tourne en préproduction pour les tests internes.
+            jobs.hubera.cloud est la vitrine publique. Le backoffice s&apos;ouvre
+            via Administration (/login) — dual alias avec jobbingtrack.com, sans
+            fusion de comptes. L&apos;inscription candidat publique arrivera ici.
           </p>
           <Link
             href={adminHref}
