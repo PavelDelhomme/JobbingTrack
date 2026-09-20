@@ -9,9 +9,9 @@ import {
 import { BACKOFFICE_BASE_PATH } from "@/config/backoffice.config";
 
 export const metadata: Metadata = {
-  title: "JobbingTrack — Suivi de candidatures",
+  title: "Hubera Jobs — Suivi de candidatures",
   description:
-    "JobbingTrack : plateforme de suivi de candidatures, entreprises, entretiens et mobile.",
+    "Hubera Jobs : suivi de candidatures, entreprises, entretiens et mobile.",
 };
 
 export default async function HomePage() {

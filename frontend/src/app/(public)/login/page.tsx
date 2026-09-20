@@ -92,7 +92,7 @@ export default function LoginPage() {
             <div className="flex justify-between items-start mb-6 sm:mb-8">
               <Image
                 src="/brand/jobbingtrack-logo.png"
-                alt="Logo JobbingTrack"
+                alt="Logo Hubera Jobs"
                 width={64}
                 height={64}
                 className="h-14 w-14 rounded-2xl shadow-lg sm:h-16 sm:w-16"
@@ -122,7 +122,7 @@ export default function LoginPage() {
             {/* Titre centré */}
             <div className="text-center">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white drop-shadow-lg">
-                JobbingTrack
+                Hubera Jobs
               </h2>
               <p className="mt-2 sm:mt-3 text-sm sm:text-base text-blue-100">
                 Backoffice Administrateur
@@ -270,7 +270,7 @@ export default function LoginPage() {
           {/* Footer */}
           <div className="px-6 sm:px-8 pb-6 sm:pb-8 text-center">
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-              © {currentYear} JobbingTrack • Version 1.0.0
+              © {currentYear} Hubera Jobs
             </p>
           </div>
         </div>

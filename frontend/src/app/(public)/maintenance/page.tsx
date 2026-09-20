@@ -3,8 +3,8 @@ import Link from "next/link";
 import { JobbingTrackLogo } from "@/components/brand/JobbingTrackLogo";
 
 export const metadata: Metadata = {
-  title: "Maintenance — JobbingTrack",
-  description: "JobbingTrack est temporairement en maintenance.",
+  title: "Maintenance — Hubera Jobs",
+  description: "Hubera Jobs est temporairement en maintenance.",
   robots: { index: false, follow: false },
 };
 
@@ -38,7 +38,7 @@ export default function MaintenancePage() {
           On prépare la suite.
         </h1>
         <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
-          Le site JobbingTrack est temporairement indisponible pendant une
+          Hubera Jobs est temporairement indisponible pendant une
           opération de déploiement. La préprod et l&apos;API restent
           accessibles pour l&apos;équipe.
         </p>

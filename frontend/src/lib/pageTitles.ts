@@ -3,7 +3,7 @@ import {
   resolveBackofficeDocumentTitle,
 } from "./backofficeDocumentTitles";
 
-export const APP_NAME = "JobbingTrack";
+export const APP_NAME = "Hubera Jobs";
 
 /** Titres exacts par chemin (sans query string) — hors backoffice (voir backofficeDocumentTitles). */
 export const PAGE_TITLE_BY_PATH: Record<string, string> = {

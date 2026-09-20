@@ -13,10 +13,10 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "JobbingTrack",
-    template: "%s | JobbingTrack",
+    default: "Hubera Jobs",
+    template: "%s | Hubera Jobs",
   },
-  description: "JobbingTrack - Plateforme de gestion des candidatures",
+  description: "Hubera Jobs — suivi de candidatures",
   icons: {
     icon: "/brand/jobbingtrack-logo.png",
     apple: "/brand/jobbingtrack-logo.png",
