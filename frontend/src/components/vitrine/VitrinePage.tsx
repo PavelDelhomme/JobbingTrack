@@ -33,9 +33,19 @@ type VitrinePageProps = {
 };
 
 export function VitrinePage({ backofficeCanonical }: VitrinePageProps) {
-  const adminHref = vitrineAdminLoginHref();
+  const adminHref =
+    backofficeCanonical && backofficeCanonical.includes("/backoffice")
+      ? "/backoffice"
+      : vitrineAdminLoginHref();
   const canonicalLogin =
     backofficeCanonical ?? "https://backoffice.jobbingtrack.com/login";
+  const canonicalHost = (() => {
+    try {
+      return new URL(canonicalLogin, "https://jobs.hubera.cloud").host;
+    } catch {
+      return "jobs.hubera.cloud";
+    }
+  })();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 text-slate-900 dark:from-gray-950 dark:via-gray-950 dark:to-slate-950 dark:text-slate-100">
@@ -45,6 +55,13 @@ export function VitrinePage({ backofficeCanonical }: VitrinePageProps) {
           imgClassName="h-11 w-11"
         />
         <div className="flex items-center gap-3">
+          <Link
+            href="/login"
+            prefetch={false}
+            className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-blue-700 dark:bg-white dark:text-slate-900 dark:hover:bg-blue-100 sm:text-sm"
+          >
+            Connexion
+          </Link>
           <Link
             href={adminHref}
             prefetch={false}
@@ -72,15 +89,20 @@ export function VitrinePage({ backofficeCanonical }: VitrinePageProps) {
             piloter la plateforme.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <span className="inline-flex items-center rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg dark:bg-white dark:text-slate-900">
-              Ouverture publique prochainement
-            </span>
-            <a
-              href="mailto:contact@jobbingtrack.com"
+            <Link
+              href="/login"
+              prefetch={false}
+              className="inline-flex items-center rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-700 dark:bg-white dark:text-slate-900 dark:hover:bg-blue-100"
+            >
+              Connexion
+            </Link>
+            <Link
+              href={adminHref}
+              prefetch={false}
               className="inline-flex items-center rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-blue-500 hover:text-blue-700 dark:border-slate-600 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:text-blue-300"
             >
-              Nous contacter
-            </a>
+              Administration
+            </Link>
           </div>
         </section>
 
@@ -101,9 +123,10 @@ export function VitrinePage({ backofficeCanonical }: VitrinePageProps) {
         <section className="mt-16 rounded-2xl border border-dashed border-slate-300/80 bg-white/50 p-8 text-center dark:border-slate-700 dark:bg-slate-900/30">
           <h2 className="text-xl font-semibold">Vitrine JobbingTrack</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm text-slate-600 dark:text-slate-400">
-            jobs.hubera.cloud est la vitrine publique. Le backoffice s&apos;ouvre
-            via Administration (/login) — dual alias avec jobbingtrack.com, sans
-            fusion de comptes. L&apos;inscription candidat publique arrivera ici.
+            jobs.hubera.cloud est la vitrine publique Hubera Jobs. Connexion ouvre
+            l&apos;espace, Administration ouvre le backoffice. Tu peux aussi éditer
+            cette landing dans HuberaPress. Dual alias jobbingtrack.com, sans
+            fusion de comptes.
           </p>
           <Link
             href={adminHref}
@@ -119,7 +142,7 @@ export function VitrinePage({ backofficeCanonical }: VitrinePageProps) {
               href={canonicalLogin}
               className="font-mono text-blue-600 hover:underline dark:text-blue-400"
             >
-              {new URL(canonicalLogin).host}
+              {canonicalHost}
             </a>
           </p>
         </section>
@@ -128,8 +151,14 @@ export function VitrinePage({ backofficeCanonical }: VitrinePageProps) {
       <footer className="mx-auto max-w-5xl px-6 pb-10 pt-4">
         <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200/80 pt-6 sm:flex-row dark:border-slate-800">
           <p className="text-xs text-slate-500 dark:text-slate-500">
-            © {new Date().getFullYear()} JobbingTrack — Pavel Delhomme
+            © {new Date().getFullYear()} Hubera Jobs — Pavel Delhomme
           </p>
+          <a
+            href="https://press.hubera.cloud/admin/projects"
+            className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-blue-600 hover:underline dark:text-slate-400 dark:hover:text-blue-400"
+          >
+            Éditer ce site dans HuberaPress
+          </a>
           <Link
             href={adminHref}
             prefetch={false}

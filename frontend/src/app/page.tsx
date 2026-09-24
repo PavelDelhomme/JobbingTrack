@@ -16,12 +16,15 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   const host = (await headers()).get("host");
+  const h = (host || "").split(":")[0].toLowerCase();
 
   if (isBackofficeHost(host)) {
     redirect(BACKOFFICE_BASE_PATH);
   }
 
-  const backofficeCanonical = `${resolveBackofficeOriginFromHost(host)}/login`;
+  const backofficeCanonical = h.endsWith("hubera.cloud")
+    ? "/backoffice"
+    : `${resolveBackofficeOriginFromHost(host)}/login`;
 
   return <VitrinePage backofficeCanonical={backofficeCanonical} />;
 }

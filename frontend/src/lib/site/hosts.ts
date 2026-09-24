@@ -49,6 +49,9 @@ export function resolveBackofficeOriginFromHost(
     const port = process.env.DEV_HTTPS_PORT || "5443";
     return `https://backoffice.jobbingtrack.localhost:${port}`;
   }
+  if (h.endsWith(".hubera.cloud") || h === "jobs.hubera.cloud") {
+    return `https://${h || "jobs.hubera.cloud"}`;
+  }
   return resolveBackofficeOrigin();
 }
 
